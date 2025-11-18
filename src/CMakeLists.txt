@@ -1,6 +1,6 @@
 add_library(core_lib STATIC 
-    UnionFind.cpp 
-    UnionFind.h
+    union_find.cpp 
+    union_find.h
 )
 target_include_directories(core_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 

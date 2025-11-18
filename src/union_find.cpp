@@ -1,6 +1,6 @@
-#include "UnionFind.h"
+#include "union_find.h"
 
-uint32_t UnionFind::find(uint32_t current) const
+uint32_t UnionFind::find_root(uint32_t current) const
 {
     if (current >= parents.size())
     {
@@ -26,7 +26,7 @@ uint32_t UnionFind::find_and_compress(uint32_t current)
     return parents[current];
 }
 
-void UnionFind::merge(uint32_t x, uint32_t y) noexcept
+void UnionFind::unite(uint32_t x, uint32_t y) noexcept
 {
     uint32_t rootX = find_and_compress(x);
     uint32_t rootY = find_and_compress(y);
@@ -36,14 +36,14 @@ void UnionFind::merge(uint32_t x, uint32_t y) noexcept
     }
 }
 
-uint32_t UnionFind::add()
+uint32_t UnionFind::make_set()
 {
     uint32_t newIndex = parents.size();
     parents.push_back(newIndex);
     return newIndex;
 }
 
-uint32_t UnionFind::size() const noexcept
+size_t UnionFind::size() const noexcept
 {
-    return static_cast<uint32_t>(parents.size());
+    return parents.size();
 }

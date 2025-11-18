@@ -1,13 +1,13 @@
 #include <gtest/gtest.h>
-#include "UnionFind.h"
+#include "union_find.h"
 #include <vector>
 
-TEST(UnionFindParentsTest, ParentsLayoutAfterCompression)
+TEST(UnionFind, ParentsLayoutAfterCompression)
 {
     UnionFind uf;
     const uint32_t n = 10;
     for (uint32_t i = 0; i < n; ++i)
-        uf.add();
+        uf.make_set();
 
     // initial condition: each element is its own parent
     std::vector<uint32_t> expected_init(n);
@@ -16,14 +16,14 @@ TEST(UnionFindParentsTest, ParentsLayoutAfterCompression)
     EXPECT_EQ(uf.parents, expected_init);
 
     // build up one set: {0,1,2,3}
-    uf.merge(0, 1);
-    uf.merge(0, 2);
-    uf.merge(0, 3);
+    uf.unite(0, 1);
+    uf.unite(0, 2);
+    uf.unite(0, 3);
 
     // build up another set: {6,7,8,9}
-    uf.merge(6, 7);
-    uf.merge(6, 8);
-    uf.merge(6, 9);
+    uf.unite(6, 7);
+    uf.unite(6, 8);
+    uf.unite(6, 9);
 
     // compress paths
     for (uint32_t i = 0; i < n; ++i)
