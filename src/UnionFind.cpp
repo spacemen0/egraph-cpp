@@ -13,7 +13,7 @@ uint32_t UnionFind::find(uint32_t current) const
     return current;
 }
 
-uint32_t UnionFind::find_mut(uint32_t current)
+uint32_t UnionFind::find_and_compress(uint32_t current)
 {
     if (current >= parents.size())
     {
@@ -21,15 +21,15 @@ uint32_t UnionFind::find_mut(uint32_t current)
     }
     if (parents[current] != current)
     {
-        parents[current] = find_mut(parents[current]);
+        parents[current] = find_and_compress(parents[current]);
     }
     return parents[current];
 }
 
-void UnionFind::merge(uint32_t x, uint32_t y)
+void UnionFind::merge(uint32_t x, uint32_t y) noexcept
 {
-    uint32_t rootX = find_mut(x);
-    uint32_t rootY = find_mut(y);
+    uint32_t rootX = find_and_compress(x);
+    uint32_t rootY = find_and_compress(y);
     if (rootX != rootY)
     {
         parents[rootY] = rootX;
@@ -43,7 +43,7 @@ uint32_t UnionFind::add()
     return newIndex;
 }
 
-uint32_t UnionFind::size() const
+uint32_t UnionFind::size() const noexcept
 {
     return static_cast<uint32_t>(parents.size());
 }
