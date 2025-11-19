@@ -12,13 +12,6 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 include(GoogleTest)
 
-find_program(CLANG_TIDY "clang-tidy")
-
-if (CLANG_TIDY)
-    message(STATUS "Found clang-tidy: ${CLANG_TIDY}")
-    set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY}")
-endif()
-
 if (TARGET gtest)
     set_property(TARGET gtest PROPERTY CXX_CLANG_TIDY "")
 endif()
