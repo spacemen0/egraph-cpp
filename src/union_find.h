@@ -5,23 +5,23 @@
 #ifdef UNIT_TEST
 #include <gtest/gtest.h>
 #endif
+#include "types.h"
 
 class UnionFind
 {
 public:
     UnionFind() = default;
 
-    uint32_t find_root(uint32_t current) const;
+    Id find_root(Id current) const;
 
-    uint32_t find_and_compress(uint32_t current);
+    Id find_and_compress(Id current);
 
-    void unite(uint32_t x, uint32_t y) noexcept;
-    uint32_t make_set();
+    void unite(Id x, Id y) noexcept;
+    Id make_set();
     size_t size() const noexcept;
 
 private:
-    std::vector<uint32_t> parents;
-
+    std::vector<Id> parents;
 #ifdef UNIT_TEST
     FRIEND_TEST(UnionFind, ParentsLayoutAfterCompression);
 #endif

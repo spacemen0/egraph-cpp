@@ -5,13 +5,13 @@
 TEST(UnionFind, ParentsLayoutAfterCompression)
 {
     UnionFind uf;
-    const uint32_t n = 10;
-    for (uint32_t i = 0; i < n; ++i)
+    const Id n = 10;
+    for (Id i = 0; i < n; ++i)
         uf.make_set();
 
     // initial condition: each element is its own parent
-    std::vector<uint32_t> expected_init(n);
-    for (uint32_t i = 0; i < n; ++i)
+    std::vector<Id> expected_init(n);
+    for (Id i = 0; i < n; ++i)
         expected_init[i] = i;
     EXPECT_EQ(uf.parents, expected_init);
 
@@ -26,10 +26,10 @@ TEST(UnionFind, ParentsLayoutAfterCompression)
     uf.unite(6, 9);
 
     // compress paths
-    for (uint32_t i = 0; i < n; ++i)
+    for (Id i = 0; i < n; ++i)
         uf.find_and_compress(i);
 
     // expected parents after compression
-    std::vector<uint32_t> expected = {0, 0, 0, 0, 4, 5, 6, 6, 6, 6};
+    std::vector<Id> expected = {0, 0, 0, 0, 4, 5, 6, 6, 6, 6};
     EXPECT_EQ(uf.parents, expected);
 }
