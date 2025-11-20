@@ -1,16 +1,17 @@
 #pragma once
 #include <vector>
 #include "types.h"
+#include "e_node.h"
 
 class EClass
 {
 public:
     Id id;
-
-    const std::vector<Id> &get_nodes() const;
-    const std::vector<Id> &get_parents() const;
+    EClass(Id id) : id(id) {}
+    std::vector<ENode> &get_nodes();
+    std::vector<Id> &get_parents();
 
 private:
-    std::vector<Id> nodes;
+    std::vector<ENode> nodes;
     std::vector<Id> parents;
 };

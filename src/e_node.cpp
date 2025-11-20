@@ -25,7 +25,6 @@ bool ENode::matches(const ENode &other) const
     return true;
 }
 
-// access children (mutable/immutable)
 const Children &ENode::get_children() const
 {
     return children;

@@ -1,11 +1,11 @@
 #include "e_class.h"
 
-const std::vector<Id> &EClass::get_nodes() const
+std::vector<ENode> &EClass::get_nodes()
 {
     return nodes;
 }
 
-const std::vector<Id> &EClass::get_parents() const
+std::vector<Id> &EClass::get_parents()
 {
     return parents;
 }
