@@ -1,6 +1,7 @@
 add_executable(unit_tests 
     union_find_test.cpp
-    enode_test.cpp
+    e_node_test.cpp
+    e_graph_test.cpp
 )
 
 target_link_libraries(unit_tests 

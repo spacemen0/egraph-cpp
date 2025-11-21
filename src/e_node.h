@@ -63,3 +63,27 @@ public:
     size_t hash() const;
     bool is_leaf() const;
 };
+inline bool operator==(const ENode &a, const ENode &b) noexcept
+{
+    return a.matches(b);
+}
+inline bool operator!=(const ENode &a, const ENode &b) noexcept
+{
+    return !a.matches(b);
+}
+
+struct ENodePtrHash
+{
+    size_t operator()(const ENode *e) const noexcept
+    {
+        return e->hash();
+    }
+};
+
+struct ENodePtrEqual
+{
+    bool operator()(const ENode *a, const ENode *b) const noexcept
+    {
+        return *a == *b;
+    }
+};

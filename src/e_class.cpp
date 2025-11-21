@@ -1,6 +1,6 @@
 #include "e_class.h"
 
-std::vector<ENode> &EClass::get_nodes()
+std::vector<const ENode *> &EClass::get_nodes()
 {
     return nodes;
 }
