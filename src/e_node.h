@@ -5,18 +5,6 @@
 #include <variant>
 #include "types.h"
 
-enum class Op
-{
-    Add,
-    Mul,
-    Transpose,
-    Invert,
-    Negate,
-    Identity,
-    Zero,
-    Symbol
-};
-
 constexpr std::size_t op_arity(Op op) noexcept
 {
     switch (op)

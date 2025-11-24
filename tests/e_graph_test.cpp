@@ -55,8 +55,8 @@ TEST(EGraph, RebuildPendingParentsBasic)
     auto node1 = make_op(Op::Add, Children{ida, idb});
     auto node2 = make_op(Op::Add, Children{ida, idc});
 
-    Id add1 = egraph.add_node(node1);
-    Id add2 = egraph.add_node(node2);
+    egraph.add_node(node1);
+    egraph.add_node(node2);
 
     EXPECT_NE(egraph.find(node1).value(), egraph.find(node2).value());
 
@@ -100,8 +100,8 @@ TEST(EGraph, RebuildMultiLevelPendings)
     auto nested1 = make_op(Op::Add, Children{id_mul1, ida});
     auto nested2 = make_op(Op::Add, Children{id_mul2, ida});
 
-    Id id_nested1 = egraph.add_node(nested1);
-    Id id_nested2 = egraph.add_node(nested2);
+    egraph.add_node(nested1);
+    egraph.add_node(nested2);
     EXPECT_NE(egraph.find(nested1).value(), egraph.find(nested2).value());
 
     egraph.union_classes(idb, idc);
