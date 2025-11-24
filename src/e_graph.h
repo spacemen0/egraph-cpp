@@ -10,6 +10,13 @@
 class EGraph
 {
 public:
+    std::optional<Id> find_and_canonicalize(ENode &node);
+    std::optional<Id> find(const ENode &node);
+    Id add_node(ENode &node);
+    bool union_classes(Id id1, Id id2);
+    void rebuild();
+
+private:
     // stores the union-find structure for e-classes (which stores equivalences)
     UnionFind uf;
     // stores all e-nodes in the order they were added
@@ -20,13 +27,5 @@ public:
     std::unordered_map<const ENode *, Id, ENodePtrHash, ENodePtrEqual> memo;
     // stores mapping from EClass id to EClass
     std::unordered_map<Id, std::unique_ptr<EClass>> classes;
-
-    std::optional<Id> look_up(ENode &node);
-    std::optional<Id> find(const ENode &node);
-    Id add_node(ENode &node);
-    bool union_classes(Id id1, Id id2);
-    void rebuild();
-
-private:
     Id add_class(const ENode &node, const ENode &original);
 };

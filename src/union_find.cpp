@@ -36,6 +36,11 @@ void UnionFind::unite(Id x, Id y) noexcept
     }
 }
 
+std::vector<Id> UnionFind::get_parents() const noexcept
+{
+    return parents;
+}
+
 Id UnionFind::make_set()
 {
     Id newIndex = parents.size();

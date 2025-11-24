@@ -1,8 +1,8 @@
 #include "e_graph.h"
 #include <iostream>
 
-/// @brief Look up a node in the e-graph, returning its e-class ID if found
-std::optional<Id> EGraph::look_up(ENode &node)
+/// @brief Look up a node in the e-graph, canonicalizing its children first.
+std::optional<Id> EGraph::find_and_canonicalize(ENode &node)
 {
     for (auto &i : node.get_children_mut())
     {
@@ -13,6 +13,7 @@ std::optional<Id> EGraph::look_up(ENode &node)
     return it != memo.end() ? std::optional<Id>(uf.find_and_compress(it->second)) : std::nullopt;
 }
 
+/// @brief Look up a node in the e-graph without modifying its children.
 std::optional<Id> EGraph::find(const ENode &node)
 {
 

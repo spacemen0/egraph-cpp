@@ -13,7 +13,7 @@ TEST(UnionFind, ParentsLayoutAfterCompression)
     std::vector<Id> expected_init(n);
     for (Id i = 0; i < n; ++i)
         expected_init[i] = i;
-    EXPECT_EQ(uf.parents, expected_init);
+    EXPECT_EQ(uf.get_parents(), expected_init);
 
     // build up one set: {0,1,2,3}
     uf.unite(0, 1);
@@ -31,5 +31,5 @@ TEST(UnionFind, ParentsLayoutAfterCompression)
 
     // expected parents after compression
     std::vector<Id> expected = {0, 0, 0, 0, 4, 5, 6, 6, 6, 6};
-    EXPECT_EQ(uf.parents, expected);
+    EXPECT_EQ(uf.get_parents(), expected);
 }
