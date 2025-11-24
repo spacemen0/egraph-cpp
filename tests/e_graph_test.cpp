@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 #include "e_graph.h"
 #include "test_helper.h"
-using namespace std;
 
 TEST(EGraph, AddAndLookUpNode)
 {
@@ -9,7 +8,7 @@ TEST(EGraph, AddAndLookUpNode)
 
     auto sx = make_symbol("x");
     Id id1 = egraph.add_node(sx);
-    optional<Id> lookup1 = egraph.find(sx);
+    std::optional<Id> lookup1 = egraph.find(sx);
     EXPECT_TRUE(lookup1.has_value());
     EXPECT_EQ(lookup1.value(), id1);
 

@@ -12,7 +12,7 @@ public:
 
     Id find_and_compress(Id current);
 
-    void unite(Id x, Id y) noexcept;
+    void unite(Id x, Id y);
     std::vector<Id> get_parents() const noexcept;
     Id make_set();
     size_t size() const noexcept;

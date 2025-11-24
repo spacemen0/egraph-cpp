@@ -2,8 +2,6 @@
 #include "e_node.h"
 #include "test_helper.h"
 
-using namespace std;
-
 TEST(ENode, IsLeafAndArity)
 {
     auto s = make_symbol("x");

@@ -27,5 +27,4 @@ private:
     std::unordered_map<const ENode *, Id, ENodePtrHash, ENodePtrEqual> memo;
     // stores mapping from EClass id to EClass
     std::unordered_map<Id, std::unique_ptr<EClass>> classes;
-    Id add_class(const ENode &node, const ENode &original);
 };

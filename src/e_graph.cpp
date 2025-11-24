@@ -26,15 +26,31 @@ std::optional<Id> EGraph::find(const ENode &node)
 /// @brief Add a node to the e-graph, returning its e-class ID.
 /// @param node
 /// @return
-Id EGraph::add_node(ENode node) // take by value to own/move
+Id EGraph::add_node(ENode node)
 {
     if (auto found = find(node); found.has_value())
     {
         return found.value();
     }
 
-    Id class_id = add_class(node, node);
-    return class_id;
+    auto new_id = uf.make_set();
+    auto new_class = std::make_unique<EClass>(new_id);
+
+    // Move the node
+    auto new_node_owner = std::make_unique<ENode>(std::move(node));
+    const ENode *stable_ptr = new_node_owner.get();
+    nodes.push_back(std::move(new_node_owner));
+
+    new_class->get_nodes().push_back(stable_ptr);
+
+    for (auto child_id : stable_ptr->get_children())
+    {
+        classes.at(child_id)->get_parents().push_back(new_id);
+    }
+
+    memo[stable_ptr] = new_id;
+    classes.emplace(new_id, std::move(new_class));
+    return new_id;
 }
 
 /// @brief Union two e-classes given their IDs.
@@ -54,17 +70,18 @@ bool EGraph::union_classes(Id id1, Id id2)
         std::swap(root1, root2);
     }
 
-    auto class2_ptr = std::move(classes.at(root2));
-    classes.erase(root2);
+    // takes the ownership of class2 to a local unique_ptr
+    auto node_handle = classes.extract(root2);
+    auto class2_ptr = std::move(node_handle.mapped());
 
-    // Now unite the sets. After this, find(root2) will be root1.
+    // find(root2) will be root1.
     uf.unite(root1, root2);
 
     auto &class1_ref = classes.at(root1);
 
     pendings.insert(pendings.end(), class2_ptr->get_parents().begin(), class2_ptr->get_parents().end());
 
-    // Efficiently move the nodes and parents from class2 to class1
+    // move the nodes and parents from class2 to class1
     auto &nodes1 = class1_ref->get_nodes();
     auto &nodes2 = class2_ptr->get_nodes();
     nodes1.insert(nodes1.end(),
@@ -98,28 +115,5 @@ void EGraph::rebuild()
             union_classes(existing_class_id, pending_id);
         }
         memo.emplace(node, pending_id);
-        printf("Rebuilt pending node into e-class %u\n", pending_id);
     }
-}
-
-Id EGraph::add_class(const ENode &node, const ENode &original)
-{
-    auto new_id = uf.make_set();
-    auto new_class = std::make_unique<EClass>(new_id);
-
-    // Create the owned copy first
-    auto new_node_owner = std::make_unique<ENode>(original);
-    const ENode *stable_ptr = new_node_owner.get();
-    nodes.push_back(std::move(new_node_owner));
-
-    new_class->get_nodes().push_back(stable_ptr);
-
-    for (auto child_id : node.get_children())
-    {
-        classes.at(child_id)->get_parents().push_back(new_id);
-    }
-
-    memo[stable_ptr] = new_id;
-    classes.emplace(new_id, std::move(new_class));
-    return new_id;
 }

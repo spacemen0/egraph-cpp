@@ -49,7 +49,7 @@ private:
     std::variant<std::monostate, int, std::string> payload;
 
 public:
-    ENode(Op op, const Children &children = {}, std::variant<std::monostate, int, std::string> payload = {})
+    explicit ENode(Op op, const Children &children = {}, std::variant<std::monostate, int, std::string> const &payload = {})
         : op(op), children(children), payload(payload) {}
     size_t arity() const;
     Op discriminant() const;
@@ -62,15 +62,17 @@ public:
     std::string to_string() const;
     size_t hash() const;
     bool is_leaf() const;
+
+    // Declare operator== as a hidden friend
+    friend bool operator==(const ENode &a, const ENode &b) noexcept
+    {
+        return a.matches(b);
+    };
+    friend bool operator!=(const ENode &a, const ENode &b) noexcept
+    {
+        return !a.matches(b);
+    }
 };
-inline bool operator==(const ENode &a, const ENode &b) noexcept
-{
-    return a.matches(b);
-}
-inline bool operator!=(const ENode &a, const ENode &b) noexcept
-{
-    return !a.matches(b);
-}
 
 struct ENodePtrHash
 {

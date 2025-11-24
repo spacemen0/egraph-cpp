@@ -26,7 +26,7 @@ Id UnionFind::find_and_compress(Id current)
     return parents[current];
 }
 
-void UnionFind::unite(Id x, Id y) noexcept
+void UnionFind::unite(Id x, Id y)
 {
     Id rootX = find_and_compress(x);
     Id rootY = find_and_compress(y);
@@ -43,7 +43,7 @@ std::vector<Id> UnionFind::get_parents() const noexcept
 
 Id UnionFind::make_set()
 {
-    Id newIndex = parents.size();
+    auto newIndex = static_cast<Id>(parents.size());
     parents.push_back(newIndex);
     return newIndex;
 }
