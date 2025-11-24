@@ -1,15 +1,24 @@
 #include "e_graph.h"
 #include <iostream>
 
+/// @brief Look up a node in the e-graph, returning its e-class ID if found
 std::optional<Id> EGraph::look_up(ENode &node)
 {
-    for (auto i : node.get_children_mut())
+    for (auto &i : node.get_children_mut())
     {
         i = uf.find_and_compress(i);
     }
     auto temp_node_ptr = std::make_unique<ENode>(node);
     auto it = memo.find(temp_node_ptr.get());
-    return it != memo.end() ? std::optional<Id>(it->second) : std::nullopt;
+    return it != memo.end() ? std::optional<Id>(uf.find_and_compress(it->second)) : std::nullopt;
+}
+
+std::optional<Id> EGraph::find(const ENode &node)
+{
+
+    auto temp_node_ptr = std::make_unique<ENode>(node);
+    auto it = memo.find(temp_node_ptr.get());
+    return it != memo.end() ? std::optional<Id>(uf.find_and_compress(it->second)) : std::nullopt;
 }
 
 /// @brief Add a node to the e-graph, returning its e-class ID.
@@ -17,9 +26,9 @@ std::optional<Id> EGraph::look_up(ENode &node)
 /// @return
 Id EGraph::add_node(ENode &node)
 {
-    if (look_up(node).has_value())
+    if (find(node).has_value())
     {
-        return look_up(node).value();
+        return find(node).value();
     }
     Id class_id = add_class(node, node);
     return class_id;
@@ -86,6 +95,7 @@ void EGraph::rebuild()
             union_classes(existing_class_id, pending_id);
         }
         memo.emplace(node, pending_id);
+        printf("Rebuilt pending node into e-class %u\n", pending_id);
     }
 }
 
@@ -93,13 +103,20 @@ Id EGraph::add_class(const ENode &node, const ENode &original)
 {
     auto new_id = uf.make_set();
     auto new_class = std::make_unique<EClass>(new_id);
-    new_class->get_nodes().push_back(&node);
-    nodes.push_back(std::make_unique<ENode>(original));
+
+    // Create the owned copy first
+    auto new_node_owner = std::make_unique<ENode>(original);
+    const ENode *stable_ptr = new_node_owner.get();
+    nodes.push_back(std::move(new_node_owner));
+
+    new_class->get_nodes().push_back(stable_ptr);
+
     for (auto child_id : node.get_children())
     {
         classes.at(child_id)->get_parents().push_back(new_id);
     }
-    memo[&node] = new_id;
+
+    memo[stable_ptr] = new_id;
     classes.emplace(new_id, std::move(new_class));
     return new_id;
 }
