@@ -8,8 +8,9 @@ std::optional<Id> EGraph::find_and_canonicalize(ENode &node)
     {
         i = uf.find_and_compress(i);
     }
-    auto temp_node_ptr = std::make_unique<ENode>(node);
-    auto it = memo.find(temp_node_ptr.get());
+
+    ENode temp(node);
+    auto it = memo.find(&temp);
     return it != memo.end() ? std::optional<Id>(uf.find_and_compress(it->second)) : std::nullopt;
 }
 
@@ -17,20 +18,21 @@ std::optional<Id> EGraph::find_and_canonicalize(ENode &node)
 std::optional<Id> EGraph::find(const ENode &node)
 {
 
-    auto temp_node_ptr = std::make_unique<ENode>(node);
-    auto it = memo.find(temp_node_ptr.get());
+    ENode temp(node);
+    auto it = memo.find(&temp);
     return it != memo.end() ? std::optional<Id>(uf.find_and_compress(it->second)) : std::nullopt;
 }
 
 /// @brief Add a node to the e-graph, returning its e-class ID.
 /// @param node
 /// @return
-Id EGraph::add_node(ENode &node)
+Id EGraph::add_node(ENode node) // take by value to own/move
 {
-    if (find(node).has_value())
+    if (auto found = find(node); found.has_value())
     {
-        return find(node).value();
+        return found.value();
     }
+
     Id class_id = add_class(node, node);
     return class_id;
 }
