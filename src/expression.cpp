@@ -26,7 +26,7 @@ Expression::Expression(std::string_view string)
     auto pos = string.find('(');
     if (pos == std::string_view::npos)
     {
-        op_or_string = Expressionvar{std::string(trim(string))};
+        op_or_string = std::string(trim(string));
         return;
     }
 

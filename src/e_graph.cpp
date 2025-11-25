@@ -53,6 +53,11 @@ Id EGraph::add_node(ENode node)
     return new_id;
 }
 
+Id EGraph::add_expression(Expression expr)
+{
+    return Id();
+}
+
 /// @brief Union two e-classes given their IDs.
 /// @param id1
 /// @param id2

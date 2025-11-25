@@ -5,34 +5,14 @@
 #include <variant>
 #include "types.h"
 
-constexpr std::size_t op_arity(Op op) noexcept
-{
-    switch (op)
-    {
-    case Op::Add:
-        return 2;
-    case Op::Mul:
-        return 2;
-    case Op::Transpose:
-        return 1;
-    case Op::Invert:
-        return 1;
-    case Op::Negate:
-        return 1;
-    case Op::Identity:
-        return 0;
-    case Op::Zero:
-        return 0;
-    }
-}
 class ENode
 {
 private:
     Children children;
-    std::variant<Op, int, std::string> op_or_string;
+    Term op_or_string;
 
 public:
-    explicit ENode(const Children &children, std::variant<Op, int, std::string> const &op_or_string)
+    explicit ENode(const Children &children, Term const &op_or_string)
         : children(children), op_or_string(op_or_string) {}
     bool matches(const ENode &other) const;
 

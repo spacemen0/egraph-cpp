@@ -6,6 +6,7 @@
 #include "union_find.h"
 #include "e_node.h"
 #include "e_class.h"
+#include "expression.h"
 
 class EGraph
 {
@@ -13,6 +14,7 @@ public:
     std::optional<Id> find_and_canonicalize(ENode &node);
     std::optional<Id> find(const ENode &node);
     Id add_node(ENode node);
+    Id add_expression(Expression expr);
     bool union_classes(Id id1, Id id2);
     void rebuild();
 

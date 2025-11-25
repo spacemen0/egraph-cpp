@@ -2,8 +2,6 @@
 #include <cstdint>
 #include <vector>
 
-using Id = uint32_t;
-using Children = std::vector<Id>;
 enum class Op
 {
     Add,
@@ -14,3 +12,7 @@ enum class Op
     Identity,
     Zero,
 };
+
+using Id = uint32_t;
+using Children = std::vector<Id>;
+using Term = std::variant<Op, std::string>;

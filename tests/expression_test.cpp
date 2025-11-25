@@ -4,7 +4,7 @@
 TEST(Expression, ParseVariable)
 {
     Expression p("x");
-    EXPECT_EQ(std::get<Expressionvar>(p.op_or_string).name, "x");
+    EXPECT_EQ(std::get<std::string>(p.op_or_string), "x");
     EXPECT_TRUE(p.children.empty());
 }
 
@@ -20,10 +20,10 @@ TEST(Expression, ParseOperationWithChildren)
     Expression p(" Add ( x, y) ");
     EXPECT_EQ(std::get<Op>(p.op_or_string), Op::Add);
     ASSERT_EQ(p.children.size(), 2);
-    EXPECT_TRUE(std::holds_alternative<Expressionvar>(p.children[0].op_or_string));
-    EXPECT_EQ(std::get<Expressionvar>(p.children[0].op_or_string).name, "x");
-    EXPECT_TRUE(std::holds_alternative<Expressionvar>(p.children[1].op_or_string));
-    EXPECT_EQ(std::get<Expressionvar>(p.children[1].op_or_string).name, "y");
+    EXPECT_TRUE(std::holds_alternative<std::string>(p.children[0].op_or_string));
+    EXPECT_EQ(std::get<std::string>(p.children[0].op_or_string), "x");
+    EXPECT_TRUE(std::holds_alternative<std::string>(p.children[1].op_or_string));
+    EXPECT_EQ(std::get<std::string>(p.children[1].op_or_string), "y");
 }
 
 TEST(Expression, ParseNestedOperations)
@@ -34,13 +34,13 @@ TEST(Expression, ParseNestedOperations)
     const Expression &add_child = p.children[0];
     EXPECT_EQ(std::get<Op>(add_child.op_or_string), Op::Add);
     ASSERT_EQ(add_child.children.size(), 2);
-    EXPECT_TRUE(std::holds_alternative<Expressionvar>(add_child.children[0].children[0].op_or_string));
-    EXPECT_EQ(std::get<Expressionvar>(add_child.children[0].children[0].op_or_string).name, "x");
-    EXPECT_TRUE(std::holds_alternative<Expressionvar>(add_child.children[1].op_or_string));
-    EXPECT_EQ(std::get<Expressionvar>(add_child.children[1].op_or_string).name, "y");
+    EXPECT_TRUE(std::holds_alternative<std::string>(add_child.children[0].children[0].op_or_string));
+    EXPECT_EQ(std::get<std::string>(add_child.children[0].children[0].op_or_string), "x");
+    EXPECT_TRUE(std::holds_alternative<std::string>(add_child.children[1].op_or_string));
+    EXPECT_EQ(std::get<std::string>(add_child.children[1].op_or_string), "y");
     const Expression &transpose_child = p.children[1];
     EXPECT_EQ(std::get<Op>(transpose_child.op_or_string), Op::Transpose);
     ASSERT_EQ(transpose_child.children.size(), 1);
-    EXPECT_TRUE(std::holds_alternative<Expressionvar>(transpose_child.children[0].op_or_string));
-    EXPECT_EQ(std::get<Expressionvar>(transpose_child.children[0].op_or_string).name, "z");
+    EXPECT_TRUE(std::holds_alternative<std::string>(transpose_child.children[0].op_or_string));
+    EXPECT_EQ(std::get<std::string>(transpose_child.children[0].op_or_string), "z");
 }
