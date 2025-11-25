@@ -13,5 +13,6 @@ public:
 private:
     Id id;
     std::vector<const ENode *> nodes;
+    // parents are Enodes pointing to this class
     std::vector<Id> parents;
 };

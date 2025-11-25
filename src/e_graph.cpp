@@ -1,22 +1,17 @@
 #include "e_graph.h"
 #include <iostream>
 
-/// @brief Look up a node in the e-graph, canonicalizing its children first.
+/// @brief Canonicalize the children of a node.
 /// @param node
-/// @return EClass ID if found, std::nullopt otherwise
-std::optional<Id> EGraph::find_and_canonicalize(ENode &node)
+void EGraph::canonicalize_node(ENode &node)
 {
     for (auto &i : node.get_children_mut())
     {
         i = uf.find_and_compress(i);
     }
-
-    ENode temp(node);
-    auto it = memo.find(&temp);
-    return it != memo.end() ? std::optional<Id>(uf.find_and_compress(it->second)) : std::nullopt;
 }
 
-/// @brief Look up a node in the e-graph without modifying its children.
+/// @brief Look up a node in the e-graph.
 /// @param node
 /// @return EClass ID if found, std::nullopt otherwise
 std::optional<Id> EGraph::find(const ENode &node)

@@ -11,7 +11,7 @@
 class EGraph
 {
 public:
-    std::optional<Id> find_and_canonicalize(ENode &node);
+    void canonicalize_node(ENode &node);
     std::optional<Id> find(const ENode &node);
     Id find_class_id(Id node_id) const;
     Id add_node(ENode node);

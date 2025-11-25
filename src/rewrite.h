@@ -1,9 +1,7 @@
 #pragma once
-#include "expression.h"
+#include <string>
 
 struct Rewrite
 {
     std::string name;
-    Expression lhs;
-    Expression rhs;
 };
