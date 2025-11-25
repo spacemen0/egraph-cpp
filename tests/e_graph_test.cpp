@@ -41,7 +41,7 @@ TEST(EGraph, UnionClasses)
     EXPECT_EQ(root1, root2);
 }
 
-TEST(EGraph, RebuildPendingParentsBasic)
+TEST(EGraph, RebuildParentsBasic)
 {
     EGraph egraph;
 
@@ -55,21 +55,49 @@ TEST(EGraph, RebuildPendingParentsBasic)
     auto node1 = make_op(Op::Add, Children{ida, idb});
     auto node2 = make_op(Op::Add, Children{ida, idc});
 
-    egraph.add_node(node1);
-    egraph.add_node(node2);
+    auto id_node1 = egraph.add_node(node1);
+    auto id_node2 = egraph.add_node(node2);
 
-    EXPECT_NE(egraph.find(node1).value(), egraph.find(node2).value());
+    EXPECT_NE(egraph.find_class_id(id_node1), egraph.find_class_id(id_node2));
 
     egraph.union_classes(idb, idc);
 
-    EXPECT_NE(egraph.find(node1).value(), egraph.find(node2).value());
-
+    EXPECT_NE(egraph.find_class_id(id_node1), egraph.find_class_id(id_node2));
     egraph.rebuild();
 
-    EXPECT_EQ(egraph.find(node1).value(), egraph.find(node2).value());
+    EXPECT_EQ(egraph.find_class_id(id_node1), egraph.find_class_id(id_node2));
 }
 
-TEST(EGraph, RebuildMultiLevelPendings)
+TEST(EGraph, RebuildParentsBasicReverse)
+{
+    EGraph egraph;
+
+    auto sa = make_symbol("a");
+    auto sb = make_symbol("b");
+    auto sc = make_symbol("c");
+    Id ida = egraph.add_node(sa);
+    Id idb = egraph.add_node(sb);
+    Id idc = egraph.add_node(sc);
+
+    auto node1 = make_op(Op::Add, Children{ida, idb});
+    auto node2 = make_op(Op::Add, Children{ida, idc});
+
+    auto id_node1 = egraph.add_node(node1);
+    auto id_node2 = egraph.add_node(node2);
+
+    EXPECT_TRUE(egraph.find(node1).has_value());
+    EXPECT_TRUE(egraph.find(node2).has_value());
+    EXPECT_NE(egraph.find_class_id(id_node1), egraph.find_class_id(id_node2));
+
+    egraph.union_classes(idc, idb);
+
+    EXPECT_NE(egraph.find_class_id(id_node1), egraph.find_class_id(id_node2));
+    egraph.rebuild();
+
+    EXPECT_EQ(egraph.find_class_id(id_node1), egraph.find_class_id(id_node2));
+}
+
+TEST(EGraph, RebuildMultiLevelParents)
 {
     EGraph egraph;
 
@@ -88,38 +116,120 @@ TEST(EGraph, RebuildMultiLevelPendings)
 
     Id id_add_ab = egraph.add_node(add_ab);
     Id id_add_ac = egraph.add_node(add_ac);
-    EXPECT_NE(egraph.find(add_ab).value(), egraph.find(add_ac).value());
+    EXPECT_NE(egraph.find_class_id(id_add_ab), egraph.find_class_id(id_add_ac));
 
     auto mul1 = make_op(Op::Mul, Children{id_add_ab, idd});
     auto mul2 = make_op(Op::Mul, Children{id_add_ac, idd});
 
     Id id_mul1 = egraph.add_node(mul1);
     Id id_mul2 = egraph.add_node(mul2);
-    EXPECT_NE(egraph.find(mul1).value(), egraph.find(mul2).value());
+    EXPECT_NE(egraph.find_class_id(id_mul1), egraph.find_class_id(id_mul2));
 
     auto nested1 = make_op(Op::Add, Children{id_mul1, ida});
     auto nested2 = make_op(Op::Add, Children{id_mul2, ida});
 
-    egraph.add_node(nested1);
-    egraph.add_node(nested2);
-    EXPECT_NE(egraph.find(nested1).value(), egraph.find(nested2).value());
+    Id id_nested1 = egraph.add_node(nested1);
+    Id id_nested2 = egraph.add_node(nested2);
+    EXPECT_NE(egraph.find_class_id(id_nested1), egraph.find_class_id(id_nested2));
 
     egraph.union_classes(idb, idc);
 
     egraph.rebuild();
-    EXPECT_EQ(egraph.find(add_ab).value(), egraph.find(add_ac).value());
-    EXPECT_NE(egraph.find(mul1).value(), egraph.find(mul2).value());
-    EXPECT_NE(egraph.find(nested1).value(), egraph.find(nested2).value());
+    EXPECT_EQ(egraph.find_class_id(id_add_ab), egraph.find_class_id(id_add_ac));
+    EXPECT_NE(egraph.find_class_id(id_mul1), egraph.find_class_id(id_mul2));
+    EXPECT_NE(egraph.find_class_id(id_nested1), egraph.find_class_id(id_nested2));
 
     egraph.rebuild();
-    EXPECT_EQ(egraph.find(mul1).value(), egraph.find(mul2).value());
-    EXPECT_NE(egraph.find(nested1).value(), egraph.find(nested2).value());
+    EXPECT_EQ(egraph.find_class_id(id_mul1), egraph.find_class_id(id_mul2));
+    EXPECT_NE(egraph.find_class_id(id_nested1), egraph.find_class_id(id_nested2));
 
     egraph.rebuild();
-    EXPECT_EQ(egraph.find(nested1).value(), egraph.find(nested2).value());
+    EXPECT_EQ(egraph.find_class_id(id_nested1), egraph.find_class_id(id_nested2));
 
-    auto root_nested = egraph.find(nested1).value();
+    Id root_nested = egraph.find_class_id(id_nested1);
     egraph.rebuild();
-    EXPECT_EQ(root_nested, egraph.find(nested1).value());
-    EXPECT_EQ(root_nested, egraph.find(nested2).value());
+    EXPECT_EQ(root_nested, egraph.find_class_id(id_nested1));
+    EXPECT_EQ(root_nested, egraph.find_class_id(id_nested2));
+}
+
+TEST(EGraph, AddExpression)
+{
+    EGraph egraph;
+
+    Expression expr("Add(Mul(x, y), Transpose(z))");
+    Id expr_id = egraph.add_expression(expr);
+
+    auto x = make_symbol("x");
+    auto y = make_symbol("y");
+    auto z = make_symbol("z");
+    EXPECT_TRUE(egraph.find(x).has_value());
+    EXPECT_TRUE(egraph.find(y).has_value());
+    EXPECT_TRUE(egraph.find(z).has_value());
+
+    auto mul_xy = make_op(Op::Mul, Children{egraph.find(x).value(), egraph.find(y).value()});
+    auto transpose_z = make_op(Op::Transpose, Children{egraph.find(z).value()});
+    EXPECT_TRUE(egraph.find(mul_xy).has_value());
+    EXPECT_TRUE(egraph.find(transpose_z).has_value());
+
+    auto add_expr = make_op(Op::Add, Children{egraph.find(mul_xy).value(), egraph.find(transpose_z).value()});
+    EXPECT_TRUE(egraph.find(add_expr).has_value());
+    EXPECT_EQ(egraph.find(add_expr).value(), expr_id);
+
+    Expression expr_dup("Add(Mul(x, y), Transpose(z))");
+    Id expr_dup_id = egraph.add_expression(expr_dup);
+
+    EXPECT_EQ(expr_id, expr_dup_id);
+
+    Expression expr_diff("Add(Mul(x, y), Invert(z))");
+    Id expr_diff_id = egraph.add_expression(expr_diff);
+
+    EXPECT_NE(expr_id, expr_diff_id);
+}
+
+TEST(EGraph, MultipleUnionsInSequence)
+{
+    EGraph egraph;
+
+    auto a = make_symbol("a");
+    auto b = make_symbol("b");
+    auto c = make_symbol("c");
+    auto d = make_symbol("d");
+
+    Id ida = egraph.add_node(a);
+    Id idb = egraph.add_node(b);
+    Id idc = egraph.add_node(c);
+    Id idd = egraph.add_node(d);
+
+    egraph.union_classes(ida, idb);
+    egraph.union_classes(idb, idc);
+    egraph.union_classes(idc, idd);
+
+    egraph.rebuild();
+
+    EXPECT_EQ(egraph.find(a), egraph.find(d));
+}
+
+TEST(EGraph, ComplexExpressionEquivalence)
+{
+    EGraph egraph;
+
+    Expression expr1("Add(Mul(a, b), Mul(c, d))");
+    Expression expr2("Add(Mul(c, d), Mul(a, b))");
+
+    Id id1 = egraph.add_expression(expr1);
+    Id id2 = egraph.add_expression(expr2);
+
+    EXPECT_NE(id1, id2);
+
+    auto mul_ab = egraph.find(make_op(Op::Mul, {egraph.find(make_symbol("a")).value(),
+                                                egraph.find(make_symbol("b")).value()}))
+                      .value();
+    auto mul_cd = egraph.find(make_op(Op::Mul, {egraph.find(make_symbol("c")).value(),
+                                                egraph.find(make_symbol("d")).value()}))
+                      .value();
+
+    auto add1 = make_op(Op::Add, Children{mul_ab, mul_cd});
+    auto add2 = make_op(Op::Add, Children{mul_cd, mul_ab});
+
+    EXPECT_NE(egraph.find(add1).value(), egraph.find(add2).value());
 }

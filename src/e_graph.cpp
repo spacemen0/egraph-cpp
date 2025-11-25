@@ -2,6 +2,8 @@
 #include <iostream>
 
 /// @brief Look up a node in the e-graph, canonicalizing its children first.
+/// @param node
+/// @return EClass ID if found, std::nullopt otherwise
 std::optional<Id> EGraph::find_and_canonicalize(ENode &node)
 {
     for (auto &i : node.get_children_mut())
@@ -15,12 +17,23 @@ std::optional<Id> EGraph::find_and_canonicalize(ENode &node)
 }
 
 /// @brief Look up a node in the e-graph without modifying its children.
+/// @param node
+/// @return EClass ID if found, std::nullopt otherwise
 std::optional<Id> EGraph::find(const ENode &node)
 {
 
     ENode temp(node);
+    for (auto &i : temp.get_children_mut())
+    {
+        i = uf.find_and_compress(i);
+    }
     auto it = memo.find(&temp);
     return it != memo.end() ? std::optional<Id>(uf.find_and_compress(it->second)) : std::nullopt;
+}
+
+Id EGraph::find_class_id(Id node_id) const
+{
+    return uf.find_root(node_id);
 }
 
 /// @brief Add a node to the e-graph, returning its e-class ID.
@@ -53,9 +66,19 @@ Id EGraph::add_node(ENode node)
     return new_id;
 }
 
-Id EGraph::add_expression(Expression expr)
+Id EGraph::add_expression(const Expression &expr)
 {
-    return Id();
+    Children child_ids;
+    child_ids.reserve(expr.children.size());
+    for (const Expression &child_expr : expr.children)
+    {
+        child_ids.push_back(add_expression(child_expr));
+    }
+    ENode current_node{
+        child_ids,
+        expr.op_or_string,
+    };
+    return add_node(current_node);
 }
 
 /// @brief Union two e-classes given their IDs.
@@ -121,4 +144,9 @@ void EGraph::rebuild()
         }
         memo.emplace(node, pending_id);
     }
+}
+
+const ENode &EGraph::at(Id id) const
+{
+    return *(nodes.at(id));
 }

@@ -20,17 +20,17 @@ TEST(ENode, MatchesBehavior)
     auto sx1 = make_symbol("x");
     auto sx2 = make_symbol("x");
     auto sy = make_symbol("y");
-    EXPECT_TRUE(sx1.matches(sx2));
-    EXPECT_FALSE(sx1.matches(sy));
+    EXPECT_TRUE(sx1.equals(sx2));
+    EXPECT_FALSE(sx1.equals(sy));
 
     Children c12 = {Id(1), Id(2)};
     Children c34 = {Id(3), Id(4)};
     auto a1 = make_op(Op::Add, c12);
     auto a2 = make_op(Op::Add, c34);
-    EXPECT_TRUE(a1.matches(a2));
+    EXPECT_FALSE(a1.equals(a2));
     Children c1 = {Id(1)};
     auto a_short = make_op(Op::Add, c1);
-    EXPECT_FALSE(a1.matches(a_short));
+    EXPECT_FALSE(a1.equals(a_short));
 }
 
 TEST(ENode, HashConsistencyAndSensitivity)

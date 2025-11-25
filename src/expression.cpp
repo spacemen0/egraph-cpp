@@ -64,7 +64,6 @@ Expression::Expression(std::string_view string)
         {
             if (auto child_str = (trim(string.substr(child_start, i - child_start))); !child_str.empty())
             {
-                printf("Child string: '%s'\n", std::string(child_str).c_str());
                 children.emplace_back(child_str);
             }
             child_start = i + 1;
@@ -74,7 +73,6 @@ Expression::Expression(std::string_view string)
     if (child_start < end)
         if (auto child_str = (trim(string.substr(child_start, end - child_start))); !child_str.empty())
         {
-            printf("Child string at last: '%s'\n", std::string(child_str).c_str());
             children.emplace_back(child_str);
         }
 }

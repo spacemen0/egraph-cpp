@@ -4,12 +4,17 @@
 #include <numeric>
 #include <string>
 
-bool ENode::matches(const ENode &other) const
+bool ENode::equals(const ENode &other) const
 {
     if (op_or_string != other.op_or_string)
         return false;
     if (children.size() != other.children.size())
         return false;
+    for (size_t i = 0; i < children.size(); ++i)
+    {
+        if (children[i] != other.children[i])
+            return false;
+    }
     return true;
 }
 

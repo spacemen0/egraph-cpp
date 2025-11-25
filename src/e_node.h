@@ -14,7 +14,7 @@ private:
 public:
     explicit ENode(const Children &children, Term const &op_or_string)
         : children(children), op_or_string(op_or_string) {}
-    bool matches(const ENode &other) const;
+    bool equals(const ENode &other) const;
 
     // access children (mutable/immutable)
     const Children &get_children() const;
@@ -27,11 +27,11 @@ public:
     // Declare operator== as a hidden friend
     friend bool operator==(const ENode &a, const ENode &b) noexcept
     {
-        return a.matches(b);
+        return a.equals(b);
     };
     friend bool operator!=(const ENode &a, const ENode &b) noexcept
     {
-        return !a.matches(b);
+        return !a.equals(b);
     }
 };
 
