@@ -13,5 +13,4 @@ enum class Op
     Negate,
     Identity,
     Zero,
-    Symbol
 };

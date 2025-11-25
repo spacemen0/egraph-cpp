@@ -2,20 +2,17 @@
 #include "e_node.h"
 #include "test_helper.h"
 
-TEST(ENode, IsLeafAndArity)
+TEST(ENode, IsLeaf)
 {
     auto s = make_symbol("x");
     EXPECT_TRUE(s.is_leaf());
-    EXPECT_EQ(s.arity(), op_arity(Op::Symbol));
 
     auto id = make_leaf(Op::Identity);
     EXPECT_TRUE(id.is_leaf());
-    EXPECT_EQ(id.arity(), op_arity(Op::Identity));
 
     Children children = {Id(1), Id(2)};
     auto add = make_op(Op::Add, children);
     EXPECT_FALSE(add.is_leaf());
-    EXPECT_EQ(add.arity(), children.size());
 }
 
 TEST(ENode, MatchesBehavior)

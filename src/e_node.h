@@ -23,24 +23,17 @@ constexpr std::size_t op_arity(Op op) noexcept
         return 0;
     case Op::Zero:
         return 0;
-    case Op::Symbol:
-        return 0; // symbol is a leaf
     }
-    return 0;
 }
-
 class ENode
 {
 private:
-    Op op;
     Children children;
-    std::variant<std::monostate, int, std::string> payload;
+    std::variant<Op, int, std::string> op_or_string;
 
 public:
-    explicit ENode(Op op, const Children &children = {}, std::variant<std::monostate, int, std::string> const &payload = {})
-        : op(op), children(children), payload(payload) {}
-    size_t arity() const;
-    Op discriminant() const;
+    explicit ENode(const Children &children, std::variant<Op, int, std::string> const &op_or_string)
+        : children(children), op_or_string(op_or_string) {}
     bool matches(const ENode &other) const;
 
     // access children (mutable/immutable)

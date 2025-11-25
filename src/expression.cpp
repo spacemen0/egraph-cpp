@@ -1,4 +1,4 @@
-#include "pattern.h"
+#include "expression.h"
 
 constexpr std::string_view trim(std::string_view sv)
 {
@@ -19,40 +19,38 @@ constexpr std::string_view trim(std::string_view sv)
     return sv;
 }
 
-/// @brief parse a pattern from a string with the format: Op(child1, child2, ...)
+/// @brief parse a expression from a string with the format: Op(child1, child2, ...)
 /// @param string
-Pattern::Pattern(std::string_view string)
+Expression::Expression(std::string_view string)
 {
     auto pos = string.find('(');
     if (pos == std::string_view::npos)
     {
-        op_or_var = PatternVar{std::string(trim(string))};
+        op_or_string = Expressionvar{std::string(trim(string))};
         return;
     }
 
     if (auto op_str = std::string(trim(string.substr(0, pos))); op_str == "Add")
-        op_or_var = Op::Add;
+        op_or_string = Op::Add;
     else if (op_str == "Mul")
-        op_or_var = Op::Mul;
+        op_or_string = Op::Mul;
     else if (op_str == "Transpose")
-        op_or_var = Op::Transpose;
+        op_or_string = Op::Transpose;
     else if (op_str == "Invert")
-        op_or_var = Op::Invert;
+        op_or_string = Op::Invert;
     else if (op_str == "Negate")
-        op_or_var = Op::Negate;
+        op_or_string = Op::Negate;
     else if (op_str == "Identity")
-        op_or_var = Op::Identity;
+        op_or_string = Op::Identity;
     else if (op_str == "Zero")
-        op_or_var = Op::Zero;
-    else if (op_str == "Symbol")
-        op_or_var = Op::Symbol;
+        op_or_string = Op::Zero;
     else
         throw std::invalid_argument("Unknown operation: " + op_str);
 
     size_t start = pos + 1;
     size_t end = string.find_last_of(')');
     if (end == std::string_view::npos)
-        throw std::invalid_argument("Unmatched parentheses in pattern: " + std::string(string));
+        throw std::invalid_argument("Unmatched parentheses in expression: " + std::string(string));
 
     size_t child_start = start;
     int paren_count = 0;

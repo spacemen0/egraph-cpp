@@ -4,24 +4,12 @@
 #include <numeric>
 #include <string>
 
-size_t ENode::arity() const
-{
-    return children.size();
-}
-
-Op ENode::discriminant() const
-{
-    return op;
-}
-
 bool ENode::matches(const ENode &other) const
 {
-    if (op != other.op)
+    if (op_or_string != other.op_or_string)
         return false;
     if (children.size() != other.children.size())
         return false;
-    if (op == Op::Symbol)
-        return payload == other.payload;
     return true;
 }
 
@@ -36,32 +24,46 @@ Children &ENode::get_children_mut()
 
 std::string ENode::to_string() const
 {
-    switch (op)
+    if (std::holds_alternative<Op>(op_or_string))
     {
-    case Op::Add:
-        return "(+)";
-    case Op::Mul:
-        return "(*)";
-    case Op::Transpose:
-        return "transpose";
-    case Op::Invert:
-        return "invert";
-    case Op::Negate:
-        return "negate";
-    case Op::Identity:
-        return "Identity";
-    case Op::Zero:
-        return "Zero";
-    case Op::Symbol:
-        return std::get<std::string>(payload);
+        Op op = std::get<Op>(op_or_string);
+        switch (op)
+        {
+        case Op::Add:
+            return "Add";
+        case Op::Mul:
+            return "Mul";
+        case Op::Transpose:
+            return "Transpose";
+        case Op::Invert:
+            return "Invert";
+        case Op::Negate:
+            return "Negate";
+        case Op::Identity:
+            return "Identity";
+        case Op::Zero:
+            return "Zero";
+        }
     }
-    return "?";
+    else
+    {
+        return "Str:" + std::get<std::string>(op_or_string);
+    }
 }
 
 size_t ENode::hash() const
 {
-    // start with op discriminant
-    size_t seed = std::hash<int>()(static_cast<int>(op));
+    size_t seed;
+    if (std::holds_alternative<Op>(op_or_string))
+    {
+        Op op = std::get<Op>(op_or_string);
+        seed = std::hash<int>()(static_cast<int>(op));
+    }
+    else
+    {
+        // use a fixed discriminant for string payloads;
+        seed = std::hash<int>()(-1);
+    }
 
     seed = std::accumulate(children.begin(), children.end(), seed,
                            [](size_t acc, Id c)
@@ -70,9 +72,9 @@ size_t ENode::hash() const
                                return acc ^ (hc + 0x9e3779b97f4a7c15ULL + (acc << 6) + (acc >> 2));
                            });
 
-    if (op == Op::Symbol)
+    if (!std::holds_alternative<Op>(op_or_string))
     {
-        const auto &s = std::get<std::string>(payload);
+        const auto &s = std::get<std::string>(op_or_string);
         size_t hp = std::hash<std::string>()(s);
         seed ^= hp + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
     }

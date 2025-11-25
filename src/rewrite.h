@@ -1,9 +1,9 @@
 #pragma once
-#include "pattern.h"
+#include "expression.h"
 
 struct Rewrite
 {
     std::string name;
-    Pattern lhs;
-    Pattern rhs;
+    Expression lhs;
+    Expression rhs;
 };
