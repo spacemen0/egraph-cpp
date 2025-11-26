@@ -8,6 +8,6 @@ struct Expression
 {
     explicit Expression(std::string_view string);
 
-    Term op_or_string;
+    Atom atom;
     std::vector<Expression> children;
 };

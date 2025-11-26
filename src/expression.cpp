@@ -26,24 +26,24 @@ Expression::Expression(std::string_view string)
     auto pos = string.find('(');
     if (pos == std::string_view::npos)
     {
-        op_or_string = std::string(trim(string));
+        atom = std::string(trim(string));
         return;
     }
 
     if (auto op_str = std::string(trim(string.substr(0, pos))); op_str == "Add")
-        op_or_string = Op::Add;
+        atom = Op::Add;
     else if (op_str == "Mul")
-        op_or_string = Op::Mul;
+        atom = Op::Mul;
     else if (op_str == "Transpose")
-        op_or_string = Op::Transpose;
+        atom = Op::Transpose;
     else if (op_str == "Invert")
-        op_or_string = Op::Invert;
+        atom = Op::Invert;
     else if (op_str == "Negate")
-        op_or_string = Op::Negate;
+        atom = Op::Negate;
     else if (op_str == "Identity")
-        op_or_string = Op::Identity;
+        atom = Op::Identity;
     else if (op_str == "Zero")
-        op_or_string = Op::Zero;
+        atom = Op::Zero;
     else
         throw std::invalid_argument("Unknown operation: " + op_str);
 

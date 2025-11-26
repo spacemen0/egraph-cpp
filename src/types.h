@@ -15,4 +15,4 @@ enum class Op
 
 using Id = uint32_t;
 using Children = std::vector<Id>;
-using Term = std::variant<Op, std::string>;
+using Atom = std::variant<Op, std::string>;

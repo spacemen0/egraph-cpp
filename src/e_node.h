@@ -9,11 +9,11 @@ class ENode
 {
 private:
     Children children;
-    Term op_or_string;
+    Atom atom;
 
 public:
-    explicit ENode(const Children &children, Term const &op_or_string)
-        : children(children), op_or_string(op_or_string) {}
+    explicit ENode(const Children &children, Atom const &atom)
+        : children(children), atom(atom) {}
     bool equals(const ENode &other) const;
 
     // access children (mutable/immutable)

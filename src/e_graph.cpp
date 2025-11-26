@@ -71,7 +71,7 @@ Id EGraph::add_expression(const Expression &expr)
     }
     ENode current_node{
         child_ids,
-        expr.op_or_string,
+        expr.atom,
     };
     return add_node(current_node);
 }
