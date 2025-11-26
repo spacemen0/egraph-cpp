@@ -1,5 +1,5 @@
 #include "union_find.h"
-
+#include <stdexcept>
 Id UnionFind::find_root(Id current) const
 {
     if (current >= parents.size())

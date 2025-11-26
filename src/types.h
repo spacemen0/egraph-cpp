@@ -1,6 +1,8 @@
 #pragma once
 #include <cstdint>
+#include <variant>
 #include <vector>
+#include <string>
 
 enum class Op
 {

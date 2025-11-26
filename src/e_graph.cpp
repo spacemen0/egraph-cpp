@@ -100,7 +100,7 @@ bool EGraph::union_classes(Id id1, Id id2)
     // find(root2) will be root1.
     uf.unite(root1, root2);
 
-    auto &class1_ref = classes.at(root1);
+    const auto &class1_ref = classes.at(root1);
 
     pendings.insert(pendings.end(), class2_ptr->get_parents().begin(), class2_ptr->get_parents().end());
 
@@ -132,7 +132,7 @@ void EGraph::rebuild()
         {
             child_id = uf.find_and_compress(child_id);
         }
-        if (memo.find(node) != memo.end())
+        if (memo.contains(node))
         {
             Id existing_class_id = memo.at(node);
             union_classes(existing_class_id, pending_id);

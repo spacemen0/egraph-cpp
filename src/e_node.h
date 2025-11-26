@@ -29,10 +29,6 @@ public:
     {
         return a.equals(b);
     };
-    friend bool operator!=(const ENode &a, const ENode &b) noexcept
-    {
-        return !a.equals(b);
-    }
 };
 
 struct ENodePtrHash

@@ -1,5 +1,5 @@
 #include "expression.h"
-
+#include <stdexcept>
 constexpr std::string_view trim(std::string_view sv)
 {
     constexpr std::string_view WHITESPACE = " \n\r\t\f\v";

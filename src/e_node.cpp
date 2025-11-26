@@ -1,5 +1,5 @@
 #include "e_node.h"
-
+#include <stdexcept>
 #include <functional>
 #include <numeric>
 #include <string>
@@ -34,20 +34,23 @@ std::string ENode::to_string() const
         Op op = std::get<Op>(atom);
         switch (op)
         {
-        case Op::Add:
+            using enum Op;
+        case Add:
             return "Add";
-        case Op::Mul:
+        case Mul:
             return "Mul";
-        case Op::Transpose:
+        case Transpose:
             return "Transpose";
-        case Op::Invert:
+        case Invert:
             return "Invert";
-        case Op::Negate:
+        case Negate:
             return "Negate";
-        case Op::Identity:
+        case Identity:
             return "Identity";
-        case Op::Zero:
+        case Zero:
             return "Zero";
+        default:
+            throw std::invalid_argument("Unknown Op in ENode::to_string");
         }
     }
     else
