@@ -1,6 +1,17 @@
 cmake_minimum_required(VERSION 3.15)
 project(egraph-cpp LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
+
+if (APPLE AND EXISTS "/opt/homebrew/opt/llvm/bin/clang++")
+    message(STATUS "macOS Homebrew LLVM detected. Adjusting linker settings.")
+
+    link_directories(/opt/homebrew/opt/llvm/lib)
+
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath,/opt/homebrew/opt/llvm/lib")
+endif()
+
 include(FetchContent)
 
 FetchContent_Declare(
