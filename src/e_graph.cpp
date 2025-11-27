@@ -143,6 +143,52 @@ void EGraph::rebuild()
     }
 }
 
+bool EGraph::match_pattern_to_enode(const Pattern &pattern, const ENode &enode, Substitution &out_substitution) const
+{
+    // Match the atom
+    if (std::holds_alternative<Op>(pattern.atom))
+    {
+        if (!std::holds_alternative<Op>(enode.get_atom()) ||
+            std::get<Op>(pattern.atom) != std::get<Op>(enode.get_atom()))
+        {
+            return false;
+        }
+    }
+    else if (std::holds_alternative<PatternVar>(pattern.atom))
+    {
+        const auto &var = std::get<PatternVar>(pattern.atom);
+        out_substitution[var.name] = find_class_id(memo.at(&enode));
+    }
+    else
+    {
+        return false;
+    }
+    if (pattern.children.size() != enode.get_children().size())
+    {
+        return false;
+    }
+    for (size_t i = 0; i < pattern.children.size(); ++i)
+    {
+        if (!match_pattern_to_enode(pattern.children[i], *(nodes[enode.get_children()[i]]), out_substitution))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+void EGraph::search_pattern(const Pattern &pattern, Id eclass_id, std::vector<Substitution> &out_substitutions) const
+{
+    for (const ENode *enode : classes.at(eclass_id)->get_nodes())
+    {
+        Substitution current_substitution;
+        if (match_pattern_to_enode(pattern, *enode, current_substitution))
+        {
+            out_substitutions.push_back(std::move(current_substitution));
+        }
+    }
+}
+
 const ENode &EGraph::at(Id id) const
 {
     return *(nodes.at(id));

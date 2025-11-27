@@ -19,6 +19,7 @@ public:
     // access children (mutable/immutable)
     const Children &get_children() const;
     Children &get_children_mut();
+    Atom get_atom() const;
 
     std::string to_string() const;
     size_t hash() const;

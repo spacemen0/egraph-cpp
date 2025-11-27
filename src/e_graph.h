@@ -7,6 +7,7 @@
 #include "e_node.h"
 #include "e_class.h"
 #include "expression.h"
+#include "pattern.h"
 
 class EGraph
 {
@@ -18,6 +19,9 @@ public:
     Id add_expression(const Expression &expr);
     bool union_classes(Id id1, Id id2);
     void rebuild();
+    bool match_pattern_to_enode(const Pattern &pattern, const ENode &enode, Substitution &out_substitution) const;
+    void search_pattern(const Pattern &pattern, Id eclass_id,
+                        std::vector<Substitution> &out_substitutions) const;
     const ENode &at(Id id) const;
 
 private:

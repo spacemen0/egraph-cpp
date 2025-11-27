@@ -27,6 +27,11 @@ Children &ENode::get_children_mut()
     return children;
 }
 
+Atom ENode::get_atom() const
+{
+    return atom;
+}
+
 // incomplete
 std::string ENode::to_string() const
 {
