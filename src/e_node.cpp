@@ -27,6 +27,7 @@ Children &ENode::get_children_mut()
     return children;
 }
 
+// incomplete
 std::string ENode::to_string() const
 {
     if (std::holds_alternative<Op>(atom))
@@ -80,6 +81,7 @@ size_t ENode::hash() const
                                return acc ^ (hc + 0x9e3779b97f4a7c15ULL + (acc << 6) + (acc >> 2));
                            });
 
+    // if string payloads, mix in the string hash
     if (!std::holds_alternative<Op>(atom))
     {
         const auto &s = std::get<std::string>(atom);

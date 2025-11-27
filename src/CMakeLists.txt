@@ -4,10 +4,11 @@ add_library(core_lib STATIC
     e_graph.cpp
     e_class.cpp 
     expression.cpp
+    pattern.cpp
     rewrite.cpp
 )
 target_include_directories(core_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-add_executable(my_app main.cpp)
+add_executable(main main.cpp)
 
-target_link_libraries(my_app PRIVATE core_lib)
+target_link_libraries(main PRIVATE core_lib)

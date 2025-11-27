@@ -232,4 +232,8 @@ TEST(EGraph, ComplexExpressionEquivalence)
     auto add2 = make_op(Op::Add, Children{mul_cd, mul_ab});
 
     EXPECT_NE(egraph.find(add1).value(), egraph.find(add2).value());
+
+    egraph.union_classes(egraph.find_class_id(mul_ab), egraph.find_class_id(mul_cd));
+    egraph.rebuild();
+    EXPECT_EQ(egraph.find_class_id(id1), egraph.find_class_id(id2));
 }

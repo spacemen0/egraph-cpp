@@ -22,10 +22,12 @@ std::optional<Id> EGraph::find(const ENode &node)
     {
         i = uf.find_and_compress(i);
     }
-    auto it = memo.find(&temp);
-    return it != memo.end() ? std::optional<Id>(uf.find_and_compress(it->second)) : std::nullopt;
+    return memo.contains(&temp) ? std::optional<Id>(uf.find_and_compress(memo.at(&temp))) : std::nullopt;
 }
 
+/// @brief Find the representative e-class ID for a given node ID in the union-find structure.
+/// @param node_id
+/// @return
 Id EGraph::find_class_id(Id node_id) const
 {
     return uf.find_root(node_id);
