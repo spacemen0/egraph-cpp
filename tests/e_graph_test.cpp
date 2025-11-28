@@ -271,11 +271,11 @@ TEST(EGraph, PatternMatchingSimple)
         },
     };
 
-    std::vector<Substitution> substitutions;
+    std::set<Substitution> substitutions;
     egraph.find_matches_in_eclass(expr_id, pattern, substitutions);
 
     EXPECT_EQ(substitutions.size(), 1);
-    const auto &substitution = substitutions[0];
+    const auto &substitution = *substitutions.begin();
     EXPECT_TRUE(substitution.contains("?a"));
     EXPECT_TRUE(substitution.contains("?b"));
 
@@ -309,11 +309,11 @@ TEST(EGraph, PatternMatchingNested)
         },
     };
 
-    std::vector<Substitution> substitutions;
+    std::set<Substitution> substitutions;
     egraph.find_matches_in_eclass(expr_id, pattern, substitutions);
 
     EXPECT_EQ(substitutions.size(), 1);
-    const auto &substitution = substitutions[0];
+    const auto &substitution = *substitutions.begin();
     EXPECT_TRUE(substitution.contains("?a"));
     EXPECT_TRUE(substitution.contains("?b"));
     EXPECT_TRUE(substitution.contains("?c"));
@@ -344,7 +344,7 @@ TEST(EGraph, PatternMatchingMultipleMatchesInClass)
         },
     };
 
-    std::vector<Substitution> substitutions;
+    std::set<Substitution> substitutions;
     egraph.find_matches_in_eclass(id1, pattern, substitutions);
 
     EXPECT_EQ(substitutions.size(), 2);

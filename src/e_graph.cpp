@@ -1,6 +1,6 @@
 #include "e_graph.h"
 #include <iostream>
-#include "pattern.h" // Ensure pattern.h is included
+#include "pattern.h"
 
 /// @brief Canonicalize the children of a node.
 /// @param node
@@ -153,14 +153,14 @@ bool EGraph::atoms_match(const PatternAtom &pat_atom, const Atom &enode_atom) co
     return false;
 }
 
-void EGraph::find_matches_in_eclass(Id eclass_id, const Pattern &pattern, std::vector<Substitution> &out_substitutions) const
+void EGraph::find_matches_in_eclass(Id eclass_id, const Pattern &pattern, std::set<Substitution> &out_substitutions) const
 {
     Substitution initial_subst;
     auto new_matches = search_eclass_for_pattern(eclass_id, pattern, initial_subst);
 
     if (!new_matches.empty())
     {
-        out_substitutions.insert(out_substitutions.end(), new_matches.begin(), new_matches.end());
+        out_substitutions.insert(new_matches.begin(), new_matches.end());
     }
 }
 

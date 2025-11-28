@@ -3,7 +3,7 @@
 #include <string>
 #include <variant>
 #include <vector>
-#include <unordered_map>
+#include <map>
 #include "types.h"
 
 /// @brief Represents a variable in a pattern, e.g., "?x".
@@ -29,4 +29,4 @@ struct Pattern
 
 ///@brief Represents a single match
 /// a map from a variable's name (e.g., "?x") to the canonical e-class ID
-using Substitution = std::unordered_map<std::string, Id>;
+using Substitution = std::map<std::string, Id>;
