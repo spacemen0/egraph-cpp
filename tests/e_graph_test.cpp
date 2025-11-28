@@ -322,3 +322,51 @@ TEST(EGraph, PatternMatchingNested)
     EXPECT_EQ(egraph.at(substitution.at("?b")).get_atom(), make_symbol("y").get_atom());
     EXPECT_EQ(egraph.at(substitution.at("?c")).get_atom(), make_symbol("z").get_atom());
 }
+
+TEST(EGraph, PatternMatchingMultipleMatchesInClass)
+{
+    EGraph egraph;
+
+    Expression expr1("Add(x, y)");
+    Id id1 = egraph.add_expression(expr1);
+
+    Expression expr2("Add(w, z)");
+    Id id2 = egraph.add_expression(expr2);
+
+    egraph.union_classes(id1, id2);
+    egraph.rebuild();
+
+    Pattern pattern{
+        .atom = Op::Add,
+        .children = {
+            {.atom = PatternVar{"?a"}},
+            {.atom = PatternVar{"?b"}},
+        },
+    };
+
+    std::vector<Substitution> substitutions;
+    egraph.find_matches_in_eclass(id1, pattern, substitutions);
+
+    EXPECT_EQ(substitutions.size(), 2);
+
+    bool found_xy = false;
+    bool found_wz = false;
+
+    for (const auto &sub : substitutions)
+    {
+        auto atom_a = egraph.at(sub.at("?a")).get_atom();
+        auto atom_b = egraph.at(sub.at("?b")).get_atom();
+
+        if (atom_a == make_symbol("x").get_atom() && atom_b == make_symbol("y").get_atom())
+        {
+            found_xy = true;
+        }
+        else if (atom_a == make_symbol("w").get_atom() && atom_b == make_symbol("z").get_atom())
+        {
+            found_wz = true;
+        }
+    }
+
+    EXPECT_TRUE(found_xy);
+    EXPECT_TRUE(found_wz);
+}

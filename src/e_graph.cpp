@@ -212,6 +212,8 @@ std::vector<Substitution> EGraph::search_eclass_for_pattern(Id eclass_id, const 
                 next_matches.insert(next_matches.end(), child_results.begin(), child_results.end());
             }
             current_matches = std::move(next_matches);
+
+            // have to match at least one for each child
             if (current_matches.empty())
             {
                 possible = false;
