@@ -19,9 +19,8 @@ public:
     Id add_expression(const Expression &expr);
     bool union_classes(Id id1, Id id2);
     void rebuild();
-    bool match_pattern_to_enode(const Pattern &pattern, const ENode &enode, Substitution &out_substitution) const;
-    void search_pattern(const Pattern &pattern, Id eclass_id,
-                        std::vector<Substitution> &out_substitutions) const;
+    bool atoms_match(const PatternAtom &pat_atom, const Atom &enode_atom) const;
+    void find_matches_in_eclass(Id eclass_id, const Pattern &pattern, std::vector<Substitution> &out_substitutions) const;
     const ENode &at(Id id) const;
 
 private:
@@ -33,6 +32,7 @@ private:
     std::vector<Id> pendings;
     // stores mapping from ENode to EClass id (canonicalized one after rebuild)
     std::unordered_map<const ENode *, Id, ENodePtrHash, ENodePtrEqual> memo;
-    // stores mapping from EClass id to EClass
+    // stores mapping from EClass id to EClass, classes being merged will be removed
     std::unordered_map<Id, std::unique_ptr<EClass>> classes;
+    std::vector<Substitution> search_eclass_for_pattern(Id eclass_id, const Pattern &pattern, const Substitution &initial_subst) const;
 };

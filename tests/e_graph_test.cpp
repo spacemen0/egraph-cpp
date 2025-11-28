@@ -237,3 +237,88 @@ TEST(EGraph, ComplexExpressionEquivalence)
     egraph.rebuild();
     EXPECT_EQ(egraph.find_class_id(id1), egraph.find_class_id(id2));
 }
+
+TEST(EGraph, ENodeMatching)
+{
+    EGraph egraph;
+
+    auto sx = make_symbol("x");
+    Id id1 = egraph.add_node(sx);
+
+    auto node = make_op(Op::Negate, Children{id1});
+    Id id2 = egraph.add_node(node);
+
+    EXPECT_TRUE(egraph.find(node).has_value());
+    EXPECT_EQ(egraph.find(node).value(), id2);
+
+    auto node_diff = make_op(Op::Negate, Children{id1 + 1});
+    EXPECT_FALSE(egraph.find(node_diff).has_value());
+}
+
+TEST(EGraph, PatternMatchingSimple)
+{
+    EGraph egraph;
+
+    Expression expr("Add(x, y)");
+    Id expr_id = egraph.add_expression(expr);
+
+    Pattern pattern{
+        .atom = Op::Add,
+        .children = {
+            {.atom = PatternVar{"?a"}},
+            {.atom = PatternVar{"?b"}},
+
+        },
+    };
+
+    std::vector<Substitution> substitutions;
+    egraph.find_matches_in_eclass(expr_id, pattern, substitutions);
+
+    EXPECT_EQ(substitutions.size(), 1);
+    const auto &substitution = substitutions[0];
+    EXPECT_TRUE(substitution.contains("?a"));
+    EXPECT_TRUE(substitution.contains("?b"));
+
+    EXPECT_EQ(egraph.at(substitution.at("?a")).get_atom(), make_symbol("x").get_atom());
+    EXPECT_EQ(egraph.at(substitution.at("?b")).get_atom(), make_symbol("y").get_atom());
+}
+
+TEST(EGraph, PatternMatchingNested)
+{
+    EGraph egraph;
+
+    Expression expr("Add(Mul(x, y), Transpose(z))");
+    Id expr_id = egraph.add_expression(expr);
+
+    Pattern pattern{
+        .atom = Op::Add,
+        .children = {
+            {
+                .atom = Op::Mul,
+                .children = {
+                    {.atom = PatternVar{"?a"}},
+                    {.atom = PatternVar{"?b"}},
+                },
+            },
+            {
+                .atom = Op::Transpose,
+                .children = {
+                    {.atom = PatternVar{"?c"}},
+                },
+            },
+        },
+    };
+
+    std::vector<Substitution> substitutions;
+    egraph.find_matches_in_eclass(expr_id, pattern, substitutions);
+
+    EXPECT_EQ(substitutions.size(), 1);
+    const auto &substitution = substitutions[0];
+    EXPECT_TRUE(substitution.contains("?a"));
+    EXPECT_TRUE(substitution.contains("?b"));
+    EXPECT_TRUE(substitution.contains("?c"));
+
+    EXPECT_EQ(egraph.at(substitution.at("?a")).get_atom(), make_symbol("x").get_atom());
+    EXPECT_EQ(egraph.at(substitution.at("?b")).get_atom(), make_symbol("y").get_atom());
+    EXPECT_EQ(egraph.at(substitution.at("?c")).get_atom(), make_symbol("z").get_atom());
+}

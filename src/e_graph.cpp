@@ -1,5 +1,6 @@
 #include "e_graph.h"
 #include <iostream>
+#include "pattern.h" // Ensure pattern.h is included
 
 /// @brief Canonicalize the children of a node.
 /// @param node
@@ -143,50 +144,86 @@ void EGraph::rebuild()
     }
 }
 
-bool EGraph::match_pattern_to_enode(const Pattern &pattern, const ENode &enode, Substitution &out_substitution) const
+bool EGraph::atoms_match(const PatternAtom &pat_atom, const Atom &enode_atom) const
 {
-    // Match the atom
-    if (std::holds_alternative<Op>(pattern.atom))
+    if (std::holds_alternative<Op>(pat_atom) && std::holds_alternative<Op>(enode_atom))
     {
-        if (!std::holds_alternative<Op>(enode.get_atom()) ||
-            std::get<Op>(pattern.atom) != std::get<Op>(enode.get_atom()))
-        {
-            return false;
-        }
+        return std::get<Op>(pat_atom) == std::get<Op>(enode_atom);
     }
-    else if (std::holds_alternative<PatternVar>(pattern.atom))
-    {
-        const auto &var = std::get<PatternVar>(pattern.atom);
-        out_substitution[var.name] = find_class_id(memo.at(&enode));
-    }
-    else
-    {
-        return false;
-    }
-    if (pattern.children.size() != enode.get_children().size())
-    {
-        return false;
-    }
-    for (size_t i = 0; i < pattern.children.size(); ++i)
-    {
-        if (!match_pattern_to_enode(pattern.children[i], *(nodes[enode.get_children()[i]]), out_substitution))
-        {
-            return false;
-        }
-    }
-    return true;
+    return false;
 }
 
-void EGraph::search_pattern(const Pattern &pattern, Id eclass_id, std::vector<Substitution> &out_substitutions) const
+void EGraph::find_matches_in_eclass(Id eclass_id, const Pattern &pattern, std::vector<Substitution> &out_substitutions) const
 {
-    for (const ENode *enode : classes.at(eclass_id)->get_nodes())
+    Substitution initial_subst;
+    auto new_matches = search_eclass_for_pattern(eclass_id, pattern, initial_subst);
+
+    if (!new_matches.empty())
     {
-        Substitution current_substitution;
-        if (match_pattern_to_enode(pattern, *enode, current_substitution))
+        out_substitutions.insert(out_substitutions.end(), new_matches.begin(), new_matches.end());
+    }
+}
+
+std::vector<Substitution> EGraph::search_eclass_for_pattern(Id eclass_id, const Pattern &pattern, const Substitution &initial_subst) const
+{
+    std::vector<Substitution> results;
+    Id canonical_id = find_class_id(eclass_id);
+
+    if (const PatternVar *var = std::get_if<PatternVar>(&pattern.atom))
+    {
+        auto it = initial_subst.find(var->name);
+
+        if (it != initial_subst.end())
         {
-            out_substitutions.push_back(std::move(current_substitution));
+            if (it->second == canonical_id)
+            {
+                results.push_back(initial_subst);
+            }
+        }
+        else
+        {
+            Substitution new_subst = initial_subst;
+            new_subst[var->name] = canonical_id;
+            results.push_back(new_subst);
+        }
+        return results;
+    }
+
+    const auto eclass = classes.at(canonical_id).get();
+    for (const ENode *node : eclass->get_nodes())
+    {
+        printf("Trying to match enode %s with pattern\n", node->to_string().c_str());
+        if (!atoms_match(pattern.atom, node->get_atom()) || node->get_children().size() != pattern.children.size())
+        {
+            printf("Skipping enode due to atom mismatch or children size mismatch\n");
+            continue;
+        }
+        std::vector<Substitution> current_matches = {initial_subst};
+        bool possible = true;
+
+        for (size_t i = 0; i < pattern.children.size(); ++i)
+        {
+            std::vector<Substitution> next_matches;
+            const Pattern &child_pattern = pattern.children[i];
+            Id child_eclass_id = node->get_children()[i];
+            for (const auto &subst : current_matches)
+            {
+                auto child_results = search_eclass_for_pattern(child_eclass_id, child_pattern, subst);
+                next_matches.insert(next_matches.end(), child_results.begin(), child_results.end());
+            }
+            current_matches = std::move(next_matches);
+            if (current_matches.empty())
+            {
+                possible = false;
+                break;
+            }
+        }
+        if (possible)
+        {
+            results.insert(results.end(), current_matches.begin(), current_matches.end());
         }
     }
+    return results;
 }
 
 const ENode &EGraph::at(Id id) const
