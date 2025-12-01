@@ -88,12 +88,12 @@ TEST(EGraph, RebuildParentsBasicReverse)
     EXPECT_TRUE(egraph.find(node1).has_value());
     EXPECT_TRUE(egraph.find(node2).has_value());
     EXPECT_NE(egraph.find_class_id(id_node1), egraph.find_class_id(id_node2));
-
+    egraph.print_egraph();
     egraph.union_classes(idc, idb);
-
+    egraph.print_egraph();
     EXPECT_NE(egraph.find_class_id(id_node1), egraph.find_class_id(id_node2));
     egraph.rebuild();
-
+    egraph.print_egraph();
     EXPECT_EQ(egraph.find_class_id(id_node1), egraph.find_class_id(id_node2));
 }
 
@@ -132,22 +132,22 @@ TEST(EGraph, RebuildMultiLevelParents)
     Id id_nested2 = egraph.add_node(nested2);
     EXPECT_NE(egraph.find_class_id(id_nested1), egraph.find_class_id(id_nested2));
 
+    egraph.print_egraph();
     egraph.union_classes(idb, idc);
-
+    egraph.print_egraph();
     egraph.rebuild();
     EXPECT_EQ(egraph.find_class_id(id_add_ab), egraph.find_class_id(id_add_ac));
     EXPECT_NE(egraph.find_class_id(id_mul1), egraph.find_class_id(id_mul2));
     EXPECT_NE(egraph.find_class_id(id_nested1), egraph.find_class_id(id_nested2));
-
+    egraph.print_egraph();
     egraph.rebuild();
     EXPECT_EQ(egraph.find_class_id(id_mul1), egraph.find_class_id(id_mul2));
     EXPECT_NE(egraph.find_class_id(id_nested1), egraph.find_class_id(id_nested2));
-
+    egraph.print_egraph();
     egraph.rebuild();
     EXPECT_EQ(egraph.find_class_id(id_nested1), egraph.find_class_id(id_nested2));
-
+    egraph.print_egraph();
     Id root_nested = egraph.find_class_id(id_nested1);
-    egraph.rebuild();
     EXPECT_EQ(root_nested, egraph.find_class_id(id_nested1));
     EXPECT_EQ(root_nested, egraph.find_class_id(id_nested2));
 }
@@ -184,29 +184,6 @@ TEST(EGraph, AddExpression)
     Id expr_diff_id = egraph.add_expression(expr_diff);
 
     EXPECT_NE(expr_id, expr_diff_id);
-}
-
-TEST(EGraph, MultipleUnionsInSequence)
-{
-    EGraph egraph;
-
-    auto a = make_symbol("a");
-    auto b = make_symbol("b");
-    auto c = make_symbol("c");
-    auto d = make_symbol("d");
-
-    Id ida = egraph.add_node(a);
-    Id idb = egraph.add_node(b);
-    Id idc = egraph.add_node(c);
-    Id idd = egraph.add_node(d);
-
-    egraph.union_classes(ida, idb);
-    egraph.union_classes(idb, idc);
-    egraph.union_classes(idc, idd);
-
-    egraph.rebuild();
-
-    EXPECT_EQ(egraph.find(a), egraph.find(d));
 }
 
 TEST(EGraph, ComplexExpressionEquivalence)

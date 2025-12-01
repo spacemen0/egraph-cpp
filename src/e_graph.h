@@ -20,6 +20,7 @@ public:
     Id add_expression(const Expression &expr);
     bool union_classes(Id id1, Id id2);
     void rebuild();
+    void print_egraph() const;
     bool atoms_match(const PatternAtom &pat_atom, const Atom &enode_atom) const;
     void find_matches_in_eclass(Id eclass_id, const Pattern &pattern, std::set<Substitution> &out_substitutions) const;
     const ENode &at(Id id) const;

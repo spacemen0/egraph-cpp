@@ -61,7 +61,7 @@ std::string ENode::to_string() const
     }
     else
     {
-        return "Str:" + std::get<std::string>(atom);
+        return std::get<std::string>(atom);
     }
 }
 

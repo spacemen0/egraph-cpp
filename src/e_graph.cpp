@@ -131,10 +131,7 @@ void EGraph::rebuild()
     for (Id pending_id : current_pendings)
     {
         auto node = nodes[pending_id].get();
-        for (auto &child_id : node->get_children_mut())
-        {
-            child_id = uf.find_and_compress(child_id);
-        }
+        canonicalize_node(*node);
         if (memo.contains(node))
         {
             Id existing_class_id = memo.at(node);
@@ -142,6 +139,45 @@ void EGraph::rebuild()
         }
         memo.emplace(node, pending_id);
     }
+}
+
+void EGraph::print_egraph() const
+{
+    std::cout << "=== E-Graph State ===\n";
+
+    for (const auto &[class_id, eclass_ptr] : classes)
+    {
+        // only print root classes
+        if (uf.find_root(class_id) != class_id)
+            continue;
+
+        std::cout << "EClass " << class_id << ": { ";
+
+        const auto &nodes_in_class = eclass_ptr->get_nodes();
+        for (size_t i = 0; i < nodes_in_class.size(); ++i)
+        {
+            const ENode *node = nodes_in_class[i];
+
+            if (node->is_leaf())
+            {
+                std::cout << node->to_string();
+            }
+            else
+            {
+                std::cout << "(" << node->to_string();
+                for (Id child : node->get_children())
+                {
+                    std::cout << " " << child;
+                }
+                std::cout << ")";
+            }
+
+            if (i < nodes_in_class.size() - 1)
+                std::cout << ", ";
+        }
+        std::cout << " }\n";
+    }
+    std::cout << "=====================\n";
 }
 
 bool EGraph::atoms_match(const PatternAtom &pat_atom, const Atom &enode_atom) const
@@ -169,6 +205,7 @@ std::vector<Substitution> EGraph::search_eclass_for_pattern(Id eclass_id, const 
     std::vector<Substitution> results;
     Id canonical_id = find_class_id(eclass_id);
 
+    // handle pattern variable case
     if (const PatternVar *var = std::get_if<PatternVar>(&pattern.atom))
     {
         auto it = initial_subst.find(var->name);
@@ -192,10 +229,8 @@ std::vector<Substitution> EGraph::search_eclass_for_pattern(Id eclass_id, const 
     const auto eclass = classes.at(canonical_id).get();
     for (const ENode *node : eclass->get_nodes())
     {
-        printf("Trying to match enode %s with pattern\n", node->to_string().c_str());
         if (!atoms_match(pattern.atom, node->get_atom()) || node->get_children().size() != pattern.children.size())
         {
-            printf("Skipping enode due to atom mismatch or children size mismatch\n");
             continue;
         }
         std::vector<Substitution> current_matches = {initial_subst};
@@ -206,6 +241,7 @@ std::vector<Substitution> EGraph::search_eclass_for_pattern(Id eclass_id, const 
             std::vector<Substitution> next_matches;
             const Pattern &child_pattern = pattern.children[i];
             Id child_eclass_id = node->get_children()[i];
+
             for (const auto &subst : current_matches)
             {
                 auto child_results = search_eclass_for_pattern(child_eclass_id, child_pattern, subst);

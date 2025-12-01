@@ -6,7 +6,7 @@
 #include <map>
 #include "types.h"
 
-/// @brief Represents a variable in a pattern, e.g., "?x".
+/// @brief Represents a variable in a pattern, "?x".
 struct PatternVar
 {
     std::string name;
@@ -17,8 +17,6 @@ struct PatternVar
     }
 };
 
-/// @brief The atom of a pattern. It can be a fixed operator (Op),
-/// or a variable(PatternVar).
 using PatternAtom = std::variant<Op, PatternVar>;
 
 struct Pattern
@@ -27,6 +25,6 @@ struct Pattern
     std::vector<Pattern> children;
 };
 
-///@brief Represents a single match
-/// a map from a variable's name (e.g., "?x") to the canonical e-class ID
+///@brief
+/// a map from a variable's name to the canonical e-class ID
 using Substitution = std::map<std::string, Id>;
