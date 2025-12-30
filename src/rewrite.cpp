@@ -23,7 +23,7 @@ static Id instantiate(EGraph &egraph, const Pattern &pattern, const Substitution
     }
 }
 
-bool apply_rewrites(EGraph &egraph, const std::vector<Rewrite> &rewrites)
+bool apply_one_iteration(EGraph &egraph, const std::vector<Rewrite> &rewrites)
 {
     bool changed = false;
 
@@ -70,4 +70,20 @@ bool apply_rewrites(EGraph &egraph, const std::vector<Rewrite> &rewrites)
     }
 
     return changed;
+}
+
+bool apply_rewrites(EGraph &egraph, const std::vector<Rewrite> &rewrites, int max_iterations)
+{
+    bool any_changed = false;
+
+    for (int i = 0; i < max_iterations; ++i)
+    {
+        if (!apply_one_iteration(egraph, rewrites))
+        {
+            break;
+        }
+        any_changed = true;
+    }
+
+    return any_changed;
 }

@@ -20,4 +20,4 @@ struct Match
 
 /// @brief Applies all rewrites to the e-graph until saturation or a limit.
 /// @return true if any rewrite was applied
-bool apply_rewrites(EGraph &egraph, const std::vector<Rewrite> &rewrites);
+bool apply_rewrites(EGraph &egraph, const std::vector<Rewrite> &rewrites, int max_iterations = 30);
