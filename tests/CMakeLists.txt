@@ -3,6 +3,7 @@ add_executable(unit_tests
     e_node_test.cpp
     e_graph_test.cpp
     expression_test.cpp
+    rewrite_test.cpp
 )
 
 target_link_libraries(unit_tests 

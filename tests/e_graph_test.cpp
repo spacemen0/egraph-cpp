@@ -219,8 +219,8 @@ TEST(EGraph, ENodeMatching)
 {
     EGraph egraph;
 
-    auto sx = make_symbol("x");
-    Id id1 = egraph.add_node(sx);
+    auto x = make_symbol("x");
+    Id id1 = egraph.add_node(x);
 
     auto node = make_op(Op::Negate, Children{id1});
     Id id2 = egraph.add_node(node);

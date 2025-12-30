@@ -200,6 +200,11 @@ void EGraph::find_matches_in_eclass(Id eclass_id, const Pattern &pattern, std::s
     }
 }
 
+std::string EGraph::node_to_string(Id id) const
+{
+    return at(id).to_string();
+}
+
 std::vector<Substitution> EGraph::search_eclass_for_pattern(Id eclass_id, const Pattern &pattern, const Substitution &initial_subst) const
 {
     std::vector<Substitution> results;
@@ -267,4 +272,15 @@ std::vector<Substitution> EGraph::search_eclass_for_pattern(Id eclass_id, const 
 const ENode &EGraph::at(Id id) const
 {
     return *(nodes.at(id));
+}
+
+std::vector<Id> EGraph::get_all_class_ids() const
+{
+    std::vector<Id> ids;
+    ids.reserve(classes.size());
+    for (const auto &[id, _] : classes)
+    {
+        ids.push_back(id);
+    }
+    return ids;
 }
