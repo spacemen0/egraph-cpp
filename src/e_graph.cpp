@@ -43,6 +43,7 @@ Id EGraph::add_node(ENode node)
     {
         return found.value();
     }
+    canonicalize_node(node);
 
     auto new_id = uf.make_set();
     auto new_class = std::make_unique<EClass>(new_id);

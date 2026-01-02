@@ -84,23 +84,20 @@ TEST(Rewrite, NewNodes)
 {
     EGraph egraph;
 
-    Id ida = egraph.add_node(sym_a);
+    Id id_add = egraph.add_expression(Expression("Mul(Invert(a), a)"));
 
-    // Rule: x -> x + 0
+    // Rule: (* (invert ?a) ?a) -> "Identity"
     Pattern lhs = {
-        PatternAtom(PatternVar{"x"}),
-        {}};
+        PatternAtom(Op::Mul),
+        {Pattern{PatternAtom(Op::Invert), {Pattern{PatternAtom(PatternVar{"x"}), {}}}},
+         Pattern{PatternAtom(PatternVar{"x"}), {}}}};
     Pattern rhs = {
-        PatternAtom(Op::Add),
-        {Pattern{PatternAtom(PatternVar{"x"}), {}},
-         Pattern{PatternAtom(Op::Zero), {}}}};
+        PatternAtom(Op::Identity), {}};
 
-    Rewrite rule{"add_zero_rhs", lhs, rhs};
+    Rewrite rule{"mul_invert_identity", lhs, rhs};
 
     bool changed = apply_rewrites(egraph, {rule});
     EXPECT_TRUE(changed);
 
-    Id id_add = egraph.add_expression(Expression("Add(a, Zero)"));
-
-    EXPECT_EQ(egraph.find_class_id(ida), egraph.find_class_id(id_add));
+    EXPECT_EQ(egraph.find(ENode({}, Op::Identity)).value(), egraph.find_class_id(id_add));
 }
