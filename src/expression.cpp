@@ -26,7 +26,13 @@ Expression::Expression(std::string_view string)
     auto pos = string.find('(');
     if (pos == std::string_view::npos)
     {
-        atom = std::string(trim(string));
+        std::string trimmed = std::string(trim(string));
+        if (trimmed == "Zero")
+            atom = Op::Zero;
+        else if (trimmed == "Identity")
+            atom = Op::Identity;
+        else
+            atom = trimmed;
         return;
     }
 

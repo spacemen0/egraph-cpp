@@ -1,7 +1,7 @@
 #include "rewrite.h"
 #include <iostream>
 
-// Instantiate a pattern into the EGraph using a substitution
+// Instantiate a pattern into the EGraph
 static Id instantiate(EGraph &egraph, const Pattern &pattern, const Substitution &subst)
 {
     if (std::holds_alternative<PatternVar>(pattern.atom))
@@ -19,7 +19,7 @@ static Id instantiate(EGraph &egraph, const Pattern &pattern, const Substitution
             children.push_back(instantiate(egraph, child_pat, subst));
         }
         ENode node(children, Atom(op));
-        return egraph.add_node(node);
+        return egraph.add_node(node); // new id or existing id
     }
 }
 
