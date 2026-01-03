@@ -33,19 +33,29 @@ TEST(Extractor, RewriteAndExtract)
     Id root_id = egraph.add_expression(Expression("Add(Mul(a, Zero), b)"));
 
     // Mul(x, Zero) -> Zero
-    Pattern p1_lhs = {
-        PatternAtom(Op::Mul),
-        {Pattern{PatternAtom(PatternVar{"?x"}), {}},
-         Pattern{PatternAtom(Op::Zero), {}}}};
-    Pattern p1_rhs = {PatternAtom(Op::Zero), {}};
+    Pattern p1_lhs{
+        .atom = Op::Mul,
+        .children = {
+            {.atom = PatternVar{"?x"}},
+            {.atom = Op::Zero},
+        },
+    };
+    Pattern p1_rhs{
+        .atom = Op::Zero,
+    };
     Rewrite r1{"mul_zero", p1_lhs, p1_rhs};
 
     // Add(Zero, x) -> x
-    Pattern p2_lhs = {
-        PatternAtom(Op::Add),
-        {Pattern{PatternAtom(Op::Zero), {}},
-         Pattern{PatternAtom(PatternVar{"?x"}), {}}}};
-    Pattern p2_rhs = {PatternAtom(PatternVar{"?x"}), {}};
+    Pattern p2_lhs{
+        .atom = Op::Add,
+        .children = {
+            {.atom = Op::Zero},
+            {.atom = PatternVar{"?x"}},
+        },
+    };
+    Pattern p2_rhs{
+        .atom = PatternVar{"?x"},
+    };
     Rewrite r2{"add_zero", p2_lhs, p2_rhs};
 
     apply_rewrites(egraph, {r1, r2});
