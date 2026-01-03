@@ -24,6 +24,7 @@ public:
     void find_matches_in_eclass(Id eclass_id, const Pattern &pattern, std::set<Substitution> &out_substitutions) const;
     const ENode &at(Id id) const;
     std::vector<Id> get_all_class_ids() const;
+    const std::vector<const ENode *> &get_class_nodes(Id class_id) const;
 
 private:
     // stores the union-find structure for e-classes (which stores equivalences)

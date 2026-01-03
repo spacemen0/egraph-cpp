@@ -7,6 +7,8 @@
 struct Expression
 {
     explicit Expression(std::string_view string);
+    Expression(Atom atom, std::vector<Expression> &children)
+        : atom(atom), children(std::move(children)) {};
 
     Atom atom;
     std::vector<Expression> children;

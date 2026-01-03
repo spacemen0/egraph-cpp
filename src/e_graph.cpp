@@ -285,3 +285,9 @@ std::vector<Id> EGraph::get_all_class_ids() const
     }
     return ids;
 }
+
+const std::vector<const ENode *> &EGraph::get_class_nodes(Id class_id) const
+{
+    Id root = uf.find_root(class_id);
+    return classes.at(root)->get_nodes();
+}
