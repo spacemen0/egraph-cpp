@@ -1,23 +1,5 @@
 #include "expression.h"
 #include <stdexcept>
-constexpr std::string_view trim(std::string_view sv)
-{
-    constexpr std::string_view WHITESPACE = " \n\r\t\f\v";
-    auto start = sv.find_first_not_of(WHITESPACE);
-
-    if (start == std::string_view::npos)
-    {
-        return {};
-    }
-
-    sv.remove_prefix(start);
-
-    auto end = sv.find_last_not_of(WHITESPACE);
-
-    sv.remove_suffix(sv.size() - (end + 1));
-
-    return sv;
-}
 
 /// @brief parse a expression from a string with the format: Op(child1, child2, ...)
 /// @param string
@@ -36,22 +18,8 @@ Expression::Expression(std::string_view string)
         return;
     }
 
-    if (auto op_str = std::string(trim(string.substr(0, pos))); op_str == "Add")
-        atom = Op::Add;
-    else if (op_str == "Mul")
-        atom = Op::Mul;
-    else if (op_str == "Transpose")
-        atom = Op::Transpose;
-    else if (op_str == "Invert")
-        atom = Op::Invert;
-    else if (op_str == "Negate")
-        atom = Op::Negate;
-    else if (op_str == "Identity")
-        atom = Op::Identity;
-    else if (op_str == "Zero")
-        atom = Op::Zero;
-    else
-        throw std::invalid_argument("Unknown operation: " + op_str);
+    std::string_view op_str = trim(string.substr(0, pos));
+    atom = parse_op(op_str);
 
     size_t start = pos + 1;
     size_t end = string.find_last_of(')');

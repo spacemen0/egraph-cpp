@@ -2,80 +2,14 @@
 #include "e_graph.h"
 #include "extractor.h"
 #include "rewrite.h"
-#include "test_helper.h"
+#include "rewrite_rules.h"
 
 TEST(Integration, MatrixPartialSet)
 {
     EGraph egraph;
 
-    // mul-assoc-right: (* (* ?a ?b) ?c) => (* ?a (* ?b ?c))
-    Rewrite r1{
-        .name = "mul-assoc-right",
-        .lhs = {
-            .atom = Op::Mul,
-            .children = {
-                {
-                    .atom = Op::Mul,
-                    .children = {
-                        {.atom = PatternVar{"?a"}},
-                        {.atom = PatternVar{"?b"}},
-                    },
-                },
-                {.atom = PatternVar{"?c"}},
-            },
-        },
-        .rhs = {
-            .atom = Op::Mul,
-            .children = {
-                {.atom = PatternVar{"?a"}},
-                {
-                    .atom = Op::Mul,
-                    .children = {
-                        {.atom = PatternVar{"?b"}},
-                        {.atom = PatternVar{"?c"}},
-                    },
-                },
-            },
-        },
-    };
-
-    // invert-cancel-left: (* (invert ?a) ?a) => Identity if is_square("?a")
-    Rewrite r2{
-        .name = "invert-cancel-left",
-        .lhs = {
-            .atom = Op::Mul,
-            .children = {
-                {
-                    .atom = Op::Invert,
-                    .children = {
-                        {.atom = PatternVar{"?a"}},
-                    },
-                },
-                {.atom = PatternVar{"?a"}},
-            },
-        },
-        .rhs = {
-            .atom = Op::Identity,
-        },
-    };
-
-    // mul-identity-right: (* Identity ?a) => ?a
-    Rewrite r3{
-        .name = "mul-identity-right",
-        .lhs = {
-            .atom = Op::Mul,
-            .children = {
-                {.atom = Op::Identity},
-                {.atom = PatternVar{"?a"}},
-            },
-        },
-        .rhs = {
-            .atom = PatternVar{"?a"},
-        },
-    };
-
     auto id = egraph.add_expression(Expression("Mul(Mul(Mul(Invert(Mul(A, F)), A), F), D)"));
-    apply_rewrites(egraph, {r1, r2, r3});
+    apply_rewrites(egraph, {mul_assoc_right, invert_cancel_left, mul_identity_right});
     Extractor extractor(egraph);
     auto result = extractor.extract(id);
     // Should extract 'D'

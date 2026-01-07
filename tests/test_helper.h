@@ -1,4 +1,6 @@
-#include <e_node.h>
+#pragma once
+#include "e_node.h"
+
 static ENode make_symbol(const std::string &name)
 {
     return ENode(Children{}, std::string(name));

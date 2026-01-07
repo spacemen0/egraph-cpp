@@ -9,7 +9,3 @@ add_library(core_lib STATIC
     extractor.cpp
 )
 target_include_directories(core_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-
-add_executable(main main.cpp)
-
-target_link_libraries(main PRIVATE core_lib)
