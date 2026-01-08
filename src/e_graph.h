@@ -25,6 +25,7 @@ public:
     const ENode &at(Id id) const;
     std::vector<Id> get_all_class_ids() const;
     const std::vector<const ENode *> &get_class_nodes(Id class_id) const;
+    size_t num_nodes() const noexcept;
 
 private:
     // stores the union-find structure for e-classes (which stores equivalences)

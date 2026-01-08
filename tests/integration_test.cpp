@@ -17,3 +17,17 @@ TEST(Integration, MatrixPartialSet)
     EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
     EXPECT_EQ(std::get<std::string>(result.expr.atom), "D");
 }
+
+TEST(Integration, MatrixFullSet)
+{
+    EGraph egraph;
+
+    auto id = egraph.add_expression(Expression("Mul(Mul(Mul(Invert(Mul(A, F)), A), F), D)"));
+    apply_rewrites(egraph, get_all_rewrite_rules(), 4, 500);
+    Extractor extractor(egraph);
+    auto result = extractor.extract(id);
+    // Should extract 'D'
+    EXPECT_EQ(result.cost, 1.0);
+    EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
+    EXPECT_EQ(std::get<std::string>(result.expr.atom), "D");
+}

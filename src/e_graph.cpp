@@ -12,6 +12,11 @@ void EGraph::canonicalize_node(ENode &node)
     }
 }
 
+size_t EGraph::num_nodes() const noexcept
+{
+    return nodes.size();
+}
+
 /// @brief Look up a node in the e-graph.
 /// @param node
 /// @return EClass ID if found, std::nullopt otherwise
@@ -126,19 +131,23 @@ bool EGraph::union_classes(Id id1, Id id2)
 
 void EGraph::rebuild()
 {
-    std::vector<Id> current_pendings = std::move(pendings);
-    pendings.clear();
-
-    for (Id pending_id : current_pendings)
+    while (!pendings.empty())
     {
-        auto node = nodes[pending_id].get();
-        canonicalize_node(*node);
-        if (memo.contains(node))
+        std::vector<Id> current_pendings = std::move(pendings);
+        pendings.clear();
+
+        for (Id pending_id : current_pendings)
         {
-            Id existing_class_id = memo.at(node);
-            union_classes(existing_class_id, pending_id);
+            auto node = nodes[pending_id].get();
+            memo.erase(node);
+            canonicalize_node(*node);
+            if (memo.contains(node))
+            {
+                Id existing_class_id = memo.at(node);
+                union_classes(existing_class_id, pending_id);
+            }
+            memo.emplace(node, pending_id);
         }
-        memo.emplace(node, pending_id);
     }
 }
 

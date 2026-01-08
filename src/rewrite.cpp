@@ -72,7 +72,7 @@ bool apply_one_iteration(EGraph &egraph, const std::vector<Rewrite> &rewrites)
     return changed;
 }
 
-bool apply_rewrites(EGraph &egraph, const std::vector<Rewrite> &rewrites, int max_iterations)
+bool apply_rewrites(EGraph &egraph, const std::vector<Rewrite> &rewrites, int max_iterations, size_t max_nodes)
 {
     bool any_changed = false;
 
@@ -80,6 +80,11 @@ bool apply_rewrites(EGraph &egraph, const std::vector<Rewrite> &rewrites, int ma
     {
         if (!apply_one_iteration(egraph, rewrites))
         {
+            break;
+        }
+        if (egraph.num_nodes() > max_nodes)
+        {
+            std::cerr << "Reached maximum number of nodes (" << max_nodes << "), stopping rewrites." << std::endl;
             break;
         }
         any_changed = true;
