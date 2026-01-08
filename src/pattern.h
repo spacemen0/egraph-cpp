@@ -18,6 +18,9 @@ using PatternAtom = std::variant<Op, PatternVar>;
 
 struct Pattern
 {
+    explicit Pattern(const PatternAtom &atom, const std::vector<Pattern> &children)
+        : atom(atom), children(children) {}
+    explicit Pattern(std::string_view s);
     PatternAtom atom;
     std::vector<Pattern> children;
 };

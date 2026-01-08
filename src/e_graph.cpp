@@ -17,7 +17,7 @@ size_t EGraph::num_nodes() const noexcept
     return nodes.size();
 }
 
-/// @brief Look up a node in the e-graph.
+/// @brief Look up a node in the e-graph. The node does not need to be canonicalized beforehand.
 /// @param node
 /// @return EClass ID if found, std::nullopt otherwise
 std::optional<Id> EGraph::find(const ENode &node)
@@ -55,17 +55,17 @@ Id EGraph::add_node(ENode node)
 
     // Move the node
     auto new_node_owner = std::make_unique<ENode>(std::move(node));
-    const ENode *stable_ptr = new_node_owner.get();
+    const ENode *node_ptr = new_node_owner.get();
     nodes.push_back(std::move(new_node_owner));
 
-    new_class->get_nodes().push_back(stable_ptr);
+    new_class->get_nodes().push_back(node_ptr);
 
-    for (auto child_id : stable_ptr->get_children())
+    for (auto child_id : node_ptr->get_children())
     {
         classes.at(child_id)->get_parents().push_back(new_id);
     }
 
-    memo[stable_ptr] = new_id;
+    memo[node_ptr] = new_id;
     classes.emplace(new_id, std::move(new_class));
     return new_id;
 }
@@ -85,10 +85,10 @@ Id EGraph::add_expression(const Expression &expr)
     return add_node(current_node);
 }
 
-/// @brief Union two e-classes given their IDs.
+/// @brief Union two e-classes given their IDs. The classes need not be roots.
 /// @param id1
 /// @param id2
-/// @return
+/// @return true if a union was performed, false if they were already in the same class
 bool EGraph::union_classes(Id id1, Id id2)
 {
     Id root1 = uf.find_and_compress(id1);

@@ -14,13 +14,8 @@ TEST(Rewrite, SimpleRewrite)
     Id id_mul = egraph.add_expression(Expression("Mul(a, Zero)"));
     egraph.print_egraph();
     // Rule: x * 0 -> 0
-    Pattern lhs = {
-        PatternAtom(Op::Mul),
-        {Pattern{PatternAtom(PatternVar{"x"}), {}},
-         Pattern{PatternAtom(Op::Zero), {}}}};
-    Pattern rhs = {
-        PatternAtom(Op::Zero),
-        {}};
+    Pattern lhs("Mul(x, Zero)");
+    Pattern rhs("Zero");
 
     Rewrite rule{"mul_zero", lhs, rhs};
 
@@ -38,15 +33,8 @@ TEST(Rewrite, Commutativity)
     Id id_add = egraph.add_expression(Expression("Add(a, b)"));
 
     // Rule: x + y -> y + x
-    Pattern lhs = {
-        PatternAtom(Op::Add),
-        {Pattern{PatternAtom(PatternVar{"x"}), {}},
-         Pattern{PatternAtom(PatternVar{"y"}), {}}}};
-    Pattern rhs = {
-        PatternAtom(Op::Add),
-        {Pattern{PatternAtom(PatternVar{"y"}), {}},
-         Pattern{PatternAtom(PatternVar{"x"}), {}}}};
-
+    Pattern lhs("Add(x, y)");
+    Pattern rhs("Add(y, x)");
     Rewrite rule{"commute_add", lhs, rhs};
 
     EXPECT_NE(id_add, egraph.add_expression(Expression("Add(b, a)")));
@@ -66,13 +54,8 @@ TEST(Rewrite, NoMatch)
     egraph.add_node(sym_a);
 
     // Rule: x + 0 -> x
-    Pattern lhs = {
-        PatternAtom(Op::Add),
-        {Pattern{PatternAtom(PatternVar{"x"}), {}},
-         Pattern{PatternAtom(Op::Zero), {}}}};
-    Pattern rhs = {
-        PatternAtom(PatternVar{"x"}),
-        {}};
+    Pattern lhs("Add(x, Zero)");
+    Pattern rhs("x");
 
     Rewrite rule{"add_zero", lhs, rhs};
 
@@ -86,13 +69,9 @@ TEST(Rewrite, NewNodes)
 
     Id id_add = egraph.add_expression(Expression("Mul(Invert(a), a)"));
 
-    // Rule: (* (invert ?a) ?a) -> "Identity"
-    Pattern lhs = {
-        PatternAtom(Op::Mul),
-        {Pattern{PatternAtom(Op::Invert), {Pattern{PatternAtom(PatternVar{"x"}), {}}}},
-         Pattern{PatternAtom(PatternVar{"x"}), {}}}};
-    Pattern rhs = {
-        PatternAtom(Op::Identity), {}};
+    // Rule: (* (invert a) a) -> "Identity"
+    Pattern lhs("Mul(Invert(a), a)");
+    Pattern rhs("Identity");
 
     Rewrite rule{"mul_invert_identity", lhs, rhs};
 
