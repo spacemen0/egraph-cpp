@@ -27,9 +27,6 @@ TEST(Extractor, RewriteAndExtract)
 {
     EGraph egraph;
 
-    Id id_a = egraph.add_node(make_symbol("a"));
-    Id id_b = egraph.add_node(make_symbol("b"));
-
     Id root_id = egraph.add_expression(Expression("Add(Mul(a, Zero), b)"));
 
     // Mul(x, Zero) -> Zero

@@ -45,12 +45,11 @@ void Extractor::calculate_costs()
             for (const ENode *node : egraph.get_class_nodes(root))
             {
                 double node_cost = get_node_cost(*node);
-                if (node_cost < costs[root])
-                {
-                    costs[root] = node_cost;
-                    best_nodes[root] = node;
-                    changed = true;
-                }
+                if (node_cost >= costs[root])
+                    continue;
+                costs[root] = node_cost;
+                best_nodes[root] = node;
+                changed = true;
             }
         }
     }

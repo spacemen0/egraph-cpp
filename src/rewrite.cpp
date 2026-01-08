@@ -16,7 +16,7 @@ static Id instantiate(EGraph &egraph, const Pattern &pattern, const Substitution
         children.reserve(pattern.children.size());
         for (const auto &child_pat : pattern.children)
         {
-            children.push_back(instantiate(egraph, child_pat, subst));
+            children.emplace_back(instantiate(egraph, child_pat, subst));
         }
         ENode node(children, Atom(op));
         return egraph.add_node(node); // new id or existing id
@@ -46,7 +46,7 @@ bool apply_one_iteration(EGraph &egraph, const std::vector<Rewrite> &rewrites)
 
             for (const auto &subst : substs)
             {
-                matches.push_back({class_id, i, subst});
+                matches.emplace_back(class_id, i, subst);
             }
         }
     }

@@ -8,7 +8,7 @@ Expression::Expression(std::string_view string)
     auto pos = string.find('(');
     if (pos == std::string_view::npos)
     {
-        std::string trimmed = std::string(trim(string));
+        auto trimmed = std::string(trim(string));
         if (trimmed == "Zero")
             atom = Op::Zero;
         else if (trimmed == "Identity")

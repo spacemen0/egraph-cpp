@@ -11,10 +11,7 @@ struct PatternVar
 {
     std::string name;
 
-    bool operator==(const PatternVar &other) const
-    {
-        return name == other.name;
-    }
+    bool operator==(const PatternVar &other) const = default;
 };
 
 using PatternAtom = std::variant<Op, PatternVar>;

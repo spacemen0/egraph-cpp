@@ -63,7 +63,7 @@ TEST(Rewrite, NoMatch)
 {
     EGraph egraph;
 
-    Id ida = egraph.add_node(sym_a);
+    egraph.add_node(sym_a);
 
     // Rule: x + 0 -> x
     Pattern lhs = {

@@ -59,7 +59,7 @@ inline Pattern parse_pattern(std::string_view s)
     return Pattern{PatternAtom(op), children};
 }
 
-inline Rewrite make_rewrite(std::string name, std::string_view lhs, std::string_view rhs)
+inline Rewrite make_rewrite(const std::string &name, std::string_view lhs, std::string_view rhs)
 {
     return Rewrite{name, parse_pattern(lhs), parse_pattern(rhs)};
 }
@@ -101,6 +101,6 @@ inline std::vector<Rewrite> get_all_rewrite_rules()
     };
 }
 
-static auto invert_cancel_left = make_rewrite("invert-cancel-left", "Mul(Invert(a), a)", "Identity");
-static auto mul_assoc_right = make_rewrite("mul-assoc-right", "Mul(Mul(a, b), c)", "Mul(a, Mul(b, c))");
-static auto mul_identity_right = make_rewrite("mul-identity-right", "Mul(Identity, a)", "a");
+static const auto invert_cancel_left = make_rewrite("invert-cancel-left", "Mul(Invert(a), a)", "Identity");
+static const auto mul_assoc_right = make_rewrite("mul-assoc-right", "Mul(Mul(a, b), c)", "Mul(a, Mul(b, c))");
+static const auto mul_identity_right = make_rewrite("mul-identity-right", "Mul(Identity, a)", "a");
