@@ -16,7 +16,7 @@ Pattern::Pattern(std::string_view s)
         }
         else
         {
-            atom = PatternAtom(PatternVar{std::string(s)});
+            atom = std::string(s);
             return;
         }
     }
@@ -49,6 +49,6 @@ Pattern::Pattern(std::string_view s)
     {
         children.push_back(Pattern(args_str.substr(child_start)));
     }
-    atom = PatternAtom(op);
+    atom = op;
     this->children = std::move(children);
 }

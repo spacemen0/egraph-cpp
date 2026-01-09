@@ -6,22 +6,12 @@
 #include <map>
 #include "types.h"
 
-/// @brief Represents a variable in a pattern, "?x".
-struct PatternVar
-{
-    std::string name;
-
-    bool operator==(const PatternVar &other) const = default;
-};
-
-using PatternAtom = std::variant<Op, PatternVar>;
-
 struct Pattern
 {
-    explicit Pattern(const PatternAtom &atom, const std::vector<Pattern> &children)
+    explicit Pattern(const Atom &atom, const std::vector<Pattern> &children)
         : atom(atom), children(children) {}
     explicit Pattern(std::string_view s);
-    PatternAtom atom;
+    Atom atom;
     std::vector<Pattern> children;
 };
 

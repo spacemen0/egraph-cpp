@@ -14,7 +14,7 @@ TEST(Rewrite, SimpleRewrite)
     Id id_mul = egraph.add_expression(Expression("Mul(a, Zero)"));
     egraph.print_egraph();
     // Rule: x * 0 -> 0
-    Pattern lhs("Mul(x, Zero)");
+    Pattern lhs("Mul(?x, Zero)");
     Pattern rhs("Zero");
 
     Rewrite rule{"mul_zero", lhs, rhs};
@@ -33,8 +33,8 @@ TEST(Rewrite, Commutativity)
     Id id_add = egraph.add_expression(Expression("Add(a, b)"));
 
     // Rule: x + y -> y + x
-    Pattern lhs("Add(x, y)");
-    Pattern rhs("Add(y, x)");
+    Pattern lhs("Add(?x, ?y)");
+    Pattern rhs("Add(?y, ?x)");
     Rewrite rule{"commute_add", lhs, rhs};
 
     EXPECT_NE(id_add, egraph.add_expression(Expression("Add(b, a)")));
@@ -54,8 +54,8 @@ TEST(Rewrite, NoMatch)
     egraph.add_node(sym_a);
 
     // Rule: x + 0 -> x
-    Pattern lhs("Add(x, Zero)");
-    Pattern rhs("x");
+    Pattern lhs("Add(?x, Zero)");
+    Pattern rhs("?x");
 
     Rewrite rule{"add_zero", lhs, rhs};
 
@@ -70,7 +70,7 @@ TEST(Rewrite, NewNodes)
     Id id_add = egraph.add_expression(Expression("Mul(Invert(a), a)"));
 
     // Rule: (* (invert a) a) -> "Identity"
-    Pattern lhs("Mul(Invert(a), a)");
+    Pattern lhs("Mul(Invert(?a), ?a)");
     Pattern rhs("Identity");
 
     Rewrite rule{"mul_invert_identity", lhs, rhs};

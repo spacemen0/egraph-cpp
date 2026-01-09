@@ -168,7 +168,7 @@ TEST(EGraph, PatternMatchingSimple)
 
     Id expr_id = egraph.add_expression(Expression("Add(x, y)"));
 
-    Pattern pattern("Add(a, b)");
+    Pattern pattern("Add(?a, ?b)");
 
     std::set<Substitution> substitutions;
     egraph.find_matches_in_eclass(expr_id, pattern, substitutions);
@@ -188,7 +188,7 @@ TEST(EGraph, PatternMatchingNested)
 
     Id expr_id = egraph.add_expression(Expression("Add(Mul(x, y), Transpose(z))"));
 
-    Pattern pattern("Add(Mul(a, b), Transpose(c))");
+    Pattern pattern("Add(Mul(?a, ?b), Transpose(?c))");
 
     std::set<Substitution> substitutions;
     egraph.find_matches_in_eclass(expr_id, pattern, substitutions);
@@ -215,7 +215,7 @@ TEST(EGraph, PatternMatchingMultipleMatchesInClass)
     egraph.union_classes(id1, id2);
     egraph.rebuild();
 
-    Pattern pattern("Add(a, b)");
+    Pattern pattern("Add(?a, ?b)");
 
     std::set<Substitution> substitutions;
     egraph.find_matches_in_eclass(id1, pattern, substitutions);

@@ -190,12 +190,16 @@ void EGraph::print_egraph() const
     std::cout << "=====================\n";
 }
 
-bool EGraph::atoms_match(const PatternAtom &pat_atom, const Atom &enode_atom) const
+bool EGraph::atoms_match(const Atom &pat_atom, const Atom &enode_atom) const
 {
-    if (std::holds_alternative<Op>(pat_atom) && std::holds_alternative<Op>(enode_atom))
-    {
-        return std::get<Op>(pat_atom) == std::get<Op>(enode_atom);
-    }
+    if (pat_atom.index() != enode_atom.index())
+        return false;
+
+    if (const auto op1 = std::get_if<Op>(&pat_atom))
+        return *op1 == std::get<Op>(enode_atom);
+
+    if (const auto s1 = std::get_if<std::string>(&pat_atom))
+        return *s1 == std::get<std::string>(enode_atom);
     return false;
 }
 
@@ -221,24 +225,28 @@ std::vector<Substitution> EGraph::search_eclass_for_pattern(Id eclass_id, const 
     Id canonical_id = find_class_id(eclass_id);
 
     // handle pattern variable case
-    if (const PatternVar *var = std::get_if<PatternVar>(&pattern.atom))
+    if (const std::string *str_atom = std::get_if<std::string>(&pattern.atom))
     {
-        auto it = initial_subst.find(var->name);
+        if (str_atom->starts_with('?'))
+        {
+            auto var_name = str_atom->substr(1);
+            auto it = initial_subst.find(var_name);
 
-        if (it != initial_subst.end())
-        {
-            if (it->second == canonical_id)
+            if (it != initial_subst.end())
             {
-                results.push_back(initial_subst);
+                if (it->second == canonical_id)
+                {
+                    results.push_back(initial_subst);
+                }
             }
+            else
+            {
+                Substitution new_subst = initial_subst;
+                new_subst[var_name] = canonical_id;
+                results.push_back(new_subst);
+            }
+            return results;
         }
-        else
-        {
-            Substitution new_subst = initial_subst;
-            new_subst[var->name] = canonical_id;
-            results.push_back(new_subst);
-        }
-        return results;
     }
 
     const auto eclass = classes.at(canonical_id).get();

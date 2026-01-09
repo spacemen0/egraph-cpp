@@ -15,4 +15,5 @@ private:
     std::vector<const ENode *> nodes;
     // parents are Enodes pointing to this class
     std::vector<Id> parents;
+    AnalysisData analysis_data;
 };

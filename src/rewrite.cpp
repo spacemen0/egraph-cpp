@@ -4,23 +4,22 @@
 // Instantiate a pattern into the EGraph
 static Id instantiate(EGraph &egraph, const Pattern &pattern, const Substitution &subst)
 {
-    if (std::holds_alternative<PatternVar>(pattern.atom))
+    if (const auto *str = std::get_if<std::string>(&pattern.atom))
     {
-        const auto &var = std::get<PatternVar>(pattern.atom);
-        return subst.at(var.name);
-    }
-    else
-    {
-        const auto &op = std::get<Op>(pattern.atom);
-        Children children;
-        children.reserve(pattern.children.size());
-        for (const auto &child_pat : pattern.children)
+        if (str->starts_with('?'))
         {
-            children.emplace_back(instantiate(egraph, child_pat, subst));
+            return subst.at(str->substr(1));
         }
-        ENode node(children, Atom(op));
-        return egraph.add_node(node); // new id or existing id
     }
+
+    Children children;
+    children.reserve(pattern.children.size());
+    for (const auto &child_pat : pattern.children)
+    {
+        children.emplace_back(instantiate(egraph, child_pat, subst));
+    }
+    ENode node(children, pattern.atom);
+    return egraph.add_node(node); // new id or existing id
 }
 
 bool apply_one_iteration(EGraph &egraph, const std::vector<Rewrite> &rewrites)

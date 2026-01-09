@@ -53,6 +53,13 @@ constexpr std::string_view trim(std::string_view sv)
     return sv;
 }
 
+struct AnalysisData
+{
+    size_t cost;
+    size_t x_size;
+    size_t y_size;
+};
+
 using Id = uint32_t;
 using Children = std::vector<Id>;
 using Atom = std::variant<Op, std::string>;

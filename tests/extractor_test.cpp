@@ -30,13 +30,13 @@ TEST(Extractor, RewriteAndExtract)
     Id root_id = egraph.add_expression(Expression("Add(Mul(a, Zero), b)"));
 
     // Mul(x, Zero) -> Zero
-    Pattern p1_lhs("Mul(x, Zero)");
+    Pattern p1_lhs("Mul(?x, Zero)");
     Pattern p1_rhs("Zero");
     Rewrite r1{"mul_zero", p1_lhs, p1_rhs};
 
     // Add(Zero, x) -> x
-    Pattern p2_lhs("Add(Zero, x)");
-    Pattern p2_rhs("x");
+    Pattern p2_lhs("Add(Zero, ?x)");
+    Pattern p2_rhs("?x");
     Rewrite r2{"add_zero", p2_lhs, p2_rhs};
 
     apply_rewrites(egraph, {r1, r2});
