@@ -3,14 +3,14 @@
 #include "test_helper.h"
 
 // Global symbol constants
-const ENode sym_a = make_symbol("a");
-const ENode sym_b = make_symbol("b");
-const ENode sym_c = make_symbol("c");
-const ENode sym_d = make_symbol("d");
-const ENode sym_x = make_symbol("x");
-const ENode sym_y = make_symbol("y");
-const ENode sym_z = make_symbol("z");
-const ENode sym_w = make_symbol("w");
+const ENode sym_a = make_symbol("A");
+const ENode sym_b = make_symbol("B");
+const ENode sym_c = make_symbol("C");
+const ENode sym_d = make_symbol("D");
+const ENode sym_x = make_symbol("X");
+const ENode sym_y = make_symbol("Y");
+const ENode sym_z = make_symbol("Z");
+const ENode sym_w = make_symbol("W");
 
 TEST(EGraph, AddAndLookUpNode)
 {
@@ -58,8 +58,8 @@ TEST(EGraph, RebuildParentsBasic)
 {
     EGraph egraph;
 
-    auto id_node1 = egraph.add_expression(Expression("Add(a, b)"));
-    auto id_node2 = egraph.add_expression(Expression("Add(a, c)"));
+    auto id_node1 = egraph.add_expression(Expression("Add(A, B)"));
+    auto id_node2 = egraph.add_expression(Expression("Add(A, C)"));
 
     EXPECT_NE(egraph.find_class_id(id_node1), egraph.find_class_id(id_node2));
 
@@ -75,8 +75,8 @@ TEST(EGraph, RebuildParentsBasicReverse)
 {
     EGraph egraph;
 
-    auto id_node1 = egraph.add_expression(Expression("Add(a, b)"));
-    auto id_node2 = egraph.add_expression(Expression("Add(a, c)"));
+    auto id_node1 = egraph.add_expression(Expression("Add(A, B)"));
+    auto id_node2 = egraph.add_expression(Expression("Add(A, C)"));
 
     EXPECT_NE(egraph.find_class_id(id_node1), egraph.find_class_id(id_node2));
     egraph.print_egraph();
@@ -92,16 +92,16 @@ TEST(EGraph, RebuildMultiLevelParents)
 {
     EGraph egraph;
 
-    Id id_add_ab = egraph.add_expression(Expression("Add(a, b)"));
-    Id id_add_ac = egraph.add_expression(Expression("Add(a, c)"));
+    Id id_add_ab = egraph.add_expression(Expression("Add(A, B)"));
+    Id id_add_ac = egraph.add_expression(Expression("Add(A, C)"));
     EXPECT_NE(egraph.find_class_id(id_add_ab), egraph.find_class_id(id_add_ac));
 
-    Id id_mul1 = egraph.add_expression(Expression("Mul(Add(a, b), d)"));
-    Id id_mul2 = egraph.add_expression(Expression("Mul(Add(a, c), d)"));
+    Id id_mul1 = egraph.add_expression(Expression("Mul(Add(A, B), D)"));
+    Id id_mul2 = egraph.add_expression(Expression("Mul(Add(A, C), D)"));
     EXPECT_NE(egraph.find_class_id(id_mul1), egraph.find_class_id(id_mul2));
 
-    Id id_nested1 = egraph.add_expression(Expression("Add(Mul(Add(a, b), d), a)"));
-    Id id_nested2 = egraph.add_expression(Expression("Add(Mul(Add(a, c), d), a)"));
+    Id id_nested1 = egraph.add_expression(Expression("Add(Mul(Add(A, B), D), A)"));
+    Id id_nested2 = egraph.add_expression(Expression("Add(Mul(Add(A, C), D), A)"));
     EXPECT_NE(egraph.find_class_id(id_nested1), egraph.find_class_id(id_nested2));
 
     egraph.print_egraph();
@@ -119,7 +119,7 @@ TEST(EGraph, AddExpression)
 {
     EGraph egraph;
 
-    Expression expr("Add(Mul(x, y), Transpose(z))");
+    Expression expr("Add(Mul(X, Y), Transpose(Z))");
     Id expr_id = egraph.add_expression(expr);
 
     EXPECT_TRUE(egraph.find(sym_x).has_value());
@@ -135,12 +135,12 @@ TEST(EGraph, AddExpression)
     EXPECT_TRUE(egraph.find(add_expr).has_value());
     EXPECT_EQ(egraph.find(add_expr).value(), expr_id);
 
-    Expression expr_dup("Add(Mul(x, y), Transpose(z))");
+    Expression expr_dup("Add(Mul(X, Y), Transpose(Z))");
     Id expr_dup_id = egraph.add_expression(expr_dup);
 
     EXPECT_EQ(expr_id, expr_dup_id);
 
-    Expression expr_diff("Add(Mul(x, y), Invert(z))");
+    Expression expr_diff("Add(Mul(X, Y), Invert(Z))");
     Id expr_diff_id = egraph.add_expression(expr_diff);
 
     EXPECT_NE(expr_id, expr_diff_id);
@@ -166,7 +166,7 @@ TEST(EGraph, PatternMatchingSimple)
 {
     EGraph egraph;
 
-    Id expr_id = egraph.add_expression(Expression("Add(x, y)"));
+    Id expr_id = egraph.add_expression(Expression("Add(X, Y)"));
 
     Pattern pattern("Add(?a, ?b)");
 
@@ -186,7 +186,7 @@ TEST(EGraph, PatternMatchingNested)
 {
     EGraph egraph;
 
-    Id expr_id = egraph.add_expression(Expression("Add(Mul(x, y), Transpose(z))"));
+    Id expr_id = egraph.add_expression(Expression("Add(Mul(X, Y), Transpose(Z))"));
 
     Pattern pattern("Add(Mul(?a, ?b), Transpose(?c))");
 
@@ -208,9 +208,9 @@ TEST(EGraph, PatternMatchingMultipleMatchesInClass)
 {
     EGraph egraph;
 
-    Id id1 = egraph.add_expression(Expression("Add(x, y)"));
+    Id id1 = egraph.add_expression(Expression("Add(X, Y)"));
 
-    Id id2 = egraph.add_expression(Expression("Add(w, z)"));
+    Id id2 = egraph.add_expression(Expression("Add(W, Z)"));
 
     egraph.union_classes(id1, id2);
     egraph.rebuild();

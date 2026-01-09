@@ -4,7 +4,7 @@
 
 TEST(ENode, IsLeaf)
 {
-    auto s = make_symbol("x");
+    auto s = make_symbol("S");
     EXPECT_TRUE(s.is_leaf());
 
     auto id = make_leaf(Op::Identity);
@@ -17,9 +17,9 @@ TEST(ENode, IsLeaf)
 
 TEST(ENode, MatchesBehavior)
 {
-    auto sx1 = make_symbol("x");
-    auto sx2 = make_symbol("x");
-    auto sy = make_symbol("y");
+    auto sx1 = make_symbol("X");
+    auto sx2 = make_symbol("X");
+    auto sy = make_symbol("Y");
     EXPECT_TRUE(sx1.equals(sx2));
     EXPECT_FALSE(sx1.equals(sy));
 
@@ -44,7 +44,7 @@ TEST(ENode, HashConsistencyAndSensitivity)
     auto n3 = make_op(Op::Mul, c21);
     EXPECT_NE(n1.hash(), n3.hash());
 
-    auto sx = make_symbol("x");
-    auto sy = make_symbol("y");
+    auto sx = make_symbol("X");
+    auto sy = make_symbol("Y");
     EXPECT_NE(sx.hash(), sy.hash());
 }

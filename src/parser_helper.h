@@ -19,6 +19,8 @@ inline ParsedAtom parse_string_to_atom(std::string_view s)
         throw std::runtime_error("Empty string");
 
     auto pos = s.find('(');
+
+    // Leaf node
     if (pos == std::string_view::npos)
     {
         if (s == "Identity")

@@ -7,10 +7,10 @@
 TEST(Extractor, CheaperExtraction)
 {
     EGraph egraph;
-    // Expr: a * 1
-    Id id_a = egraph.add_node(make_symbol("a"));
-    Id id_1 = egraph.add_node(make_symbol("1"));
-    Id id_mul = egraph.add_node(make_op(Op::Mul, {id_a, id_1}));
+    // Expr: A * Identity
+    Id id_a = egraph.add_node(make_symbol("A"));
+    Id id_identity = egraph.add_node(make_op(Op::Identity, {}));
+    Id id_mul = egraph.add_node(make_op(Op::Mul, {id_a, id_identity}));
 
     egraph.union_classes(id_mul, id_a);
     egraph.rebuild();
@@ -20,14 +20,14 @@ TEST(Extractor, CheaperExtraction)
     // Should extract 'a'
     EXPECT_EQ(result.cost, 1.0);
     EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
-    EXPECT_EQ(std::get<std::string>(result.expr.atom), "a");
+    EXPECT_EQ(std::get<std::string>(result.expr.atom), "A");
 }
 
 TEST(Extractor, RewriteAndExtract)
 {
     EGraph egraph;
 
-    Id root_id = egraph.add_expression(Expression("Add(Mul(a, Zero), b)"));
+    Id root_id = egraph.add_expression(Expression("Add(Mul(A, Zero), B)"));
 
     // Mul(x, Zero) -> Zero
     Pattern p1_lhs("Mul(?x, Zero)");
@@ -47,5 +47,5 @@ TEST(Extractor, RewriteAndExtract)
     EXPECT_EQ(result.cost, 1.0);
 
     EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
-    EXPECT_EQ(std::get<std::string>(result.expr.atom), "b");
+    EXPECT_EQ(std::get<std::string>(result.expr.atom), "B");
 }

@@ -6,9 +6,14 @@
 class EClass
 {
 public:
-    explicit EClass(Id id) : _id(id) {}
+    explicit EClass(Id id, const ENode *initial_node, AnalysisData data)
+        : _id(id), analysis_data(std::move(data))
+    {
+        nodes.push_back(initial_node);
+    }
     std::vector<const ENode *> &get_nodes();
     std::vector<Id> &get_parents();
+    AnalysisData &get_analysis_data();
 
 private:
     Id _id;

@@ -17,6 +17,12 @@ size_t EGraph::num_nodes() const noexcept
     return nodes.size();
 }
 
+const AnalysisData &EGraph::get_class_analysis_data(Id class_id) const
+{
+    Id root = uf.find_root(class_id);
+    return classes.at(root)->get_analysis_data();
+}
+
 /// @brief Look up a node in the e-graph. The node does not need to be canonicalized beforehand.
 /// @param node
 /// @return EClass ID if found, std::nullopt otherwise
@@ -51,14 +57,13 @@ Id EGraph::add_node(ENode node)
     canonicalize_node(node);
 
     auto new_id = uf.make_set();
-    auto new_class = std::make_unique<EClass>(new_id);
 
     // Move the node
     auto new_node_owner = std::make_unique<ENode>(std::move(node));
     const ENode *node_ptr = new_node_owner.get();
     nodes.push_back(std::move(new_node_owner));
 
-    new_class->get_nodes().push_back(node_ptr);
+    auto new_class = std::make_unique<EClass>(new_id, node_ptr, make_analysis(*node_ptr));
 
     for (auto child_id : node_ptr->get_children())
     {
@@ -102,6 +107,9 @@ bool EGraph::union_classes(Id id1, Id id2)
         std::swap(root1, root2);
     }
 
+    auto &data1 = classes.at(root1)->get_analysis_data();
+    const auto &data2 = classes.at(root2)->get_analysis_data();
+    merge_analysis_data(data1, data2);
     // takes the ownership of class2 to a local unique_ptr
     auto node_handle = classes.extract(root2);
     auto class2_ptr = std::move(node_handle.mapped());
@@ -193,6 +201,98 @@ void EGraph::print_egraph() const
 std::string EGraph::node_to_string(Id id) const
 {
     return at(id).to_string();
+}
+
+AnalysisData EGraph::make_analysis(const ENode &node) // placeholder size
+{
+    const auto atom = node.get_atom();
+    if (const auto op = std::get_if<Op>(&atom))
+    {
+        switch (*op)
+        {
+        case Op::Add:
+            if (get_class_analysis_data(node.get_children()[0]).size_data !=
+                get_class_analysis_data(node.get_children()[1]).size_data)
+            {
+                throw std::runtime_error("Add operation with mismatched sizes");
+            }
+            return get_class_analysis_data(node.get_children()[0]);
+        case Op::Mul:
+        {
+            auto left_size = get_class_analysis_data(node.get_children()[0]).size_data;
+            auto right_size = get_class_analysis_data(node.get_children()[1]).size_data;
+            if (left_size.second != right_size.first)
+            {
+                throw std::runtime_error("Mul operation with mismatched sizes");
+            }
+            return AnalysisData{std::make_pair(left_size.first, right_size.second)};
+        }
+        case Op::Transpose:
+        {
+            auto child_size = get_class_analysis_data(node.get_children()[0]).size_data;
+            return AnalysisData{std::make_pair(child_size.second, child_size.first)};
+        }
+        case Op::Invert:
+            if (get_class_analysis_data(node.get_children()[0]).size_data.first !=
+                get_class_analysis_data(node.get_children()[0]).size_data.second)
+            {
+                throw std::runtime_error("Invert operation on non-square matrix");
+            }
+            return get_class_analysis_data(node.get_children()[0]);
+        case Op::Negate:
+            return get_class_analysis_data(node.get_children()[0]);
+        case Op::Identity:
+            return AnalysisData{std::make_pair(3, 3)};
+        case Op::Zero:
+            return AnalysisData{std::make_pair(3, 3)};
+        default:
+            return AnalysisData{std::make_pair(0, 0)};
+        }
+    }
+    else
+    {
+        const auto string = std::get<std::string>(atom);
+        if (string == "A")
+            return AnalysisData{std::make_pair(3, 3)};
+        if (string == "B")
+            return AnalysisData{std::make_pair(3, 3)};
+        if (string == "C")
+            return AnalysisData{std::make_pair(3, 3)};
+        if (string == "D")
+            return AnalysisData{std::make_pair(3, 3)};
+        if (string == "E")
+            return AnalysisData{std::make_pair(3, 3)};
+        if (string == "F")
+            return AnalysisData{std::make_pair(3, 3)};
+        if (string == "W")
+            return AnalysisData{std::make_pair(3, 3)};
+        if (string == "X")
+            return AnalysisData{std::make_pair(3, 3)};
+        if (string == "Y")
+            return AnalysisData{std::make_pair(3, 3)};
+        if (string == "Z")
+            return AnalysisData{std::make_pair(3, 3)};
+        return AnalysisData{std::make_pair(99, 99)};
+    }
+}
+
+void EGraph::merge_analysis_data(AnalysisData &data1, const AnalysisData &data2) const
+{
+    bool d1_unknown = (data1.size_data.first == 99);
+    bool d2_unknown = (data2.size_data.first == 99);
+
+    if (d1_unknown && !d2_unknown)
+    {
+        data1 = data2;
+    }
+    else if (!d1_unknown && d2_unknown)
+    {
+        return;
+    }
+    else if (!d1_unknown && !d2_unknown && data1.size_data != data2.size_data)
+    {
+        throw std::runtime_error("Merging e-classes with conflicting size data");
+    }
 }
 
 bool EGraph::atoms_match(const Atom &pat_atom, const Atom &enode_atom) const

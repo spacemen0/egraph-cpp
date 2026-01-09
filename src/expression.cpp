@@ -10,6 +10,6 @@ Expression::Expression(std::string_view string)
     atom = parsed.atom;
     for (const auto &child_str : parsed.children_strings)
     {
-        children.emplace_back(child_str);
+        children.emplace_back(child_str); // recursively parse child expressions
     }
 }

@@ -55,9 +55,7 @@ constexpr std::string_view trim(std::string_view sv)
 
 struct AnalysisData
 {
-    size_t cost;
-    size_t x_size;
-    size_t y_size;
+    std::pair<size_t, size_t> size_data; // (x_size, y_size)
 };
 
 using Id = uint32_t;
