@@ -41,13 +41,13 @@ Pattern::Pattern(std::string_view s)
             paren_count--;
         else if (args_str[i] == ',' && paren_count == 0)
         {
-            children.push_back(Pattern(args_str.substr(child_start, i - child_start)));
+            children.emplace_back(args_str.substr(child_start, i - child_start));
             child_start = i + 1;
         }
     }
     if (child_start < args_str.size())
     {
-        children.push_back(Pattern(args_str.substr(child_start)));
+        children.emplace_back(args_str.substr(child_start));
     }
     atom = op;
     this->children = std::move(children);

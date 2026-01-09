@@ -32,7 +32,6 @@ Atom ENode::get_atom() const
     return atom;
 }
 
-// incomplete
 std::string ENode::to_string() const
 {
     if (std::holds_alternative<Op>(atom))

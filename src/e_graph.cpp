@@ -190,6 +190,11 @@ void EGraph::print_egraph() const
     std::cout << "=====================\n";
 }
 
+std::string EGraph::node_to_string(Id id) const
+{
+    return at(id).to_string();
+}
+
 bool EGraph::atoms_match(const Atom &pat_atom, const Atom &enode_atom) const
 {
     if (pat_atom.index() != enode_atom.index())
@@ -214,11 +219,6 @@ void EGraph::find_matches_in_eclass(Id eclass_id, const Pattern &pattern, std::s
     }
 }
 
-std::string EGraph::node_to_string(Id id) const
-{
-    return at(id).to_string();
-}
-
 std::vector<Substitution> EGraph::search_eclass_for_pattern(Id eclass_id, const Pattern &pattern, const Substitution &initial_subst) const
 {
     std::vector<Substitution> results;
@@ -234,6 +234,7 @@ std::vector<Substitution> EGraph::search_eclass_for_pattern(Id eclass_id, const 
 
             if (it != initial_subst.end())
             {
+                // variable already bound, check for consistency
                 if (it->second == canonical_id)
                 {
                     results.push_back(initial_subst);
@@ -241,7 +242,7 @@ std::vector<Substitution> EGraph::search_eclass_for_pattern(Id eclass_id, const 
             }
             else
             {
-                Substitution new_subst = initial_subst;
+                Substitution new_subst = initial_subst; // record existing bindings
                 new_subst[var_name] = canonical_id;
                 results.push_back(new_subst);
             }

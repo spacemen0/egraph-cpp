@@ -7,7 +7,7 @@
 struct Expression
 {
     explicit Expression(std::string_view string);
-    Expression(const Atom &atom, std::vector<Expression> &children)
+    explicit Expression(const Atom &atom, std::vector<Expression> &children)
         : atom(atom), children(std::move(children)) {};
 
     Atom atom;

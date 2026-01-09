@@ -55,4 +55,4 @@ static const auto mul_assoc_right = make_rewrite("mul-assoc-right", "Mul(Mul(?a,
 static const auto mul_identity_right = make_rewrite("mul-identity-right", "Mul(Identity, ?a)", "?a");
 static const auto mul_assoc = make_rewrite("mul-assoc", "Mul(?a, Mul(?b, ?c))", "Mul(Mul(?a, ?b), ?c)");
 static const auto commute_add = make_rewrite("commute-add", "Add(?a, ?b)", "Add(?b, ?a)");
-static const auto mat_transpose_prod = make_rewrite("mat-transpose-prod", "Transpose(Mul(a, b))", "Mul(Transpose(b), Transpose(a))");
+static const auto mat_transpose_prod = make_rewrite("mat-transpose-prod", "Transpose(Mul(?a, ?b))", "Mul(Transpose(?b), Transpose(?a))");
