@@ -1,11 +1,11 @@
 #include "pattern.h"
-#include "parser_helper.h"
+#include "utils.h"
 
 /// @brief Construct a Pattern from a string representation
 /// @param s
 Pattern::Pattern(std::string_view s)
 {
-    auto parsed = parse_string_to_atom(s);
+    auto parsed = string_to_parsed_atom(s);
     atom = parsed.atom;
     for (const auto &child_str : parsed.children_strings)
     {

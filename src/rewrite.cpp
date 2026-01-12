@@ -68,7 +68,6 @@ bool apply_one_iteration(EGraph &egraph, const std::vector<Rewrite> &rewrites, s
         }
         if (egraph.num_nodes() > max_nodes)
         {
-            std::cerr << "Reached maximum number of nodes (" << max_nodes << "), stopping rewrites." << std::endl;
             return false;
         }
     }

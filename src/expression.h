@@ -12,4 +12,5 @@ struct Expression
 
     Atom atom;
     std::vector<Expression> children;
+    std::string to_string() const;
 };
