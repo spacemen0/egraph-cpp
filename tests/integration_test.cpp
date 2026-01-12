@@ -37,19 +37,18 @@ TEST(Integration, SimplifyComplexMatrixChain)
 {
     EGraph egraph;
 
-    Expression root_expr("Mul(Transpose(Mul(A, B)), Invert(Transpose(A)))");
+    Expression root_expr("Mul(Transpose(Mul(E, C)), Invert(Transpose(E)))");
     Id root_id = egraph.add_expression(root_expr);
-
     std::cout << "Initial EGraph size: " << egraph.num_nodes() << " nodes." << std::endl;
 
     std::vector<Rewrite> rules = {
-        make_rewrite("mat-transpose-prod", "Transpose(Mul(?a, ?b))", "Mul(Transpose(?b), Transpose(?a))"),
-        make_rewrite("mul-assoc-right", "Mul(Mul(?a, ?b), ?c)", "Mul(?a, Mul(?b, ?c))"),
-        make_rewrite("invert-cancel-right", "Mul(?a, Invert(?a))", "Identity"),
-        make_rewrite("mul-identity", "Mul(?a, Identity)", "?a"),
+        mat_transpose_prod,
+        invert_cancel_right,
+        mul_assoc_right,
+        mul_identity,
     };
 
-    apply_rewrites(egraph, rules, 10, 1000);
+    apply_rewrites(egraph, rules, 4, 1000);
 
     std::cout << "EGraph size after saturation: " << egraph.num_nodes() << " nodes." << std::endl;
 
@@ -60,16 +59,15 @@ TEST(Integration, SimplifyComplexMatrixChain)
     std::cout << "Best extracted expression: " << result_str << std::endl;
     std::cout << "Cost: " << result.cost << std::endl;
 
-    Expression expected("Transpose(B)");
+    Expression expected("Transpose(C)");
     Id expected_id = egraph.add_expression(expected);
 
     EXPECT_EQ(egraph.find_class_id(root_id), egraph.find_class_id(expected_id))
-        << "The expression should be equivalent to Transpose(B)";
-
+        << "The expression should be equivalent to Transpose(C)";
     // Should be Transpose(B)
     EXPECT_EQ(atom_to_string(result.expr.atom), "Transpose");
     ASSERT_EQ(result.expr.children.size(), 1);
-    EXPECT_EQ(atom_to_string(result.expr.children[0].atom), "B");
+    EXPECT_EQ(atom_to_string(result.expr.children[0].atom), "C");
 
     egraph.print_egraph();
 }

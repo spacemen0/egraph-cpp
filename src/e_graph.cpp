@@ -171,27 +171,36 @@ void EGraph::print_egraph() const
 
         std::cout << "EClass " << class_id << ": { ";
 
+        // Use a set to deduplicate node strings
+        std::set<std::string> unique_nodes;
         const auto &nodes_in_class = eclass_ptr->get_nodes();
-        for (size_t i = 0; i < nodes_in_class.size(); ++i)
-        {
-            const ENode *node = nodes_in_class[i];
 
+        for (const ENode *node : nodes_in_class)
+        {
+            std::string node_str;
             if (node->is_leaf())
             {
-                std::cout << node->to_string();
+                node_str = node->to_string();
             }
             else
             {
-                std::cout << "(" << node->to_string();
+                node_str = "(" + node->to_string();
                 for (Id child : node->get_children())
                 {
-                    std::cout << " " << child;
+                    node_str += " " + child;
                 }
-                std::cout << ")";
+                node_str += ")";
             }
+            unique_nodes.insert(node_str);
+        }
 
-            if (i < nodes_in_class.size() - 1)
+        bool first = true;
+        for (const auto &str : unique_nodes)
+        {
+            if (!first)
                 std::cout << ", ";
+            std::cout << str;
+            first = false;
         }
         std::cout << " }\n";
     }
