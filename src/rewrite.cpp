@@ -22,7 +22,7 @@ static Id instantiate(EGraph &egraph, const Pattern &pattern, const Substitution
     return egraph.add_node(node); // new id or existing id
 }
 
-bool apply_one_iteration(EGraph &egraph, const std::vector<Rewrite> &rewrites)
+bool apply_one_iteration(EGraph &egraph, const std::vector<Rewrite> &rewrites, size_t max_nodes)
 {
     bool changed = false;
 
@@ -55,11 +55,21 @@ bool apply_one_iteration(EGraph &egraph, const std::vector<Rewrite> &rewrites)
     {
         const auto &rewrite = rewrites[match.rewrite_idx];
 
+        if (rewrite.condition && !rewrite.condition(match.subst, egraph))
+        {
+            continue;
+        }
+
         Id rhs_id = instantiate(egraph, rewrite.rhs, match.subst);
 
         if (egraph.union_classes(match.class_id, rhs_id))
         {
             changed = true;
+        }
+        if (egraph.num_nodes() > max_nodes)
+        {
+            std::cerr << "Reached maximum number of nodes (" << max_nodes << "), stopping rewrites." << std::endl;
+            return false;
         }
     }
 
@@ -77,13 +87,8 @@ bool apply_rewrites(EGraph &egraph, const std::vector<Rewrite> &rewrites, int ma
 
     for (int i = 0; i < max_iterations; ++i)
     {
-        if (!apply_one_iteration(egraph, rewrites))
+        if (!apply_one_iteration(egraph, rewrites, max_nodes))
         {
-            break;
-        }
-        if (egraph.num_nodes() > max_nodes)
-        {
-            std::cerr << "Reached maximum number of nodes (" << max_nodes << "), stopping rewrites." << std::endl;
             break;
         }
         any_changed = true;

@@ -388,6 +388,9 @@ std::vector<Substitution> EGraph::search_eclass_for_pattern(Id eclass_id, const 
     return results;
 }
 
+/// @brief Get the ENode corresponding to the given Id
+/// @param id
+/// @return
 const ENode &EGraph::at(Id id) const
 {
     return *(nodes.at(id));

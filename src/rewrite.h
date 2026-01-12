@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <functional>
 #include "pattern.h"
 #include "e_graph.h"
 
@@ -9,6 +10,7 @@ struct Rewrite
     std::string name;
     Pattern lhs;
     Pattern rhs;
+    std::function<bool(const Substitution &, const EGraph &)> condition = nullptr;
 };
 
 struct Match

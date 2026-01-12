@@ -73,7 +73,7 @@ ExtractionResult Extractor::extract(Id class_id) const
     Id root = egraph.find_class_id(class_id);
     if (costs.at(root) == std::numeric_limits<double>::infinity())
     {
-        throw std::runtime_error("Cannot extract from class with infinite cost (cycle?)");
+        throw std::runtime_error("Cannot extract from class with infinite cost");
     }
     return {costs.at(root), build_expression(root)};
 }

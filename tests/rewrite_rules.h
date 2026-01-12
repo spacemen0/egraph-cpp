@@ -8,9 +8,9 @@
 #include <stdexcept>
 #include <iostream>
 
-inline Rewrite make_rewrite(const std::string &name, std::string_view lhs, std::string_view rhs)
+inline Rewrite make_rewrite(const std::string &name, std::string_view lhs, std::string_view rhs, std::function<bool(const Substitution &, const EGraph &)> condition = nullptr)
 {
-    return Rewrite{name, Pattern(lhs), Pattern(rhs)};
+    return Rewrite{name, Pattern(lhs), Pattern(rhs), condition};
 }
 
 inline std::vector<Rewrite> get_all_rewrite_rules()
@@ -50,7 +50,10 @@ inline std::vector<Rewrite> get_all_rewrite_rules()
     };
 }
 
-static const auto invert_cancel_left = make_rewrite("invert-cancel-left", "Mul(Invert(?a), ?a)", "Identity");
+static const auto invert_cancel_left = make_rewrite("invert-cancel-left", "Mul(Invert(?a), ?a)", "Identity", [](const Substitution &subst, const EGraph &egraph)
+                                                    {
+    Id a_id = subst.at("a");
+    return egraph.get_class_analysis_data(a_id).size_data.first == egraph.get_class_analysis_data(a_id).size_data.second; });
 static const auto mul_assoc_right = make_rewrite("mul-assoc-right", "Mul(Mul(?a, ?b), ?c)", "Mul(?a, Mul(?b, ?c))");
 static const auto mul_identity_right = make_rewrite("mul-identity-right", "Mul(Identity, ?a)", "?a");
 static const auto mul_assoc = make_rewrite("mul-assoc", "Mul(?a, Mul(?b, ?c))", "Mul(Mul(?a, ?b), ?c)");
