@@ -7,24 +7,25 @@
 
 inline Op parse_op(std::string_view s)
 {
+    using enum Op;
     if (s == "Add")
-        return Op::Add;
+        return Add;
     if (s == "Mul")
-        return Op::Mul;
+        return Mul;
     if (s == "Transpose")
-        return Op::Transpose;
+        return Transpose;
     if (s == "Invert")
-        return Op::Invert;
+        return Invert;
     if (s == "Negate")
-        return Op::Negate;
+        return Negate;
     if (s == "Identity")
-        return Op::Identity;
+        return Identity;
     if (s == "Zero")
-        return Op::Zero;
+        return Zero;
     throw std::runtime_error("Unknown op: " + std::string(s));
 }
 
-constexpr inline std::string_view trim(std::string_view sv)
+constexpr std::string_view trim(std::string_view sv)
 {
     constexpr std::string_view WHITESPACE = " \n\r\t\f\v";
     auto start = sv.find_first_not_of(WHITESPACE);
@@ -82,8 +83,8 @@ inline ParsedAtom string_to_parsed_atom(std::string_view s)
             paren_count--;
         else if (args_str[i] == ',' && paren_count == 0)
         {
-            auto child = trim(args_str.substr(child_start, i - child_start));
-            if (!child.empty())
+
+            if (auto child = trim(args_str.substr(child_start, i - child_start)); !child.empty())
                 children.emplace_back(child);
             child_start = i + 1;
         }
@@ -103,19 +104,20 @@ inline std::string atom_to_string(const Atom &atom)
     {
         switch (std::get<Op>(atom))
         {
-        case Op::Add:
+            using enum Op;
+        case Add:
             return "Add";
-        case Op::Mul:
+        case Mul:
             return "Mul";
-        case Op::Transpose:
+        case Transpose:
             return "Transpose";
-        case Op::Invert:
+        case Invert:
             return "Invert";
-        case Op::Negate:
+        case Negate:
             return "Negate";
-        case Op::Identity:
+        case Identity:
             return "Identity";
-        case Op::Zero:
+        case Zero:
             return "Zero";
         }
         return "UnknownOp";

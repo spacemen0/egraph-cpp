@@ -60,9 +60,7 @@ bool apply_one_iteration(EGraph &egraph, const std::vector<Rewrite> &rewrites, s
             continue;
         }
 
-        Id rhs_id = instantiate(egraph, rewrite.rhs, match.subst);
-
-        if (egraph.union_classes(match.class_id, rhs_id))
+        if (Id rhs_id = instantiate(egraph, rewrite.rhs, match.subst); egraph.union_classes(match.class_id, rhs_id))
         {
             changed = true;
         }

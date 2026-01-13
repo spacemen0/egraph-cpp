@@ -172,7 +172,7 @@ void EGraph::print_egraph() const
         std::cout << "EClass " << class_id << ": { ";
 
         // Use a set to deduplicate node strings
-        std::set<std::string> unique_nodes;
+        std::set<std::string, std::less<>> unique_nodes;
         const auto &nodes_in_class = eclass_ptr->get_nodes();
 
         for (const ENode *node : nodes_in_class)
@@ -187,7 +187,7 @@ void EGraph::print_egraph() const
                 node_str = "(" + node->to_string();
                 for (Id child : node->get_children())
                 {
-                    node_str += " " + child;
+                    node_str += " " + std::to_string(child);
                 }
                 node_str += ")";
             }
@@ -212,47 +212,49 @@ std::string EGraph::node_to_string(Id id) const
     return at(id).to_string();
 }
 
-AnalysisData EGraph::make_analysis(const ENode &node) // placeholder size
+AnalysisData EGraph::make_analysis(const ENode &node) const // placeholder size
 {
     const auto atom = node.get_atom();
     if (const auto op = std::get_if<Op>(&atom))
     {
         switch (*op)
         {
-        case Op::Add:
+            using enum Op;
+        case Add:
             if (get_class_analysis_data(node.get_children()[0]).size_data !=
                 get_class_analysis_data(node.get_children()[1]).size_data)
             {
                 throw std::runtime_error("Add operation with mismatched sizes");
             }
             return get_class_analysis_data(node.get_children()[0]);
-        case Op::Mul:
+        case Mul:
         {
-            auto left_size = get_class_analysis_data(node.get_children()[0]).size_data;
-            auto right_size = get_class_analysis_data(node.get_children()[1]).size_data;
+            auto [left_size, right_size] = std::make_pair(
+                get_class_analysis_data(node.get_children()[0]).size_data,
+                get_class_analysis_data(node.get_children()[1]).size_data);
             if (left_size.second != right_size.first)
             {
                 throw std::runtime_error("Mul operation with mismatched sizes");
             }
             return AnalysisData{std::make_pair(left_size.first, right_size.second)};
         }
-        case Op::Transpose:
+        case Transpose:
         {
             auto child_size = get_class_analysis_data(node.get_children()[0]).size_data;
             return AnalysisData{std::make_pair(child_size.second, child_size.first)};
         }
-        case Op::Invert:
+        case Invert:
             if (get_class_analysis_data(node.get_children()[0]).size_data.first !=
                 get_class_analysis_data(node.get_children()[0]).size_data.second)
             {
                 throw std::runtime_error("Invert operation on non-square matrix");
             }
             return get_class_analysis_data(node.get_children()[0]);
-        case Op::Negate:
+        case Negate:
             return get_class_analysis_data(node.get_children()[0]);
-        case Op::Identity:
+        case Identity:
             return AnalysisData{std::make_pair(3, 3)};
-        case Op::Zero:
+        case Zero:
             return AnalysisData{std::make_pair(3, 3)};
         default:
             return AnalysisData{std::make_pair(0, 0)};

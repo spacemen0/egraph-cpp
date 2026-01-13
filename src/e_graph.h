@@ -40,7 +40,7 @@ private:
     // stores mapping from EClass id to EClass, classes being merged will be removed
     std::unordered_map<Id, std::unique_ptr<EClass>> classes;
     std::string node_to_string(Id) const;
-    AnalysisData make_analysis(const ENode &node);
+    AnalysisData make_analysis(const ENode &node) const;
     void merge_analysis_data(AnalysisData &data1, const AnalysisData &data2) const;
     bool atoms_match(const Atom &pat_atom, const Atom &enode_atom) const;
     std::vector<Substitution> search_eclass_for_pattern(Id eclass_id, const Pattern &pattern, const Substitution &initial_subst) const;

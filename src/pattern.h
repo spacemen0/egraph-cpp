@@ -17,4 +17,4 @@ struct Pattern
 
 ///@brief
 /// a map from a variable's name to the canonical e-class ID
-using Substitution = std::map<std::string, Id>;
+using Substitution = std::map<std::string, Id, std::less<>>;

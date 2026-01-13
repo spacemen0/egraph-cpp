@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <iostream>
 
-inline Rewrite make_rewrite(const std::string &name, std::string_view lhs, std::string_view rhs, std::function<bool(const Substitution &, const EGraph &)> condition = nullptr)
+inline Rewrite make_rewrite(const std::string &name, std::string_view lhs, std::string_view rhs, const std::function<bool(const Substitution &, const EGraph &)> &condition = nullptr)
 {
     return Rewrite{name, Pattern(lhs), Pattern(rhs), condition};
 }

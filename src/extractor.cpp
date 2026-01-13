@@ -14,7 +14,7 @@ double Extractor::get_node_cost(const ENode &node) const
     for (Id child : node.get_children())
     {
         Id root = egraph.find_class_id(child);
-        if (costs.find(root) == costs.end())
+        if (costs.contains(root) == false || costs.at(root) == std::numeric_limits<double>::infinity())
         {
             return std::numeric_limits<double>::infinity();
         }
