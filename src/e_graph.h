@@ -9,10 +9,13 @@
 #include "expression.h"
 #include "pattern.h"
 #include <set>
+#include "property_table.h"
 
 class EGraph
 {
 public:
+    EGraph() = default;
+    EGraph(PropertyTable pt) : property_table(std::move(pt)) {}
     void canonicalize_node(ENode &node);
     std::optional<Id> find(const ENode &node);
     Id find_class_id(Id node_id) const;
@@ -39,6 +42,7 @@ private:
     std::unordered_map<const ENode *, Id, ENodePtrHash, ENodePtrEqual> memo;
     // stores mapping from EClass id to EClass, classes being merged will be removed
     std::unordered_map<Id, std::unique_ptr<EClass>> classes;
+    PropertyTable property_table;
     std::string node_to_string(Id) const;
     AnalysisData make_analysis(const ENode &node) const;
     void merge_analysis_data(AnalysisData &data1, const AnalysisData &data2) const;

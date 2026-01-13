@@ -6,7 +6,7 @@
 
 TEST(Extractor, CheaperExtraction)
 {
-    EGraph egraph;
+    EGraph egraph(get_property_table());
     // Expr: A * Identity
     Id id_a = egraph.add_node(make_symbol("A"));
     Id id_identity = egraph.add_node(make_op(Op::Identity, {}));
@@ -25,9 +25,9 @@ TEST(Extractor, CheaperExtraction)
 
 TEST(Extractor, RewriteAndExtract)
 {
-    EGraph egraph;
+    EGraph egraph(get_property_table());
 
-    Id root_id = egraph.add_expression(Expression("Add(Mul(A, Zero), B)"));
+    Id root_id = egraph.add_expression(Expression("Add(Mul(A, Zero), Z)"));
 
     // Mul(x, Zero) -> Zero
     Pattern p1_lhs("Mul(?x, Zero)");
@@ -49,5 +49,5 @@ TEST(Extractor, RewriteAndExtract)
     EXPECT_EQ(result.cost, 1.0);
 
     EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
-    EXPECT_EQ(std::get<std::string>(result.expr.atom), "B");
+    EXPECT_EQ(std::get<std::string>(result.expr.atom), "Z");
 }

@@ -3,11 +3,9 @@
 #include "rewriter.h"
 #include "test_helper.h"
 
-const ENode sym_a = make_symbol("a");
-
 TEST(Rewrite, SimpleRewrite)
 {
-    EGraph egraph;
+    EGraph egraph(get_property_table());
     ENode zero_node({}, Atom(Op::Zero));
     Id id0 = egraph.add_node(zero_node);
 
@@ -27,7 +25,7 @@ TEST(Rewrite, SimpleRewrite)
 
 TEST(Rewrite, Commutativity)
 {
-    EGraph egraph;
+    EGraph egraph(get_property_table());
 
     Id id_add = egraph.add_expression(Expression("Add(a, b)"));
 
@@ -50,7 +48,7 @@ TEST(Rewrite, Commutativity)
 
 TEST(Rewrite, NoMatch)
 {
-    EGraph egraph;
+    EGraph egraph(get_property_table());
 
     egraph.add_node(sym_a);
 
@@ -67,7 +65,7 @@ TEST(Rewrite, NoMatch)
 
 TEST(Rewrite, NewNodes)
 {
-    EGraph egraph;
+    EGraph egraph(get_property_table());
 
     Id id_add = egraph.add_expression(Expression("Mul(Invert(a), a)"));
 

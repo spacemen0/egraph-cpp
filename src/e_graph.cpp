@@ -243,33 +243,16 @@ AnalysisData EGraph::make_analysis(const ENode &node) const // placeholder size
         case Zero:
             return AnalysisData{std::make_pair(3, 3)};
         default:
-            return AnalysisData{std::make_pair(0, 0)};
+            throw std::runtime_error("Unknown operation in analysis");
         }
     }
     else
     {
-        // const auto string = std::get<std::string>(atom);
-        // if (string == "A")
-        //     return AnalysisData{std::make_pair(3, 3)};
-        // if (string == "B")
-        //     return AnalysisData{std::make_pair(3, 3)};
-        // if (string == "C")
-        //     return AnalysisData{std::make_pair(3, 3)};
-        // if (string == "D")
-        //     return AnalysisData{std::make_pair(3, 3)};
-        // if (string == "E")
-        //     return AnalysisData{std::make_pair(3, 3)};
-        // if (string == "F")
-        //     return AnalysisData{std::make_pair(3, 3)};
-        // if (string == "W")
-        //     return AnalysisData{std::make_pair(3, 3)};
-        // if (string == "X")
-        //     return AnalysisData{std::make_pair(3, 3)};
-        // if (string == "Y")
-        //     return AnalysisData{std::make_pair(3, 3)};
-        // if (string == "Z")
-        //     return AnalysisData{std::make_pair(3, 3)};
-        return AnalysisData{std::make_pair(3, 3)};
+        if (const auto *s = std::get_if<std::string>(&atom); property_table.has_property(*s))
+        {
+            return AnalysisData{property_table.get_property(*s).value().shape};
+        }
+        return AnalysisData{std::make_pair(99, 99)};
     }
 }
 
@@ -288,6 +271,9 @@ void EGraph::merge_analysis_data(AnalysisData &data1, const AnalysisData &data2)
     }
     else if (!d1_unknown && !d2_unknown && data1.size_data != data2.size_data)
     {
+        std::cerr << "Conflicting size data during merge: ("
+                  << data1.size_data.first << ", " << data1.size_data.second << ") vs ("
+                  << data2.size_data.first << ", " << data2.size_data.second << ")\n";
         throw std::runtime_error("Merging e-classes with conflicting size data");
     }
 }

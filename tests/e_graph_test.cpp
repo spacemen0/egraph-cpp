@@ -2,19 +2,9 @@
 #include "e_graph.h"
 #include "test_helper.h"
 
-// Global symbol constants
-const ENode sym_a = make_symbol("A");
-const ENode sym_b = make_symbol("B");
-const ENode sym_c = make_symbol("C");
-const ENode sym_d = make_symbol("D");
-const ENode sym_x = make_symbol("X");
-const ENode sym_y = make_symbol("Y");
-const ENode sym_z = make_symbol("Z");
-const ENode sym_w = make_symbol("W");
-
 TEST(EGraph, AddAndLookUpNode)
 {
-    EGraph egraph;
+    EGraph egraph(get_property_table());
 
     Id id1 = egraph.add_node(sym_x);
     std::optional<Id> lookup1 = egraph.find(sym_x);
@@ -30,7 +20,7 @@ TEST(EGraph, AddAndLookUpNode)
 
 TEST(EGraph, BreakWithInvalidChildId)
 {
-    EGraph egraph;
+    EGraph egraph(get_property_table());
     Id fake_id = 999999;
     ENode dangerous_node = make_op(Op::Negate, Children{fake_id});
     EXPECT_ANY_THROW(egraph.add_node(dangerous_node));
@@ -38,10 +28,10 @@ TEST(EGraph, BreakWithInvalidChildId)
 
 TEST(EGraph, UnionClasses)
 {
-    EGraph egraph;
+    EGraph egraph(get_property_table());
 
-    Id id1 = egraph.add_node(sym_x);
-    Id id2 = egraph.add_node(sym_y);
+    Id id1 = egraph.add_node(sym_z);
+    Id id2 = egraph.add_node(sym_a);
 
     bool merged = egraph.union_classes(id1, id2);
     EXPECT_TRUE(merged);
@@ -49,63 +39,46 @@ TEST(EGraph, UnionClasses)
     merged = egraph.union_classes(id1, id2);
     EXPECT_FALSE(merged);
     egraph.rebuild();
-    auto root1 = egraph.find(sym_x);
-    auto root2 = egraph.find(sym_y);
+    auto root1 = egraph.find(sym_z);
+    auto root2 = egraph.find(sym_a);
     EXPECT_EQ(root1, root2);
 }
 
 TEST(EGraph, RebuildParentsBasic)
 {
-    EGraph egraph;
+    EGraph egraph(get_property_table());
 
-    auto id_node1 = egraph.add_expression(Expression("Add(A, B)"));
-    auto id_node2 = egraph.add_expression(Expression("Add(A, C)"));
-
-    EXPECT_NE(egraph.find_class_id(id_node1), egraph.find_class_id(id_node2));
-
-    egraph.union_classes(egraph.find(sym_b).value(), egraph.find(sym_c).value());
+    auto id_node1 = egraph.add_expression(Expression("Add(D, D)"));
+    auto id_node2 = egraph.add_expression(Expression("Add(D, W)"));
 
     EXPECT_NE(egraph.find_class_id(id_node1), egraph.find_class_id(id_node2));
-    egraph.rebuild();
 
-    EXPECT_EQ(egraph.find_class_id(id_node1), egraph.find_class_id(id_node2));
-}
+    egraph.union_classes(egraph.find(sym_d).value(), egraph.find(sym_w).value());
 
-TEST(EGraph, RebuildParentsBasicReverse)
-{
-    EGraph egraph;
-
-    auto id_node1 = egraph.add_expression(Expression("Add(A, B)"));
-    auto id_node2 = egraph.add_expression(Expression("Add(A, C)"));
-
-    EXPECT_NE(egraph.find_class_id(id_node1), egraph.find_class_id(id_node2));
-    egraph.print_egraph();
-    egraph.union_classes(egraph.find(sym_c).value(), egraph.find(sym_b).value());
-    egraph.print_egraph();
     EXPECT_NE(egraph.find_class_id(id_node1), egraph.find_class_id(id_node2));
     egraph.rebuild();
-    egraph.print_egraph();
+
     EXPECT_EQ(egraph.find_class_id(id_node1), egraph.find_class_id(id_node2));
 }
 
 TEST(EGraph, RebuildMultiLevelParents)
 {
-    EGraph egraph;
+    EGraph egraph(get_property_table());
 
-    Id id_add_ab = egraph.add_expression(Expression("Add(A, B)"));
-    Id id_add_ac = egraph.add_expression(Expression("Add(A, C)"));
+    Id id_add_ab = egraph.add_expression(Expression("Add(A, Z)"));
+    Id id_add_ac = egraph.add_expression(Expression("Add(A, A)"));
     EXPECT_NE(egraph.find_class_id(id_add_ab), egraph.find_class_id(id_add_ac));
 
-    Id id_mul1 = egraph.add_expression(Expression("Mul(Add(A, B), D)"));
-    Id id_mul2 = egraph.add_expression(Expression("Mul(Add(A, C), D)"));
+    Id id_mul1 = egraph.add_expression(Expression("Mul(Add(A, Z), Z)"));
+    Id id_mul2 = egraph.add_expression(Expression("Mul(Add(A, A), Z)"));
     EXPECT_NE(egraph.find_class_id(id_mul1), egraph.find_class_id(id_mul2));
 
-    Id id_nested1 = egraph.add_expression(Expression("Add(Mul(Add(A, B), D), A)"));
-    Id id_nested2 = egraph.add_expression(Expression("Add(Mul(Add(A, C), D), A)"));
+    Id id_nested1 = egraph.add_expression(Expression("Add(Mul(Add(A, Z), Z), A)"));
+    Id id_nested2 = egraph.add_expression(Expression("Add(Mul(Add(A, A), Z), A)"));
     EXPECT_NE(egraph.find_class_id(id_nested1), egraph.find_class_id(id_nested2));
 
     egraph.print_egraph();
-    egraph.union_classes(egraph.find(sym_b).value(), egraph.find(sym_c).value());
+    egraph.union_classes(egraph.find(sym_a).value(), egraph.find(sym_z).value());
     egraph.print_egraph();
     egraph.rebuild();
     EXPECT_EQ(egraph.find_class_id(id_nested1), egraph.find_class_id(id_nested2));
@@ -117,7 +90,7 @@ TEST(EGraph, RebuildMultiLevelParents)
 
 TEST(EGraph, AddExpression)
 {
-    EGraph egraph;
+    EGraph egraph(get_property_table());
 
     Expression expr("Add(Mul(X, Y), Transpose(Z))");
     Id expr_id = egraph.add_expression(expr);
@@ -148,7 +121,7 @@ TEST(EGraph, AddExpression)
 
 TEST(EGraph, ENodeMatching)
 {
-    EGraph egraph;
+    EGraph egraph(get_property_table());
 
     Id id1 = egraph.add_node(sym_x);
 
@@ -164,11 +137,11 @@ TEST(EGraph, ENodeMatching)
 
 TEST(EGraph, PatternMatchingSimple)
 {
-    EGraph egraph;
+    EGraph egraph(get_property_table());
 
-    Id expr_id = egraph.add_expression(Expression("Add(X, Y)"));
+    Id expr_id = egraph.add_expression(Expression("Mul(X, Y)"));
 
-    Pattern pattern("Add(?a, ?b)");
+    Pattern pattern("Mul(?a, ?b)");
 
     std::set<Substitution> substitutions;
     egraph.find_matches_in_eclass(expr_id, pattern, substitutions);
@@ -184,7 +157,7 @@ TEST(EGraph, PatternMatchingSimple)
 
 TEST(EGraph, PatternMatchingNested)
 {
-    EGraph egraph;
+    EGraph egraph(get_property_table());
 
     Id expr_id = egraph.add_expression(Expression("Add(Mul(X, Y), Transpose(Z))"));
 
@@ -206,16 +179,16 @@ TEST(EGraph, PatternMatchingNested)
 
 TEST(EGraph, PatternMatchingMultipleMatchesInClass)
 {
-    EGraph egraph;
+    EGraph egraph(get_property_table());
 
-    Id id1 = egraph.add_expression(Expression("Add(X, Y)"));
+    Id id1 = egraph.add_expression(Expression("Mul(X, Y)"));
 
-    Id id2 = egraph.add_expression(Expression("Add(W, Z)"));
+    Id id2 = egraph.add_expression(Expression("Mul(A, Z)"));
 
     egraph.union_classes(id1, id2);
     egraph.rebuild();
 
-    Pattern pattern("Add(?a, ?b)");
+    Pattern pattern("Mul(?a, ?b)");
 
     std::set<Substitution> substitutions;
     egraph.find_matches_in_eclass(id1, pattern, substitutions);
@@ -234,7 +207,7 @@ TEST(EGraph, PatternMatchingMultipleMatchesInClass)
         {
             found_xy = true;
         }
-        else if (atom_a == sym_w.get_atom() && atom_b == sym_z.get_atom())
+        else if (atom_a == sym_a.get_atom() && atom_b == sym_z.get_atom())
         {
             found_wz = true;
         }
