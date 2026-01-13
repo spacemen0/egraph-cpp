@@ -3,7 +3,7 @@ project(egraph-cpp LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 
 include(FetchContent)
-
+        add_compile_options(--coverage)
 FetchContent_Declare(
   googletest
   URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip
@@ -20,6 +20,9 @@ endif()
 if (TARGET gtest_main)
     set_property(TARGET gtest_main PROPERTY CXX_CLANG_TIDY "")
 endif()
+
+add_compile_options(--coverage -g -O0)
+add_link_options(--coverage)
 
 add_subdirectory(src)
 add_subdirectory(tests)

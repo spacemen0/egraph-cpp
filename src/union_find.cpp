@@ -47,8 +47,3 @@ Id UnionFind::make_set()
     parents.push_back(newIndex);
     return newIndex;
 }
-
-size_t UnionFind::size() const noexcept
-{
-    return parents.size();
-}

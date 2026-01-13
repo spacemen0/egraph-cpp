@@ -193,11 +193,6 @@ void EGraph::print_egraph() const
     std::cout << "=====================\n";
 }
 
-std::string EGraph::node_to_string(Id id) const
-{
-    return at(id).to_string();
-}
-
 AnalysisData EGraph::make_analysis(const ENode &node) const // placeholder size
 {
     const auto atom = node.get_atom();

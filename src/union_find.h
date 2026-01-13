@@ -15,7 +15,6 @@ public:
     void unite(Id x, Id y);
     std::vector<Id> get_parents() const noexcept;
     Id make_set();
-    size_t size() const noexcept;
 
 private:
     std::vector<Id> parents;
