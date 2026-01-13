@@ -13,13 +13,6 @@ struct Rewrite
     std::function<bool(const Substitution &, const EGraph &)> condition = nullptr;
 };
 
-struct Match
-{
-    Id class_id;
-    size_t rewrite_idx;
-    Substitution subst;
-};
-
 class Rewriter
 {
 public:

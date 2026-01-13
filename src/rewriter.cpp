@@ -1,6 +1,13 @@
 #include "rewriter.h"
 #include <iostream>
 
+using Match = struct
+{
+    Id class_id;
+    size_t rewrite_idx;
+    Substitution subst;
+};
+
 // Instantiate a pattern into the EGraph
 static Id instantiate(EGraph &egraph, const Pattern &pattern, const Substitution &subst)
 {
