@@ -1,5 +1,5 @@
 #pragma once
-#include "rewrite.h"
+#include "rewriter.h"
 #include "pattern.h"
 #include "types.h"
 #include <string>

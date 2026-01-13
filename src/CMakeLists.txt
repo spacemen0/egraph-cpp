@@ -5,7 +5,7 @@ add_library(core_lib STATIC
     e_class.cpp 
     expression.cpp
     pattern.cpp
-    rewrite.cpp
+    rewriter.cpp
     extractor.cpp
 )
 target_include_directories(core_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

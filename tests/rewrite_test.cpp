@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "e_graph.h"
-#include "rewrite.h"
+#include "rewriter.h"
 #include "test_helper.h"
 
 const ENode sym_a = make_symbol("a");
@@ -17,11 +17,10 @@ TEST(Rewrite, SimpleRewrite)
     Pattern lhs("Mul(?x, Zero)");
     Pattern rhs("Zero");
 
-    Rewrite rule{"mul_zero", lhs, rhs};
-
     EXPECT_NE(id_mul, id0);
-
-    bool changed = apply_rewrites(egraph, {rule});
+    std::vector<Rewrite> rules = {{"mul_zero", lhs, rhs}};
+    Rewriter rewriter(egraph, rules, 100);
+    bool changed = rewriter.apply_rewrites();
     EXPECT_TRUE(changed);
     EXPECT_EQ(egraph.find_class_id(id_mul), egraph.find_class_id(id0));
 }
@@ -39,7 +38,9 @@ TEST(Rewrite, Commutativity)
 
     EXPECT_NE(id_add, egraph.add_expression(Expression("Add(b, a)")));
 
-    bool changed = apply_rewrites(egraph, {rule});
+    std::vector<Rewrite> rules = {{"commute_add", lhs, rhs}};
+    Rewriter rewriter(egraph, rules, 100);
+    bool changed = rewriter.apply_rewrites();
     EXPECT_TRUE(changed);
 
     Id id_commuted = egraph.add_expression(Expression("Add(b, a)"));
@@ -57,9 +58,10 @@ TEST(Rewrite, NoMatch)
     Pattern lhs("Add(?x, Zero)");
     Pattern rhs("?x");
 
-    Rewrite rule{"add_zero", lhs, rhs};
+    std::vector<Rewrite> rules = {{"add_zero", lhs, rhs}};
 
-    bool changed = apply_rewrites(egraph, {rule});
+    Rewriter rewriter(egraph, rules, 100);
+    bool changed = rewriter.apply_rewrites();
     EXPECT_FALSE(changed);
 }
 
@@ -73,9 +75,10 @@ TEST(Rewrite, NewNodes)
     Pattern lhs("Mul(Invert(?a), ?a)");
     Pattern rhs("Identity");
 
-    Rewrite rule{"mul_invert_identity", lhs, rhs};
+    std::vector<Rewrite> rules = {{"mul_invert_identity", lhs, rhs}};
 
-    bool changed = apply_rewrites(egraph, {rule});
+    Rewriter rewriter(egraph, rules, 100);
+    bool changed = rewriter.apply_rewrites();
     EXPECT_TRUE(changed);
 
     EXPECT_EQ(egraph.find(ENode({}, Op::Identity)).value(), egraph.find_class_id(id_add));

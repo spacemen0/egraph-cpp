@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "e_graph.h"
 #include "extractor.h"
-#include "rewrite.h"
+#include "rewriter.h"
 #include "test_helper.h"
 
 TEST(Extractor, CheaperExtraction)
@@ -39,7 +39,9 @@ TEST(Extractor, RewriteAndExtract)
     Pattern p2_rhs("?x");
     Rewrite r2{"add_zero", p2_lhs, p2_rhs};
 
-    apply_rewrites(egraph, {r1, r2});
+    std::vector<Rewrite> rules = {r1, r2};
+    Rewriter rewriter(egraph, rules, 1000);
+    rewriter.apply_rewrites();
 
     Extractor extractor(egraph);
     ExtractionResult result = extractor.extract(root_id);

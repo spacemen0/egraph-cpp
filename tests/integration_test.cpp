@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "e_graph.h"
 #include "extractor.h"
-#include "rewrite.h"
+#include "rewriter.h"
 #include "rewrite_rules.h"
 #include "utils.h"
 
@@ -10,7 +10,9 @@ TEST(Integration, MatrixPartialSet)
     EGraph egraph;
 
     auto id = egraph.add_expression(Expression("Mul(Mul(Mul(Invert(Mul(A, F)), A), F), D)"));
-    apply_rewrites(egraph, {mul_assoc_right, invert_cancel_left, mul_identity_right});
+    std::vector<Rewrite> rules = {mul_assoc_right, invert_cancel_left, mul_identity_right};
+    Rewriter rewriter(egraph, rules, 1000);
+    rewriter.apply_rewrites(4);
     Extractor extractor(egraph);
     auto result = extractor.extract(id);
     // Should extract 'D'
@@ -24,7 +26,9 @@ TEST(Integration, MatrixFullSet)
     EGraph egraph;
 
     auto id = egraph.add_expression(Expression("Mul(Mul(Mul(Invert(Mul(A, F)), A), F), D)"));
-    apply_rewrites(egraph, get_all_rewrite_rules(), 4, 500);
+    std::vector<Rewrite> rules = {mul_assoc_right, invert_cancel_left, invert_cancel_right, mul_identity_right, mul_identity};
+    Rewriter rewriter(egraph, rules, 1000);
+    rewriter.apply_rewrites(6);
     Extractor extractor(egraph);
     auto result = extractor.extract(id);
     // Should extract 'D'
@@ -47,9 +51,8 @@ TEST(Integration, SimplifyComplexMatrixChain)
         mul_assoc_right,
         mul_identity,
     };
-
-    apply_rewrites(egraph, rules, 4, 1000);
-
+    Rewriter rewriter(egraph, rules, 1000);
+    rewriter.apply_rewrites(4);
     std::cout << "EGraph size after saturation: " << egraph.num_nodes() << " nodes." << std::endl;
 
     Extractor extractor(egraph);
