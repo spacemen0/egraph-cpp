@@ -22,6 +22,7 @@ public:
     Atom get_atom() const;
 
     std::string to_string() const;
+    std::string format() const;
     size_t hash() const;
     bool is_leaf() const;
 

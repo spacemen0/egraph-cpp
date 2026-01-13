@@ -3,6 +3,7 @@
 #include <functional>
 #include <numeric>
 #include <string>
+#include <format>
 
 bool ENode::equals(const ENode &other) const
 {
@@ -62,6 +63,22 @@ std::string ENode::to_string() const
     {
         return std::get<std::string>(atom);
     }
+}
+
+std::string ENode::format() const
+{
+    if (is_leaf())
+    {
+        return to_string();
+    }
+
+    std::string str = "(" + to_string();
+    for (Id child : children)
+    {
+        str += std::format(" {}", child);
+    }
+    str += ")";
+    return str;
 }
 
 size_t ENode::hash() const

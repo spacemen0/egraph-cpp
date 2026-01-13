@@ -177,21 +177,7 @@ void EGraph::print_egraph() const
 
         for (const ENode *node : nodes_in_class)
         {
-            std::string node_str;
-            if (node->is_leaf())
-            {
-                node_str = node->to_string();
-            }
-            else
-            {
-                node_str = "(" + node->to_string();
-                for (Id child : node->get_children())
-                {
-                    node_str += " " + std::to_string(child);
-                }
-                node_str += ")";
-            }
-            unique_nodes.insert(node_str);
+            unique_nodes.insert(node->format());
         }
 
         bool first = true;
@@ -262,28 +248,28 @@ AnalysisData EGraph::make_analysis(const ENode &node) const // placeholder size
     }
     else
     {
-        const auto string = std::get<std::string>(atom);
-        if (string == "A")
-            return AnalysisData{std::make_pair(3, 3)};
-        if (string == "B")
-            return AnalysisData{std::make_pair(3, 3)};
-        if (string == "C")
-            return AnalysisData{std::make_pair(3, 3)};
-        if (string == "D")
-            return AnalysisData{std::make_pair(3, 3)};
-        if (string == "E")
-            return AnalysisData{std::make_pair(3, 3)};
-        if (string == "F")
-            return AnalysisData{std::make_pair(3, 3)};
-        if (string == "W")
-            return AnalysisData{std::make_pair(3, 3)};
-        if (string == "X")
-            return AnalysisData{std::make_pair(3, 3)};
-        if (string == "Y")
-            return AnalysisData{std::make_pair(3, 3)};
-        if (string == "Z")
-            return AnalysisData{std::make_pair(3, 3)};
-        return AnalysisData{std::make_pair(99, 99)};
+        // const auto string = std::get<std::string>(atom);
+        // if (string == "A")
+        //     return AnalysisData{std::make_pair(3, 3)};
+        // if (string == "B")
+        //     return AnalysisData{std::make_pair(3, 3)};
+        // if (string == "C")
+        //     return AnalysisData{std::make_pair(3, 3)};
+        // if (string == "D")
+        //     return AnalysisData{std::make_pair(3, 3)};
+        // if (string == "E")
+        //     return AnalysisData{std::make_pair(3, 3)};
+        // if (string == "F")
+        //     return AnalysisData{std::make_pair(3, 3)};
+        // if (string == "W")
+        //     return AnalysisData{std::make_pair(3, 3)};
+        // if (string == "X")
+        //     return AnalysisData{std::make_pair(3, 3)};
+        // if (string == "Y")
+        //     return AnalysisData{std::make_pair(3, 3)};
+        // if (string == "Z")
+        //     return AnalysisData{std::make_pair(3, 3)};
+        return AnalysisData{std::make_pair(3, 3)};
     }
 }
 
