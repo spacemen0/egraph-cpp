@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "e_graph.h"
 #include "test_helper.h"
+#include "errors.h"
 
 TEST(EGraph, AddAndLookUpNode)
 {
@@ -215,4 +216,23 @@ TEST(EGraph, PatternMatchingMultipleMatchesInClass)
 
     EXPECT_TRUE(found_xy);
     EXPECT_TRUE(found_wz);
+}
+
+TEST(EGraph, ErrorConditions)
+{
+    EGraph egraph(get_property_table());
+
+    ENode unknown_var = make_symbol("UNKNOWN_VAR");
+    EXPECT_THROW(egraph.add_node(unknown_var), AnalysisError);
+
+    Id x = egraph.add_node(sym_x); // 3x2
+    Id y = egraph.add_node(sym_y); // 2x3
+    ENode mismatch_add = make_op(Op::Add, {x, y});
+    EXPECT_THROW(egraph.add_node(mismatch_add), ShapeMismatchError);
+
+    ENode mismatch_mul = make_op(Op::Mul, {x, x});
+    EXPECT_THROW(egraph.add_node(mismatch_mul), ShapeMismatchError);
+
+    ENode invalid_invert = make_op(Op::Invert, {x});
+    EXPECT_THROW(egraph.add_node(invalid_invert), InvalidOperationError);
 }

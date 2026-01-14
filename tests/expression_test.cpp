@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "expression.h"
+#include "errors.h"
 
 TEST(Expression, ParseVariable)
 {
@@ -43,4 +44,10 @@ TEST(Expression, ParseNestedOperations)
     ASSERT_EQ(transpose_child.children.size(), 1);
     EXPECT_TRUE(std::holds_alternative<std::string>(transpose_child.children[0].atom));
     EXPECT_EQ(std::get<std::string>(transpose_child.children[0].atom), "Z");
+}
+
+TEST(Expression, ParsingErrors)
+{
+    EXPECT_THROW(Expression(""), ParseError);
+    EXPECT_THROW(Expression("Add(X, Y"), ParseError);
 }

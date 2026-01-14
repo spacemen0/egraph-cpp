@@ -74,7 +74,7 @@ ExtractionResult Extractor::extract(Id class_id) const
     Id root = egraph.find_class_id(class_id);
     if (costs.at(root) == std::numeric_limits<double>::infinity())
     {
-        throw ExtractionError("Cannot extract from class with infinite cost");
+        throw std::runtime_error("Runtime error: No valid expression found");
     }
     return {costs.at(root), build_expression(root)};
 }

@@ -26,9 +26,3 @@ class ParseError : public std::runtime_error
 public:
     explicit ParseError(const std::string &msg) : std::runtime_error("Parse error: " + msg) {}
 };
-
-class ExtractionError : public std::runtime_error
-{
-public:
-    explicit ExtractionError(const std::string &msg) : std::runtime_error("Extraction failed: " + msg) {}
-};
