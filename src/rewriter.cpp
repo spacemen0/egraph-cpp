@@ -67,7 +67,17 @@ bool Rewriter::apply_one_iteration()
             continue;
         }
 
-        if (Id rhs_id = instantiate(egraph, rewrite.rhs, match.subst); egraph.union_classes(match.class_id, rhs_id))
+        Id rhs_id;
+        if (rewrite.applier)
+        {
+            rhs_id = rewrite.applier(egraph, match.subst);
+        }
+        else
+        {
+            rhs_id = instantiate(egraph, rewrite.rhs, match.subst);
+        }
+
+        if (egraph.union_classes(match.class_id, rhs_id))
         {
             changed = true;
         }

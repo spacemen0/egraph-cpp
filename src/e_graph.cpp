@@ -225,51 +225,42 @@ AnalysisData EGraph::make_analysis(const ENode &node) const // placeholder size
             return AnalysisData{std::make_pair(child_size.second, child_size.first)};
         }
         case Invert:
-            if (get_class_analysis_data(node.get_children()[0]).property.shape.first !=
-                get_class_analysis_data(node.get_children()[0]).property.shape.second)
+            if (!get_class_analysis_data(node.get_children()[0]).property.is_square())
             {
                 throw std::runtime_error("Invert operation on non-square matrix");
             }
             return get_class_analysis_data(node.get_children()[0]);
         case Negate:
             return get_class_analysis_data(node.get_children()[0]);
-        case Identity:
-            return AnalysisData{std::make_pair(3, 3)};
-        case Zero:
-            return AnalysisData{std::make_pair(3, 3)};
         default:
             throw std::runtime_error("Unknown operation in analysis");
         }
     }
     else
     {
-        if (const auto *s = std::get_if<std::string>(&atom); property_table.has_property(*s))
+        if (const auto *s = std::get_if<std::string>(&atom))
         {
-            return AnalysisData{property_table.get_property(*s).value().shape};
+            if (property_table.has_property(*s))
+            {
+                return AnalysisData{property_table.get_property(*s).value()};
+            }
+            throw std::runtime_error("Variable has no property: " + *s);
         }
-        return AnalysisData{std::make_pair(Size("Unknown"), Size("Unknown"))};
+        throw std::runtime_error("Unknown atom type in analysis");
     }
 }
 
 void EGraph::merge_analysis_data(AnalysisData &data1, const AnalysisData &data2) const
 {
-    auto d1 = std::get_if<std::string>(&data1.property.shape.first);
-    bool d1_unknown = d1 != nullptr && *d1 == "Unknown";
-    auto d2 = std::get_if<std::string>(&data2.property.shape.first);
-    bool d2_unknown = d2 != nullptr && *d2 == "Unknown";
-
-    if (d1_unknown && !d2_unknown)
-    {
-        data1 = data2;
-    }
-    else if (!d1_unknown && d2_unknown)
-    {
-        return;
-    }
-    else if (!d1_unknown && !d2_unknown && data1.property.shape != data2.property.shape)
+    if (data1.property.shape != data2.property.shape)
     {
         throw std::runtime_error("Merging e-classes with conflicting size data");
     }
+
+    data1.property.is_symmetric = data1.property.is_symmetric || data2.property.is_symmetric;
+    data1.property.is_orthogonal = data1.property.is_orthogonal || data2.property.is_orthogonal;
+    data1.property.is_identity = data1.property.is_identity || data2.property.is_identity;
+    data1.property.is_zero = data1.property.is_zero || data2.property.is_zero;
 }
 
 bool EGraph::atoms_match(const Atom &pat_atom, const Atom &enode_atom) const
@@ -388,4 +379,9 @@ const std::vector<const ENode *> &EGraph::get_class_nodes(Id class_id) const
 {
     Id root = uf.find_root(class_id);
     return classes.at(root)->get_nodes();
+}
+
+void EGraph::register_property(const std::string &name, MatrixProperty prop)
+{
+    property_table.add_property_entry(name, prop);
 }

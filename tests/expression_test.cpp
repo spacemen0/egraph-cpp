@@ -10,8 +10,8 @@ TEST(Expression, ParseVariable)
 
 TEST(Expression, ParseOperationWithoutChildren)
 {
-    Expression p("Identity( )");
-    EXPECT_EQ(std::get<Op>(p.atom), Op::Identity);
+    Expression p("Identity");
+    EXPECT_EQ(std::get<std::string>(p.atom), "Identity");
     EXPECT_TRUE(p.children.empty());
 }
 

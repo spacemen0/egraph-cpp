@@ -18,10 +18,6 @@ inline Op parse_op(std::string_view s)
         return Invert;
     if (s == "Negate")
         return Negate;
-    if (s == "Identity")
-        return Identity;
-    if (s == "Zero")
-        return Zero;
     throw std::runtime_error("Unknown op: " + std::string(s));
 }
 
@@ -55,11 +51,6 @@ inline ParsedAtom string_to_parsed_atom(std::string_view s)
     // Leaf node
     if (pos == std::string_view::npos)
     {
-        if (s == "Identity")
-            return {Op::Identity, {}};
-        if (s == "Zero")
-            return {Op::Zero, {}};
-
         return {std::string(s), {}};
     }
 
@@ -115,10 +106,6 @@ inline std::string atom_to_string(const Atom &atom)
             return "Invert";
         case Negate:
             return "Negate";
-        case Identity:
-            return "Identity";
-        case Zero:
-            return "Zero";
         }
         return "UnknownOp";
     }

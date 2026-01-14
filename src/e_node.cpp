@@ -51,10 +51,6 @@ std::string ENode::to_string() const
             return "Invert";
         case Negate:
             return "Negate";
-        case Identity:
-            return "Identity";
-        case Zero:
-            return "Zero";
         default:
             throw std::invalid_argument("Unknown Op in ENode::to_string");
         }

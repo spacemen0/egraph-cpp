@@ -11,8 +11,6 @@ enum class Op
     Transpose,
     Invert,
     Negate,
-    Identity,
-    Zero,
 };
 
 using Id = uint32_t;
@@ -25,6 +23,8 @@ struct MatrixProperty
     std::pair<Size, Size> shape;
     bool is_symmetric = false;
     bool is_orthogonal = false;
+    bool is_identity = false;
+    bool is_zero = false;
 
     bool is_square() const { return shape.first == shape.second; }
 };

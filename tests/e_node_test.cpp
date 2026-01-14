@@ -7,9 +7,6 @@ TEST(ENode, IsLeaf)
     auto s = make_symbol("S");
     EXPECT_TRUE(s.is_leaf());
 
-    auto id = make_leaf(Op::Identity);
-    EXPECT_TRUE(id.is_leaf());
-
     Children children = {Id(1), Id(2)};
     auto add = make_op(Op::Add, children);
     EXPECT_FALSE(add.is_leaf());

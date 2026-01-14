@@ -9,7 +9,7 @@ TEST(Extractor, CheaperExtraction)
     EGraph egraph(get_property_table());
     // Expr: A * Identity
     Id id_a = egraph.add_node(make_symbol("A"));
-    Id id_identity = egraph.add_node(make_op(Op::Identity, {}));
+    Id id_identity = egraph.add_node(make_symbol("Identity"));
     Id id_mul = egraph.add_node(make_op(Op::Mul, {id_a, id_identity}));
 
     egraph.union_classes(id_mul, id_a);
