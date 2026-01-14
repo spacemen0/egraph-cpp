@@ -1,6 +1,7 @@
 #include "e_graph.h"
 #include <iostream>
 #include "pattern.h"
+#include "errors.h"
 
 /// @brief Canonicalize the children of a node.
 /// @param node
@@ -226,7 +227,7 @@ AnalysisData EGraph::make_analysis(const ENode &node) const // placeholder size
             if (get_class_analysis_data(node.get_children()[0]).property.shape !=
                 get_class_analysis_data(node.get_children()[1]).property.shape)
             {
-                throw std::runtime_error("Add operation with mismatched sizes");
+                throw ShapeMismatchError("Add operation with mismatched sizes");
             }
             return get_class_analysis_data(node.get_children()[0]);
         case Mul:
@@ -236,7 +237,7 @@ AnalysisData EGraph::make_analysis(const ENode &node) const // placeholder size
                 get_class_analysis_data(node.get_children()[1]).property.shape);
             if (left_size.second != right_size.first)
             {
-                throw std::runtime_error("Mul operation with mismatched sizes");
+                throw ShapeMismatchError("Mul operation with mismatched sizes");
             }
             return AnalysisData{std::make_pair(left_size.first, right_size.second)};
         }
@@ -248,13 +249,13 @@ AnalysisData EGraph::make_analysis(const ENode &node) const // placeholder size
         case Invert:
             if (!get_class_analysis_data(node.get_children()[0]).property.is_square())
             {
-                throw std::runtime_error("Invert operation on non-square matrix");
+                throw InvalidOperationError("Invert operation on non-square matrix");
             }
             return get_class_analysis_data(node.get_children()[0]);
         case Negate:
             return get_class_analysis_data(node.get_children()[0]);
         default:
-            throw std::runtime_error("Unknown operation in analysis");
+            throw AnalysisError("Unknown operation in analysis");
         }
     }
     else
@@ -265,9 +266,9 @@ AnalysisData EGraph::make_analysis(const ENode &node) const // placeholder size
             {
                 return AnalysisData{property_table.get_property(*s).value()};
             }
-            throw std::runtime_error("Variable has no property: " + *s);
+            throw AnalysisError("Variable has no property: " + *s);
         }
-        throw std::runtime_error("Unknown atom type in analysis");
+        throw AnalysisError("Unknown atom type in analysis");
     }
 }
 
@@ -275,7 +276,7 @@ void EGraph::merge_analysis_data(AnalysisData &data1, const AnalysisData &data2)
 {
     if (data1.property.shape != data2.property.shape)
     {
-        throw std::runtime_error("Merging e-classes with conflicting size data");
+        throw ShapeMismatchError("Merging e-classes with conflicting size data");
     }
 
     data1.property.is_symmetric = data1.property.is_symmetric || data2.property.is_symmetric;

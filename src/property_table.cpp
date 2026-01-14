@@ -2,14 +2,13 @@
 
 bool PropertyTable::add_property_entry(const std::string &name, MatrixProperty property)
 {
-    auto result = properties.emplace(name, std::move(property));
+    auto result = properties.try_emplace(name, std::move(property));
     return result.second;
 }
 
 std::optional<MatrixProperty> PropertyTable::get_property(const std::string &name) const
 {
-    auto it = properties.find(name);
-    if (it != properties.end())
+    if (auto it = properties.find(name); it != properties.end())
     {
         return it->second;
     }

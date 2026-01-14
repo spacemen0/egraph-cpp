@@ -1,6 +1,7 @@
 #include "extractor.h"
 #include <limits>
 #include <iostream>
+#include "errors.h"
 
 Extractor::Extractor(const EGraph &egraph) : egraph(egraph)
 {
@@ -73,7 +74,7 @@ ExtractionResult Extractor::extract(Id class_id) const
     Id root = egraph.find_class_id(class_id);
     if (costs.at(root) == std::numeric_limits<double>::infinity())
     {
-        throw std::runtime_error("Cannot extract from class with infinite cost");
+        throw ExtractionError("Cannot extract from class with infinite cost");
     }
     return {costs.at(root), build_expression(root)};
 }

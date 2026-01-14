@@ -1,11 +1,12 @@
 #pragma once
-#include "types.h"
+
 #include <string>
 #include <string_view>
 #include <vector>
 #include <stdexcept>
 #include "rewriter.h"
-
+#include "types.h"
+#include "errors.h"
 inline Op parse_op(std::string_view s)
 {
     using enum Op;
@@ -19,7 +20,7 @@ inline Op parse_op(std::string_view s)
         return Invert;
     if (s == "Negate")
         return Negate;
-    throw std::runtime_error("Unknown op: " + std::string(s));
+    throw InvalidOperationError("Unknown operation: " + std::string(s));
 }
 
 constexpr std::string_view trim(std::string_view sv)
@@ -45,7 +46,7 @@ inline ParsedAtom string_to_parsed_atom(std::string_view s)
 {
     s = trim(s);
     if (s.empty())
-        throw std::runtime_error("Empty string");
+        throw ParseError("Empty string");
 
     auto pos = s.find('(');
 
@@ -60,7 +61,7 @@ inline ParsedAtom string_to_parsed_atom(std::string_view s)
 
     size_t end = s.find_last_of(')');
     if (end == std::string_view::npos)
-        throw std::runtime_error("Missing closing parenthesis");
+        throw ParseError("Missing closing parenthesis");
 
     std::string_view args_str = s.substr(pos + 1, end - (pos + 1));
     std::vector<std::string> children;
