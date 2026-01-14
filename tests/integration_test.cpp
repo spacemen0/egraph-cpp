@@ -47,16 +47,16 @@ TEST(Integration, SimplifyComplexMatrixChain)
     std::cout << "Initial EGraph size: " << egraph.num_nodes() << " nodes." << std::endl;
 
     std::vector<Rewrite> rules = {
+        mul_identity,
         mat_transpose_prod,
         invert_cancel_right,
         mul_assoc_right,
-        mul_identity,
+
     };
     Rewriter rewriter(egraph, rules, 1000);
     rewriter.apply_rewrites(4);
-    std::cout << "EGraph size after saturation: " << egraph.num_nodes() << " nodes." << std::endl;
-
     Extractor extractor(egraph);
+
     ExtractionResult result = extractor.extract(root_id);
 
     std::string result_str = result.expr.to_string();
@@ -72,6 +72,4 @@ TEST(Integration, SimplifyComplexMatrixChain)
     EXPECT_EQ(atom_to_string(result.expr.atom), "Transpose");
     ASSERT_EQ(result.expr.children.size(), 1);
     EXPECT_EQ(atom_to_string(result.expr.children[0].atom), "X");
-
-    egraph.print_egraph();
 }

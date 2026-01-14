@@ -15,13 +15,13 @@ class EGraph
 {
 public:
     EGraph() = default;
-    EGraph(PropertyTable pt) : property_table(std::move(pt)) {}
+    explicit EGraph(PropertyTable pt) : property_table(std::move(pt)) {}
     void canonicalize_node(ENode &node);
     std::optional<Id> find(const ENode &node);
     Id find_class_id(Id node_id) const;
     Id add_node(ENode node);
     Id add_expression(const Expression &expr);
-    void register_property(const std::string &name, MatrixProperty prop);
+    void register_property(const std::string &name, const MatrixProperty &prop);
     bool union_classes(Id id1, Id id2);
     void rebuild();
     void print_egraph() const;
@@ -31,6 +31,7 @@ public:
     const std::vector<const ENode *> &get_class_nodes(Id class_id) const;
     size_t num_nodes() const noexcept;
     const AnalysisData &get_class_analysis_data(Id class_id) const;
+    std::optional<Id> find_class_with_property(const MatrixProperty &prop) const;
 
 private:
     // stores the union-find structure for e-classes (which stores equivalences)

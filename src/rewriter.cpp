@@ -52,6 +52,10 @@ bool Rewriter::apply_one_iteration()
 
             for (const auto &subst : substs)
             {
+                if (rewrite.condition && !rewrite.condition(subst, egraph))
+                {
+                    continue;
+                }
                 matches.emplace_back(class_id, i, subst);
             }
         }
@@ -61,11 +65,6 @@ bool Rewriter::apply_one_iteration()
     for (const auto &match : matches)
     {
         const auto &rewrite = rewrites[match.rewrite_idx];
-
-        if (rewrite.condition && !rewrite.condition(match.subst, egraph))
-        {
-            continue;
-        }
 
         Id rhs_id;
         if (rewrite.applier)

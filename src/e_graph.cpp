@@ -23,6 +23,27 @@ const AnalysisData &EGraph::get_class_analysis_data(Id class_id) const
     return classes.at(root)->get_analysis_data();
 }
 
+/// @brief  Find an e-class with the given matrix property.
+/// @param prop
+/// @return
+std::optional<Id> EGraph::find_class_with_property(const MatrixProperty &prop) const
+{
+    for (const auto &[class_id, eclass_ptr] : classes)
+    {
+        // only check root classes
+        if (uf.find_root(class_id) != class_id)
+            continue;
+
+        const auto &analysis_data = eclass_ptr->get_analysis_data();
+        const auto &class_prop = analysis_data.property;
+        if (class_prop == prop)
+        {
+            return class_id;
+        }
+    }
+    return std::nullopt;
+}
+
 /// @brief Look up a node in the e-graph. The node does not need to be canonicalized beforehand.
 /// @param node
 /// @return EClass ID if found, std::nullopt otherwise
@@ -381,7 +402,7 @@ const std::vector<const ENode *> &EGraph::get_class_nodes(Id class_id) const
     return classes.at(root)->get_nodes();
 }
 
-void EGraph::register_property(const std::string &name, MatrixProperty prop)
+void EGraph::register_property(const std::string &name, const MatrixProperty &prop)
 {
     property_table.add_property_entry(name, prop);
 }

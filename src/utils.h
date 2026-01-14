@@ -4,6 +4,7 @@
 #include <string_view>
 #include <vector>
 #include <stdexcept>
+#include "rewriter.h"
 
 inline Op parse_op(std::string_view s)
 {
@@ -110,4 +111,97 @@ inline std::string atom_to_string(const Atom &atom)
         return "UnknownOp";
     }
     return std::get<std::string>(atom);
+}
+
+inline Rewrite make_rewrite(const std::string &name, std::string_view lhs, std::string_view rhs, const std::function<bool(const Substitution &, const EGraph &)> &condition = nullptr)
+{
+    return Rewrite{name, Pattern(lhs), Pattern(rhs), condition};
+}
+
+inline Rewrite make_dynamic_rewrite(const std::string &name, std::string_view lhs, const std::function<Id(EGraph &, const Substitution &)> &applier)
+{
+    return Rewrite{name, Pattern(lhs), Pattern("?__dynamic__"), nullptr, applier};
+}
+
+inline Id make_identity_for(EGraph &egraph, const Substitution &s, const std::string &var_name)
+{
+    Id id = s.at(var_name);
+    const auto &data = egraph.get_class_analysis_data(id);
+    auto shape = data.property.shape;
+
+    MatrixProperty prop;
+    prop.shape = shape;
+    prop.is_identity = true;
+    prop.is_symmetric = true;
+    prop.is_orthogonal = true;
+    prop.is_zero = false;
+
+    if (egraph.find_class_with_property(prop).has_value())
+    {
+        return egraph.find_class_with_property(prop).value();
+    }
+
+    std::string h_str, w_str;
+    if (auto val = std::get_if<int>(&shape.first))
+        h_str = std::to_string(*val);
+    else
+        h_str = std::get<std::string>(shape.first);
+
+    if (auto val = std::get_if<int>(&shape.second))
+        w_str = std::to_string(*val);
+    else
+        w_str = std::get<std::string>(shape.second);
+
+    std::string identity_name = "I_" + h_str + "x" + w_str;
+
+    egraph.register_property(identity_name, prop);
+
+    return egraph.add_node(ENode({}, identity_name));
+}
+
+inline Id make_zero_for(EGraph &g, const Substitution &s, const std::string &var_name)
+{
+    Id id = s.at(var_name);
+    const auto &data = g.get_class_analysis_data(id);
+    auto shape = data.property.shape;
+
+    MatrixProperty prop;
+    prop.shape = shape;
+    prop.is_zero = true;
+    prop.is_symmetric = true;
+    prop.is_identity = false;
+
+    if (g.find_class_with_property(prop).has_value())
+    {
+        return g.find_class_with_property(prop).value();
+    }
+
+    std::string h_str, w_str;
+    if (auto val = std::get_if<int>(&shape.first))
+        h_str = std::to_string(*val);
+    else
+        h_str = std::get<std::string>(shape.first);
+
+    if (auto val = std::get_if<int>(&shape.second))
+        w_str = std::to_string(*val);
+    else
+        w_str = std::get<std::string>(shape.second);
+
+    std::string zero_name = "Zero_" + h_str + "x" + w_str;
+
+    g.register_property(zero_name, prop);
+
+    return g.add_node(ENode({}, zero_name));
+}
+
+inline bool is_identity_prop(const Substitution &s, const EGraph &g, const std::string &var)
+{
+    Id id = s.at(var);
+    return g.get_class_analysis_data(id).property.is_identity;
+}
+
+inline bool is_zero_prop(const Substitution &s, const EGraph &g, const std::string &var)
+{
+    Id id = s.at(var);
+    return g.get_class_analysis_data(id).property.is_zero;
 }

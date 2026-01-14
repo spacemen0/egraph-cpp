@@ -83,7 +83,7 @@ size_t ENode::hash() const
     if (std::holds_alternative<Op>(atom))
     {
         Op op = std::get<Op>(atom);
-        seed = std::hash<int>()(static_cast<int>(op));
+        seed = std::hash<int>()(static_cast<std::underlying_type_t<Op>>(op));
     }
     else
     {

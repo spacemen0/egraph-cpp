@@ -27,6 +27,15 @@ struct MatrixProperty
     bool is_zero = false;
 
     bool is_square() const { return shape.first == shape.second; }
+
+    bool operator==(const MatrixProperty &other) const
+    {
+        return shape == other.shape &&
+               is_symmetric == other.is_symmetric &&
+               is_orthogonal == other.is_orthogonal &&
+               is_identity == other.is_identity &&
+               is_zero == other.is_zero;
+    }
 };
 
 struct AnalysisData
