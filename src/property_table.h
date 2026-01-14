@@ -3,15 +3,7 @@
 #include <unordered_map>
 #include <optional>
 #include <utility>
-
-struct MatrixProperty
-{
-    std::pair<size_t, size_t> shape = {0, 0};
-    bool is_symmetric = false;
-    bool is_orthogonal = false;
-
-    bool is_square() const { return shape.first == shape.second; }
-};
+#include "types.h"
 
 class PropertyTable
 {

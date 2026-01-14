@@ -18,10 +18,20 @@ enum class Op
 using Id = uint32_t;
 using Children = std::vector<Id>;
 using Atom = std::variant<Op, std::string>;
+using Size = std::variant<int, std::string>;
+
+struct MatrixProperty
+{
+    std::pair<Size, Size> shape;
+    bool is_symmetric = false;
+    bool is_orthogonal = false;
+
+    bool is_square() const { return shape.first == shape.second; }
+};
 
 struct AnalysisData
 {
-    std::pair<size_t, size_t> size_data; // (x_size, y_size)
+    MatrixProperty property;
 };
 
 struct ParsedAtom

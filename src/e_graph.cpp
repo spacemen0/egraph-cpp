@@ -202,8 +202,8 @@ AnalysisData EGraph::make_analysis(const ENode &node) const // placeholder size
         {
             using enum Op;
         case Add:
-            if (get_class_analysis_data(node.get_children()[0]).size_data !=
-                get_class_analysis_data(node.get_children()[1]).size_data)
+            if (get_class_analysis_data(node.get_children()[0]).property.shape !=
+                get_class_analysis_data(node.get_children()[1]).property.shape)
             {
                 throw std::runtime_error("Add operation with mismatched sizes");
             }
@@ -211,8 +211,8 @@ AnalysisData EGraph::make_analysis(const ENode &node) const // placeholder size
         case Mul:
         {
             auto [left_size, right_size] = std::make_pair(
-                get_class_analysis_data(node.get_children()[0]).size_data,
-                get_class_analysis_data(node.get_children()[1]).size_data);
+                get_class_analysis_data(node.get_children()[0]).property.shape,
+                get_class_analysis_data(node.get_children()[1]).property.shape);
             if (left_size.second != right_size.first)
             {
                 throw std::runtime_error("Mul operation with mismatched sizes");
@@ -221,12 +221,12 @@ AnalysisData EGraph::make_analysis(const ENode &node) const // placeholder size
         }
         case Transpose:
         {
-            auto child_size = get_class_analysis_data(node.get_children()[0]).size_data;
+            auto child_size = get_class_analysis_data(node.get_children()[0]).property.shape;
             return AnalysisData{std::make_pair(child_size.second, child_size.first)};
         }
         case Invert:
-            if (get_class_analysis_data(node.get_children()[0]).size_data.first !=
-                get_class_analysis_data(node.get_children()[0]).size_data.second)
+            if (get_class_analysis_data(node.get_children()[0]).property.shape.first !=
+                get_class_analysis_data(node.get_children()[0]).property.shape.second)
             {
                 throw std::runtime_error("Invert operation on non-square matrix");
             }
@@ -247,14 +247,16 @@ AnalysisData EGraph::make_analysis(const ENode &node) const // placeholder size
         {
             return AnalysisData{property_table.get_property(*s).value().shape};
         }
-        return AnalysisData{std::make_pair(99, 99)};
+        return AnalysisData{std::make_pair(Size("Unknown"), Size("Unknown"))};
     }
 }
 
 void EGraph::merge_analysis_data(AnalysisData &data1, const AnalysisData &data2) const
 {
-    bool d1_unknown = (data1.size_data.first == 99);
-    bool d2_unknown = (data2.size_data.first == 99);
+    auto d1 = std::get_if<std::string>(&data1.property.shape.first);
+    bool d1_unknown = d1 != nullptr && *d1 == "Unknown";
+    auto d2 = std::get_if<std::string>(&data2.property.shape.first);
+    bool d2_unknown = d2 != nullptr && *d2 == "Unknown";
 
     if (d1_unknown && !d2_unknown)
     {
@@ -264,11 +266,8 @@ void EGraph::merge_analysis_data(AnalysisData &data1, const AnalysisData &data2)
     {
         return;
     }
-    else if (!d1_unknown && !d2_unknown && data1.size_data != data2.size_data)
+    else if (!d1_unknown && !d2_unknown && data1.property.shape != data2.property.shape)
     {
-        std::cerr << "Conflicting size data during merge: ("
-                  << data1.size_data.first << ", " << data1.size_data.second << ") vs ("
-                  << data2.size_data.first << ", " << data2.size_data.second << ")\n";
         throw std::runtime_error("Merging e-classes with conflicting size data");
     }
 }
