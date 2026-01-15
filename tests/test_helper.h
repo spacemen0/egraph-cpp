@@ -28,7 +28,7 @@ static PropertyTable get_property_table()
     pt.add_property_entry("Y", {std::make_pair(2, 3)});
     pt.add_property_entry("Z", {std::make_pair(3, 3)});
     pt.add_property_entry("W", {std::make_pair(2, 2)});
-    pt.add_property_entry("Identity", {std::make_pair(3, 3), true, true, true, false});
+    pt.add_property_entry("I_3x3", {std::make_pair(3, 3), true, true, true, false});
     pt.add_property_entry("Zero", {std::make_pair(3, 3), true, false, false, true});
 
     return pt;
