@@ -20,8 +20,8 @@ TEST(Rewrite, SimpleRewrite)
 
     EXPECT_NE(id_mul, id0);
     std::vector<Rewrite> rules = {
-        make_rewrite("mul_zero", "Mul(?x, ?z)", "?z", [](const Substitution &s, const EGraph &g)
-                     { return is_zero_prop(s, g, "z"); })};
+        make_rewrite("mul_zero", "Mul(?x, ?z)", "?z", [](const EGraph &g, const Substitution &s)
+                     { return is_zero_prop(s, g, "z"); }, nullptr)};
 
     Rewriter rewriter(egraph, rules, 100);
     bool changed = rewriter.apply_rewrites();
@@ -81,8 +81,8 @@ TEST(Rewrite, NewNodes)
     Id id_add = egraph.add_expression(Expression("Mul(Invert(a), a)"));
 
     std::vector<Rewrite> rules = {
-        make_dynamic_rewrite("inv-mul-left", "Mul(Invert(?a), ?a)", [](EGraph &g, const Substitution &s)
-                             { return make_identity_for(g, s, "a"); })};
+        make_rewrite("inv-mul-left", "Mul(Invert(?a), ?a)", "?__dynamic__", nullptr, [](EGraph &g, const Substitution &s)
+                     { return make_identity_for(g, s, "a"); })};
 
     Rewriter rewriter(egraph, rules, 100);
     bool changed = rewriter.apply_rewrites();

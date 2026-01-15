@@ -114,14 +114,9 @@ inline std::string atom_to_string(const Atom &atom)
     return std::get<std::string>(atom);
 }
 
-inline Rewrite make_rewrite(const std::string &name, std::string_view lhs, std::string_view rhs, const std::function<bool(const Substitution &, const EGraph &)> &condition = nullptr)
+inline Rewrite make_rewrite(const std::string &name, std::string_view lhs, std::string_view rhs, const std::function<bool(const EGraph &, const Substitution &)> &condition = nullptr, const std::function<Id(EGraph &, const Substitution &)> &applier = nullptr)
 {
-    return Rewrite{name, Pattern(lhs), Pattern(rhs), condition};
-}
-
-inline Rewrite make_dynamic_rewrite(const std::string &name, std::string_view lhs, const std::function<Id(EGraph &, const Substitution &)> &applier)
-{
-    return Rewrite{name, Pattern(lhs), Pattern("?__dynamic__"), nullptr, applier};
+    return Rewrite{name, Pattern(lhs), Pattern(rhs), condition, applier};
 }
 
 inline Id make_identity_for(EGraph &egraph, const Substitution &s, const std::string &var_name)

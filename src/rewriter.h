@@ -10,7 +10,7 @@ struct Rewrite
     std::string name;
     Pattern lhs;
     Pattern rhs;
-    std::function<bool(const Substitution &, const EGraph &)> condition = nullptr;
+    std::function<bool(const EGraph &, const Substitution &)> condition = nullptr;
     std::function<Id(EGraph &, const Substitution &)> applier = nullptr;
 };
 

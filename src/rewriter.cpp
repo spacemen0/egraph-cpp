@@ -52,7 +52,7 @@ bool Rewriter::apply_one_iteration()
 
             for (const auto &subst : substs)
             {
-                if (rewrite.condition && !rewrite.condition(subst, egraph))
+                if (rewrite.condition && !rewrite.condition(egraph, subst))
                 {
                     continue;
                 }
