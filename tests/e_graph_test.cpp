@@ -89,6 +89,29 @@ TEST(EGraph, RebuildMultiLevelParents)
     EXPECT_EQ(root_nested, egraph.find_class_id(id_nested2));
 }
 
+TEST(EGraph, RebuildCleanUpEClass)
+{
+    EGraph egraph(get_property_table());
+
+    Id x = egraph.add_node(sym_a);
+    Id y = egraph.add_node(sym_z);
+
+    ENode node_x = make_op(Op::Negate, {x});
+    Id neg_x = egraph.add_node(node_x);
+
+    ENode node_y = make_op(Op::Negate, {y});
+    Id neg_y = egraph.add_node(node_y);
+
+    EXPECT_NE(egraph.find_class_id(neg_x), egraph.find_class_id(neg_y));
+
+    egraph.union_classes(x, y);
+    egraph.rebuild();
+
+    EXPECT_EQ(egraph.find_class_id(neg_x), egraph.find_class_id(neg_y));
+
+    EXPECT_EQ(egraph.get_class_nodes(egraph.find_class_id(neg_x)).size(), 1);
+}
+
 TEST(EGraph, AddExpression)
 {
     EGraph egraph(get_property_table());

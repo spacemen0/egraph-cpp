@@ -175,8 +175,10 @@ void EGraph::rebuild()
             {
                 Id existing_class_id = memo.at(node);
                 union_classes(existing_class_id, pending_id);
+                classes.at(uf.find_root(existing_class_id))->clean_up_nodes();
             }
-            memo.emplace(node, pending_id);
+            else
+                memo.emplace(node, pending_id);
         }
     }
 }

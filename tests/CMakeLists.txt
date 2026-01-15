@@ -2,6 +2,7 @@ add_executable(unit_tests
     union_find_test.cpp
     e_node_test.cpp
     e_graph_test.cpp
+    e_class_test.cpp
     expression_test.cpp
     rewrite_test.cpp
     extractor_test.cpp

@@ -14,6 +14,7 @@ public:
     std::vector<const ENode *> &get_nodes();
     std::vector<Id> &get_parents();
     AnalysisData &get_analysis_data();
+    void clean_up_nodes();
 
 private:
     Id _id;
