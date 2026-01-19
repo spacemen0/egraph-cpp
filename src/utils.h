@@ -190,13 +190,13 @@ inline Id make_zero_for(EGraph &g, const Substitution &s, const std::string &var
     return g.add_node(ENode({}, zero_name));
 }
 
-inline bool is_identity_prop(const Substitution &s, const EGraph &g, const std::string &var)
+inline bool is_identity(const Substitution &s, const EGraph &g, const std::string &var)
 {
     Id id = s.at(var);
     return g.get_class_analysis_data(id).property.is_identity;
 }
 
-inline bool is_zero_prop(const Substitution &s, const EGraph &g, const std::string &var)
+inline bool is_zero(const Substitution &s, const EGraph &g, const std::string &var)
 {
     Id id = s.at(var);
     return g.get_class_analysis_data(id).property.is_zero;

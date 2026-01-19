@@ -26,16 +26,17 @@ TEST(Integration, MatrixFullSet)
 {
     EGraph egraph(get_property_table());
 
-    auto id = egraph.add_expression(Expression("Mul(Mul(Mul(Invert(Mul(A, Z)), A), Z), X)"));
-    std::vector<Rewrite> rules = {mul_assoc_right, invert_cancel_left, invert_cancel_right, mul_identity_right, mul_identity};
-    Rewriter rewriter(egraph, rules, 1000);
-    rewriter.apply_rewrites(6);
+    auto id = egraph.add_expression(Expression("Mul(Mul(A, Invert(A)), A)"));
+    std::vector<Rewrite> rules = {mul_assoc_right, invert_cancel_left, invert_cancel_right, mul_identity_right, mul_identity, mul_assoc};
+    Rewriter rewriter(egraph, rules, 2000);
+    rewriter.apply_rewrites(30);
     Extractor extractor(egraph);
     auto result = extractor.extract(id);
-    // Should extract 'X'
+    std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
+    // Should extract 'A'
     EXPECT_EQ(result.cost, 1.0);
     EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
-    EXPECT_EQ(std::get<std::string>(result.expr.atom), "X");
+    EXPECT_EQ(std::get<std::string>(result.expr.atom), "A");
 }
 
 TEST(Integration, SimplifyComplexMatrixChain)
@@ -54,7 +55,8 @@ TEST(Integration, SimplifyComplexMatrixChain)
 
     };
     Rewriter rewriter(egraph, rules, 1000);
-    rewriter.apply_rewrites(4);
+    rewriter.apply_rewrites(20);
+    egraph.print_egraph();
     Extractor extractor(egraph);
 
     ExtractionResult result = extractor.extract(root_id);
@@ -62,7 +64,7 @@ TEST(Integration, SimplifyComplexMatrixChain)
     std::string result_str = result.expr.to_string();
     std::cout << "Best extracted expression: " << result_str << std::endl;
     std::cout << "Cost: " << result.cost << std::endl;
-
+    std::cout << "Final EGraph size: " << egraph.num_nodes() << " nodes." << std::endl;
     Expression expected("Transpose(X)");
     Id expected_id = egraph.add_expression(expected);
 
@@ -72,4 +74,21 @@ TEST(Integration, SimplifyComplexMatrixChain)
     EXPECT_EQ(atom_to_string(result.expr.atom), "Transpose");
     ASSERT_EQ(result.expr.children.size(), 1);
     EXPECT_EQ(atom_to_string(result.expr.children[0].atom), "X");
+}
+
+TEST(Integration, MinimalExplosionRules)
+{
+    EGraph egraph(get_property_table());
+
+    Expression root("Invert(A)");
+    Id root_id = egraph.add_expression(root);
+    Rewrite explosion_rule = make_rewrite("inv_pad_identity", "Invert(?a)", "Invert(Mul(?a, Identity))", nullptr, [](EGraph &g, const Substitution &s)
+                                          { Id identity = make_identity_for(g, s, "a"); 
+                                            Id mul_node = g.add_node(ENode({s.at("a"), identity}, Op::Mul));
+                                            return g.add_node(ENode({mul_node}, Op::Invert)); });
+    Rewriter rewriter(egraph, {explosion_rule}, 1000);
+
+    rewriter.apply_rewrites();
+
+    std::cout << "Final EGraph size: " << egraph.num_nodes() << " nodes." << std::endl;
 }

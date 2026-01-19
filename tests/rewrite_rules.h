@@ -18,9 +18,9 @@ inline std::vector<Rewrite> get_all_rewrite_rules()
         make_rewrite("mul-distrib-right-right", "Add(Mul(?b, ?a), Mul(?c, ?a))", "Mul(Add(?b, ?c), ?a)"),
 
         make_rewrite("mul-identity", "Mul(?a, ?i)", "?a", [](const EGraph &g, const Substitution &s)
-                     { return is_identity_prop(s, g, "i"); }),
+                     { return is_identity(s, g, "i"); }),
         make_rewrite("mul-identity-right", "Mul(?i, ?a)", "?a", [](const EGraph &g, const Substitution &s)
-                     { return is_identity_prop(s, g, "i"); }),
+                     { return is_identity(s, g, "i"); }),
 
         make_rewrite("mat-transpose-prod", "Transpose(Mul(?a, ?b))", "Mul(Transpose(?b), Transpose(?a))"),
         make_rewrite("mat-transpose-prod-right", "Mul(Transpose(?b), Transpose(?a))", "Transpose(Mul(?a, ?b))"),
@@ -37,11 +37,11 @@ inline std::vector<Rewrite> get_all_rewrite_rules()
                      { return make_identity_for(g, s, "a"); }),
 
         make_rewrite("add-comm-zero", "Add(?a, ?z)", "?a", [](const EGraph &g, const Substitution &s)
-                     { return is_zero_prop(s, g, "z"); }),
+                     { return is_zero(s, g, "z"); }),
         make_rewrite("mul-zero-left", "Mul(?z, ?a)", "?z", [](const EGraph &g, const Substitution &s)
-                     { return is_zero_prop(s, g, "z"); }),
+                     { return is_zero(s, g, "z"); }),
         make_rewrite("mul-zero-right", "Mul(?a, ?z)", "?z", [](const EGraph &g, const Substitution &s)
-                     { return is_zero_prop(s, g, "z"); }),
+                     { return is_zero(s, g, "z"); }),
 
         make_rewrite("negate-involutive", "Negate(Negate(?a))", "?a"),
         make_rewrite("negate-involutive-right", "?a", "Negate(Negate(?a))"),
@@ -62,9 +62,9 @@ static const auto invert_cancel_right = make_rewrite("invert-cancel-right", "Mul
                                                      { return make_identity_for(g, s, "a"); });
 static const auto mul_assoc_right = make_rewrite("mul-assoc-right", "Mul(Mul(?a, ?b), ?c)", "Mul(?a, Mul(?b, ?c))");
 static const auto mul_identity_right = make_rewrite("mul-identity-right", "Mul(?i, ?a)", "?a", [](const EGraph &g, const Substitution &s)
-                                                    { return is_identity_prop(s, g, "i"); });
+                                                    { return is_identity(s, g, "i"); });
 static const auto mul_identity = make_rewrite("mul-identity", "Mul(?a, ?i)", "?a", [](const EGraph &g, const Substitution &s)
-                                              { return is_identity_prop(s, g, "i"); });
+                                              { return is_identity(s, g, "i"); });
 static const auto mul_assoc = make_rewrite("mul-assoc", "Mul(?a, Mul(?b, ?c))", "Mul(Mul(?a, ?b), ?c)");
 static const auto commute_add = make_rewrite("commute-add", "Add(?a, ?b)", "Add(?b, ?a)");
 static const auto mat_transpose_prod = make_rewrite("mat-transpose-prod", "Transpose(Mul(?a, ?b))", "Mul(Transpose(?b), Transpose(?a))");

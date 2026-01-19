@@ -21,7 +21,7 @@ TEST(Rewrite, SimpleRewrite)
     EXPECT_NE(id_mul, id0);
     std::vector<Rewrite> rules = {
         make_rewrite("mul_zero", "Mul(?x, ?z)", "?z", [](const EGraph &g, const Substitution &s)
-                     { return is_zero_prop(s, g, "z"); }, nullptr)};
+                     { return is_zero(s, g, "z"); }, nullptr)};
 
     Rewriter rewriter(egraph, rules, 100);
     bool changed = rewriter.apply_rewrites();
