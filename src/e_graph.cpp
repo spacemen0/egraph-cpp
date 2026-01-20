@@ -225,13 +225,13 @@ AnalysisData EGraph::make_analysis(const ENode &node) const
         {
             p.is_diagonal = true;
             p.is_identity = false;
-            p.is_non_singular = false;
+            p.is_singular = true;
         }
         if (p.is_identity)
         {
             p.is_diagonal = true;
             p.is_orthogonal = true;
-            p.is_non_singular = true;
+            p.is_singular = false;
         }
         if (p.is_diagonal)
         {
@@ -277,7 +277,7 @@ AnalysisData EGraph::make_analysis(const ENode &node) const
             prop.shape = std::make_pair(data1.property.shape.first, data2.property.shape.second);
             prop.is_identity = data1.property.is_identity && data2.property.is_identity;
             prop.is_permutation = data1.property.is_permutation && data2.property.is_permutation;
-            prop.is_non_singular = data1.property.is_non_singular && data2.property.is_non_singular;
+            prop.is_singular = data1.property.is_singular || data2.property.is_singular;
             prop.is_zero = data1.property.is_zero || data2.property.is_zero;
             prop.is_lower_triangular = data1.property.is_lower_triangular && data2.property.is_lower_triangular;
             prop.is_upper_triangular = data1.property.is_upper_triangular && data2.property.is_upper_triangular;
@@ -302,7 +302,7 @@ AnalysisData EGraph::make_analysis(const ENode &node) const
             {
                 throw InvalidOperationError("Invert operation on non-square matrix");
             }
-            if (!data1.property.is_non_singular)
+            if (data1.property.is_singular)
             {
                 throw InvalidOperationError("Invert operation on singular matrix");
             }
@@ -362,7 +362,7 @@ void EGraph::merge_analysis_data(AnalysisData &data1, const AnalysisData &data2)
     data1.property.is_lower_triangular = data1.property.is_lower_triangular || data2.property.is_lower_triangular;
     data1.property.is_diagonal = data1.property.is_diagonal || data2.property.is_diagonal;
     data1.property.is_positive_definite = data1.property.is_positive_definite || data2.property.is_positive_definite;
-    data1.property.is_non_singular = data1.property.is_non_singular || data2.property.is_non_singular;
+    data1.property.is_singular = data1.property.is_singular || data2.property.is_singular;
     data1.property.is_permutation = data1.property.is_permutation || data2.property.is_permutation;
 }
 

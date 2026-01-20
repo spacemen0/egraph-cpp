@@ -34,7 +34,7 @@ struct MatrixProperty
     bool is_lower_triangular = false;
     bool is_diagonal = false;
     bool is_positive_definite = false;
-    bool is_non_singular = false;
+    bool is_singular = false;
     bool is_permutation = false;
 
     bool is_square() const { return shape.first == shape.second; }
