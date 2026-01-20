@@ -20,6 +20,14 @@ inline Op parse_op(std::string_view s)
         return Invert;
     if (s == "Negate")
         return Negate;
+    if (s == "QR")
+        return QR;
+    if (s == "LU")
+        return LU;
+    if (s == "LLt")
+        return LLt;
+    if (s == "Get")
+        return Get;
     throw InvalidOperationError("Unknown operation: " + std::string(s));
 }
 
@@ -108,6 +116,14 @@ inline std::string atom_to_string(const Atom &atom)
             return "Invert";
         case Negate:
             return "Negate";
+        case QR:
+            return "QR";
+        case LU:
+            return "LU";
+        case LLt:
+            return "LLt";
+        case Get:
+            return "Get";
         }
         return "UnknownOp";
     }

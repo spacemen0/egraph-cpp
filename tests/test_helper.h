@@ -20,16 +20,16 @@ static ENode make_op(Op op, const Children &children)
 static PropertyTable get_property_table()
 {
     PropertyTable pt;
-    pt.add_property_entry("A", {std::make_pair(3, 3), true, true});
-    pt.add_property_entry("B", {std::make_pair(2, 4)});
-    pt.add_property_entry("C", {std::make_pair(4, 2)});
-    pt.add_property_entry("D", {std::make_pair(2, 2)});
-    pt.add_property_entry("X", {std::make_pair(3, 2)});
-    pt.add_property_entry("Y", {std::make_pair(2, 3)});
-    pt.add_property_entry("Z", {std::make_pair(3, 3)});
-    pt.add_property_entry("W", {std::make_pair(2, 2)});
-    pt.add_property_entry("I_3x3", {std::make_pair(3, 3), true, true, true, false});
-    pt.add_property_entry("Zero", {std::make_pair(3, 3), true, false, false, true});
+    pt.add_property_entry("A", {.shape = std::make_pair(3, 3), .is_non_singular = true});
+    pt.add_property_entry("B", {.shape = std::make_pair(2, 4)});
+    pt.add_property_entry("C", {.shape = std::make_pair(4, 2)});
+    pt.add_property_entry("D", {.shape = std::make_pair(2, 2), .is_non_singular = true});
+    pt.add_property_entry("X", {.shape = std::make_pair(3, 2)});
+    pt.add_property_entry("Y", {.shape = std::make_pair(2, 3)});
+    pt.add_property_entry("Z", {.shape = std::make_pair(3, 3), .is_non_singular = true});
+    pt.add_property_entry("W", {.shape = std::make_pair(2, 2)});
+    pt.add_property_entry("I_3x3", {.shape = std::make_pair(3, 3), .is_identity = true});
+    pt.add_property_entry("Zero", {.shape = std::make_pair(3, 3), .is_zero = true});
 
     return pt;
 }

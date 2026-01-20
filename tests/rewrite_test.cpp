@@ -75,6 +75,7 @@ TEST(Rewrite, NewNodes)
 
     MatrixProperty prop_a;
     prop_a.shape = {10, 10};
+    prop_a.is_non_singular = true;
     pt.add_property_entry("a", prop_a);
     EGraph egraph(std::move(pt));
 

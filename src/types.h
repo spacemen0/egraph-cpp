@@ -11,11 +11,16 @@ enum class Op
     Transpose,
     Invert,
     Negate,
+    QR,  // output: [Q, R]
+    LU,  // output: [L, U, P]
+    LLt, // output: [L, P]
+    Get, // [tuple, index]
+
 };
 
 using Id = uint32_t;
 using Children = std::vector<Id>;
-using Atom = std::variant<Op, std::string>;
+using Atom = std::variant<Op, std::string, int>; // int for indexes in Get operations
 using Size = std::variant<int, std::string>;
 
 struct MatrixProperty
@@ -25,6 +30,12 @@ struct MatrixProperty
     bool is_orthogonal = false;
     bool is_identity = false;
     bool is_zero = false;
+    bool is_upper_triangular = false;
+    bool is_lower_triangular = false;
+    bool is_diagonal = false;
+    bool is_positive_definite = false;
+    bool is_non_singular = false;
+    bool is_permutation = false;
 
     bool is_square() const { return shape.first == shape.second; }
 

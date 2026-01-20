@@ -217,61 +217,134 @@ void EGraph::print_egraph() const
     std::cout << "=====================\n";
 }
 
-AnalysisData EGraph::make_analysis(const ENode &node) const // placeholder size
+AnalysisData EGraph::make_analysis(const ENode &node) const
 {
+    auto enforce_hierarchy = [](MatrixProperty &p)
+    {
+        if (p.is_zero)
+        {
+            p.is_diagonal = true;
+            p.is_identity = false;
+            p.is_non_singular = false;
+        }
+        if (p.is_identity)
+        {
+            p.is_diagonal = true;
+            p.is_orthogonal = true;
+            p.is_non_singular = true;
+        }
+        if (p.is_diagonal)
+        {
+            p.is_upper_triangular = true;
+            p.is_lower_triangular = true;
+            p.is_symmetric = true;
+        }
+    };
+
     const auto atom = node.get_atom();
+    MatrixProperty prop;
     if (const auto op = std::get_if<Op>(&atom))
     {
+        auto data1 = get_class_analysis_data(node.get_children()[0]);
+        enforce_hierarchy(data1.property);
         switch (*op)
         {
             using enum Op;
         case Add:
-            if (get_class_analysis_data(node.get_children()[0]).property.shape !=
-                get_class_analysis_data(node.get_children()[1]).property.shape)
+        {
+
+            auto data2 = get_class_analysis_data(node.get_children()[1]);
+            if (data1.property.shape != data2.property.shape)
             {
                 throw ShapeMismatchError("Add operation with mismatched sizes");
             }
-            return get_class_analysis_data(node.get_children()[0]);
+            prop.shape = data1.property.shape;
+            prop.is_symmetric = data1.property.is_symmetric && data2.property.is_symmetric;
+            prop.is_upper_triangular = data1.property.is_upper_triangular && data2.property.is_upper_triangular;
+            prop.is_lower_triangular = data1.property.is_lower_triangular && data2.property.is_lower_triangular;
+            prop.is_diagonal = data1.property.is_diagonal && data2.property.is_diagonal;
+            prop.is_zero = data1.property.is_zero && data2.property.is_zero;
+            break;
+        }
         case Mul:
         {
-            auto [left_size, right_size] = std::make_pair(
-                get_class_analysis_data(node.get_children()[0]).property.shape,
-                get_class_analysis_data(node.get_children()[1]).property.shape);
-            if (left_size.second != right_size.first)
+            auto data2 = get_class_analysis_data(node.get_children()[1]);
+            if (data1.property.shape.second != data2.property.shape.first)
             {
-                throw ShapeMismatchError("Mul operation with mismatched sizes");
+                throw ShapeMismatchError("Mul operation with incompatible sizes");
             }
-            return AnalysisData{std::make_pair(left_size.first, right_size.second)};
+
+            prop.shape = std::make_pair(data1.property.shape.first, data2.property.shape.second);
+            prop.is_identity = data1.property.is_identity && data2.property.is_identity;
+            prop.is_permutation = data1.property.is_permutation && data2.property.is_permutation;
+            prop.is_non_singular = data1.property.is_non_singular && data2.property.is_non_singular;
+            prop.is_zero = data1.property.is_zero || data2.property.is_zero;
+            prop.is_lower_triangular = data1.property.is_lower_triangular && data2.property.is_lower_triangular;
+            prop.is_upper_triangular = data1.property.is_upper_triangular && data2.property.is_upper_triangular;
+            prop.is_orthogonal = data1.property.is_orthogonal && data2.property.is_orthogonal;
+            prop.is_diagonal = data1.property.is_diagonal && data2.property.is_diagonal;
+            break;
         }
         case Transpose:
         {
-            auto child_size = get_class_analysis_data(node.get_children()[0]).property.shape;
-            return AnalysisData{std::make_pair(child_size.second, child_size.first)};
+            auto child_size = data1.property.shape;
+
+            prop = data1.property;
+
+            prop.shape = std::make_pair(child_size.second, child_size.first);
+            prop.is_lower_triangular = data1.property.is_upper_triangular;
+            prop.is_upper_triangular = data1.property.is_lower_triangular;
+            break;
         }
         case Invert:
-            if (!get_class_analysis_data(node.get_children()[0]).property.is_square())
+        {
+            if (data1.property.shape.first != data1.property.shape.second)
             {
                 throw InvalidOperationError("Invert operation on non-square matrix");
             }
-            return get_class_analysis_data(node.get_children()[0]);
+            if (!data1.property.is_non_singular)
+            {
+                throw InvalidOperationError("Invert operation on singular matrix");
+            }
+
+            prop = data1.property;
+            break;
+        }
         case Negate:
-            return get_class_analysis_data(node.get_children()[0]);
+        {
+            prop = data1.property;
+
+            prop.is_identity = false;
+            prop.is_permutation = false;
+            prop.is_positive_definite = false;
+            break;
+        }
+        case QR:
+            throw AnalysisError("QR analysis not implemented yet");
+        case LU:
+            throw AnalysisError("LU analysis not implemented yet");
+        case LLt:
+            throw AnalysisError("LLt analysis not implemented yet");
+        case Get:
+            throw AnalysisError("Get analysis not implemented yet");
         default:
             throw AnalysisError("Unknown operation in analysis");
         }
     }
-    else
     {
         if (const auto *s = std::get_if<std::string>(&atom))
         {
             if (property_table.has_property(*s))
             {
-                return AnalysisData{property_table.get_property(*s).value()};
+                auto property = property_table.get_property(*s).value();
+                enforce_hierarchy(property);
+                return AnalysisData{property};
             }
             throw AnalysisError("Variable has no property: " + *s);
         }
-        throw AnalysisError("Unknown atom type in analysis");
     }
+    enforce_hierarchy(prop);
+    return AnalysisData{prop};
 }
 
 void EGraph::merge_analysis_data(AnalysisData &data1, const AnalysisData &data2) const
@@ -285,6 +358,12 @@ void EGraph::merge_analysis_data(AnalysisData &data1, const AnalysisData &data2)
     data1.property.is_orthogonal = data1.property.is_orthogonal || data2.property.is_orthogonal;
     data1.property.is_identity = data1.property.is_identity || data2.property.is_identity;
     data1.property.is_zero = data1.property.is_zero || data2.property.is_zero;
+    data1.property.is_upper_triangular = data1.property.is_upper_triangular || data2.property.is_upper_triangular;
+    data1.property.is_lower_triangular = data1.property.is_lower_triangular || data2.property.is_lower_triangular;
+    data1.property.is_diagonal = data1.property.is_diagonal || data2.property.is_diagonal;
+    data1.property.is_positive_definite = data1.property.is_positive_definite || data2.property.is_positive_definite;
+    data1.property.is_non_singular = data1.property.is_non_singular || data2.property.is_non_singular;
+    data1.property.is_permutation = data1.property.is_permutation || data2.property.is_permutation;
 }
 
 bool EGraph::atoms_match(const Atom &pat_atom, const Atom &enode_atom) const
