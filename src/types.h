@@ -38,6 +38,28 @@ struct MatrixProperty
     bool is_permutation = false;
 
     bool is_square() const { return shape.first == shape.second; }
+    bool is_scalar() const
+    {
+        if (auto w = std::get_if<int>(&shape.first))
+        {
+            if (auto h = std::get_if<int>(&shape.second))
+            {
+                return *w == 1 && *h == 1;
+            }
+        }
+        return false;
+    }
+    bool is_vector() const
+    {
+        if (auto w = std::get_if<int>(&shape.first))
+        {
+            if (auto h = std::get_if<int>(&shape.second))
+            {
+                return (*w == 1 && *h > 1) || (*h == 1 && *w > 1);
+            }
+        }
+        return false;
+    }
 
     friend bool operator==(const MatrixProperty &, const MatrixProperty &) = default;
 };

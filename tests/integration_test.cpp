@@ -86,9 +86,16 @@ TEST(Integration, MinimalExplosionRules)
                                           { Id identity = make_identity_for(g, s, "a"); 
                                             Id mul_node = g.add_node(ENode({s.at("a"), identity}, Op::Mul));
                                             return g.add_node(ENode({mul_node}, Op::Invert)); });
-    Rewriter rewriter(egraph, {explosion_rule}, 1000);
+    Rewriter rewriter(egraph, {explosion_rule}, 100);
 
     rewriter.apply_rewrites();
-
+    egraph.print_egraph();
     std::cout << "Final EGraph size: " << egraph.num_nodes() << " nodes." << std::endl;
+
+    Rewrite clean_up_rule = make_rewrite("identity_cancel", "Mul(?a, ?b)", "?a", [](const EGraph &g, const Substitution &s)
+                                         { return is_identity(s, g, "b"); });
+    Rewriter cleaner(egraph, {clean_up_rule}, 200);
+    cleaner.apply_rewrites();
+    egraph.print_egraph();
+    std::cout << "Final EGraph size after clean-up: " << egraph.num_nodes() << " nodes." << std::endl;
 }

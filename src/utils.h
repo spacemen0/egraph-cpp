@@ -7,6 +7,7 @@
 #include "rewriter.h"
 #include "types.h"
 #include "errors.h"
+#include <charconv>
 inline Op parse_op(std::string_view s)
 {
     using enum Op;
@@ -61,6 +62,12 @@ inline ParsedAtom string_to_parsed_atom(std::string_view s)
     // Leaf node
     if (pos == std::string_view::npos)
     {
+        int v;
+        if (auto [ptr, ec] = std::from_chars(s.data(), s.data() + s.size(), v); ec == std::errc())
+        {
+            if (ptr == s.data() + s.size()) // the entire string was consumed
+                return {v, {}};
+        }
         return {std::string(s), {}};
     }
 
