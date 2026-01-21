@@ -29,6 +29,14 @@ inline Op parse_op(std::string_view s)
         return LLt;
     if (s == "Get")
         return Get;
+    if (s == "Solve")
+        return Solve;
+    if (s == "TriangularSolve")
+        return TriangularSolve;
+    if (s == "Determinant")
+        return Determinant;
+    if (s == "Log")
+        return Log;
     throw InvalidOperationError("Unknown operation: " + std::string(s));
 }
 
@@ -67,6 +75,7 @@ inline ParsedAtom string_to_parsed_atom(std::string_view s)
         {
             if (ptr == s.data() + s.size()) // the entire string was consumed
                 return {v, {}};
+            throw ParseError("Invalid integer: " + std::string(s));
         }
         return {std::string(s), {}};
     }
@@ -131,6 +140,14 @@ inline std::string atom_to_string(const Atom &atom)
             return "LLt";
         case Get:
             return "Get";
+        case Solve:
+            return "Solve";
+        case TriangularSolve:
+            return "TriangularSolve";
+        case Determinant:
+            return "Determinant";
+        case Log:
+            return "Log";
         }
         return "UnknownOp";
     }

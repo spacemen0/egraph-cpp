@@ -327,6 +327,22 @@ AnalysisData EGraph::make_analysis(const ENode &node) const
             throw AnalysisError("LLt analysis not implemented yet");
         case Get:
             throw AnalysisError("Get analysis not implemented yet");
+        case Solve:
+        {
+            auto data2 = get_class_analysis_data(node.get_children()[1]);
+            if (data1.property.shape.second != data2.property.shape.first)
+            {
+                throw ShapeMismatchError("Solve operation with incompatible sizes");
+            }
+            prop.shape = data2.property.shape;
+            break;
+        }
+        case TriangularSolve:
+            throw AnalysisError("TriangularSolve analysis not implemented yet");
+        case Determinant:
+            throw AnalysisError("Determinant analysis not implemented yet");
+        case Log:
+            throw AnalysisError("Log analysis not implemented yet");
         default:
             throw AnalysisError("Unknown operation in analysis");
         }

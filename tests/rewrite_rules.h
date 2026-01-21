@@ -69,3 +69,8 @@ static const auto mul_assoc = make_rewrite("mul-assoc", "Mul(?a, Mul(?b, ?c))", 
 static const auto commute_add = make_rewrite("commute-add", "Add(?a, ?b)", "Add(?b, ?a)");
 static const auto mat_transpose_prod = make_rewrite("mat-transpose-prod", "Transpose(Mul(?a, ?b))", "Mul(Transpose(?b), Transpose(?a))");
 static const auto qr_introduce = make_rewrite("qr-introduce", "?a", "Mul(Get(QR(?a), 0), Get(QR(?a), 1))");
+static const auto solve_rule = make_rewrite("solve-rule", "Mul(Invert(?a), ?b)", "Solve(?a, ?b)", [](const EGraph &g, const Substitution &s)
+                                            {
+                                                  Id a_id = s.at("a");
+                                                  const auto &data = g.get_class_analysis_data(a_id);
+                                                  return data.property.is_square() && !data.property.is_singular; });

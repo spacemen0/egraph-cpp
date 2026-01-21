@@ -93,3 +93,28 @@ TEST(Rewrite, NewNodes)
     EXPECT_TRUE(results.has_value());
     EXPECT_EQ(results.value(), egraph.find_class_id(id_add));
 }
+
+TEST(Rewrite, SolveRule)
+{
+    auto pt = get_property_table();
+
+    MatrixProperty prop_a;
+    prop_a.shape = {3, 3};
+    pt.add_property_entry("a", prop_a);
+
+    MatrixProperty prop_b;
+    prop_b.shape = {3, 2};
+    pt.add_property_entry("b", prop_b);
+
+    EGraph egraph(std::move(pt));
+
+    Id id_expr = egraph.add_expression(Expression("Mul(Invert(a), b)"));
+
+    Rewriter rewriter(egraph, {solve_rule}, 100);
+    bool changed = rewriter.apply_rewrites();
+    EXPECT_TRUE(changed);
+
+    Id id_solve = egraph.add_expression(Expression("Solve(a, b)"));
+    EXPECT_EQ(egraph.find_class_id(id_expr), egraph.find_class_id(id_solve));
+    EXPECT_EQ(egraph.get_class_analysis_data(id_expr).property.shape, std::make_pair(Size(3), Size(2)));
+}

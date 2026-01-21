@@ -11,11 +11,14 @@ enum class Op
     Transpose,
     Invert,
     Negate,
-    QR,  // output: [Q, R]
-    LU,  // output: [L, U, P]
-    LLt, // output: [L, P]
-    Get, // [tuple, index]
-
+    QR,              // output: [Q, R]
+    LU,              // output: [L, U, P]
+    LLt,             // output: [L, P]
+    Get,             // [tuple, index]
+    Solve,           // [A, B] solving AX = B
+    TriangularSolve, // [A, B] solving AX = B where A is triangular
+    Determinant,     // [A] computing det(A)
+    Log,             //
 };
 
 using Id = uint32_t;
