@@ -289,35 +289,35 @@ AnalysisData EGraph::make_analysis(const ENode &node) const
         }
         case Transpose:
         {
-            auto data1 = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[0]).property);
-            auto child_size = data1.shape;
+            auto data = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[0]).property);
+            auto child_size = data.shape;
 
-            prop = data1;
+            prop = data;
 
             prop.shape = std::make_pair(child_size.second, child_size.first);
-            prop.is_lower_triangular = data1.is_upper_triangular;
-            prop.is_upper_triangular = data1.is_lower_triangular;
+            prop.is_lower_triangular = data.is_upper_triangular;
+            prop.is_upper_triangular = data.is_lower_triangular;
             break;
         }
         case Invert:
         {
-            auto data1 = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[0]).property);
-            if (data1.shape.first != data1.shape.second)
+            auto data = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[0]).property);
+            if (data.shape.first != data.shape.second)
             {
                 throw InvalidOperationError("Invert operation on non-square matrix");
             }
-            if (data1.is_singular)
+            if (data.is_singular)
             {
                 throw InvalidOperationError("Invert operation on singular matrix");
             }
 
-            prop = data1;
+            prop = data;
             break;
         }
         case Negate:
         {
-            auto data1 = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[0]).property);
-            prop = data1;
+            auto data = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[0]).property);
+            prop = data;
 
             prop.is_identity = false;
             prop.is_permutation = false;
@@ -325,13 +325,66 @@ AnalysisData EGraph::make_analysis(const ENode &node) const
             break;
         }
         case QR:
-            throw AnalysisError("QR analysis not implemented yet");
+        {
+            if (auto *data = std::get_if<MatrixProperty>(&get_class_analysis_data(node.get_children()[0]).property))
+            {
+                MatrixProperty Q;
+                MatrixProperty R;
+
+                Q.shape = std::make_pair(data->shape.first, data->shape.first);
+                Q.is_orthogonal = true;
+
+                R.shape = data->shape;
+                R.is_upper_triangular = true;
+                if (data->is_wide)
+                {
+                    R.is_wide = true;
+                }
+                if (data->is_tall)
+                {
+                    R.is_tall = true;
+                }
+                if (data->is_identity)
+                {
+                    Q.is_identity = true;
+                    R.is_identity = true;
+                }
+                if (data->is_zero)
+                {
+                    R.is_zero = true;
+                }
+
+                return AnalysisData{TupleProperty{Q, R}};
+            }
+            throw AnalysisError("QR expects a Matrix input, found Tuple");
+        }
         case LU:
             throw AnalysisError("LU analysis not implemented yet");
         case LLt:
             throw AnalysisError("LLt analysis not implemented yet");
         case Get:
-            throw AnalysisError("Get analysis not implemented yet");
+        {
+            auto tuple_data = get_class_analysis_data(node.get_children()[0]);
+
+            const auto &index_nodes = get_class_nodes(node.get_children()[1]);
+            if (index_nodes.empty())
+                throw AnalysisError("Get index has no nodes");
+
+            const Atom &index_atom = index_nodes[0]->get_atom();
+            if (const int *idx = std::get_if<int>(&index_atom))
+            {
+                if (auto *props = std::get_if<TupleProperty>(&tuple_data.property))
+                {
+                    if (*idx >= 0 && *idx < props->size())
+                    {
+                        return AnalysisData{(*props)[*idx]};
+                    }
+                    throw AnalysisError("Get index out of bounds");
+                }
+                throw AnalysisError("Get called on non-tuple");
+            }
+            throw AnalysisError("Get index must be a constant integer");
+        }
         case Solve:
         {
             auto data1 = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[0]).property);
@@ -344,7 +397,20 @@ AnalysisData EGraph::make_analysis(const ENode &node) const
             break;
         }
         case TriangularSolve:
-            throw AnalysisError("TriangularSolve analysis not implemented yet");
+        {
+            auto data1 = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[0]).property);
+            auto data2 = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[1]).property);
+            if (data1.shape.second != data2.shape.first)
+            {
+                throw ShapeMismatchError("TriangularSolve operation with incompatible sizes");
+            }
+            if (!data1.is_lower_triangular && !data1.is_upper_triangular)
+            {
+                throw InvalidOperationError("TriangularSolve operation on non-triangular matrix");
+            }
+            prop.shape = data2.shape;
+            break;
+        }
         case Determinant:
             return AnalysisData{};
         case Log:

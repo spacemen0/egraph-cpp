@@ -22,23 +22,6 @@ TEST(Integration, MatrixPartialSet)
     EXPECT_EQ(std::get<std::string>(result.expr.atom), "X");
 }
 
-TEST(Integration, MatrixFullSet)
-{
-    EGraph egraph(get_property_table());
-
-    auto id = egraph.add_expression(Expression("Mul(Mul(A, Invert(A)), A)"));
-    std::vector<Rewrite> rules = {mul_assoc_right, invert_cancel_left, invert_cancel_right, mul_identity_right, mul_identity, mul_assoc};
-    Rewriter rewriter(egraph, rules, 2000);
-    rewriter.apply_rewrites(30);
-    Extractor extractor(egraph);
-    auto result = extractor.extract(id);
-    std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
-    // Should extract 'A'
-    EXPECT_EQ(result.cost, 1.0);
-    EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
-    EXPECT_EQ(std::get<std::string>(result.expr.atom), "A");
-}
-
 TEST(Integration, SimplifyComplexMatrixChain)
 {
     EGraph egraph(get_property_table());
@@ -56,7 +39,7 @@ TEST(Integration, SimplifyComplexMatrixChain)
     };
     Rewriter rewriter(egraph, rules, 1000);
     rewriter.apply_rewrites(20);
-    egraph.print_egraph();
+    // egraph.print_egraph();
     Extractor extractor(egraph);
 
     ExtractionResult result = extractor.extract(root_id);
@@ -89,13 +72,36 @@ TEST(Integration, MinimalExplosionRules)
     Rewriter rewriter(egraph, {explosion_rule}, 100);
 
     rewriter.apply_rewrites();
-    egraph.print_egraph();
+    // egraph.print_egraph();
     std::cout << "Final EGraph size: " << egraph.num_nodes() << " nodes." << std::endl;
 
     Rewrite clean_up_rule = make_rewrite("identity_cancel", "Mul(?a, ?b)", "?a", [](const EGraph &g, const Substitution &s)
                                          { return is_identity(s, g, "b"); });
     Rewriter cleaner(egraph, {clean_up_rule}, 200);
     cleaner.apply_rewrites();
-    egraph.print_egraph();
+    // egraph.print_egraph();
     std::cout << "Final EGraph size after clean-up: " << egraph.num_nodes() << " nodes." << std::endl;
+}
+
+TEST(Integration, MinimalRealisticExplosionRules)
+{
+    EGraph egraph(get_property_table());
+
+    auto id = egraph.add_expression(Expression("Mul(Mul(A, Invert(A)), A)"));
+    std::vector<Rewrite> rules = {
+        mul_assoc_right,
+        invert_cancel_left,
+        invert_cancel_right,
+        mul_identity_right,
+    };
+    Rewriter rewriter(egraph, rules, 20);
+    rewriter.apply_rewrites(30);
+    Extractor extractor(egraph);
+    auto result = extractor.extract(id);
+    std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
+    egraph.print_egraph();
+    // Should extract 'A'
+    EXPECT_EQ(result.cost, 1.0);
+    EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
+    EXPECT_EQ(std::get<std::string>(result.expr.atom), "A");
 }

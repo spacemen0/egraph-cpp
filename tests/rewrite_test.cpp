@@ -12,7 +12,7 @@ TEST(Rewrite, SimpleRewrite)
     Id id0 = egraph.add_node(zero_node);
 
     Id id_mul = egraph.add_expression(Expression("Mul(A, Zero)"));
-    egraph.print_egraph();
+    // egraph.print_egraph();
 
     // x * 0 -> 0
     Pattern lhs("Mul(?x, ?z)");

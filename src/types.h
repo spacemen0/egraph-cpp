@@ -11,7 +11,7 @@ enum class Op
     Transpose,
     Invert,
     Negate,
-    QR,              // output: [Q, R]
+    QR,              // output: [Q, R] assume full QR
     LU,              // output: [L, U, P]
     LLt,             // output: [L, P]
     Get,             // [tuple, index]
@@ -39,8 +39,36 @@ struct MatrixProperty
     bool is_positive_definite = false;
     bool is_singular = false;
     bool is_permutation = false;
+    bool is_tall = false;
+    bool is_wide = false;
 
     bool is_square() const { return shape.first == shape.second; }
+    bool has_symbolic_shape() const
+    {
+        return !std::holds_alternative<int>(shape.first) || !std::holds_alternative<int>(shape.second);
+    }
+    bool is_tall_matrix() const
+    {
+        if (auto w = std::get_if<int>(&shape.first))
+        {
+            if (auto h = std::get_if<int>(&shape.second))
+            {
+                return *h > *w;
+            }
+        }
+        return is_tall;
+    }
+    bool is_wide_matrix() const
+    {
+        if (auto w = std::get_if<int>(&shape.first))
+        {
+            if (auto h = std::get_if<int>(&shape.second))
+            {
+                return *w > *h;
+            }
+        }
+        return is_wide;
+    }
     bool is_scalar() const
     {
         if (auto w = std::get_if<int>(&shape.first))
@@ -60,6 +88,14 @@ struct MatrixProperty
             {
                 return (*w == 1 && *h > 1) || (*h == 1 && *w > 1);
             }
+            else
+            {
+                return *w == 1;
+            }
+        }
+        else if (auto h = std::get_if<int>(&shape.second))
+        {
+            return *h == 1;
         }
         return false;
     }

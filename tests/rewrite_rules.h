@@ -68,13 +68,19 @@ static const auto mul_identity = make_rewrite("mul-identity", "Mul(?a, ?i)", "?a
 static const auto mul_assoc = make_rewrite("mul-assoc", "Mul(?a, Mul(?b, ?c))", "Mul(Mul(?a, ?b), ?c)");
 static const auto commute_add = make_rewrite("commute-add", "Add(?a, ?b)", "Add(?b, ?a)");
 static const auto mat_transpose_prod = make_rewrite("mat-transpose-prod", "Transpose(Mul(?a, ?b))", "Mul(Transpose(?b), Transpose(?a))");
-static const auto qr_introduce = make_rewrite("qr-introduce", "?a", "Mul(Get(QR(?a), 0), Get(QR(?a), 1))");
+static const auto qr_solve = make_rewrite(
+    "qr-solve",
+    "Solve(?a, ?b)",
+    "TriangularSolve(Get(QR(?a), 1), Mul(Transpose(Get(QR(?a), 0)), ?b))");
+static const auto qr_invert = make_rewrite("qr-invert",
+                                           "Invert(?a)",
+                                           "Mul(Invert(Get(QR(?a), 1)), Transpose(Get(QR(?a), 0)))");
 static const auto solve_rule = make_rewrite("solve-rule", "Mul(Invert(?a), ?b)", "Solve(?a, ?b)", [](const EGraph &g, const Substitution &s)
                                             {
-                                                  Id a_id = s.at("a");
-                                                  const auto &data = g.get_class_analysis_data(a_id);
-                                                  if (auto *prop = std::get_if<MatrixProperty>(&data.property))
-                                                  {
-                                                      return prop->is_square() && !prop->is_singular;
-                                                  }
-                                                  return false; });
+    Id a_id = s.at("a");
+    const auto &data = g.get_class_analysis_data(a_id);
+    if (auto *prop = std::get_if<MatrixProperty>(&data.property))
+    {
+        return prop->is_square() && !prop->is_singular;
+    }
+    return false; });
