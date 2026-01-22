@@ -37,9 +37,12 @@ std::optional<Id> EGraph::find_class_with_property(const MatrixProperty &prop) c
 
         const auto &analysis_data = eclass_ptr->get_analysis_data();
         const auto &class_prop = analysis_data.property;
-        if (class_prop == prop)
+        if (const auto *p = std::get_if<MatrixProperty>(&class_prop))
         {
-            return class_id;
+            if (p->strict_equal(prop))
+            {
+                return class_id;
+            }
         }
     }
     return std::nullopt;
@@ -245,74 +248,76 @@ AnalysisData EGraph::make_analysis(const ENode &node) const
     MatrixProperty prop;
     if (const auto op = std::get_if<Op>(&atom))
     {
-        auto data1 = get_class_analysis_data(node.get_children()[0]);
-        enforce_hierarchy(data1.property);
         switch (*op)
         {
             using enum Op;
         case Add:
         {
-
-            auto data2 = get_class_analysis_data(node.get_children()[1]);
-            if (data1.property.shape != data2.property.shape)
+            auto data1 = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[0]).property);
+            auto data2 = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[1]).property);
+            if (data1.shape != data2.shape)
             {
                 throw ShapeMismatchError("Add operation with mismatched sizes");
             }
-            prop.shape = data1.property.shape;
-            prop.is_symmetric = data1.property.is_symmetric && data2.property.is_symmetric;
-            prop.is_upper_triangular = data1.property.is_upper_triangular && data2.property.is_upper_triangular;
-            prop.is_lower_triangular = data1.property.is_lower_triangular && data2.property.is_lower_triangular;
-            prop.is_diagonal = data1.property.is_diagonal && data2.property.is_diagonal;
-            prop.is_zero = data1.property.is_zero && data2.property.is_zero;
+            prop.shape = data1.shape;
+            prop.is_symmetric = data1.is_symmetric && data2.is_symmetric;
+            prop.is_upper_triangular = data1.is_upper_triangular && data2.is_upper_triangular;
+            prop.is_lower_triangular = data1.is_lower_triangular && data2.is_lower_triangular;
+            prop.is_diagonal = data1.is_diagonal && data2.is_diagonal;
+            prop.is_zero = data1.is_zero && data2.is_zero;
             break;
         }
         case Mul:
         {
-            auto data2 = get_class_analysis_data(node.get_children()[1]);
-            if (data1.property.shape.second != data2.property.shape.first)
+            auto data1 = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[0]).property);
+            auto data2 = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[1]).property);
+            if (data1.shape.second != data2.shape.first)
             {
                 throw ShapeMismatchError("Mul operation with incompatible sizes");
             }
 
-            prop.shape = std::make_pair(data1.property.shape.first, data2.property.shape.second);
-            prop.is_identity = data1.property.is_identity && data2.property.is_identity;
-            prop.is_permutation = data1.property.is_permutation && data2.property.is_permutation;
-            prop.is_singular = data1.property.is_singular || data2.property.is_singular;
-            prop.is_zero = data1.property.is_zero || data2.property.is_zero;
-            prop.is_lower_triangular = data1.property.is_lower_triangular && data2.property.is_lower_triangular;
-            prop.is_upper_triangular = data1.property.is_upper_triangular && data2.property.is_upper_triangular;
-            prop.is_orthogonal = data1.property.is_orthogonal && data2.property.is_orthogonal;
-            prop.is_diagonal = data1.property.is_diagonal && data2.property.is_diagonal;
+            prop.shape = std::make_pair(data1.shape.first, data2.shape.second);
+            prop.is_identity = data1.is_identity && data2.is_identity;
+            prop.is_permutation = data1.is_permutation && data2.is_permutation;
+            prop.is_singular = data1.is_singular || data2.is_singular;
+            prop.is_zero = data1.is_zero || data2.is_zero;
+            prop.is_lower_triangular = data1.is_lower_triangular && data2.is_lower_triangular;
+            prop.is_upper_triangular = data1.is_upper_triangular && data2.is_upper_triangular;
+            prop.is_orthogonal = data1.is_orthogonal && data2.is_orthogonal;
+            prop.is_diagonal = data1.is_diagonal && data2.is_diagonal;
             break;
         }
         case Transpose:
         {
-            auto child_size = data1.property.shape;
+            auto data1 = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[0]).property);
+            auto child_size = data1.shape;
 
-            prop = data1.property;
+            prop = data1;
 
             prop.shape = std::make_pair(child_size.second, child_size.first);
-            prop.is_lower_triangular = data1.property.is_upper_triangular;
-            prop.is_upper_triangular = data1.property.is_lower_triangular;
+            prop.is_lower_triangular = data1.is_upper_triangular;
+            prop.is_upper_triangular = data1.is_lower_triangular;
             break;
         }
         case Invert:
         {
-            if (data1.property.shape.first != data1.property.shape.second)
+            auto data1 = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[0]).property);
+            if (data1.shape.first != data1.shape.second)
             {
                 throw InvalidOperationError("Invert operation on non-square matrix");
             }
-            if (data1.property.is_singular)
+            if (data1.is_singular)
             {
                 throw InvalidOperationError("Invert operation on singular matrix");
             }
 
-            prop = data1.property;
+            prop = data1;
             break;
         }
         case Negate:
         {
-            prop = data1.property;
+            auto data1 = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[0]).property);
+            prop = data1;
 
             prop.is_identity = false;
             prop.is_permutation = false;
@@ -329,20 +334,21 @@ AnalysisData EGraph::make_analysis(const ENode &node) const
             throw AnalysisError("Get analysis not implemented yet");
         case Solve:
         {
-            auto data2 = get_class_analysis_data(node.get_children()[1]);
-            if (data1.property.shape.second != data2.property.shape.first)
+            auto data1 = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[0]).property);
+            auto data2 = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[1]).property);
+            if (data1.shape.second != data2.shape.first)
             {
                 throw ShapeMismatchError("Solve operation with incompatible sizes");
             }
-            prop.shape = data2.property.shape;
+            prop.shape = data2.shape;
             break;
         }
         case TriangularSolve:
             throw AnalysisError("TriangularSolve analysis not implemented yet");
         case Determinant:
-            throw AnalysisError("Determinant analysis not implemented yet");
+            return AnalysisData{};
         case Log:
-            throw AnalysisError("Log analysis not implemented yet");
+            return AnalysisData{};
         default:
             throw AnalysisError("Unknown operation in analysis");
         }
@@ -363,23 +369,43 @@ AnalysisData EGraph::make_analysis(const ENode &node) const
     return AnalysisData{prop};
 }
 
+// @brief Merge two analysis data objects, throwing an error if they conflict.
+// @param data1
+// @param data2
 void EGraph::merge_analysis_data(AnalysisData &data1, const AnalysisData &data2) const
 {
-    if (data1.property.shape != data2.property.shape)
+    if (data1 != data2)
     {
         throw ShapeMismatchError("Merging e-classes with conflicting size data");
     }
 
-    data1.property.is_symmetric = data1.property.is_symmetric || data2.property.is_symmetric;
-    data1.property.is_orthogonal = data1.property.is_orthogonal || data2.property.is_orthogonal;
-    data1.property.is_identity = data1.property.is_identity || data2.property.is_identity;
-    data1.property.is_zero = data1.property.is_zero || data2.property.is_zero;
-    data1.property.is_upper_triangular = data1.property.is_upper_triangular || data2.property.is_upper_triangular;
-    data1.property.is_lower_triangular = data1.property.is_lower_triangular || data2.property.is_lower_triangular;
-    data1.property.is_diagonal = data1.property.is_diagonal || data2.property.is_diagonal;
-    data1.property.is_positive_definite = data1.property.is_positive_definite || data2.property.is_positive_definite;
-    data1.property.is_singular = data1.property.is_singular || data2.property.is_singular;
-    data1.property.is_permutation = data1.property.is_permutation || data2.property.is_permutation;
+    auto merge_matrix_props = [](MatrixProperty &p1, const MatrixProperty &p2)
+    {
+        p1.is_symmetric = p1.is_symmetric || p2.is_symmetric;
+        p1.is_orthogonal = p1.is_orthogonal || p2.is_orthogonal;
+        p1.is_identity = p1.is_identity || p2.is_identity;
+        p1.is_zero = p1.is_zero || p2.is_zero;
+        p1.is_upper_triangular = p1.is_upper_triangular || p2.is_upper_triangular;
+        p1.is_lower_triangular = p1.is_lower_triangular || p2.is_lower_triangular;
+        p1.is_diagonal = p1.is_diagonal || p2.is_diagonal;
+        p1.is_positive_definite = p1.is_positive_definite || p2.is_positive_definite;
+        p1.is_singular = p1.is_singular || p2.is_singular;
+        p1.is_permutation = p1.is_permutation || p2.is_permutation;
+    };
+
+    if (auto *p1 = std::get_if<MatrixProperty>(&data1.property))
+    {
+        const auto *p2 = std::get_if<MatrixProperty>(&data2.property);
+        merge_matrix_props(*p1, *p2);
+    }
+    else if (auto *t1 = std::get_if<TupleProperty>(&data1.property))
+    {
+        const auto *t2 = std::get_if<TupleProperty>(&data2.property);
+        for (size_t i = 0; i < t1->size(); ++i)
+        {
+            merge_matrix_props((*t1)[i], (*t2)[i]);
+        }
+    }
 }
 
 bool EGraph::atoms_match(const Atom &pat_atom, const Atom &enode_atom) const

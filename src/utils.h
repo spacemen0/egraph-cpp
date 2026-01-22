@@ -163,7 +163,8 @@ inline Id make_identity_for(EGraph &egraph, const Substitution &s, const std::st
 {
     Id id = s.at(var_name);
     const auto &data = egraph.get_class_analysis_data(id);
-    auto shape = data.property.shape;
+    const auto &matrix_prop = std::get<MatrixProperty>(data.property);
+    auto shape = matrix_prop.shape;
 
     MatrixProperty prop;
     prop.shape = shape;
@@ -199,7 +200,8 @@ inline Id make_zero_for(EGraph &g, const Substitution &s, const std::string &var
 {
     Id id = s.at(var_name);
     const auto &data = g.get_class_analysis_data(id);
-    auto shape = data.property.shape;
+    const auto &matrix_prop = std::get<MatrixProperty>(data.property);
+    auto shape = matrix_prop.shape;
 
     MatrixProperty prop;
     prop.shape = shape;
@@ -233,11 +235,15 @@ inline Id make_zero_for(EGraph &g, const Substitution &s, const std::string &var
 inline bool is_identity(const Substitution &s, const EGraph &g, const std::string &var)
 {
     Id id = s.at(var);
-    return g.get_class_analysis_data(id).property.is_identity;
+    if (auto prop = std::get_if<MatrixProperty>(&g.get_class_analysis_data(id).property))
+        return prop->is_identity;
+    return false;
 }
 
 inline bool is_zero(const Substitution &s, const EGraph &g, const std::string &var)
 {
     Id id = s.at(var);
-    return g.get_class_analysis_data(id).property.is_zero;
+    if (auto prop = std::get_if<MatrixProperty>(&g.get_class_analysis_data(id).property))
+        return prop->is_zero;
+    return false;
 }

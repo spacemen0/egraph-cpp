@@ -73,4 +73,8 @@ static const auto solve_rule = make_rewrite("solve-rule", "Mul(Invert(?a), ?b)",
                                             {
                                                   Id a_id = s.at("a");
                                                   const auto &data = g.get_class_analysis_data(a_id);
-                                                  return data.property.is_square() && !data.property.is_singular; });
+                                                  if (auto *prop = std::get_if<MatrixProperty>(&data.property))
+                                                  {
+                                                      return prop->is_square() && !prop->is_singular;
+                                                  }
+                                                  return false; });

@@ -116,5 +116,5 @@ TEST(Rewrite, SolveRule)
 
     Id id_solve = egraph.add_expression(Expression("Solve(a, b)"));
     EXPECT_EQ(egraph.find_class_id(id_expr), egraph.find_class_id(id_solve));
-    EXPECT_EQ(egraph.get_class_analysis_data(id_expr).property.shape, std::make_pair(Size(3), Size(2)));
+    EXPECT_EQ(std::get<MatrixProperty>(egraph.get_class_analysis_data(id_expr).property).shape, std::make_pair(Size(3), Size(2)));
 }

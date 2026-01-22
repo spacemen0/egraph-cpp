@@ -64,12 +64,46 @@ struct MatrixProperty
         return false;
     }
 
-    friend bool operator==(const MatrixProperty &, const MatrixProperty &) = default;
+    bool operator==(const MatrixProperty &other) const
+    {
+        return shape == other.shape;
+    };
+    bool strict_equal(const MatrixProperty &other) const
+    {
+        return shape == other.shape &&
+               is_symmetric == other.is_symmetric &&
+               is_orthogonal == other.is_orthogonal &&
+               is_identity == other.is_identity &&
+               is_zero == other.is_zero &&
+               is_upper_triangular == other.is_upper_triangular &&
+               is_lower_triangular == other.is_lower_triangular &&
+               is_diagonal == other.is_diagonal &&
+               is_positive_definite == other.is_positive_definite &&
+               is_singular == other.is_singular &&
+               is_permutation == other.is_permutation;
+    }
 };
+using TupleProperty = std::vector<MatrixProperty>;
 
 struct AnalysisData
 {
-    MatrixProperty property;
+    std::variant<MatrixProperty, TupleProperty> property;
+    bool operator==(const AnalysisData &other) const
+    {
+        if (property.index() != other.property.index())
+            return false;
+        if (const auto *p1 = std::get_if<MatrixProperty>(&property))
+        {
+            const auto *p2 = std::get_if<MatrixProperty>(&other.property);
+            return *p1 == *p2;
+        }
+        else
+        {
+            const auto *p3 = std::get_if<TupleProperty>(&property);
+            const auto *p2 = std::get_if<TupleProperty>(&other.property);
+            return *p3 == *p2;
+        }
+    }
 };
 
 struct ParsedAtom
