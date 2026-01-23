@@ -87,15 +87,20 @@ TEST(Integration, MinimalRealisticExplosionRules)
 {
     EGraph egraph(get_property_table());
 
-    auto id = egraph.add_expression(Expression("Mul(Mul(A, Invert(A)), A)"));
+    auto id = egraph.add_expression(Expression("Mul(Mul(Invert(A), A), A)"));
     std::vector<Rewrite> rules = {
         mul_assoc_right,
         invert_cancel_left,
-        invert_cancel_right,
         mul_identity_right,
     };
-    Rewriter rewriter(egraph, rules, 20);
-    rewriter.apply_rewrites(30);
+    Rewriter rewriter(egraph, rules, 200);
+    int i = 20;
+    while (i-- > 0)
+    {
+        std::cout << "Rewriting iteration " << 20 - i << ": " << egraph.num_nodes() << " nodes." << std::endl;
+        rewriter.apply_one_iteration();
+        egraph.print_egraph();
+    }
     Extractor extractor(egraph);
     auto result = extractor.extract(id);
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
