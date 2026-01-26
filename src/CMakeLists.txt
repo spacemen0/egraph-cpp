@@ -8,5 +8,6 @@ add_library(core_lib STATIC
     rewriter.cpp
     extractor.cpp
     property_table.cpp
+    analysis.cpp
 )
 target_include_directories(core_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

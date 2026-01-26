@@ -2,6 +2,7 @@
 #include <iostream>
 #include "pattern.h"
 #include "errors.h"
+#include "analysis.h"
 
 /// @brief Canonicalize the children of a node.
 /// @param node
@@ -22,6 +23,11 @@ const AnalysisData &EGraph::get_class_analysis_data(Id class_id) const
 {
     Id root = uf.find_root(class_id);
     return classes.at(root)->get_analysis_data();
+}
+
+const PropertyTable &EGraph::get_property_table() const noexcept
+{
+    return property_table;
 }
 
 /// @brief  Find an e-class with the given matrix property.
@@ -222,217 +228,7 @@ void EGraph::print_egraph() const
 
 AnalysisData EGraph::make_analysis(const ENode &node) const
 {
-    auto enforce_hierarchy = [](MatrixProperty &p)
-    {
-        if (p.is_zero)
-        {
-            p.is_diagonal = true;
-            p.is_identity = false;
-            p.is_singular = true;
-        }
-        if (p.is_identity)
-        {
-            p.is_diagonal = true;
-            p.is_orthogonal = true;
-            p.is_singular = false;
-        }
-        if (p.is_diagonal)
-        {
-            p.is_upper_triangular = true;
-            p.is_lower_triangular = true;
-            p.is_symmetric = true;
-        }
-    };
-
-    const auto atom = node.get_atom();
-    MatrixProperty prop;
-    if (const auto op = std::get_if<Op>(&atom))
-    {
-        switch (*op)
-        {
-            using enum Op;
-        case Add:
-        {
-            auto data1 = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[0]).property);
-            auto data2 = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[1]).property);
-            if (data1.shape != data2.shape)
-            {
-                throw ShapeMismatchError("Add operation with mismatched sizes");
-            }
-            prop.shape = data1.shape;
-            prop.is_symmetric = data1.is_symmetric && data2.is_symmetric;
-            prop.is_upper_triangular = data1.is_upper_triangular && data2.is_upper_triangular;
-            prop.is_lower_triangular = data1.is_lower_triangular && data2.is_lower_triangular;
-            prop.is_diagonal = data1.is_diagonal && data2.is_diagonal;
-            prop.is_zero = data1.is_zero && data2.is_zero;
-            break;
-        }
-        case Mul:
-        {
-            auto data1 = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[0]).property);
-            auto data2 = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[1]).property);
-            if (data1.shape.second != data2.shape.first)
-            {
-                throw ShapeMismatchError("Mul operation with incompatible sizes");
-            }
-
-            prop.shape = std::make_pair(data1.shape.first, data2.shape.second);
-            prop.is_identity = data1.is_identity && data2.is_identity;
-            prop.is_permutation = data1.is_permutation && data2.is_permutation;
-            prop.is_singular = data1.is_singular || data2.is_singular;
-            prop.is_zero = data1.is_zero || data2.is_zero;
-            prop.is_lower_triangular = data1.is_lower_triangular && data2.is_lower_triangular;
-            prop.is_upper_triangular = data1.is_upper_triangular && data2.is_upper_triangular;
-            prop.is_orthogonal = data1.is_orthogonal && data2.is_orthogonal;
-            prop.is_diagonal = data1.is_diagonal && data2.is_diagonal;
-            break;
-        }
-        case Transpose:
-        {
-            auto data = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[0]).property);
-            auto child_size = data.shape;
-
-            prop = data;
-
-            prop.shape = std::make_pair(child_size.second, child_size.first);
-            prop.is_lower_triangular = data.is_upper_triangular;
-            prop.is_upper_triangular = data.is_lower_triangular;
-            break;
-        }
-        case Invert:
-        {
-            auto data = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[0]).property);
-            if (data.shape.first != data.shape.second)
-            {
-                throw InvalidOperationError("Invert operation on non-square matrix");
-            }
-            if (data.is_singular)
-            {
-                throw InvalidOperationError("Invert operation on singular matrix");
-            }
-
-            prop = data;
-            break;
-        }
-        case Negate:
-        {
-            auto data = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[0]).property);
-            prop = data;
-
-            prop.is_identity = false;
-            prop.is_permutation = false;
-            prop.is_positive_definite = false;
-            break;
-        }
-        case QR:
-        {
-            if (auto *data = std::get_if<MatrixProperty>(&get_class_analysis_data(node.get_children()[0]).property))
-            {
-                MatrixProperty Q;
-                MatrixProperty R;
-
-                Q.shape = std::make_pair(data->shape.first, data->shape.first);
-                Q.is_orthogonal = true;
-
-                R.shape = data->shape;
-                R.is_upper_triangular = true;
-                if (data->is_wide)
-                {
-                    R.is_wide = true;
-                }
-                if (data->is_tall)
-                {
-                    R.is_tall = true;
-                }
-                if (data->is_identity)
-                {
-                    Q.is_identity = true;
-                    R.is_identity = true;
-                }
-                if (data->is_zero)
-                {
-                    R.is_zero = true;
-                }
-
-                return AnalysisData{TupleProperty{Q, R}};
-            }
-            throw AnalysisError("QR expects a Matrix input, found Tuple");
-        }
-        case LU:
-            throw AnalysisError("LU analysis not implemented yet");
-        case LLt:
-            throw AnalysisError("LLt analysis not implemented yet");
-        case Get:
-        {
-            auto tuple_data = get_class_analysis_data(node.get_children()[0]);
-
-            const auto &index_nodes = get_class_nodes(node.get_children()[1]);
-            if (index_nodes.empty())
-                throw AnalysisError("Get index has no nodes");
-
-            const Atom &index_atom = index_nodes[0]->get_atom();
-            if (const int *idx = std::get_if<int>(&index_atom))
-            {
-                if (auto *props = std::get_if<TupleProperty>(&tuple_data.property))
-                {
-                    if (*idx >= 0 && *idx < props->size())
-                    {
-                        return AnalysisData{(*props)[*idx]};
-                    }
-                    throw AnalysisError("Get index out of bounds");
-                }
-                throw AnalysisError("Get called on non-tuple");
-            }
-            throw AnalysisError("Get index must be a constant integer");
-        }
-        case Solve:
-        {
-            auto data1 = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[0]).property);
-            auto data2 = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[1]).property);
-            if (data1.shape.second != data2.shape.first)
-            {
-                throw ShapeMismatchError("Solve operation with incompatible sizes");
-            }
-            prop.shape = data2.shape;
-            break;
-        }
-        case TriangularSolve:
-        {
-            auto data1 = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[0]).property);
-            auto data2 = std::get<MatrixProperty>(get_class_analysis_data(node.get_children()[1]).property);
-            if (data1.shape.second != data2.shape.first)
-            {
-                throw ShapeMismatchError("TriangularSolve operation with incompatible sizes");
-            }
-            if (!data1.is_lower_triangular && !data1.is_upper_triangular)
-            {
-                throw InvalidOperationError("TriangularSolve operation on non-triangular matrix");
-            }
-            prop.shape = data2.shape;
-            break;
-        }
-        case Determinant:
-            return AnalysisData{};
-        case Log:
-            return AnalysisData{};
-        default:
-            throw AnalysisError("Unknown operation in analysis");
-        }
-    }
-    {
-        if (const auto *s = std::get_if<std::string>(&atom))
-        {
-            if (property_table.has_property(*s))
-            {
-                auto property = property_table.get_property(*s).value();
-                enforce_hierarchy(property);
-                return AnalysisData{property};
-            }
-            throw AnalysisError("Variable has no property: " + *s);
-        }
-    }
-    enforce_hierarchy(prop);
-    return AnalysisData{prop};
+    return MatrixAnalysis::make(*this, node);
 }
 
 // @brief Merge two analysis data objects, throwing an error if they conflict.
@@ -440,38 +236,7 @@ AnalysisData EGraph::make_analysis(const ENode &node) const
 // @param data2
 void EGraph::merge_analysis_data(AnalysisData &data1, const AnalysisData &data2) const
 {
-    if (data1 != data2)
-    {
-        throw ShapeMismatchError("Merging e-classes with conflicting size data");
-    }
-
-    auto merge_matrix_props = [](MatrixProperty &p1, const MatrixProperty &p2)
-    {
-        p1.is_symmetric = p1.is_symmetric || p2.is_symmetric;
-        p1.is_orthogonal = p1.is_orthogonal || p2.is_orthogonal;
-        p1.is_identity = p1.is_identity || p2.is_identity;
-        p1.is_zero = p1.is_zero || p2.is_zero;
-        p1.is_upper_triangular = p1.is_upper_triangular || p2.is_upper_triangular;
-        p1.is_lower_triangular = p1.is_lower_triangular || p2.is_lower_triangular;
-        p1.is_diagonal = p1.is_diagonal || p2.is_diagonal;
-        p1.is_positive_definite = p1.is_positive_definite || p2.is_positive_definite;
-        p1.is_singular = p1.is_singular || p2.is_singular;
-        p1.is_permutation = p1.is_permutation || p2.is_permutation;
-    };
-
-    if (auto *p1 = std::get_if<MatrixProperty>(&data1.property))
-    {
-        const auto *p2 = std::get_if<MatrixProperty>(&data2.property);
-        merge_matrix_props(*p1, *p2);
-    }
-    else if (auto *t1 = std::get_if<TupleProperty>(&data1.property))
-    {
-        const auto *t2 = std::get_if<TupleProperty>(&data2.property);
-        for (size_t i = 0; i < t1->size(); ++i)
-        {
-            merge_matrix_props((*t1)[i], (*t2)[i]);
-        }
-    }
+    MatrixAnalysis::merge(data1, data2);
 }
 
 bool EGraph::atoms_match(const Atom &pat_atom, const Atom &enode_atom) const

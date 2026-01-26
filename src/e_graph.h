@@ -31,6 +31,7 @@ public:
     const std::vector<const ENode *> &get_class_nodes(Id class_id) const;
     size_t num_nodes() const noexcept;
     const AnalysisData &get_class_analysis_data(Id class_id) const;
+    const PropertyTable &get_property_table() const noexcept;
     std::optional<Id> find_class_with_property(const MatrixProperty &prop) const;
 
 private:
