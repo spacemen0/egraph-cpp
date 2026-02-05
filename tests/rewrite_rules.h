@@ -60,11 +60,12 @@ static const auto invert_cancel_left = make_rewrite("invert-cancel-left", "Mul(I
                                                     { return make_identity_for(g, s, "a"); });
 static const auto invert_cancel_right = make_rewrite("invert-cancel-right", "Mul(?a, Invert(?a))", "?__dynamic__", nullptr, [](EGraph &g, const Substitution &s)
                                                      { return make_identity_for(g, s, "a"); });
+static const auto mul_assoc_left = make_rewrite("mul-assoc-left", "Mul(?a, Mul(?b, ?c))", "Mul(Mul(?a, ?b), ?c)");
 static const auto mul_assoc_right = make_rewrite("mul-assoc-right", "Mul(Mul(?a, ?b), ?c)", "Mul(?a, Mul(?b, ?c))");
 static const auto mul_identity_right = make_rewrite("mul-identity-right", "Mul(?i, ?a)", "?a", [](const EGraph &g, const Substitution &s)
                                                     { return is_identity(s, g, "i"); });
-static const auto mul_identity = make_rewrite("mul-identity", "Mul(?a, ?i)", "?a", [](const EGraph &g, const Substitution &s)
-                                              { return is_identity(s, g, "i"); });
+static const auto mul_identity_left = make_rewrite("mul-identity-left", "Mul(?a, ?i)", "?a", [](const EGraph &g, const Substitution &s)
+                                                   { return is_identity(s, g, "i"); });
 static const auto mul_assoc = make_rewrite("mul-assoc", "Mul(?a, Mul(?b, ?c))", "Mul(Mul(?a, ?b), ?c)");
 static const auto commute_add = make_rewrite("commute-add", "Add(?a, ?b)", "Add(?b, ?a)");
 static const auto mat_transpose_prod = make_rewrite("mat-transpose-prod", "Transpose(Mul(?a, ?b))", "Mul(Transpose(?b), Transpose(?a))");

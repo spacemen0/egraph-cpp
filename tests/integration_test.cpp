@@ -31,7 +31,7 @@ TEST(Integration, SimplifyComplexMatrixChain)
     std::cout << "Initial EGraph size: " << egraph.num_nodes() << " nodes." << std::endl;
 
     std::vector<Rewrite> rules = {
-        mul_identity,
+        mul_identity_left,
         mat_transpose_prod,
         invert_cancel_right,
         mul_assoc_right,
@@ -87,11 +87,73 @@ TEST(Integration, MinimalRealisticExplosionRules)
 {
     EGraph egraph(get_property_table());
 
+    // A (A-1A)
+    // (AA-1)A
     auto id = egraph.add_expression(Expression("Mul(Mul(Invert(A), A), A)"));
     std::vector<Rewrite> rules = {
         mul_assoc_right,
         invert_cancel_left,
         mul_identity_right,
+    };
+    Rewriter rewriter(egraph, rules, 200);
+    int i = 20;
+    while (i-- > 0)
+    {
+        std::cout << "Rewriting iteration " << 20 - i << ": " << egraph.num_nodes() << " nodes." << std::endl;
+        rewriter.apply_one_iteration();
+        egraph.print_egraph();
+    }
+    Extractor extractor(egraph);
+    auto result = extractor.extract(id);
+    std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
+    egraph.print_egraph();
+    // Should extract 'A'
+    EXPECT_EQ(result.cost, 1.0);
+    EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
+    EXPECT_EQ(std::get<std::string>(result.expr.atom), "A");
+}
+
+TEST(Integration, MinimalRealisticExplosionRules2)
+{
+    EGraph egraph(get_property_table());
+
+    // A (A-1A)
+    // (AA-1)A
+    auto id = egraph.add_expression(Expression("Mul(A, Mul(Invert(A), A))"));
+    std::vector<Rewrite> rules = {
+        mul_assoc_left,
+        invert_cancel_left,
+        mul_identity_left,
+    };
+    Rewriter rewriter(egraph, rules, 200);
+    int i = 20;
+    while (i-- > 0)
+    {
+        std::cout << "Rewriting iteration " << 20 - i << ": " << egraph.num_nodes() << " nodes." << std::endl;
+        rewriter.apply_one_iteration();
+        egraph.print_egraph();
+    }
+    Extractor extractor(egraph);
+    auto result = extractor.extract(id);
+    std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
+    egraph.print_egraph();
+    // Should extract 'A'
+    EXPECT_EQ(result.cost, 1.0);
+    EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
+    EXPECT_EQ(std::get<std::string>(result.expr.atom), "A");
+}
+
+TEST(Integration, MinimalRealisticExplosionRules3)
+{
+    EGraph egraph(get_property_table());
+
+    // A (A-1A)
+    // (AA-1)A
+    auto id = egraph.add_expression(Expression("Mul(A, Mul(A, Invert(A)))"));
+    std::vector<Rewrite> rules = {
+        mul_assoc_left,
+        invert_cancel_right,
+        mul_identity_left,
     };
     Rewriter rewriter(egraph, rules, 200);
     int i = 20;
