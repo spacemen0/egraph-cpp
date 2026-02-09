@@ -99,7 +99,7 @@ TEST(Integration, MinimalRealisticExplosionRules)
     int i = 20;
     while (i-- > 0)
     {
-        std::cout << "Rewriting iteration " << 20 - i << ": " << egraph.num_nodes() << " nodes." << std::endl;
+        std::cout << "Before rewriting iteration " << 20 - i << ": " << egraph.num_nodes() << " nodes." << std::endl;
         rewriter.apply_one_iteration();
         egraph.print_egraph();
     }
@@ -113,7 +113,7 @@ TEST(Integration, MinimalRealisticExplosionRules)
     EXPECT_EQ(std::get<std::string>(result.expr.atom), "A");
 }
 
-TEST(Integration, MinimalRealisticExplosionRules2)
+TEST(Integration, MinimalRealisticExplosionRulesNotReally)
 {
     EGraph egraph(get_property_table());
 
@@ -171,4 +171,21 @@ TEST(Integration, MinimalRealisticExplosionRules3)
     EXPECT_EQ(result.cost, 1.0);
     EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
     EXPECT_EQ(std::get<std::string>(result.expr.atom), "A");
+}
+TEST(Integration, QRSolveLLSProblem)
+{
+    EGraph egraph(get_property_table());
+    auto id = egraph.add_expression(Expression("Mul ( Mul( Invert( Mul(Transpose(X),X) ) , Transpose(X) ), y)"));
+    std::vector<Rewrite> rules = {
+        QR_introduction,
+        mat_transpose_prod,
+        invert_mat_prod,
+        orthogonal_transpose,
+        mul_assoc_left,
+        mul_assoc};
+    Rewriter rewriter(egraph, rules, 200);
+    rewriter.apply_rewrites(20);
+    auto should_be_root_id = egraph.add_expression(Expression("Mul(Mul(Invert(Get(QR(X)), 1), Transpose(Get(QR(X), 0))), y)"));
+    EXPECT_EQ(egraph.find_class_id(id), egraph.find_class_id(should_be_root_id))
+        << "The expression should be equivalent to the QR-based solution";
 }

@@ -1,4 +1,5 @@
 #include "e_node.h"
+#include "e_graph.h"
 #include <stdexcept>
 #include <functional>
 #include <numeric>
@@ -112,4 +113,21 @@ size_t ENode::hash() const
 bool ENode::is_leaf() const
 {
     return children.empty();
+}
+
+bool ENode::has_ancestor(std::string_view ancestor_op, const EGraph &egraph) const
+{
+    if (std::holds_alternative<Op>(atom) && to_string() == ancestor_op)
+    {
+        return true;
+    }
+    for (Id child_id : children)
+    {
+        const ENode &child_node = egraph.at(child_id);
+        if (child_node.has_ancestor(ancestor_op, egraph))
+        {
+            return true;
+        }
+    }
+    return false;
 }

@@ -30,6 +30,7 @@ static PropertyTable get_property_table()
     pt.add_property_entry("W", {.shape = std::make_pair(2, 2)});
     pt.add_property_entry("I_3x3", {.shape = std::make_pair(3, 3), .is_identity = true});
     pt.add_property_entry("Zero", {.shape = std::make_pair(3, 3), .is_zero = true});
+    pt.add_property_entry("y", {.shape = std::make_pair(3, 1)});
 
     return pt;
 }

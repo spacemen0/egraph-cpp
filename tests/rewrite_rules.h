@@ -81,3 +81,19 @@ static const auto solve_rule = make_rewrite("solve-rule", "Mul(Invert(?a), ?b)",
         return prop->is_square() && !prop->is_singular;
     }
     return false; });
+
+static const auto QR_introduction = make_rewrite("qr-intro", "?a", "Mul(Get(QR(?a), 0), Get(QR(?a), 1))", [](const EGraph &g, const Substitution &s)
+                                                 {
+    Id a_id = s.at("a");
+    auto node = g.at(a_id);
+ return node.has_ancestor("Invert", g); });
+static const auto invert_mat_prod = make_rewrite("invert-mat-prod", "Invert(Mul(?a, ?b))", "Mul(Invert(?b), Invert(?a))");
+static const auto orthogonal_transpose = make_rewrite("orthogonal-transpose", "Transpose(?a)", "Invert(?a)", [](const EGraph &g, const Substitution &s)
+                                                      {
+    Id a_id = s.at("a");
+    const auto &data = g.get_class_analysis_data(a_id);
+    if (auto *prop = std::get_if<MatrixProperty>(&data.property))
+    {
+        return prop->is_orthogonal;
+    }
+    return false; });
