@@ -150,18 +150,27 @@ AnalysisData MatrixAnalysis::make(const EGraph &egraph, const ENode &node)
                 MatrixProperty Q;
                 MatrixProperty R;
 
-                Q.shape = std::make_pair(data->shape.first, data->shape.first);
-                Q.is_orthogonal = true;
-
-                R.shape = data->shape;
+                Q.is_orthogonal = true; // Has orthonormal columns
                 R.is_upper_triangular = true;
-                if (data->is_wide)
+
+                if (data->is_tall_matrix())
                 {
+                    Q.shape = data->shape;
+                    Q.is_tall = true;
+
+                    R.shape = std::make_pair(data->shape.second, data->shape.second);
+                }
+                else if (data->is_wide_matrix())
+                {
+                    Q.shape = std::make_pair(data->shape.first, data->shape.first);
+
+                    R.shape = data->shape;
                     R.is_wide = true;
                 }
-                if (data->is_tall)
+                else
                 {
-                    R.is_tall = true;
+                    Q.shape = data->shape;
+                    R.shape = data->shape;
                 }
                 if (data->is_identity)
                 {

@@ -86,7 +86,14 @@ static const auto QR_introduction = make_rewrite("qr-intro", "?a", "Mul(Get(QR(?
                                                  {
     Id a_id = s.at("a");
     auto node = g.at(a_id);
- return node.has_ancestor("Invert", g); });
+    if (!node.has_ancestor("Invert", g))
+        return false;
+    const auto &data = g.get_class_analysis_data(a_id);
+    if (auto *prop = std::get_if<MatrixProperty>(&data.property))
+    {
+        return true;
+    }
+    return false; });
 static const auto invert_mat_prod = make_rewrite("invert-mat-prod", "Invert(Mul(?a, ?b))", "Mul(Invert(?b), Invert(?a))", [](const EGraph &g, const Substitution &s)
                                                  {
     Id a_id = s.at("a");

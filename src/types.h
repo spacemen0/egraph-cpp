@@ -28,7 +28,7 @@ using Size = std::variant<int, std::string>;
 
 struct MatrixProperty
 {
-    std::pair<Size, Size> shape;
+    std::pair<Size, Size> shape; // (rows, cols)
     bool is_symmetric = false;
     bool is_orthogonal = false;
     bool is_identity = false;
@@ -49,22 +49,22 @@ struct MatrixProperty
     }
     bool is_tall_matrix() const
     {
-        if (auto w = std::get_if<int>(&shape.first))
+        if (auto rows = std::get_if<int>(&shape.first))
         {
-            if (auto h = std::get_if<int>(&shape.second))
+            if (auto cols = std::get_if<int>(&shape.second))
             {
-                return *h > *w;
+                return *rows > *cols;
             }
         }
         return is_tall;
     }
     bool is_wide_matrix() const
     {
-        if (auto w = std::get_if<int>(&shape.first))
+        if (auto rows = std::get_if<int>(&shape.first))
         {
-            if (auto h = std::get_if<int>(&shape.second))
+            if (auto cols = std::get_if<int>(&shape.second))
             {
-                return *w > *h;
+                return *rows < *cols;
             }
         }
         return is_wide;
@@ -117,6 +117,47 @@ struct MatrixProperty
                is_positive_definite == other.is_positive_definite &&
                is_singular == other.is_singular &&
                is_permutation == other.is_permutation;
+    }
+
+    std::string to_string() const
+    {
+        std::string s = "Matrix(";
+        if (auto w = std::get_if<int>(&shape.first))
+            s += std::to_string(*w);
+        else
+            s += std::get<std::string>(shape.first);
+
+        s += "x";
+
+        if (auto h = std::get_if<int>(&shape.second))
+            s += std::to_string(*h);
+        else
+            s += std::get<std::string>(shape.second);
+
+        s += ")";
+
+        if (is_identity)
+            s += " [Identity]";
+        if (is_zero)
+            s += " [Zero]";
+        if (is_symmetric)
+            s += " [Symmetric]";
+        if (is_orthogonal)
+            s += " [Orthogonal]";
+        if (is_upper_triangular)
+            s += " [UpperTriangular]";
+        if (is_lower_triangular)
+            s += " [LowerTriangular]";
+        if (is_diagonal)
+            s += " [Diagonal]";
+        if (is_positive_definite)
+            s += " [PositiveDefinite]";
+        if (is_singular)
+            s += " [Singular]";
+        if (is_permutation)
+            s += " [Permutation]";
+
+        return s;
     }
 };
 using TupleProperty = std::vector<MatrixProperty>;
