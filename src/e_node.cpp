@@ -52,14 +52,35 @@ std::string ENode::to_string() const
             return "Invert";
         case Negate:
             return "Negate";
+        case QR:
+            return "QR";
+        case LU:
+            return "LU";
+        case LLt:
+            return "LLt";
+        case Get:
+            return "Get";
+        case Solve:
+            return "Solve";
+        case TriangularSolve:
+            return "TriangularSolve";
+        case Determinant:
+            return "Determinant";
+        case Log:
+            return "Log";
         default:
             throw std::invalid_argument("Unknown Op in ENode::to_string");
         }
     }
-    else
+    else if (std::holds_alternative<std::string>(atom))
     {
         return std::get<std::string>(atom);
     }
+    else if (std::holds_alternative<int>(atom))
+    {
+        return std::to_string(std::get<int>(atom));
+    }
+    throw std::invalid_argument("Unknown atom type in ENode::to_string");
 }
 
 std::string ENode::format() const
@@ -86,10 +107,15 @@ size_t ENode::hash() const
         Op op = std::get<Op>(atom);
         seed = std::hash<int>()(static_cast<std::underlying_type_t<Op>>(op));
     }
-    else
+    else if (std::holds_alternative<std::string>(atom))
     {
         // use a fixed discriminant for string payloads;
         seed = std::hash<int>()(-1);
+    }
+    else
+    {
+        // int payload
+        seed = std::hash<int>()(-2);
     }
 
     seed = std::accumulate(children.begin(), children.end(), seed,
@@ -100,10 +126,16 @@ size_t ENode::hash() const
                            });
 
     // if string payloads, mix in the string hash
-    if (!std::holds_alternative<Op>(atom))
+    if (std::holds_alternative<std::string>(atom))
     {
         const auto &s = std::get<std::string>(atom);
         size_t hp = std::hash<std::string>()(s);
+        seed ^= hp + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+    }
+    else if (std::holds_alternative<int>(atom))
+    {
+        int i = std::get<int>(atom);
+        size_t hp = std::hash<int>()(i);
         seed ^= hp + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
     }
 

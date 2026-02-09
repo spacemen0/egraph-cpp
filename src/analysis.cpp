@@ -291,11 +291,19 @@ void MatrixAnalysis::merge(AnalysisData &data1, const AnalysisData &data2)
     if (auto *p1 = std::get_if<MatrixProperty>(&data1.property))
     {
         const auto *p2 = std::get_if<MatrixProperty>(&data2.property);
+        if (!p2)
+        {
+            throw AnalysisError("Cannot merge MatrixProperty with non-MatrixProperty (likely TupleProperty)");
+        }
         merge_matrix_props(*p1, *p2);
     }
     else if (auto *t1 = std::get_if<TupleProperty>(&data1.property))
     {
         const auto *t2 = std::get_if<TupleProperty>(&data2.property);
+        if (!t2)
+        {
+            throw AnalysisError("Cannot merge TupleProperty with non-TupleProperty");
+        }
         for (size_t i = 0; i < t1->size(); ++i)
         {
             merge_matrix_props((*t1)[i], (*t2)[i]);

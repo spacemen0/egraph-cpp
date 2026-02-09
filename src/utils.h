@@ -151,7 +151,15 @@ inline std::string atom_to_string(const Atom &atom)
         }
         return "UnknownOp";
     }
-    return std::get<std::string>(atom);
+    else if (std::holds_alternative<std::string>(atom))
+    {
+        return std::get<std::string>(atom);
+    }
+    else if (std::holds_alternative<int>(atom))
+    {
+        return std::to_string(std::get<int>(atom));
+    }
+    return "UnknownAtom";
 }
 
 inline Rewrite make_rewrite(const std::string &name, std::string_view lhs, std::string_view rhs, const std::function<bool(const EGraph &, const Substitution &)> &condition = nullptr, const std::function<Id(EGraph &, const Substitution &)> &applier = nullptr)
@@ -163,7 +171,12 @@ inline Id make_identity_for(EGraph &egraph, const Substitution &s, const std::st
 {
     Id id = s.at(var_name);
     const auto &data = egraph.get_class_analysis_data(id);
-    const auto &matrix_prop = std::get<MatrixProperty>(data.property);
+    const auto *matrix_prop_ptr = std::get_if<MatrixProperty>(&data.property);
+    if (!matrix_prop_ptr)
+    {
+        throw std::runtime_error("make_identity_for: Expected MatrixProperty but got TupleProperty");
+    }
+    const auto &matrix_prop = *matrix_prop_ptr;
     auto shape = matrix_prop.shape;
 
     MatrixProperty prop;
@@ -200,7 +213,12 @@ inline Id make_zero_for(EGraph &g, const Substitution &s, const std::string &var
 {
     Id id = s.at(var_name);
     const auto &data = g.get_class_analysis_data(id);
-    const auto &matrix_prop = std::get<MatrixProperty>(data.property);
+    const auto *matrix_prop_ptr = std::get_if<MatrixProperty>(&data.property);
+    if (!matrix_prop_ptr)
+    {
+        throw std::runtime_error("make_zero_for: Expected MatrixProperty but got TupleProperty");
+    }
+    const auto &matrix_prop = *matrix_prop_ptr;
     auto shape = matrix_prop.shape;
 
     MatrixProperty prop;

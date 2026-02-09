@@ -87,7 +87,20 @@ static const auto QR_introduction = make_rewrite("qr-intro", "?a", "Mul(Get(QR(?
     Id a_id = s.at("a");
     auto node = g.at(a_id);
  return node.has_ancestor("Invert", g); });
-static const auto invert_mat_prod = make_rewrite("invert-mat-prod", "Invert(Mul(?a, ?b))", "Mul(Invert(?b), Invert(?a))");
+static const auto invert_mat_prod = make_rewrite("invert-mat-prod", "Invert(Mul(?a, ?b))", "Mul(Invert(?b), Invert(?a))", [](const EGraph &g, const Substitution &s)
+                                                 {
+    Id a_id = s.at("a");
+    Id b_id = s.at("b");
+    const auto &data_a = g.get_class_analysis_data(a_id);
+    const auto &data_b = g.get_class_analysis_data(b_id);
+    if (auto *prop_a = std::get_if<MatrixProperty>(&data_a.property))
+    {
+        if (auto *prop_b = std::get_if<MatrixProperty>(&data_b.property))
+        {
+            return prop_a->is_square() && !prop_a->is_singular && prop_b->is_square() && !prop_b->is_singular;
+        }
+    }
+    return false; });
 static const auto orthogonal_transpose = make_rewrite("orthogonal-transpose", "Transpose(?a)", "Invert(?a)", [](const EGraph &g, const Substitution &s)
                                                       {
     Id a_id = s.at("a");
