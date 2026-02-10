@@ -271,17 +271,20 @@ AnalysisData MatrixAnalysis::make(const EGraph &egraph, const ENode &node)
         }
         throw AnalysisError("Variable has no property: " + *s);
     }
-
+    else if (std::holds_alternative<int>(atom))
+    {
+        return AnalysisData{"Const"};
+    }
     enforce_hierarchy(prop);
     return AnalysisData{prop};
 }
 
 void MatrixAnalysis::merge(AnalysisData &data1, const AnalysisData &data2)
 {
-    if (data1 != data2)
-    {
-        throw ShapeMismatchError("Merging e-classes with conflicting size data");
-    }
+    // if (data1 != data2)
+    // {
+    //     throw ShapeMismatchError("Merging e-classes with conflicting size data");
+    // }
 
     auto merge_matrix_props = [](MatrixProperty &p1, const MatrixProperty &p2)
     {

@@ -153,13 +153,23 @@ bool ENode::has_ancestor(std::string_view ancestor_op, const EGraph &egraph) con
     {
         return true;
     }
-    for (Id child_id : children)
+    auto opt_id = egraph.find(*this);
+    if (!opt_id.has_value())
+        return false;
+
+    Id this_id = opt_id.value();
+    auto parent_ids = egraph.get_class_parents(egraph.find_class_id(this_id));
     {
-        const ENode &child_node = egraph.at(child_id);
-        if (child_node.has_ancestor(ancestor_op, egraph))
+        for (Id parent_id : parent_ids)
         {
-            return true;
+            if (egraph.find_class_id(parent_id) != parent_id)
+                continue;
+            const ENode &parent_node = egraph.at(parent_id);
+            if (parent_node.has_ancestor(ancestor_op, egraph))
+            {
+                return true;
+            }
         }
+        return false;
     }
-    return false;
 }

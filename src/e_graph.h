@@ -17,7 +17,7 @@ public:
     EGraph() = default;
     explicit EGraph(PropertyTable pt) : property_table(std::move(pt)) {}
     void canonicalize_node(ENode &node);
-    std::optional<Id> find(const ENode &node);
+    std::optional<Id> find(const ENode &node) const;
     Id find_class_id(Id node_id) const;
     Id add_node(ENode node);
     Id add_expression(const Expression &expr);
@@ -29,6 +29,7 @@ public:
     const ENode &at(Id id) const;
     std::vector<Id> get_all_class_ids() const;
     const std::vector<const ENode *> &get_class_nodes(Id class_id) const;
+    std::vector<Id> get_class_parents(Id class_id) const;
     size_t num_nodes() const noexcept;
     const AnalysisData &get_class_analysis_data(Id class_id) const;
     const PropertyTable &get_property_table() const noexcept;

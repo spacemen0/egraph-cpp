@@ -11,7 +11,7 @@ enum class Op
     Transpose,
     Invert,
     Negate,
-    QR,              // output: [Q, R] assume full QR
+    QR,              // output: [Q, R]
     LU,              // output: [L, U, P]
     LLt,             // output: [L, P]
     Get,             // [tuple, index]
@@ -164,7 +164,7 @@ using TupleProperty = std::vector<MatrixProperty>;
 
 struct AnalysisData
 {
-    std::variant<MatrixProperty, TupleProperty> property;
+    std::variant<MatrixProperty, TupleProperty, std::string> property;
     bool operator==(const AnalysisData &other) const
     {
         if (property.index() != other.property.index())

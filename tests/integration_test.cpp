@@ -99,14 +99,14 @@ TEST(Integration, MinimalRealisticExplosionRules)
     int i = 20;
     while (i-- > 0)
     {
-        std::cout << "Before rewriting iteration " << 20 - i << ": " << egraph.num_nodes() << " nodes." << std::endl;
+        // std::cout << "Before rewriting iteration " << 20 - i << ": " << egraph.num_nodes() << " nodes." << std::endl;
         rewriter.apply_one_iteration();
-        egraph.print_egraph();
+        // egraph.print_egraph();
     }
     Extractor extractor(egraph);
     auto result = extractor.extract(id);
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
-    egraph.print_egraph();
+    // egraph.print_egraph();
     // Should extract 'A'
     EXPECT_EQ(result.cost, 1.0);
     EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
@@ -129,14 +129,14 @@ TEST(Integration, MinimalRealisticExplosionRulesNotReally)
     int i = 20;
     while (i-- > 0)
     {
-        std::cout << "Rewriting iteration " << 20 - i << ": " << egraph.num_nodes() << " nodes." << std::endl;
+        // std::cout << "Rewriting iteration " << 20 - i << ": " << egraph.num_nodes() << " nodes." << std::endl;
         rewriter.apply_one_iteration();
-        egraph.print_egraph();
+        // egraph.print_egraph();
     }
     Extractor extractor(egraph);
     auto result = extractor.extract(id);
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
-    egraph.print_egraph();
+    // egraph.print_egraph();
     // Should extract 'A'
     EXPECT_EQ(result.cost, 1.0);
     EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
@@ -159,14 +159,14 @@ TEST(Integration, MinimalRealisticExplosionRules3)
     int i = 20;
     while (i-- > 0)
     {
-        std::cout << "Rewriting iteration " << 20 - i << ": " << egraph.num_nodes() << " nodes." << std::endl;
+        // std::cout << "Rewriting iteration " << 20 - i << ": " << egraph.num_nodes() << " nodes." << std::endl;
         rewriter.apply_one_iteration();
-        egraph.print_egraph();
+        // egraph.print_egraph();
     }
     Extractor extractor(egraph);
     auto result = extractor.extract(id);
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
-    egraph.print_egraph();
+    // egraph.print_egraph();
     // Should extract 'A'
     EXPECT_EQ(result.cost, 1.0);
     EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
@@ -176,14 +176,20 @@ TEST(Integration, QRSolveLLSProblem)
 {
     EGraph egraph(get_property_table());
     auto id = egraph.add_expression(Expression("Mul ( Mul( Invert( Mul(Transpose(X),X) ) , Transpose(X) ), y)"));
+
     std::vector<Rewrite> rules = {
         QR_introduction,
         mat_transpose_prod,
         invert_mat_prod,
         orthogonal_transpose,
+        invert_cancel_right,
+        invert_cancel_left,
+        mul_identity_right,
+        mul_identity_left,
         mul_assoc_left,
-        mul_assoc};
-    Rewriter rewriter(egraph, rules, 200);
+        mul_assoc_right,
+    };
+    Rewriter rewriter(egraph, rules, 5000);
     rewriter.apply_rewrites(20);
     auto should_be_root_id = egraph.add_expression(Expression("Mul(Mul(Invert(Get(QR(X), 1)), Transpose(Get(QR(X), 0))), y)"));
     auto &should_be_root_data = egraph.get_class_analysis_data(should_be_root_id);

@@ -108,7 +108,7 @@ static const auto invert_mat_prod = make_rewrite("invert-mat-prod", "Invert(Mul(
         }
     }
     return false; });
-static const auto orthogonal_transpose = make_rewrite("orthogonal-transpose", "Transpose(?a)", "Invert(?a)", [](const EGraph &g, const Substitution &s)
+static const auto orthogonal_transpose = make_rewrite("orthogonal-transpose", "Mul(Transpose(?a), ?a)", "Identity", [](const EGraph &g, const Substitution &s)
                                                       {
     Id a_id = s.at("a");
     const auto &data = g.get_class_analysis_data(a_id);
@@ -116,4 +116,5 @@ static const auto orthogonal_transpose = make_rewrite("orthogonal-transpose", "T
     {
         return prop->is_orthogonal;
     }
-    return false; });
+    return false; }, [](EGraph &g, const Substitution &s)
+                                                      { return make_identity_for(g, s, "a"); });

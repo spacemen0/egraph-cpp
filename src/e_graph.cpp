@@ -57,15 +57,15 @@ std::optional<Id> EGraph::find_class_with_property(const MatrixProperty &prop) c
 /// @brief Look up a node in the e-graph. The node does not need to be canonicalized beforehand.
 /// @param node
 /// @return EClass ID if found, std::nullopt otherwise
-std::optional<Id> EGraph::find(const ENode &node)
+std::optional<Id> EGraph::find(const ENode &node) const
 {
 
     ENode temp(node);
     for (auto &i : temp.get_children_mut())
     {
-        i = uf.find_and_compress(i);
+        i = uf.find_root(i);
     }
-    return memo.contains(&temp) ? std::optional<Id>(uf.find_and_compress(memo.at(&temp))) : std::nullopt;
+    return memo.contains(&temp) ? std::optional<Id>(uf.find_root(memo.at(&temp))) : std::nullopt;
 }
 
 /// @brief Find the representative e-class ID for a given node ID in the union-find structure.
@@ -359,6 +359,12 @@ const std::vector<const ENode *> &EGraph::get_class_nodes(Id class_id) const
 {
     Id root = uf.find_root(class_id);
     return classes.at(root)->get_nodes();
+}
+
+std::vector<Id> EGraph::get_class_parents(Id class_id) const
+{
+    Id root = uf.find_root(class_id);
+    return classes.at(root)->get_parents();
 }
 
 void EGraph::register_property(const std::string &name, const MatrixProperty &prop)
