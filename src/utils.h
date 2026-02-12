@@ -188,27 +188,36 @@ inline Id make_identity_for(EGraph &egraph, const Substitution &s, const std::st
     prop.is_orthogonal = true;
     prop.is_zero = false;
 
+    prop.is_diagonal = true;
+    prop.is_orthogonal = true;
+    prop.is_singular = false;
+    prop.is_upper_triangular = true;
+    prop.is_lower_triangular = true;
+    prop.is_symmetric = true;
+
     if (egraph.find_class_with_property(prop).has_value())
     {
-        std::cout << "Found existing identity matrix for shape: " << prop.to_string() << std::endl;
         return egraph.find_class_with_property(prop).value();
     }
 
-    std::string h_str, w_str;
-    if (auto val = std::get_if<int>(&shape.first))
-        h_str = std::to_string(*val);
+    std::string size_str;
+    if (use_first_dim)
+    {
+        if (auto val = std::get_if<int>(&shape.first))
+            size_str = std::to_string(*val);
+        else
+            size_str = std::get<std::string>(shape.first);
+    }
     else
-        h_str = std::get<std::string>(shape.first);
+    {
+        if (auto val = std::get_if<int>(&shape.second))
+            size_str = std::to_string(*val);
+        else
+            size_str = std::get<std::string>(shape.second);
+    }
 
-    if (auto val = std::get_if<int>(&shape.second))
-        w_str = std::to_string(*val);
-    else
-        w_str = std::get<std::string>(shape.second);
-
-    std::string identity_name = "I_" + h_str + "x" + w_str;
-
+    std::string identity_name = "I_" + size_str + "x" + size_str;
     egraph.register_property(identity_name, prop);
-    std::cout << "Registered identity matrix: " << identity_name << " with property " << prop.to_string() << std::endl;
     return egraph.add_node(ENode({}, identity_name));
 }
 
@@ -227,8 +236,13 @@ inline Id make_zero_for(EGraph &g, const Substitution &s, const std::string &var
     MatrixProperty prop;
     prop.shape = shape;
     prop.is_zero = true;
-    prop.is_symmetric = true;
     prop.is_identity = false;
+    prop.is_diagonal = true;
+    prop.is_identity = false;
+    prop.is_singular = true;
+    prop.is_upper_triangular = true;
+    prop.is_lower_triangular = true;
+    prop.is_symmetric = true;
 
     if (g.find_class_with_property(prop).has_value())
     {

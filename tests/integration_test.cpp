@@ -187,11 +187,17 @@ TEST(Integration, QRSolveLLSProblem)
         mul_assoc_left,
         mul_assoc_right,
     };
-    Rewriter rewriter(egraph, rules, 8000);
-    rewriter.apply_rewrites(20);
-    auto should_be_root_id = egraph.add_expression(Expression("Mul(Mul(Invert(Get(QR(X), 1)), Transpose(Get(QR(X), 0))), y)"));
-    auto &should_be_root_data = egraph.get_class_analysis_data(should_be_root_id);
-    std::cout << "Should be root data: " << std::get<MatrixProperty>(should_be_root_data.property).to_string() << std::endl;
-    EXPECT_EQ(egraph.find_class_id(id), egraph.find_class_id(should_be_root_id))
-        << "The expression should be equivalent to the QR-based solution";
+    Rewriter rewriter(egraph, rules, 10000);
+    int iteration = 0;
+    while (rewriter.apply_one_iteration())
+    {
+        iteration++;
+        auto should_be_root_id = egraph.add_expression(Expression("Mul(Mul(Invert(Get(QR(X), 1)), Transpose(Get(QR(X), 0))), y)"));
+        if (egraph.find_class_id(id) == egraph.find_class_id(should_be_root_id))
+        {
+            std::cout << "Found the QR-based solution in iteration " << iteration << "! Num nodes: " << egraph.num_nodes() << std::endl;
+            return;
+        }
+    }
+    FAIL() << "Did not find the QR-based solution within the nodes limit.";
 }

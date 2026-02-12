@@ -47,7 +47,6 @@ std::optional<Id> EGraph::find_class_with_property(const MatrixProperty &prop) c
         {
             if (p->strict_equal(prop))
             {
-                std::cout << "Found class with property: " << class_id << "\n";
                 return class_id;
             }
         }
