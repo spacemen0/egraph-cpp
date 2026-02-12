@@ -33,7 +33,7 @@ const PropertyTable &EGraph::get_property_table() const noexcept
 /// @brief  Find an e-class with the given matrix property.
 /// @param prop
 /// @return
-std::optional<Id> EGraph::find_class_with_property(const MatrixProperty &prop) const
+std::optional<Id> EGraph::find_class_with_property(const MatrixProperty &prop) const // probabaly not working correctly
 {
     for (const auto &[class_id, eclass_ptr] : classes)
     {
@@ -47,6 +47,7 @@ std::optional<Id> EGraph::find_class_with_property(const MatrixProperty &prop) c
         {
             if (p->strict_equal(prop))
             {
+                std::cout << "Found class with property: " << class_id << "\n";
                 return class_id;
             }
         }

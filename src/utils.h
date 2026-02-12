@@ -4,10 +4,12 @@
 #include <string_view>
 #include <vector>
 #include <stdexcept>
+#include <charconv>
+#include <iostream>
 #include "rewriter.h"
 #include "types.h"
 #include "errors.h"
-#include <charconv>
+
 inline Op parse_op(std::string_view s)
 {
     using enum Op;
@@ -167,7 +169,7 @@ inline Rewrite make_rewrite(const std::string &name, std::string_view lhs, std::
     return Rewrite{name, Pattern(lhs), Pattern(rhs), condition, applier};
 }
 
-inline Id make_identity_for(EGraph &egraph, const Substitution &s, const std::string &var_name)
+inline Id make_identity_for(EGraph &egraph, const Substitution &s, const std::string &var_name, bool use_first_dim = true)
 {
     Id id = s.at(var_name);
     const auto &data = egraph.get_class_analysis_data(id);
@@ -180,7 +182,7 @@ inline Id make_identity_for(EGraph &egraph, const Substitution &s, const std::st
     auto shape = matrix_prop.shape;
 
     MatrixProperty prop;
-    prop.shape = shape;
+    prop.shape = use_first_dim ? std::make_pair(shape.first, shape.first) : std::make_pair(shape.second, shape.second);
     prop.is_identity = true;
     prop.is_symmetric = true;
     prop.is_orthogonal = true;
@@ -188,6 +190,7 @@ inline Id make_identity_for(EGraph &egraph, const Substitution &s, const std::st
 
     if (egraph.find_class_with_property(prop).has_value())
     {
+        std::cout << "Found existing identity matrix for shape: " << prop.to_string() << std::endl;
         return egraph.find_class_with_property(prop).value();
     }
 
@@ -205,7 +208,7 @@ inline Id make_identity_for(EGraph &egraph, const Substitution &s, const std::st
     std::string identity_name = "I_" + h_str + "x" + w_str;
 
     egraph.register_property(identity_name, prop);
-
+    std::cout << "Registered identity matrix: " << identity_name << " with property " << prop.to_string() << std::endl;
     return egraph.add_node(ENode({}, identity_name));
 }
 

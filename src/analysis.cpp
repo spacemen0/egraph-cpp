@@ -150,7 +150,7 @@ AnalysisData MatrixAnalysis::make(const EGraph &egraph, const ENode &node)
                 MatrixProperty Q;
                 MatrixProperty R;
 
-                Q.is_orthogonal = true; // Has orthonormal columns
+                Q.is_orthonormal = true; // Has orthonormal columns
                 R.is_upper_triangular = true;
 
                 if (data->is_tall_matrix())
@@ -163,6 +163,7 @@ AnalysisData MatrixAnalysis::make(const EGraph &egraph, const ENode &node)
                 else if (data->is_wide_matrix())
                 {
                     Q.shape = std::make_pair(data->shape.first, data->shape.first);
+                    Q.is_orthogonal = true; // Q is square in this case
 
                     R.shape = data->shape;
                     R.is_wide = true;
@@ -171,6 +172,7 @@ AnalysisData MatrixAnalysis::make(const EGraph &egraph, const ENode &node)
                 {
                     Q.shape = data->shape;
                     R.shape = data->shape;
+                    Q.is_orthogonal = true; // Q is square in this case
                 }
                 if (data->is_identity)
                 {
@@ -281,15 +283,16 @@ AnalysisData MatrixAnalysis::make(const EGraph &egraph, const ENode &node)
 
 void MatrixAnalysis::merge(AnalysisData &data1, const AnalysisData &data2)
 {
-    // if (data1 != data2)
-    // {
-    //     throw ShapeMismatchError("Merging e-classes with conflicting size data");
-    // }
+    if (data1 != data2)
+    {
+        throw ShapeMismatchError("Merging e-classes with conflicting size data");
+    }
 
     auto merge_matrix_props = [](MatrixProperty &p1, const MatrixProperty &p2)
     {
         p1.is_symmetric = p1.is_symmetric || p2.is_symmetric;
         p1.is_orthogonal = p1.is_orthogonal || p2.is_orthogonal;
+        p1.is_orthonormal = p1.is_orthonormal || p2.is_orthonormal;
         p1.is_identity = p1.is_identity || p2.is_identity;
         p1.is_zero = p1.is_zero || p2.is_zero;
         p1.is_upper_triangular = p1.is_upper_triangular || p2.is_upper_triangular;

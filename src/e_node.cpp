@@ -162,7 +162,7 @@ bool ENode::has_ancestor(std::string_view ancestor_op, const EGraph &egraph) con
     {
         for (Id parent_id : parent_ids)
         {
-            if (egraph.find_class_id(parent_id) != parent_id)
+            if (egraph.find_class_id(parent_id) != parent_id) // to prevent stack overflow
                 continue;
             const ENode &parent_node = egraph.at(parent_id);
             if (parent_node.has_ancestor(ancestor_op, egraph))

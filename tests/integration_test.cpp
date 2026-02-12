@@ -181,15 +181,13 @@ TEST(Integration, QRSolveLLSProblem)
         QR_introduction,
         mat_transpose_prod,
         invert_mat_prod,
-        orthogonal_transpose,
-        invert_cancel_right,
+        orthonormal_transpose,
         invert_cancel_left,
         mul_identity_right,
-        mul_identity_left,
         mul_assoc_left,
         mul_assoc_right,
     };
-    Rewriter rewriter(egraph, rules, 5000);
+    Rewriter rewriter(egraph, rules, 8000);
     rewriter.apply_rewrites(20);
     auto should_be_root_id = egraph.add_expression(Expression("Mul(Mul(Invert(Get(QR(X), 1)), Transpose(Get(QR(X), 0))), y)"));
     auto &should_be_root_data = egraph.get_class_analysis_data(should_be_root_id);

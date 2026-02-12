@@ -118,3 +118,14 @@ static const auto orthogonal_transpose = make_rewrite("orthogonal-transpose", "M
     }
     return false; }, [](EGraph &g, const Substitution &s)
                                                       { return make_identity_for(g, s, "a"); });
+
+static const auto orthonormal_transpose = make_rewrite("orthonormal-transpose", "Mul(Transpose(?a), ?a)", "Identity", [](const EGraph &g, const Substitution &s)
+                                                       {
+    Id a_id = s.at("a");
+    const auto &data = g.get_class_analysis_data(a_id);
+    if (auto *prop = std::get_if<MatrixProperty>(&data.property))
+    {
+        return prop->is_orthonormal;
+    }
+    return false; }, [](EGraph &g, const Substitution &s)
+                                                       { return make_identity_for(g, s, "a", false); });

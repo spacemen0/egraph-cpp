@@ -31,6 +31,7 @@ struct MatrixProperty
     std::pair<Size, Size> shape; // (rows, cols)
     bool is_symmetric = false;
     bool is_orthogonal = false;
+    bool is_orthonormal = false;
     bool is_identity = false;
     bool is_zero = false;
     bool is_upper_triangular = false;
@@ -109,6 +110,7 @@ struct MatrixProperty
         return shape == other.shape &&
                is_symmetric == other.is_symmetric &&
                is_orthogonal == other.is_orthogonal &&
+               is_orthonormal == other.is_orthonormal &&
                is_identity == other.is_identity &&
                is_zero == other.is_zero &&
                is_upper_triangular == other.is_upper_triangular &&
@@ -144,6 +146,8 @@ struct MatrixProperty
             s += " [Symmetric]";
         if (is_orthogonal)
             s += " [Orthogonal]";
+        if (is_orthonormal)
+            s += " [Orthonormal]";
         if (is_upper_triangular)
             s += " [UpperTriangular]";
         if (is_lower_triangular)
