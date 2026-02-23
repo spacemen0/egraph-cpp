@@ -16,7 +16,7 @@ void EGraph::canonicalize_node(ENode &node)
 
 size_t EGraph::num_nodes() const noexcept
 {
-    return nodes.size();
+    return memo.size();
 }
 
 const AnalysisData &EGraph::get_class_analysis_data(Id class_id) const
