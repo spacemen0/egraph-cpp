@@ -1,5 +1,7 @@
 #include "e_graph.h"
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include "pattern.h"
 #include "errors.h"
 #include "analysis.h"
@@ -370,4 +372,109 @@ std::vector<Id> EGraph::get_class_parents(Id class_id) const
 void EGraph::register_property(const std::string &name, const MatrixProperty &prop)
 {
     property_table.add_property_entry(name, prop);
+}
+
+std::string EGraph::to_dot() const
+{
+    std::ostringstream oss;
+    oss << "digraph egraph {\n";
+    oss << "  compound=true;\n";
+    oss << "  clusterrank=local;\n\n";
+
+    for (const auto &[class_id, eclass] : classes)
+    {
+        oss << "  subgraph cluster_" << class_id << " {\n";
+        oss << "    style=dotted;\n";
+
+        int i = 0;
+        for (const auto &node : eclass->get_nodes())
+        {
+            oss << "    node_" << class_id << "_" << i << " [label=\"" << node->to_string() << "\"];\n";
+            i++;
+        }
+        oss << "  }\n";
+    }
+
+    oss << "\n";
+
+    for (const auto &[class_id, eclass] : classes)
+    {
+        int i_in_class = 0;
+        for (const auto &node : eclass->get_nodes())
+        {
+            int arg_i = 0;
+            int len = node->get_children().size();
+
+            for (auto child_id : node->get_children())
+            {
+                auto child_leader = find_class_id(child_id);
+
+                std::string anchor = "";
+                std::string label = "";
+
+                // Determine anchor and label based on the number of children (just like egg)
+                if (len == 1 && arg_i == 0)
+                {
+                }
+                else if (len == 2 && arg_i == 0)
+                {
+                    anchor = ":sw";
+                }
+                else if (len == 2 && arg_i == 1)
+                {
+                    anchor = ":se";
+                }
+                else if (len == 3 && arg_i == 0)
+                {
+                    anchor = ":sw";
+                }
+                else if (len == 3 && arg_i == 1)
+                {
+                    anchor = ":s";
+                }
+                else if (len == 3 && arg_i == 2)
+                {
+                    anchor = ":se";
+                }
+                else
+                {
+                    label = "label=" + std::to_string(arg_i);
+                }
+
+                if (child_leader == class_id)
+                {
+                    // Self-edge to the same eclass
+                    oss << "  node_" << class_id << "_" << i_in_class << anchor
+                        << " -> node_" << class_id << "_" << i_in_class << ":n";
+                    if (!label.empty())
+                        oss << ", " << label;
+                    oss << "\n";
+                }
+                else
+                {
+                    // Edge to a different eclass (points to the 0th node of the target cluster)
+                    oss << "  node_" << class_id << "_" << i_in_class << anchor
+                        << " -> node_" << child_leader << "_0 [lhead=cluster_" << child_leader;
+                    if (!label.empty())
+                        oss << ", " << label;
+                    oss << "]\n";
+                }
+                arg_i++;
+            }
+            i_in_class++;
+        }
+    }
+
+    oss << "}\n";
+    return oss.str();
+}
+
+void EGraph::to_dot_file(const std::string &filename) const
+{
+    std::ofstream out(filename);
+    if (out.is_open())
+    {
+        out << to_dot();
+        out.close();
+    }
 }

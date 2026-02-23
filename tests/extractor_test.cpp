@@ -45,7 +45,7 @@ TEST(Extractor, RewriteAndExtract)
 
     Extractor extractor(egraph);
     ExtractionResult result = extractor.extract(root_id);
-
+    egraph.to_dot_file("extractor_test.dot");
     EXPECT_EQ(result.cost, 1.0);
 
     EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
