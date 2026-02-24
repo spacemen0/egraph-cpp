@@ -196,6 +196,7 @@ TEST(Integration, QRSolveLLSProblem)
         if (egraph.find_class_id(id) == egraph.find_class_id(should_be_root_id))
         {
             std::cout << "Found the QR-based solution in iteration " << iteration << "! Num nodes: " << egraph.num_nodes() << std::endl;
+            egraph.to_img("qr", "png");
             return;
         }
     }

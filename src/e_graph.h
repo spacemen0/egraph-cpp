@@ -36,6 +36,7 @@ public:
     std::optional<Id> find_class_with_property(const MatrixProperty &prop) const;
     std::string to_dot() const;
     void to_dot_file(const std::string &filename) const;
+    void to_img(const std::string &filename, const std::string &format = "png") const;
 
 private:
     // stores the union-find structure for e-classes (which stores equivalences)
