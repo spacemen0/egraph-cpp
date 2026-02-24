@@ -17,7 +17,7 @@ public:
     EGraph() = default;
     explicit EGraph(PropertyTable pt) : property_table(std::move(pt)) {}
     void canonicalize_node(ENode &node);
-    std::optional<Id> find(const ENode &node) const;
+    std::optional<Id> find_node_id(const ENode &node) const;
     Id find_class_id(Id node_id) const;
     Id add_node(ENode node);
     Id add_expression(const Expression &expr);
@@ -34,7 +34,6 @@ public:
     const AnalysisData &get_class_analysis_data(Id class_id) const;
     const PropertyTable &get_property_table() const noexcept;
     std::optional<Id> find_class_with_property(const MatrixProperty &prop) const;
-    std::string to_dot() const;
     void to_dot_file(const std::string &filename) const;
     void to_img(const std::string &filename, const std::string &format = "png") const;
 
@@ -50,6 +49,7 @@ private:
     // stores mapping from EClass id to EClass, classes being merged will be removed
     std::unordered_map<Id, std::unique_ptr<EClass>> classes;
     PropertyTable property_table;
+    std::string to_dot() const;
     AnalysisData make_analysis(const ENode &node) const;
     void merge_analysis_data(AnalysisData &data1, const AnalysisData &data2) const;
     bool atoms_match(const Atom &pat_atom, const Atom &enode_atom) const;

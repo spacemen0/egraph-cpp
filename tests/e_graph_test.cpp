@@ -8,7 +8,7 @@ TEST(EGraph, AddAndLookUpNode)
     EGraph egraph(get_property_table());
 
     Id id1 = egraph.add_node(sym_x);
-    std::optional<Id> lookup1 = egraph.find(sym_x);
+    std::optional<Id> lookup1 = egraph.find_node_id(sym_x);
     EXPECT_TRUE(lookup1.has_value());
     EXPECT_EQ(lookup1.value(), id1);
 
@@ -40,8 +40,8 @@ TEST(EGraph, UnionClasses)
     merged = egraph.union_classes(id1, id2);
     EXPECT_FALSE(merged);
     egraph.rebuild();
-    auto root1 = egraph.find(sym_z);
-    auto root2 = egraph.find(sym_a);
+    auto root1 = egraph.find_node_id(sym_z);
+    auto root2 = egraph.find_node_id(sym_a);
     EXPECT_EQ(root1, root2);
 }
 
@@ -54,7 +54,7 @@ TEST(EGraph, RebuildParentsBasic)
 
     EXPECT_NE(egraph.find_class_id(id_node1), egraph.find_class_id(id_node2));
 
-    egraph.union_classes(egraph.find(sym_d).value(), egraph.find(sym_w).value());
+    egraph.union_classes(egraph.find_node_id(sym_d).value(), egraph.find_node_id(sym_w).value());
 
     EXPECT_NE(egraph.find_class_id(id_node1), egraph.find_class_id(id_node2));
     egraph.rebuild();
@@ -78,7 +78,7 @@ TEST(EGraph, RebuildMultiLevelParents)
     Id id_nested2 = egraph.add_expression(Expression("Add(Mul(Add(A, A), Z), A)"));
     EXPECT_NE(egraph.find_class_id(id_nested1), egraph.find_class_id(id_nested2));
 
-    egraph.union_classes(egraph.find(sym_a).value(), egraph.find(sym_z).value());
+    egraph.union_classes(egraph.find_node_id(sym_a).value(), egraph.find_node_id(sym_z).value());
 
     egraph.rebuild();
     EXPECT_EQ(egraph.find_class_id(id_nested1), egraph.find_class_id(id_nested2));
@@ -118,18 +118,18 @@ TEST(EGraph, AddExpression)
     Expression expr("Add(Mul(X, Y), Transpose(Z))");
     Id expr_id = egraph.add_expression(expr);
 
-    EXPECT_TRUE(egraph.find(sym_x).has_value());
-    EXPECT_TRUE(egraph.find(sym_y).has_value());
-    EXPECT_TRUE(egraph.find(sym_z).has_value());
+    EXPECT_TRUE(egraph.find_node_id(sym_x).has_value());
+    EXPECT_TRUE(egraph.find_node_id(sym_y).has_value());
+    EXPECT_TRUE(egraph.find_node_id(sym_z).has_value());
 
-    auto mul_xy = make_op(Op::Mul, Children{egraph.find(sym_x).value(), egraph.find(sym_y).value()});
-    auto transpose_z = make_op(Op::Transpose, Children{egraph.find(sym_z).value()});
-    EXPECT_TRUE(egraph.find(mul_xy).has_value());
-    EXPECT_TRUE(egraph.find(transpose_z).has_value());
+    auto mul_xy = make_op(Op::Mul, Children{egraph.find_node_id(sym_x).value(), egraph.find_node_id(sym_y).value()});
+    auto transpose_z = make_op(Op::Transpose, Children{egraph.find_node_id(sym_z).value()});
+    EXPECT_TRUE(egraph.find_node_id(mul_xy).has_value());
+    EXPECT_TRUE(egraph.find_node_id(transpose_z).has_value());
 
-    auto add_expr = make_op(Op::Add, Children{egraph.find(mul_xy).value(), egraph.find(transpose_z).value()});
-    EXPECT_TRUE(egraph.find(add_expr).has_value());
-    EXPECT_EQ(egraph.find(add_expr).value(), expr_id);
+    auto add_expr = make_op(Op::Add, Children{egraph.find_node_id(mul_xy).value(), egraph.find_node_id(transpose_z).value()});
+    EXPECT_TRUE(egraph.find_node_id(add_expr).has_value());
+    EXPECT_EQ(egraph.find_node_id(add_expr).value(), expr_id);
 
     Expression expr_dup("Add(Mul(X, Y), Transpose(Z))");
     Id expr_dup_id = egraph.add_expression(expr_dup);
@@ -151,11 +151,11 @@ TEST(EGraph, ENodeMatching)
     auto node = make_op(Op::Negate, Children{id1});
     Id id2 = egraph.add_node(node);
 
-    EXPECT_TRUE(egraph.find(node).has_value());
-    EXPECT_EQ(egraph.find(node).value(), id2);
+    EXPECT_TRUE(egraph.find_node_id(node).has_value());
+    EXPECT_EQ(egraph.find_node_id(node).value(), id2);
 
     auto node_diff = make_op(Op::Negate, Children{id1 + 1});
-    EXPECT_FALSE(egraph.find(node_diff).has_value());
+    EXPECT_FALSE(egraph.find_node_id(node_diff).has_value());
 }
 
 TEST(EGraph, PatternMatchingSimple)

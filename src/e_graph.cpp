@@ -59,7 +59,7 @@ std::optional<Id> EGraph::find_class_with_property(const MatrixProperty &prop) c
 /// @brief Look up a node in the e-graph. The node does not need to be canonicalized beforehand.
 /// @param node
 /// @return EClass ID if found, std::nullopt otherwise
-std::optional<Id> EGraph::find(const ENode &node) const
+std::optional<Id> EGraph::find_node_id(const ENode &node) const
 {
 
     ENode temp(node);
@@ -83,7 +83,7 @@ Id EGraph::find_class_id(Id node_id) const
 /// @return
 Id EGraph::add_node(ENode node)
 {
-    if (auto found = find(node); found.has_value())
+    if (auto found = find_node_id(node); found.has_value())
     {
         return found.value();
     }

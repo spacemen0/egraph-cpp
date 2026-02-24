@@ -89,7 +89,7 @@ TEST(Rewrite, NewNodes)
     EXPECT_TRUE(changed);
 
     // Check the new identity node
-    auto results = egraph.find(ENode({}, "I_10x10"));
+    auto results = egraph.find_node_id(ENode({}, "I_10x10"));
     EXPECT_TRUE(results.has_value());
     EXPECT_EQ(results.value(), egraph.find_class_id(id_add));
 }

@@ -153,7 +153,7 @@ bool ENode::has_ancestor(std::string_view ancestor_op, const EGraph &egraph) con
     {
         return true;
     }
-    auto opt_id = egraph.find(*this);
+    auto opt_id = egraph.find_node_id(*this);
     if (!opt_id.has_value())
         return false;
 
