@@ -78,12 +78,11 @@ TEST(EGraph, RebuildMultiLevelParents)
     Id id_nested2 = egraph.add_expression(Expression("Add(Mul(Add(A, A), Z), A)"));
     EXPECT_NE(egraph.find_class_id(id_nested1), egraph.find_class_id(id_nested2));
 
-    // egraph.print_egraph();
     egraph.union_classes(egraph.find(sym_a).value(), egraph.find(sym_z).value());
-    // egraph.print_egraph();
+
     egraph.rebuild();
     EXPECT_EQ(egraph.find_class_id(id_nested1), egraph.find_class_id(id_nested2));
-    // egraph.print_egraph();
+
     Id root_nested = egraph.find_class_id(id_nested1);
     EXPECT_EQ(root_nested, egraph.find_class_id(id_nested1));
     EXPECT_EQ(root_nested, egraph.find_class_id(id_nested2));

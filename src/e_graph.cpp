@@ -481,6 +481,11 @@ void EGraph::to_dot_file(const std::string &filename) const
 
 void EGraph::to_img(const std::string &filename, const std::string &format) const
 {
+    if (format != "png" && format != "svg")
+    {
+        std::cerr << "Error: Unsupported format '" << format << "'. Supported formats are 'png' and 'svg'." << std::endl;
+        return;
+    }
     std::string dot_filename = filename + ".dot";
     to_dot_file(dot_filename);
     std::string command = "dot -T" + format + " " + dot_filename + " -o " + filename + "." + format;
