@@ -1,65 +1,17 @@
 #include "extractor.h"
 #include <limits>
-#include <iostream>
 #include "errors.h"
 
-Extractor::Extractor(const EGraph &egraph) : egraph(egraph)
-{
-    calculate_costs();
-}
-
-double Extractor::get_node_cost(const ENode &node) const
-{
-    // Simple cost function
-    double cost = 1.0;
-    for (Id child : node.get_children())
-    {
-        Id root = egraph.find_class_id(child);
-        if (costs.contains(root) == false || costs.at(root) == std::numeric_limits<double>::infinity())
-        {
-            return std::numeric_limits<double>::infinity();
-        }
-        cost += costs.at(root);
-    }
-    return cost;
-}
-
-void Extractor::calculate_costs()
-{
-
-    for (Id id : egraph.get_all_class_ids())
-    {
-        costs[id] = std::numeric_limits<double>::infinity();
-    }
-
-    bool changed = true;
-    while (changed)
-    {
-        changed = false;
-        for (Id class_id : egraph.get_all_class_ids())
-        {
-            // Only process root classes
-            Id root = egraph.find_class_id(class_id);
-            if (root != class_id)
-                continue;
-
-            for (const ENode *node : egraph.get_class_nodes(root))
-            {
-                double node_cost = get_node_cost(*node);
-                if (node_cost >= costs[root])
-                    continue;
-                costs[root] = node_cost;
-                best_nodes[root] = node;
-                changed = true;
-            }
-        }
-    }
-}
+Extractor::Extractor(const EGraph &egraph) : egraph(egraph), cost_storage(egraph) {}
 
 Expression Extractor::build_expression(Id class_id) const
 {
     Id root = egraph.find_class_id(class_id);
-    const ENode *best_node = best_nodes.at(root);
+    const ENode *best_node = cost_storage.best_node(root);
+    if (!best_node)
+    {
+        throw std::runtime_error("Runtime error: No valid expression found");
+    }
 
     std::vector<Expression> children;
     for (Id child : best_node->get_children())
@@ -72,9 +24,9 @@ Expression Extractor::build_expression(Id class_id) const
 ExtractionResult Extractor::extract(Id class_id) const
 {
     Id root = egraph.find_class_id(class_id);
-    if (costs.at(root) == std::numeric_limits<double>::infinity())
+    if (!cost_storage.has_finite_cost(root))
     {
         throw std::runtime_error("Runtime error: No valid expression found");
     }
-    return {costs.at(root), build_expression(root)};
+    return {cost_storage.eclass_cost(root), build_expression(root)};
 }

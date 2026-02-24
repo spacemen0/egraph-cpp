@@ -1,4 +1,5 @@
 #include "rewriter.h"
+#include "matcher.h"
 #include <iostream>
 
 using Match = struct
@@ -32,6 +33,7 @@ static Id instantiate(EGraph &egraph, const Pattern &pattern, const Substitution
 bool Rewriter::apply_one_iteration()
 {
     bool changed = false;
+    Matcher matcher(egraph);
 
     // Store matches to apply them in batch: (class_id, rewrite_index, substitution)
     std::vector<Match> matches;
@@ -47,8 +49,7 @@ bool Rewriter::apply_one_iteration()
         for (size_t i = 0; i < rewrites.size(); ++i)
         {
             const auto &rewrite = rewrites[i];
-            std::set<Substitution> substs;
-            egraph.find_matches_in_eclass(class_id, rewrite.lhs, substs);
+            std::set<Substitution> substs = matcher.find_matches_in_eclass(class_id, rewrite.lhs);
 
             for (const auto &subst : substs)
             {

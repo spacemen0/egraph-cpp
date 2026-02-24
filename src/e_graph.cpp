@@ -5,6 +5,7 @@
 #include "pattern.h"
 #include "errors.h"
 #include "analysis.h"
+#include "matcher.h"
 
 /// @brief Canonicalize the children of a node.
 /// @param node
@@ -241,101 +242,11 @@ void EGraph::merge_analysis_data(AnalysisData &data1, const AnalysisData &data2)
     MatrixAnalysis::merge(data1, data2);
 }
 
-bool EGraph::atoms_match(const Atom &pat_atom, const Atom &enode_atom) const
-{
-    if (pat_atom.index() != enode_atom.index())
-        return false;
-
-    if (const auto op1 = std::get_if<Op>(&pat_atom))
-        return *op1 == std::get<Op>(enode_atom);
-
-    if (const auto s1 = std::get_if<std::string>(&pat_atom))
-        return *s1 == std::get<std::string>(enode_atom);
-
-    if (const auto i1 = std::get_if<int>(&pat_atom))
-        return *i1 == std::get<int>(enode_atom);
-
-    return false;
-}
-
 void EGraph::find_matches_in_eclass(Id eclass_id, const Pattern &pattern, std::set<Substitution> &out_substitutions) const
 {
-    Substitution initial_subst;
-    auto new_matches = search_eclass_for_pattern(eclass_id, pattern, initial_subst);
-
-    if (!new_matches.empty())
-    {
-        out_substitutions.insert(new_matches.begin(), new_matches.end());
-    }
-}
-
-std::vector<Substitution> EGraph::search_eclass_for_pattern(Id eclass_id, const Pattern &pattern, const Substitution &initial_subst) const
-{
-    std::vector<Substitution> results;
-    Id canonical_id = find_class_id(eclass_id);
-
-    // handle pattern variable case
-    if (const std::string *str_atom = std::get_if<std::string>(&pattern.atom))
-    {
-        if (str_atom->starts_with('?'))
-        {
-            auto var_name = str_atom->substr(1);
-            auto it = initial_subst.find(var_name);
-
-            if (it != initial_subst.end())
-            {
-                // variable already bound, check for consistency
-                if (it->second == canonical_id)
-                {
-                    results.push_back(initial_subst);
-                }
-            }
-            else
-            {
-                Substitution new_subst = initial_subst; // record existing bindings
-                new_subst[var_name] = canonical_id;
-                results.push_back(new_subst);
-            }
-            return results;
-        }
-    }
-
-    const auto eclass = classes.at(canonical_id).get();
-    for (const ENode *node : eclass->get_nodes())
-    {
-        if (!atoms_match(pattern.atom, node->get_atom()) || node->get_children().size() != pattern.children.size())
-        {
-            continue;
-        }
-        std::vector<Substitution> current_matches = {initial_subst};
-        bool possible = true;
-
-        for (size_t i = 0; i < pattern.children.size(); ++i)
-        {
-            std::vector<Substitution> next_matches;
-            const Pattern &child_pattern = pattern.children[i];
-            Id child_eclass_id = node->get_children()[i];
-
-            for (const auto &subst : current_matches)
-            {
-                auto child_results = search_eclass_for_pattern(child_eclass_id, child_pattern, subst);
-                next_matches.insert(next_matches.end(), child_results.begin(), child_results.end());
-            }
-            current_matches = std::move(next_matches);
-
-            // have to match at least one for each child
-            if (current_matches.empty())
-            {
-                possible = false;
-                break;
-            }
-        }
-        if (possible)
-        {
-            results.insert(results.end(), current_matches.begin(), current_matches.end());
-        }
-    }
-    return results;
+    Matcher matcher(*this);
+    auto matches = matcher.find_matches_in_eclass(eclass_id, pattern);
+    out_substitutions.insert(matches.begin(), matches.end());
 }
 
 /// @brief Get the ENode corresponding to the given Id

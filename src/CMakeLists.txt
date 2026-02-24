@@ -5,7 +5,9 @@ add_library(core_lib STATIC
     e_class.cpp 
     expression.cpp
     pattern.cpp
+    matcher.cpp
     rewriter.cpp
+    cost_storage.cpp
     extractor.cpp
     property_table.cpp
     analysis_ops.cpp

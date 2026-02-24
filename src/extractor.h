@@ -1,6 +1,6 @@
 #pragma once
 #include "e_graph.h"
-#include <unordered_map>
+#include "cost_storage.h"
 
 struct ExtractionResult
 {
@@ -17,10 +17,6 @@ public:
 
 private:
     const EGraph &egraph;
-    std::unordered_map<Id, double> costs;
-    std::unordered_map<Id, const ENode *> best_nodes;
-
-    void calculate_costs();
-    double get_node_cost(const ENode &node) const;
+    CostStorage cost_storage;
     Expression build_expression(Id class_id) const;
 };
