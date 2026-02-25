@@ -35,7 +35,7 @@ public:
     const PropertyTable &get_property_table() const noexcept;
     std::optional<Id> find_class_with_property(const MatrixProperty &prop) const;
     void to_dot_file(const std::string &filename) const;
-    void to_img(const std::string &filename, const std::string &format = "png") const;
+    void to_img(const std::string &filename, const std::string &format) const;
 
 private:
     // stores the union-find structure for e-classes (which stores equivalences)

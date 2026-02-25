@@ -88,6 +88,8 @@ static const auto QR_introduction = make_rewrite("qr-intro", "?a", "Mul(Get(QR(?
     auto node = g.at(a_id);
     if (!node.has_ancestor("Invert", g))
         return false;
+    if (node.get_children().size() != 0)
+        return false;
     const auto &data = g.get_class_analysis_data(a_id);
     if (auto *prop = std::get_if<MatrixProperty>(&data.property))
     {

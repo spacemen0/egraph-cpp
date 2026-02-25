@@ -405,4 +405,5 @@ void EGraph::to_img(const std::string &filename, const std::string &format) cons
     {
         std::cerr << "Error: Failed to execute command: " << command << std::endl;
     }
+    std::remove(dot_filename.c_str());
 }

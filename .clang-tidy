@@ -1,3 +1,0 @@
-Checks: '*'
-WarningsAsErrors: '*'
-HeaderFilterRegex: 'src/.*'

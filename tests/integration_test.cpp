@@ -90,7 +90,7 @@ TEST(Integration, MinimalRealisticExplosionRules)
 TEST(Integration, QRSolveLLSProblem)
 {
     EGraph egraph(get_property_table());
-    auto id = egraph.add_expression(Expression("Mul ( Mul( Invert( Mul(Transpose(X),X) ) , Transpose(X) ), y)"));
+    auto id = egraph.add_expression(Expression("Mul ( Mul( Invert( Mul(Transpose(M), M) ) , Transpose(M) ), n)"));
 
     std::vector<Rewrite> rules = {
         QR_introduction,
@@ -104,10 +104,12 @@ TEST(Integration, QRSolveLLSProblem)
     };
     Rewriter rewriter(egraph, rules, 10000);
     int iteration = 0;
+    egraph.to_img("qr_0", "svg");
     while (rewriter.apply_one_iteration())
     {
         iteration++;
-        auto should_be_root_id = egraph.add_expression(Expression("Mul(Mul(Invert(Get(QR(X), 1)), Transpose(Get(QR(X), 0))), y)"));
+        auto should_be_root_id = egraph.add_expression(Expression("Mul(Mul(Invert(Get(QR(M), 1)), Transpose(Get(QR(M), 0))), n)"));
+        egraph.to_img("qr_" + std::to_string(iteration), "svg");
         if (egraph.find_class_id(id) == egraph.find_class_id(should_be_root_id))
         {
             std::cout << "Found the QR-based solution in iteration " << iteration << "! Num nodes: " << egraph.num_nodes() << std::endl;
