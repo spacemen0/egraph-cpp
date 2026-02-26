@@ -267,6 +267,27 @@ inline Id make_zero_for(EGraph &g, const Substitution &s, const std::string &var
     return g.add_node(ENode({}, zero_name));
 }
 
+inline Expression get_representative_expression(const EGraph &g, Id class_id)
+{
+    Id root = g.find_class_id(class_id);
+    const auto &nodes = g.get_class_nodes(root);
+    if (nodes.empty())
+    {
+        throw std::runtime_error("No nodes in class");
+    }
+    auto sort_by_children_size = [](const ENode *a, const ENode *b)
+    {
+        return a->get_children().size() < b->get_children().size();
+    };
+    const ENode *representative = *std::min_element(nodes.begin(), nodes.end(), sort_by_children_size);
+    std::vector<Expression> children;
+    for (auto child_id : representative->get_children())
+    {
+        children.push_back(get_representative_expression(g, child_id));
+    }
+    return Expression(representative->get_atom(), children);
+}
+
 inline bool is_identity(const Substitution &s, const EGraph &g, const std::string &var)
 {
     Id id = s.at(var);

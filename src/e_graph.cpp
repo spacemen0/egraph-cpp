@@ -6,6 +6,7 @@
 #include "errors.h"
 #include "analysis.h"
 #include "matcher.h"
+#include "utils.h"
 
 /// @brief Canonicalize the children of a node.
 /// @param node
@@ -296,6 +297,9 @@ std::string EGraph::to_dot() const
     {
         oss << "  subgraph cluster_" << class_id << " {\n";
         oss << "    style=dotted;\n";
+
+        const auto representative = get_representative_expression(*this, class_id);
+        oss << "    label=\"" << representative.to_string() << "\";\n";
 
         int i = 0;
         for (const auto &node : eclass->get_nodes())

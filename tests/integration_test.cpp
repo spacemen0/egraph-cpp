@@ -140,12 +140,12 @@ TEST(Integration, QRSolveLLSProblem)
     };
     Rewriter rewriter(egraph, rules, 10000);
     int iteration = 0;
-    // egraph.to_img("qr_0", "svg");
+    egraph.to_img("qr_0", "svg");
     while (rewriter.apply_one_iteration())
     {
         iteration++;
         auto should_be_root_id = egraph.add_expression(Expression("Mul(Mul(Invert(Get(QR(M), 1)), Transpose(Get(QR(M), 0))), n)"));
-        // egraph.to_img("qr_" + std::to_string(iteration), "svg");
+        egraph.to_img("qr_" + std::to_string(iteration), "svg");
         if (egraph.find_class_id(id) == egraph.find_class_id(should_be_root_id))
         {
             std::cout << "Found the QR-based solution in iteration " << iteration << "! Num nodes: " << egraph.num_nodes() << std::endl;
