@@ -9,6 +9,7 @@
 #include "rewriter.h"
 #include "types.h"
 #include "errors.h"
+#include <unordered_set>
 
 inline Op parse_op(std::string_view s)
 {
@@ -267,25 +268,75 @@ inline Id make_zero_for(EGraph &g, const Substitution &s, const std::string &var
     return g.add_node(ENode({}, zero_name));
 }
 
-inline Expression get_representative_expression(const EGraph &g, Id class_id)
+inline std::optional<Expression> get_representative_expression_impl(
+    const EGraph &g,
+    Id class_id,
+    std::unordered_set<Id> &visiting)
 {
     Id root = g.find_class_id(class_id);
+    if (visiting.count(root))
+    {
+        return std::nullopt;
+    }
+
     const auto &nodes = g.get_class_nodes(root);
     if (nodes.empty())
     {
         throw std::runtime_error("No nodes in class");
     }
+
+    std::vector<const ENode *> candidates;
+    for (const auto &node : nodes)
+    {
+        candidates.push_back(node);
+    }
+
     auto sort_by_children_size = [](const ENode *a, const ENode *b)
     {
         return a->get_children().size() < b->get_children().size();
     };
-    const ENode *representative = *std::min_element(nodes.begin(), nodes.end(), sort_by_children_size);
-    std::vector<Expression> children;
-    for (auto child_id : representative->get_children())
+    std::sort(candidates.begin(), candidates.end(), sort_by_children_size);
+
+    visiting.insert(root);
+    for (const ENode *candidate : candidates)
     {
-        children.push_back(get_representative_expression(g, child_id));
+        std::vector<Expression> children_exprs;
+        bool candidate_success = true;
+
+        for (auto child_id : candidate->get_children())
+        {
+            auto child_result = get_representative_expression_impl(g, child_id, visiting);
+
+            if (!child_result.has_value())
+            {
+                candidate_success = false;
+                break;
+            }
+
+            children_exprs.push_back(child_result.value());
+        }
+
+        if (candidate_success)
+        {
+            visiting.erase(root);
+            return Expression(candidate->get_atom(), children_exprs);
+        }
     }
-    return Expression(representative->get_atom(), children);
+
+    visiting.erase(root);
+    return std::nullopt;
+}
+
+inline Expression get_representative_expression(const EGraph &g, Id class_id)
+{
+    std::unordered_set<Id> visiting;
+    auto result = get_representative_expression_impl(g, class_id, visiting);
+
+    if (!result.has_value())
+    {
+        throw std::runtime_error("Failed to extract: Target class is entirely cyclic with no base cases.");
+    }
+    return result.value();
 }
 
 inline bool is_identity(const Substitution &s, const EGraph &g, const std::string &var)

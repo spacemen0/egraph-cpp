@@ -48,7 +48,12 @@ bool Rewriter::apply_one_iteration()
 
         for (size_t i = 0; i < rewrites.size(); ++i)
         {
-            const auto &rewrite = rewrites[i];
+            auto &rewrite = rewrites[i];
+            if (rewrite.application_limit.has_value() && rewrite_application_counts[i] >= rewrite.application_limit.value())
+            {
+                rewrite.application_limit = rewrite.application_limit.value() * 2;
+                continue;
+            }
             std::set<Substitution> substs = matcher.find_matches_in_eclass(class_id, rewrite.lhs);
 
             for (const auto &subst : substs)
@@ -59,6 +64,7 @@ bool Rewriter::apply_one_iteration()
                 }
                 matches.emplace_back(class_id, i, subst);
             }
+            rewrite_application_counts[i] += substs.size();
         }
     }
 
