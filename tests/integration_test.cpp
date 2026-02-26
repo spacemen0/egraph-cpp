@@ -65,6 +65,7 @@ TEST(Integration, MinimalRealisticExplosionRules)
     auto id = egraph.add_expression(Expression("Mul(Mul(Invert(A), A), A)"));
     std::vector<Rewrite> rules = {
         mul_assoc_right,
+        mul_assoc_left,
         invert_cancel_left,
         mul_identity_right,
     };
@@ -72,7 +73,10 @@ TEST(Integration, MinimalRealisticExplosionRules)
     int i = 20;
     while (i-- > 0)
     {
-        rewriter.apply_one_iteration();
+        if (!rewriter.apply_one_iteration())
+        {
+            break;
+        }
         if (20 - i <= 6)
         {
             egraph.to_img("explosion_" + std::to_string(20 - i), "svg");
