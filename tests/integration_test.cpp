@@ -62,9 +62,6 @@ TEST(Integration, SimplifyComplexMatrixChain)
 TEST(Integration, MinimalRealisticExplosionRules)
 {
     EGraph egraph(get_property_table());
-
-    // A (A-1A)
-    // (AA-1)A
     auto id = egraph.add_expression(Expression("Mul(Mul(Invert(A), A), A)"));
     std::vector<Rewrite> rules = {
         mul_assoc_right,
@@ -76,6 +73,41 @@ TEST(Integration, MinimalRealisticExplosionRules)
     while (i-- > 0)
     {
         rewriter.apply_one_iteration();
+        if (20 - i <= 6)
+        {
+            egraph.to_img("explosion_" + std::to_string(20 - i), "svg");
+        }
+    }
+    Extractor extractor(egraph);
+    auto result = extractor.extract(id);
+    std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
+
+    // Should extract 'A'
+    EXPECT_EQ(result.cost, 1.0);
+    EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
+    EXPECT_EQ(std::get<std::string>(result.expr.atom), "A");
+}
+
+TEST(Integration, CyclicTermsThatDoNotExplode)
+{
+    EGraph egraph(get_property_table());
+
+    // A (A-1A)
+    auto id = egraph.add_expression(Expression("Mul(A, Mul(Invert(A), A))"));
+    std::vector<Rewrite> rules = {
+        mul_assoc_left,
+        invert_cancel_right,
+        mul_identity_right,
+    };
+    Rewriter rewriter(egraph, rules, 200);
+    int i = 20;
+    while (i-- > 0)
+    {
+        if (!rewriter.apply_one_iteration())
+        {
+            break;
+        }
+        egraph.to_img("cyclic_" + std::to_string(20 - i), "svg");
     }
     Extractor extractor(egraph);
     auto result = extractor.extract(id);
@@ -104,12 +136,12 @@ TEST(Integration, QRSolveLLSProblem)
     };
     Rewriter rewriter(egraph, rules, 10000);
     int iteration = 0;
-    egraph.to_img("qr_0", "svg");
+    // egraph.to_img("qr_0", "svg");
     while (rewriter.apply_one_iteration())
     {
         iteration++;
         auto should_be_root_id = egraph.add_expression(Expression("Mul(Mul(Invert(Get(QR(M), 1)), Transpose(Get(QR(M), 0))), n)"));
-        egraph.to_img("qr_" + std::to_string(iteration), "svg");
+        // egraph.to_img("qr_" + std::to_string(iteration), "svg");
         if (egraph.find_class_id(id) == egraph.find_class_id(should_be_root_id))
         {
             std::cout << "Found the QR-based solution in iteration " << iteration << "! Num nodes: " << egraph.num_nodes() << std::endl;

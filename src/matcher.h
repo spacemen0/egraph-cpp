@@ -1,7 +1,6 @@
 #pragma once
 
 #include "pattern.h"
-
 #include <set>
 #include <vector>
 
