@@ -134,7 +134,7 @@ TEST(Integration, QRSolveLLSProblem)
         mul_assoc_left,
         mul_assoc_right,
     };
-    Rewriter rewriter(egraph, rules, 10000);
+    Rewriter rewriter(egraph, rules, 1000);
     int iteration = 0;
     egraph.to_img("qr_0", "svg");
     while (rewriter.apply_one_iteration())
@@ -145,6 +145,7 @@ TEST(Integration, QRSolveLLSProblem)
         if (egraph.find_class_id(id) == egraph.find_class_id(should_be_root_id))
         {
             std::cout << "Found the QR-based solution in iteration " << iteration << "! Num nodes: " << egraph.num_nodes() << std::endl;
+            return;
         }
     }
     FAIL() << "Did not find the QR-based solution within the nodes limit.";

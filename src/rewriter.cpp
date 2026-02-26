@@ -1,6 +1,7 @@
 #include "rewriter.h"
 #include "matcher.h"
 #include <iostream>
+#include <limits>
 
 using Match = struct
 {
@@ -38,22 +39,31 @@ bool Rewriter::apply_one_iteration()
     // Store matches to apply them in batch: (class_id, rewrite_index, substitution)
     std::vector<Match> matches;
 
-    // Search phase
+    // Search phase: collect all matches for each rewrite across all e-classes
     std::vector<Id> class_ids = egraph.get_all_class_ids();
-    for (Id class_id : class_ids)
-    {
-        // Only check root classes
-        if (egraph.find_class_id(class_id) != class_id)
-            continue;
 
-        for (size_t i = 0; i < rewrites.size(); ++i)
+    for (size_t i = 0; i < rewrites.size(); ++i)
+    {
+        if (ban_iterations_remaining[i] > 0)
         {
-            auto &rewrite = rewrites[i];
-            if (rewrite.application_limit.has_value() && rewrite_application_counts[i] >= rewrite.application_limit.value())
+            ban_iterations_remaining[i]--;
+            if (ban_iterations_remaining[i] == 0)
             {
-                rewrite.application_limit = rewrite.application_limit.value() * 2;
-                continue;
+                rewrite_application_counts[i] = 0;
             }
+            continue;
+        }
+
+        auto &rewrite = rewrites[i];
+        std::vector<Match> rewrite_matches;
+        size_t total_valid_matches = 0;
+
+        for (Id class_id : class_ids)
+        {
+            // Only check root classes
+            if (egraph.find_class_id(class_id) != class_id)
+                continue;
+
             std::set<Substitution> substs = matcher.find_matches_in_eclass(class_id, rewrite.lhs);
 
             for (const auto &subst : substs)
@@ -62,13 +72,32 @@ bool Rewriter::apply_one_iteration()
                 {
                     continue;
                 }
-                matches.emplace_back(class_id, i, subst);
+                total_valid_matches++;
+                rewrite_matches.emplace_back(class_id, i, subst);
             }
-            rewrite_application_counts[i] += substs.size();
         }
+
+        if (rewrite_application_counts[i] + total_valid_matches > current_match_limits[i])
+        {
+            ban_iterations_remaining[i] = ban_duration_next[i];
+            ban_duration_next[i] *= 2;
+            current_match_limits[i] *= 2;
+
+            std::cout << "Rewrite '" << rewrite.name << "' exceeded match limit ("
+                      << (rewrite_application_counts[i] + total_valid_matches) << " > " << (current_match_limits[i] / 2)
+                      << "). Banning for " << ban_iterations_remaining[i]
+                      << " iterations. New limit: " << current_match_limits[i] << std::endl;
+
+            continue;
+        }
+
+        for (const auto &match : rewrite_matches)
+        {
+            matches.push_back(match);
+        }
+        rewrite_application_counts[i] += total_valid_matches;
     }
 
-    // Apply phase
     for (const auto &match : matches)
     {
         const auto &rewrite = rewrites[match.rewrite_idx];

@@ -118,3 +118,39 @@ TEST(Rewrite, SolveRule)
     EXPECT_EQ(egraph.find_class_id(id_expr), egraph.find_class_id(id_solve));
     EXPECT_EQ(std::get<MatrixProperty>(egraph.get_class_analysis_data(id_expr).property).shape, std::make_pair(Size(3), Size(2)));
 }
+
+TEST(Rewrite, BackoffScheduler)
+{
+    PropertyTable pt;
+
+    MatrixProperty prop_2x2;
+    prop_2x2.shape = {2, 2};
+    pt.add_property_entry("A", prop_2x2);
+    pt.add_property_entry("B", prop_2x2);
+    pt.add_property_entry("C", prop_2x2);
+
+    EGraph egraph(std::move(pt));
+
+    Id id1 = egraph.add_expression(Expression("Add(A, B)"));
+    Id id2 = egraph.add_expression(Expression("Add(C, A)"));
+
+    std::vector<Rewrite> rules = {
+        Rewrite{
+            "commute_add_limited",
+            Pattern("Add(?x, ?y)"),
+            Pattern("Add(?y, ?x)"),
+            nullptr,
+            nullptr,
+            1}};
+
+    Rewriter rewriter(egraph, rules, 1000);
+
+    bool changed1 = rewriter.apply_one_iteration();
+    EXPECT_FALSE(changed1);
+
+    bool changed2 = rewriter.apply_one_iteration();
+    EXPECT_FALSE(changed2);
+
+    bool changed3 = rewriter.apply_one_iteration();
+    EXPECT_TRUE(changed3);
+}
