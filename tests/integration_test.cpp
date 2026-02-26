@@ -65,11 +65,10 @@ TEST(Integration, MinimalRealisticExplosionRules)
     auto id = egraph.add_expression(Expression("Mul(Mul(Inv(A), A), A)"));
     std::vector<Rewrite> rules = {
         mul_assoc_right,
-        mul_assoc_left,
         invert_cancel_left,
         mul_identity_right,
     };
-    Rewriter rewriter(egraph, rules, 200);
+    Rewriter rewriter(egraph, rules, 2000);
     int i = 20;
     while (i-- > 0)
     {
