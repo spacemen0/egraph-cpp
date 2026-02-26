@@ -4,9 +4,10 @@
 
 class EGraph;
 
-class MatrixAnalysis
+namespace MatrixAnalysis
 {
-public:
-    static AnalysisData make(const EGraph &egraph, const ENode &node);
-    static void merge(AnalysisData &data1, const AnalysisData &data2);
+    AnalysisData make(const EGraph &egraph, const ENode &node);
+    void merge(AnalysisData &data1, const AnalysisData &data2);
+    void enforce_hierarchy(MatrixProperty &property);
+    AnalysisData analyze_matrix_op(const EGraph &egraph, const ENode &node, Op op);
 };
