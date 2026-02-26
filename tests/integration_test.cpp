@@ -10,7 +10,7 @@ TEST(Integration, MatrixPartialSet)
 {
     EGraph egraph(get_property_table());
 
-    auto id = egraph.add_expression(Expression("Mul(Mul(Mul(Invert(Mul(A, Z)), A), Z), X)"));
+    auto id = egraph.add_expression(Expression("Mul(Mul(Mul(Inv(Mul(A, Z)), A), Z), X)"));
     std::vector<Rewrite> rules = {mul_assoc_right, invert_cancel_left, mul_identity_right};
     Rewriter rewriter(egraph, rules, 1000);
     rewriter.apply_rewrites(4);
@@ -26,7 +26,7 @@ TEST(Integration, SimplifyComplexMatrixChain)
 {
     EGraph egraph(get_property_table());
 
-    Expression root_expr("Mul(Transpose(Mul(A, X)), Invert(Transpose(A)))");
+    Expression root_expr("Mul(Tr(Mul(A, X)), Inv(Tr(A)))");
     Id root_id = egraph.add_expression(root_expr);
     std::cout << "Initial EGraph size: " << egraph.num_nodes() << " nodes." << std::endl;
 
@@ -48,13 +48,13 @@ TEST(Integration, SimplifyComplexMatrixChain)
     std::cout << "Best extracted expression: " << result_str << std::endl;
     std::cout << "Cost: " << result.cost << std::endl;
     std::cout << "Final EGraph size: " << egraph.num_nodes() << " nodes." << std::endl;
-    Expression expected("Transpose(X)");
+    Expression expected("Tr(X)");
     Id expected_id = egraph.add_expression(expected);
 
     EXPECT_EQ(egraph.find_class_id(root_id), egraph.find_class_id(expected_id))
-        << "The expression should be equivalent to Transpose(X)";
-    // Should be Transpose(X)
-    EXPECT_EQ(atom_to_string(result.expr.atom), "Transpose");
+        << "The expression should be equivalent to Tr(X)";
+    // Should be Tr(X)
+    EXPECT_EQ(atom_to_string(result.expr.atom), "Tr");
     ASSERT_EQ(result.expr.children.size(), 1);
     EXPECT_EQ(atom_to_string(result.expr.children[0].atom), "X");
 }
@@ -62,7 +62,7 @@ TEST(Integration, SimplifyComplexMatrixChain)
 TEST(Integration, MinimalRealisticExplosionRules)
 {
     EGraph egraph(get_property_table());
-    auto id = egraph.add_expression(Expression("Mul(Mul(Invert(A), A), A)"));
+    auto id = egraph.add_expression(Expression("Mul(Mul(Inv(A), A), A)"));
     std::vector<Rewrite> rules = {
         mul_assoc_right,
         mul_assoc_left,
@@ -97,7 +97,7 @@ TEST(Integration, CyclicTermsThatDoNotExplode)
     EGraph egraph(get_property_table());
 
     // A (A-1A)
-    auto id = egraph.add_expression(Expression("Mul(A, Mul(Invert(A), A))"));
+    auto id = egraph.add_expression(Expression("Mul(A, Mul(Inv(A), A))"));
     std::vector<Rewrite> rules = {
         mul_assoc_left,
         invert_cancel_right,
@@ -126,7 +126,7 @@ TEST(Integration, CyclicTermsThatDoNotExplode)
 TEST(Integration, QRSolveLLSProblem)
 {
     EGraph egraph(get_property_table());
-    auto id = egraph.add_expression(Expression("Mul ( Mul( Invert( Mul(Transpose(M), M) ) , Transpose(M) ), n)"));
+    auto id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(M), M) ) , Tr(M) ), n)"));
 
     std::vector<Rewrite> rules = {
         QR_introduction,
@@ -144,7 +144,7 @@ TEST(Integration, QRSolveLLSProblem)
     while (rewriter.apply_one_iteration())
     {
         iteration++;
-        auto should_be_root_id = egraph.add_expression(Expression("Mul(Mul(Invert(Get(QR(M), 1)), Transpose(Get(QR(M), 0))), n)"));
+        auto should_be_root_id = egraph.add_expression(Expression("Mul(Mul(Inv(Get(QR(M), 1)), Tr(Get(QR(M), 0))), n)"));
         egraph.to_img("qr_" + std::to_string(iteration), "svg");
         if (egraph.find_class_id(id) == egraph.find_class_id(should_be_root_id))
         {

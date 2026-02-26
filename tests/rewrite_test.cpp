@@ -78,10 +78,10 @@ TEST(Rewrite, NewNodes)
     pt.add_property_entry("a", prop_a);
     EGraph egraph(std::move(pt));
 
-    Id id_add = egraph.add_expression(Expression("Mul(Invert(a), a)"));
+    Id id_add = egraph.add_expression(Expression("Mul(Inv(a), a)"));
 
     std::vector<Rewrite> rules = {
-        make_rewrite("inv-mul-left", "Mul(Invert(?a), ?a)", "?__dynamic__", nullptr, [](EGraph &g, const Substitution &s)
+        make_rewrite("inv-mul-left", "Mul(Inv(?a), ?a)", "?__dynamic__", nullptr, [](EGraph &g, const Substitution &s)
                      { return make_identity_for(g, s, "a"); })};
 
     Rewriter rewriter(egraph, rules, 100);
@@ -108,13 +108,13 @@ TEST(Rewrite, SolveRule)
 
     EGraph egraph(std::move(pt));
 
-    Id id_expr = egraph.add_expression(Expression("Mul(Invert(a), b)"));
+    Id id_expr = egraph.add_expression(Expression("Mul(Inv(a), b)"));
 
     Rewriter rewriter(egraph, {solve_rule}, 100);
     bool changed = rewriter.apply_rewrites();
     EXPECT_TRUE(changed);
 
-    Id id_solve = egraph.add_expression(Expression("Solve(a, b)"));
+    Id id_solve = egraph.add_expression(Expression("Sol(a, b)"));
     EXPECT_EQ(egraph.find_class_id(id_expr), egraph.find_class_id(id_solve));
     EXPECT_EQ(std::get<MatrixProperty>(egraph.get_class_analysis_data(id_expr).property).shape, std::make_pair(Size(3), Size(2)));
 }

@@ -22,18 +22,18 @@ inline std::vector<Rewrite> get_all_rewrite_rules()
         make_rewrite("mul-identity-right", "Mul(?i, ?a)", "?a", [](const EGraph &g, const Substitution &s)
                      { return is_identity(s, g, "i"); }),
 
-        make_rewrite("mat-transpose-prod", "Transpose(Mul(?a, ?b))", "Mul(Transpose(?b), Transpose(?a))"),
-        make_rewrite("mat-transpose-prod-right", "Mul(Transpose(?b), Transpose(?a))", "Transpose(Mul(?a, ?b))"),
-        make_rewrite("transpose-involutive", "Transpose(Transpose(?a))", "?a"),
-        make_rewrite("transpose-involutive-right", "?a", "Transpose(Transpose(?a))"),
-        make_rewrite("invert-involutive", "Invert(Invert(?a))", "?a"),
-        make_rewrite("invert-involutive-right", "?a", "Invert(Invert(?a))"),
-        make_rewrite("invert-mat-prod", "Invert(Mul(?a, ?b))", "Mul(Invert(?b), Invert(?a))"),
-        make_rewrite("invert-mat-prod-right", "Mul(Invert(?b), Invert(?a))", "Invert(Mul(?a, ?b))"),
+        make_rewrite("mat-transpose-prod", "Tr(Mul(?a, ?b))", "Mul(Tr(?b), Tr(?a))"),
+        make_rewrite("mat-transpose-prod-right", "Mul(Tr(?b), Tr(?a))", "Tr(Mul(?a, ?b))"),
+        make_rewrite("transpose-involutive", "Tr(Tr(?a))", "?a"),
+        make_rewrite("transpose-involutive-right", "?a", "Tr(Tr(?a))"),
+        make_rewrite("invert-involutive", "Inv(Inv(?a))", "?a"),
+        make_rewrite("invert-involutive-right", "?a", "Inv(Inv(?a))"),
+        make_rewrite("invert-mat-prod", "Inv(Mul(?a, ?b))", "Mul(Inv(?b), Inv(?a))"),
+        make_rewrite("invert-mat-prod-right", "Mul(Inv(?b), Inv(?a))", "Inv(Mul(?a, ?b))"),
 
-        make_rewrite("invert-cancel-left", "Mul(Invert(?a), ?a)", "?__dynamic__", nullptr, [](EGraph &g, const Substitution &s)
+        make_rewrite("invert-cancel-left", "Mul(Inv(?a), ?a)", "?__dynamic__", nullptr, [](EGraph &g, const Substitution &s)
                      { return make_identity_for(g, s, "a"); }),
-        make_rewrite("invert-cancel-right", "Mul(?a, Invert(?a))", "?__dynamic__", nullptr, [](EGraph &g, const Substitution &s)
+        make_rewrite("invert-cancel-right", "Mul(?a, Inv(?a))", "?__dynamic__", nullptr, [](EGraph &g, const Substitution &s)
                      { return make_identity_for(g, s, "a"); }),
 
         make_rewrite("add-comm-zero", "Add(?a, ?z)", "?a", [](const EGraph &g, const Substitution &s)
@@ -43,22 +43,22 @@ inline std::vector<Rewrite> get_all_rewrite_rules()
         make_rewrite("mul-zero-right", "Mul(?a, ?z)", "?z", [](const EGraph &g, const Substitution &s)
                      { return is_zero(s, g, "z"); }),
 
-        make_rewrite("negate-involutive", "Negate(Negate(?a))", "?a"),
-        make_rewrite("negate-involutive-right", "?a", "Negate(Negate(?a))"),
+        make_rewrite("negate-involutive", "Neg(Neg(?a))", "?a"),
+        make_rewrite("negate-involutive-right", "?a", "Neg(Neg(?a))"),
 
-        make_rewrite("add-negate-cancel-left", "Add(?a, Negate(?a))", "?__dynamic__", nullptr, [](EGraph &g, const Substitution &s)
+        make_rewrite("add-negate-cancel-left", "Add(?a, Neg(?a))", "?__dynamic__", nullptr, [](EGraph &g, const Substitution &s)
                      { return make_zero_for(g, s, "a"); }),
 
-        make_rewrite("transpose-invert", "Transpose(Invert(?a))", "Invert(Transpose(?a))"),
-        make_rewrite("invert-transpose", "Invert(Transpose(?a))", "Transpose(Invert(?a))"),
-        make_rewrite("transpose-add", "Transpose(Add(?a, ?b))", "Add(Transpose(?a), Transpose(?b))"),
-        make_rewrite("transpose-add-right", "Add(Transpose(?a), Transpose(?b))", "Transpose(Add(?a, ?b))"),
+        make_rewrite("transpose-invert", "Tr(Inv(?a))", "Inv(Tr(?a))"),
+        make_rewrite("invert-transpose", "Inv(Tr(?a))", "Tr(Inv(?a))"),
+        make_rewrite("transpose-add", "Tr(Add(?a, ?b))", "Add(Tr(?a), Tr(?b))"),
+        make_rewrite("transpose-add-right", "Add(Tr(?a), Tr(?b))", "Tr(Add(?a, ?b))"),
     };
 }
 
-static const auto invert_cancel_left = make_rewrite("invert-cancel-left", "Mul(Invert(?a), ?a)", "?__dynamic__", nullptr, [](EGraph &g, const Substitution &s)
+static const auto invert_cancel_left = make_rewrite("invert-cancel-left", "Mul(Inv(?a), ?a)", "?__dynamic__", nullptr, [](EGraph &g, const Substitution &s)
                                                     { return make_identity_for(g, s, "a"); });
-static const auto invert_cancel_right = make_rewrite("invert-cancel-right", "Mul(?a, Invert(?a))", "?__dynamic__", nullptr, [](EGraph &g, const Substitution &s)
+static const auto invert_cancel_right = make_rewrite("invert-cancel-right", "Mul(?a, Inv(?a))", "?__dynamic__", nullptr, [](EGraph &g, const Substitution &s)
                                                      { return make_identity_for(g, s, "a"); });
 static const auto mul_assoc_left = make_rewrite("mul-assoc-left", "Mul(?a, Mul(?b, ?c))", "Mul(Mul(?a, ?b), ?c)");
 static const auto mul_assoc_right = make_rewrite("mul-assoc-right", "Mul(Mul(?a, ?b), ?c)", "Mul(?a, Mul(?b, ?c))");
@@ -68,11 +68,11 @@ static const auto mul_identity_left = make_rewrite("mul-identity-left", "Mul(?a,
                                                    { return is_identity(s, g, "i"); });
 static const auto mul_assoc = make_rewrite("mul-assoc", "Mul(?a, Mul(?b, ?c))", "Mul(Mul(?a, ?b), ?c)");
 static const auto commute_add = make_rewrite("commute-add", "Add(?a, ?b)", "Add(?b, ?a)");
-static const auto mat_transpose_prod = make_rewrite("mat-transpose-prod", "Transpose(Mul(?a, ?b))", "Mul(Transpose(?b), Transpose(?a))");
+static const auto mat_transpose_prod = make_rewrite("mat-transpose-prod", "Tr(Mul(?a, ?b))", "Mul(Tr(?b), Tr(?a))");
 static const auto qr_invert = make_rewrite("qr-invert",
-                                           "Invert(?a)",
-                                           "Mul(Invert(Get(QR(?a), 1)), Transpose(Get(QR(?a), 0)))");
-static const auto solve_rule = make_rewrite("solve-rule", "Mul(Invert(?a), ?b)", "Solve(?a, ?b)", [](const EGraph &g, const Substitution &s)
+                                           "Inv(?a)",
+                                           "Mul(Inv(Get(QR(?a), 1)), Tr(Get(QR(?a), 0)))");
+static const auto solve_rule = make_rewrite("solve-rule", "Mul(Inv(?a), ?b)", "Sol(?a, ?b)", [](const EGraph &g, const Substitution &s)
                                             {
     Id a_id = s.at("a");
     const auto &data = g.get_class_analysis_data(a_id);
@@ -86,7 +86,7 @@ static const auto QR_introduction = make_rewrite("qr-intro", "?a", "Mul(Get(QR(?
                                                  {
     Id a_id = s.at("a");
     auto node = g.at(a_id);
-    if (!node.has_ancestor("Invert", g))
+    if (!node.has_ancestor("Inv", g))
         return false;
     if (node.get_children().size() != 0)
         return false;
@@ -96,7 +96,7 @@ static const auto QR_introduction = make_rewrite("qr-intro", "?a", "Mul(Get(QR(?
         return true;
     }
     return false; });
-static const auto invert_mat_prod = make_rewrite("invert-mat-prod", "Invert(Mul(?a, ?b))", "Mul(Invert(?b), Invert(?a))", [](const EGraph &g, const Substitution &s)
+static const auto invert_mat_prod = make_rewrite("invert-mat-prod", "Inv(Mul(?a, ?b))", "Mul(Inv(?b), Inv(?a))", [](const EGraph &g, const Substitution &s)
                                                  {
     Id a_id = s.at("a");
     Id b_id = s.at("b");
@@ -110,7 +110,7 @@ static const auto invert_mat_prod = make_rewrite("invert-mat-prod", "Invert(Mul(
         }
     }
     return false; });
-static const auto orthogonal_transpose = make_rewrite("orthogonal-transpose", "Mul(Transpose(?a), ?a)", "Identity", [](const EGraph &g, const Substitution &s)
+static const auto orthogonal_transpose = make_rewrite("orthogonal-transpose", "Mul(Tr(?a), ?a)", "Identity", [](const EGraph &g, const Substitution &s)
                                                       {
     Id a_id = s.at("a");
     const auto &data = g.get_class_analysis_data(a_id);
@@ -121,7 +121,7 @@ static const auto orthogonal_transpose = make_rewrite("orthogonal-transpose", "M
     return false; }, [](EGraph &g, const Substitution &s)
                                                       { return make_identity_for(g, s, "a"); });
 
-static const auto orthonormal_transpose = make_rewrite("orthonormal-transpose", "Mul(Transpose(?a), ?a)", "Identity", [](const EGraph &g, const Substitution &s)
+static const auto orthonormal_transpose = make_rewrite("orthonormal-transpose", "Mul(Tr(?a), ?a)", "Identity", [](const EGraph &g, const Substitution &s)
                                                        {
     Id a_id = s.at("a");
     const auto &data = g.get_class_analysis_data(a_id);

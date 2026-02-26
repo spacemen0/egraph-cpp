@@ -23,7 +23,7 @@ TEST(EGraph, BreakWithInvalidChildId)
 {
     EGraph egraph(get_property_table());
     Id fake_id = 999999;
-    ENode dangerous_node = make_op(Op::Negate, Children{fake_id});
+    ENode dangerous_node = make_op(Op::Neg, Children{fake_id});
     EXPECT_ANY_THROW(egraph.add_node(dangerous_node));
 }
 
@@ -95,10 +95,10 @@ TEST(EGraph, RebuildCleanUpEClass)
     Id x = egraph.add_node(sym_a);
     Id y = egraph.add_node(sym_z);
 
-    ENode node_x = make_op(Op::Negate, {x});
+    ENode node_x = make_op(Op::Neg, {x});
     Id neg_x = egraph.add_node(node_x);
 
-    ENode node_y = make_op(Op::Negate, {y});
+    ENode node_y = make_op(Op::Neg, {y});
     Id neg_y = egraph.add_node(node_y);
 
     EXPECT_NE(egraph.find_class_id(neg_x), egraph.find_class_id(neg_y));
@@ -115,7 +115,7 @@ TEST(EGraph, AddExpression)
 {
     EGraph egraph(get_property_table());
 
-    Expression expr("Add(Mul(X, Y), Transpose(Z))");
+    Expression expr("Add(Mul(X, Y), Tr(Z))");
     Id expr_id = egraph.add_expression(expr);
 
     EXPECT_TRUE(egraph.find_node_id(sym_x).has_value());
@@ -123,7 +123,7 @@ TEST(EGraph, AddExpression)
     EXPECT_TRUE(egraph.find_node_id(sym_z).has_value());
 
     auto mul_xy = make_op(Op::Mul, Children{egraph.find_node_id(sym_x).value(), egraph.find_node_id(sym_y).value()});
-    auto transpose_z = make_op(Op::Transpose, Children{egraph.find_node_id(sym_z).value()});
+    auto transpose_z = make_op(Op::Tr, Children{egraph.find_node_id(sym_z).value()});
     EXPECT_TRUE(egraph.find_node_id(mul_xy).has_value());
     EXPECT_TRUE(egraph.find_node_id(transpose_z).has_value());
 
@@ -131,12 +131,12 @@ TEST(EGraph, AddExpression)
     EXPECT_TRUE(egraph.find_node_id(add_expr).has_value());
     EXPECT_EQ(egraph.find_node_id(add_expr).value(), expr_id);
 
-    Expression expr_dup("Add(Mul(X, Y), Transpose(Z))");
+    Expression expr_dup("Add(Mul(X, Y), Tr(Z))");
     Id expr_dup_id = egraph.add_expression(expr_dup);
 
     EXPECT_EQ(expr_id, expr_dup_id);
 
-    Expression expr_diff("Add(Mul(X, Y), Invert(Z))");
+    Expression expr_diff("Add(Mul(X, Y), Inv(Z))");
     Id expr_diff_id = egraph.add_expression(expr_diff);
 
     EXPECT_NE(expr_id, expr_diff_id);
@@ -148,13 +148,13 @@ TEST(EGraph, ENodeMatching)
 
     Id id1 = egraph.add_node(sym_x);
 
-    auto node = make_op(Op::Negate, Children{id1});
+    auto node = make_op(Op::Neg, Children{id1});
     Id id2 = egraph.add_node(node);
 
     EXPECT_TRUE(egraph.find_node_id(node).has_value());
     EXPECT_EQ(egraph.find_node_id(node).value(), id2);
 
-    auto node_diff = make_op(Op::Negate, Children{id1 + 1});
+    auto node_diff = make_op(Op::Neg, Children{id1 + 1});
     EXPECT_FALSE(egraph.find_node_id(node_diff).has_value());
 }
 
@@ -182,9 +182,9 @@ TEST(EGraph, PatternMatchingNested)
 {
     EGraph egraph(get_property_table());
 
-    Id expr_id = egraph.add_expression(Expression("Add(Mul(X, Y), Transpose(Z))"));
+    Id expr_id = egraph.add_expression(Expression("Add(Mul(X, Y), Tr(Z))"));
 
-    Pattern pattern("Add(Mul(?a, ?b), Transpose(?c))");
+    Pattern pattern("Add(Mul(?a, ?b), Tr(?c))");
 
     std::set<Substitution> substitutions;
     egraph.find_matches_in_eclass(expr_id, pattern, substitutions);
@@ -255,6 +255,6 @@ TEST(EGraph, ErrorConditions)
     ENode mismatch_mul = make_op(Op::Mul, {x, x});
     EXPECT_THROW(egraph.add_node(mismatch_mul), ShapeMismatchError);
 
-    ENode invalid_invert = make_op(Op::Invert, {x});
+    ENode invalid_invert = make_op(Op::Inv, {x});
     EXPECT_THROW(egraph.add_node(invalid_invert), InvalidOperationError);
 }

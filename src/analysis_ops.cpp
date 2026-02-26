@@ -97,7 +97,7 @@ static AnalysisData analyze_mul(const EGraph &egraph, const std::vector<Id> &chi
 
 static AnalysisData analyze_transpose(const EGraph &egraph, const std::vector<Id> &children)
 {
-    check_arity(children, 1, "Transpose");
+    check_arity(children, 1, "Tr");
     if (auto data = get_matrix_data(egraph, children.at(0)))
     {
         auto child_size = data->shape;
@@ -108,32 +108,32 @@ static AnalysisData analyze_transpose(const EGraph &egraph, const std::vector<Id
         prop.is_upper_triangular = data->is_lower_triangular;
         return matrix_property_data(prop);
     }
-    throw AnalysisError("Transpose expects a Matrix input");
+    throw AnalysisError("Tr expects a Matrix input");
 }
 
 static AnalysisData analyze_invert(const EGraph &egraph, const std::vector<Id> &children)
 {
-    check_arity(children, 1, "Invert");
+    check_arity(children, 1, "Inv");
     if (auto data = get_matrix_data(egraph, children.at(0)))
     {
         if (data->shape.first != data->shape.second)
         {
-            throw InvalidOperationError("Invert operation on non-square matrix");
+            throw InvalidOperationError("Inv operation on non-square matrix");
         }
         if (data->is_singular)
         {
-            throw InvalidOperationError("Invert operation on singular matrix");
+            throw InvalidOperationError("Inv operation on singular matrix");
         }
 
         MatrixProperty prop = *data;
         return matrix_property_data(prop);
     }
-    throw AnalysisError("Invert expects a Matrix input");
+    throw AnalysisError("Inv expects a Matrix input");
 }
 
 static AnalysisData analyze_negate(const EGraph &egraph, const std::vector<Id> &children)
 {
-    check_arity(children, 1, "Negate");
+    check_arity(children, 1, "Neg");
     if (auto data = get_matrix_data(egraph, children.at(0)))
     {
         MatrixProperty prop = *data;
@@ -142,7 +142,7 @@ static AnalysisData analyze_negate(const EGraph &egraph, const std::vector<Id> &
         prop.is_positive_definite = false;
         return matrix_property_data(prop);
     }
-    throw AnalysisError("Negate expects a Matrix input");
+    throw AnalysisError("Neg expects a Matrix input");
 }
 
 static AnalysisData analyze_qr(const EGraph &egraph, const std::vector<Id> &children)
@@ -218,14 +218,14 @@ static AnalysisData analyze_get(const EGraph &egraph, const std::vector<Id> &chi
 
 static AnalysisData analyze_solve(const EGraph &egraph, const std::vector<Id> &children)
 {
-    check_arity(children, 2, "Solve");
+    check_arity(children, 2, "Sol");
     if (auto data1 = get_matrix_data(egraph, children.at(0)))
     {
         if (auto data2 = get_matrix_data(egraph, children.at(1)))
         {
             if (data1->shape.second != data2->shape.first)
             {
-                throw ShapeMismatchError("Solve operation with incompatible sizes");
+                throw ShapeMismatchError("Sol operation with incompatible sizes");
             }
 
             MatrixProperty prop;
@@ -233,23 +233,23 @@ static AnalysisData analyze_solve(const EGraph &egraph, const std::vector<Id> &c
             return matrix_property_data(prop);
         }
     }
-    throw AnalysisError("Solve expects Matrix inputs");
+    throw AnalysisError("Sol expects Matrix inputs");
 }
 
 static AnalysisData analyze_triangular_solve(const EGraph &egraph, const std::vector<Id> &children)
 {
-    check_arity(children, 2, "TriangularSolve");
+    check_arity(children, 2, "TriSol");
     if (auto data1 = get_matrix_data(egraph, children.at(0)))
     {
         if (auto data2 = get_matrix_data(egraph, children.at(1)))
         {
             if (data1->shape.second != data2->shape.first)
             {
-                throw ShapeMismatchError("TriangularSolve operation with incompatible sizes");
+                throw ShapeMismatchError("TriSol operation with incompatible sizes");
             }
             if (!data1->is_lower_triangular && !data1->is_upper_triangular)
             {
-                throw InvalidOperationError("TriangularSolve operation on non-triangular matrix");
+                throw InvalidOperationError("TriSol operation on non-triangular matrix");
             }
 
             MatrixProperty prop;
@@ -272,11 +272,11 @@ AnalysisData analyze_matrix_op(const EGraph &egraph, const ENode &node, Op op)
         return analyze_add(egraph, children);
     case Mul:
         return analyze_mul(egraph, children);
-    case Transpose:
+    case Tr:
         return analyze_transpose(egraph, children);
-    case Invert:
+    case Inv:
         return analyze_invert(egraph, children);
-    case Negate:
+    case Neg:
         return analyze_negate(egraph, children);
     case QR:
         return analyze_qr(egraph, children);
@@ -286,11 +286,11 @@ AnalysisData analyze_matrix_op(const EGraph &egraph, const ENode &node, Op op)
         throw AnalysisError("LLt analysis not implemented yet");
     case Get:
         return analyze_get(egraph, children);
-    case Solve:
+    case Sol:
         return analyze_solve(egraph, children);
-    case TriangularSolve:
+    case TriSol:
         return analyze_triangular_solve(egraph, children);
-    case Determinant:
+    case Det:
         return AnalysisData{};
     case Log:
         return AnalysisData{};

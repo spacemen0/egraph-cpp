@@ -29,7 +29,7 @@ TEST(Expression, ParseOperationWithChildren)
 
 TEST(Expression, ParseNestedOperations)
 {
-    Expression p("Mul(Add( Add(X,Y), Y), Transpose(Z))");
+    Expression p("Mul(Add( Add(X,Y), Y), Tr(Z))");
     EXPECT_EQ(std::get<Op>(p.atom), Op::Mul);
     ASSERT_EQ(p.children.size(), 2);
     const Expression &add_child = p.children[0];
@@ -40,7 +40,7 @@ TEST(Expression, ParseNestedOperations)
     EXPECT_TRUE(std::holds_alternative<std::string>(add_child.children[1].atom));
     EXPECT_EQ(std::get<std::string>(add_child.children[1].atom), "Y");
     const Expression &transpose_child = p.children[1];
-    EXPECT_EQ(std::get<Op>(transpose_child.atom), Op::Transpose);
+    EXPECT_EQ(std::get<Op>(transpose_child.atom), Op::Tr);
     ASSERT_EQ(transpose_child.children.size(), 1);
     EXPECT_TRUE(std::holds_alternative<std::string>(transpose_child.children[0].atom));
     EXPECT_EQ(std::get<std::string>(transpose_child.children[0].atom), "Z");
@@ -48,9 +48,9 @@ TEST(Expression, ParseNestedOperations)
 
 TEST(Expression, ToString)
 {
-    Expression p("Mul(Add(X, Y), Transpose(Z))");
+    Expression p("Mul(Add(X, Y), Tr(Z))");
     std::string repr = p.to_string();
-    EXPECT_EQ(repr, "Mul(Add(X, Y), Transpose(Z))");
+    EXPECT_EQ(repr, "Mul(Add(X, Y), Tr(Z))");
 }
 
 TEST(Expression, ParseFactorizationNode)

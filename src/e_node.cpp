@@ -46,12 +46,12 @@ std::string ENode::to_string() const
             return "Add";
         case Mul:
             return "Mul";
-        case Transpose:
-            return "Transpose";
-        case Invert:
-            return "Invert";
-        case Negate:
-            return "Negate";
+        case Tr:
+            return "Tr";
+        case Inv:
+            return "Inv";
+        case Neg:
+            return "Neg";
         case QR:
             return "QR";
         case LU:
@@ -60,12 +60,12 @@ std::string ENode::to_string() const
             return "LLt";
         case Get:
             return "Get";
-        case Solve:
-            return "Solve";
-        case TriangularSolve:
-            return "TriangularSolve";
-        case Determinant:
-            return "Determinant";
+        case Sol:
+            return "Sol";
+        case TriSol:
+            return "TriSol";
+        case Det:
+            return "Det";
         case Log:
             return "Log";
         default:

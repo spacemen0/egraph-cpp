@@ -8,17 +8,17 @@ enum class Op
 {
     Add,
     Mul,
-    Transpose,
-    Invert,
-    Negate,
-    QR,              // output: [Q, R]
-    LU,              // output: [L, U, P]
-    LLt,             // output: [L, P]
-    Get,             // [tuple, index]
-    Solve,           // [A, B] solving AX = B
-    TriangularSolve, // [A, B] solving AX = B where A is triangular
-    Determinant,     // [A] computing det(A)
-    Log,             //
+    Tr,
+    Inv,
+    Neg,
+    QR,     // output: [Q, R]
+    LU,     // output: [L, U, P]
+    LLt,    //
+    Get,    // [tuple, index]
+    Sol,    // [A, B] solving AX = B
+    TriSol, // [A, B] solving AX = B where A is triangular
+    Det,    // [A] computing det(A)
+    Log,    //
 };
 
 using Id = uint32_t;

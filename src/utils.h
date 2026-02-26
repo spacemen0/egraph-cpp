@@ -17,12 +17,12 @@ inline Op parse_op(std::string_view s)
         return Add;
     if (s == "Mul")
         return Mul;
-    if (s == "Transpose")
-        return Transpose;
-    if (s == "Invert")
-        return Invert;
-    if (s == "Negate")
-        return Negate;
+    if (s == "Tr")
+        return Tr;
+    if (s == "Inv")
+        return Inv;
+    if (s == "Neg")
+        return Neg;
     if (s == "QR")
         return QR;
     if (s == "LU")
@@ -31,12 +31,12 @@ inline Op parse_op(std::string_view s)
         return LLt;
     if (s == "Get")
         return Get;
-    if (s == "Solve")
-        return Solve;
-    if (s == "TriangularSolve")
-        return TriangularSolve;
-    if (s == "Determinant")
-        return Determinant;
+    if (s == "Sol")
+        return Sol;
+    if (s == "TriSol")
+        return TriSol;
+    if (s == "Det")
+        return Det;
     if (s == "Log")
         return Log;
     throw InvalidOperationError("Unknown operation: " + std::string(s));
@@ -128,12 +128,12 @@ inline std::string atom_to_string(const Atom &atom)
             return "Add";
         case Mul:
             return "Mul";
-        case Transpose:
-            return "Transpose";
-        case Invert:
-            return "Invert";
-        case Negate:
-            return "Negate";
+        case Tr:
+            return "Tr";
+        case Inv:
+            return "Inv";
+        case Neg:
+            return "Neg";
         case QR:
             return "QR";
         case LU:
@@ -142,12 +142,12 @@ inline std::string atom_to_string(const Atom &atom)
             return "LLt";
         case Get:
             return "Get";
-        case Solve:
-            return "Solve";
-        case TriangularSolve:
-            return "TriangularSolve";
-        case Determinant:
-            return "Determinant";
+        case Sol:
+            return "Sol";
+        case TriSol:
+            return "TriSol";
+        case Det:
+            return "Det";
         case Log:
             return "Log";
         }
