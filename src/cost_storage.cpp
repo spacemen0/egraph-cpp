@@ -56,7 +56,7 @@ void CostStorage::recompute()
 
             for (const ENode *node : egraph.get_class_nodes(root))
             {
-                double current_node_cost = 1.0;
+                double current_node_cost = node->compute_cost(egraph);
                 for (Id child : node->get_children())
                 {
                     Id child_root = egraph.find_class_id(child);

@@ -17,6 +17,7 @@ public:
     explicit ENode(const Children &children, Atom const &atom)
         : children(children), atom(atom) {}
     bool equals(const ENode &other) const;
+    double compute_cost(const EGraph &egraph) const;
 
     // access children (mutable/immutable)
     const Children &get_children() const;

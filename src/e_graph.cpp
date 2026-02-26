@@ -292,6 +292,7 @@ std::string EGraph::to_dot() const
     oss << "digraph egraph {\n";
     oss << "  compound=true;\n";
     oss << "  clusterrank=local;\n\n";
+    oss << " graph [ranksep = 1.0, nodesep = 0.5, fontsize = 10];\n\n";
 
     for (const auto &[class_id, eclass] : classes)
     {

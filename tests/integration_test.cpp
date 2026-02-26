@@ -77,10 +77,7 @@ TEST(Integration, MinimalRealisticExplosionRules)
         {
             break;
         }
-        if (20 - i <= 6)
-        {
-            egraph.to_img("explosion_" + std::to_string(20 - i), "svg");
-        }
+        egraph.to_img("explosion_" + std::to_string(20 - i), "svg");
     }
     Extractor extractor(egraph);
     auto result = extractor.extract(id);

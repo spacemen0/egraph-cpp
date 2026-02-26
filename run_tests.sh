@@ -1,8 +1,9 @@
 #!/bin/bash
 set -e
 
-echo "Cleaning up old coverage data..."
-
+echo "Cleaning up old data..."
+rm -rf ./coverage_report
+rm -rf ./*.svg
 find build -name "*.gcda" -type f -delete
 
 echo "Building project..."
@@ -12,5 +13,4 @@ echo "Running tests..."
 ./build/tests/unit_tests
 
 echo "Generating coverage report..."
-rm -rf ./coverage_report
 grcov . -s . --binary-path ./build/ -t html -o ./coverage_report

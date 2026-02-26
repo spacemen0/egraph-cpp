@@ -20,6 +20,11 @@ bool ENode::equals(const ENode &other) const
     return true;
 }
 
+double ENode::compute_cost(const EGraph &egraph) const
+{
+    return 1.0;
+}
+
 const Children &ENode::get_children() const
 {
     return children;
