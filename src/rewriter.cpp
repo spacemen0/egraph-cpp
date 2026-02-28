@@ -44,7 +44,7 @@ bool Rewriter::apply_one_iteration()
 
     for (size_t i = 0; i < rewrites.size(); ++i)
     {
-        if (ban_iterations_remaining[i] > 0)
+        if (ban_iterations_remaining[i] > 0 && enable_backoff)
         {
             ban_iterations_remaining[i]--;
             if (ban_iterations_remaining[i] == 0)
@@ -77,25 +77,26 @@ bool Rewriter::apply_one_iteration()
             }
         }
 
-        if (rewrite_application_counts[i] + total_valid_matches > current_match_limits[i])
+        size_t budget_remaining = current_match_limits[i] - rewrite_application_counts[i];
+        size_t matches_to_apply = std::min(total_valid_matches, budget_remaining);
+
+        for (size_t j = 0; j < matches_to_apply; ++j)
+        {
+            matches.push_back(rewrite_matches[j]);
+        }
+        rewrite_application_counts[i] += matches_to_apply;
+
+        if (total_valid_matches > budget_remaining)
         {
             ban_iterations_remaining[i] = ban_duration_next[i];
             ban_duration_next[i] *= 2;
             current_match_limits[i] *= 2;
 
             std::cout << "Rewrite '" << rewrite.name << "' exceeded match limit ("
-                      << (rewrite_application_counts[i] + total_valid_matches) << " > " << (current_match_limits[i] / 2)
-                      << "). Banning for " << ban_iterations_remaining[i]
+                      << total_valid_matches << " matches found, budget " << budget_remaining
+                      << "). Applied " << matches_to_apply << ". Banning for " << ban_iterations_remaining[i]
                       << " iterations. New limit: " << current_match_limits[i] << std::endl;
-
-            continue;
         }
-
-        for (const auto &match : rewrite_matches)
-        {
-            matches.push_back(match);
-        }
-        rewrite_application_counts[i] += total_valid_matches;
     }
 
     for (const auto &match : matches)

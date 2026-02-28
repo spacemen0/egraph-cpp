@@ -18,8 +18,8 @@ struct Rewrite
 class Rewriter
 {
 public:
-    Rewriter(EGraph &egraph, std::vector<Rewrite> rewrites, size_t max_nodes)
-        : egraph(egraph), rewrites(std::move(rewrites)), max_nodes(max_nodes)
+    Rewriter(EGraph &egraph, std::vector<Rewrite> rewrites, size_t max_nodes, bool enable_backoff = false)
+        : egraph(egraph), rewrites(std::move(rewrites)), max_nodes(max_nodes), enable_backoff(enable_backoff)
     {
         current_match_limits.resize(this->rewrites.size());
         rewrite_application_counts.resize(this->rewrites.size(), 0);
@@ -37,6 +37,7 @@ public:
 
 private:
     EGraph &egraph;
+    bool enable_backoff;
     std::vector<Rewrite> rewrites;
     std::vector<size_t> current_match_limits;       // Current limit (doubles when banning)
     std::vector<size_t> rewrite_application_counts; // Accumulated applications in current iteration

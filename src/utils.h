@@ -165,9 +165,9 @@ inline std::string atom_to_string(const Atom &atom)
     return "UnknownAtom";
 }
 
-inline Rewrite make_rewrite(const std::string &name, std::string_view lhs, std::string_view rhs, const std::function<bool(const EGraph &, const Substitution &)> &condition = nullptr, const std::function<Id(EGraph &, const Substitution &)> &applier = nullptr)
+inline Rewrite make_rewrite(const std::string &name, std::string_view lhs, std::string_view rhs, const std::function<bool(const EGraph &, const Substitution &)> &condition = nullptr, const std::function<Id(EGraph &, const Substitution &)> &applier = nullptr, size_t initial_match_limit = std::numeric_limits<size_t>::max())
 {
-    return Rewrite{name, Pattern(lhs), Pattern(rhs), condition, applier};
+    return Rewrite{name, Pattern(lhs), Pattern(rhs), condition, applier, initial_match_limit};
 }
 
 inline Id make_identity_for(EGraph &egraph, const Substitution &s, const std::string &var_name, bool use_first_dim = true)

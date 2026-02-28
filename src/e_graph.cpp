@@ -405,7 +405,7 @@ void EGraph::to_img(const std::string &filename, const std::string &format) cons
     std::string dot_filename = filename + ".dot";
     to_dot_file(dot_filename);
     std::string command = "dot -T" + format + " " + dot_filename + " -o " + filename + "." + format;
-    int result = system(command.c_str());
+    int result = system((command + " > /dev/null 2>&1").c_str());
     if (result != 0)
     {
         std::cerr << "Error: Failed to execute command: " << command << std::endl;
