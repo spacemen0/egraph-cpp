@@ -1,5 +1,6 @@
 #include "rewriter.h"
 #include "matcher.h"
+#include "cost_storage.h"
 #include <iostream>
 #include <limits>
 
@@ -31,9 +32,15 @@ static Id instantiate(EGraph &egraph, const Pattern &pattern, const Substitution
     return egraph.add_node(node); // new id or existing id
 }
 
-bool Rewriter::apply_one_iteration()
+bool Rewriter::apply_one_iteration(size_t node_match_limit)
 {
     bool changed = false;
+
+    if (node_match_limit > 0)
+    {
+        cost_storage.recompute();
+    }
+
     Matcher matcher(egraph);
 
     // Store matches to apply them in batch: (class_id, rewrite_index, substitution)
@@ -64,7 +71,7 @@ bool Rewriter::apply_one_iteration()
             if (egraph.find_class_id(class_id) != class_id)
                 continue;
 
-            std::set<Substitution> substs = matcher.find_matches_in_eclass(class_id, rewrite.lhs);
+            std::set<Substitution> substs = matcher.find_matches_in_eclass(class_id, rewrite.lhs, node_match_limit);
 
             for (const auto &subst : substs)
             {
@@ -137,7 +144,13 @@ bool Rewriter::apply_rewrites(int max_iterations)
 
     for (int i = 0; i < max_iterations; ++i)
     {
-        if (!apply_one_iteration())
+        size_t node_match_limit = 0;
+        if (enable_backoff)
+        {
+            node_match_limit = (i % 3 == 2) ? 0 : 3;
+        }
+
+        if (!apply_one_iteration(node_match_limit))
         {
             break;
         }
@@ -152,9 +165,21 @@ bool Rewriter::apply_rewrites(int max_iterations)
 bool Rewriter::apply_rewrites()
 {
     bool changed = false;
-    while (apply_one_iteration())
+    int iteration = 0;
+    while (true)
     {
+        size_t node_match_limit = 0;
+        if (enable_backoff)
+        {
+            node_match_limit = (iteration % 3 == 2) ? 0 : 3;
+        }
+
+        if (!apply_one_iteration(node_match_limit))
+        {
+            break;
+        }
         changed = true;
+        iteration++;
     }
     return changed;
 }

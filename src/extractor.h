@@ -17,6 +17,6 @@ public:
 
 private:
     const EGraph &egraph;
-    CostStorage cost_storage;
+    const CostStorage &cost_storage;
     Expression build_expression(Id class_id) const;
 };

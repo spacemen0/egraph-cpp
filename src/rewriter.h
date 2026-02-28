@@ -19,7 +19,7 @@ class Rewriter
 {
 public:
     Rewriter(EGraph &egraph, std::vector<Rewrite> rewrites, size_t max_nodes, bool enable_backoff = false)
-        : egraph(egraph), rewrites(std::move(rewrites)), max_nodes(max_nodes), enable_backoff(enable_backoff)
+        : egraph(egraph), cost_storage(egraph.get_cost_storage()), rewrites(std::move(rewrites)), max_nodes(max_nodes), enable_backoff(enable_backoff)
     {
         current_match_limits.resize(this->rewrites.size());
         rewrite_application_counts.resize(this->rewrites.size(), 0);
@@ -31,13 +31,14 @@ public:
             current_match_limits[i] = this->rewrites[i].initial_match_limit;
         }
     }
-    bool apply_one_iteration();
+    bool apply_one_iteration(size_t node_match_limit = 0);
     bool apply_rewrites(int max_iterations);
     bool apply_rewrites();
 
 private:
     EGraph &egraph;
     bool enable_backoff;
+    CostStorage &cost_storage;
     std::vector<Rewrite> rewrites;
     std::vector<size_t> current_match_limits;       // Current limit (doubles when banning)
     std::vector<size_t> rewrite_application_counts; // Accumulated applications in current iteration

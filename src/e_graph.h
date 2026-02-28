@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <optional>
+#include <set>
 #include <memory>
 #include <unordered_map>
 #include "union_find.h"
@@ -8,14 +9,16 @@
 #include "e_class.h"
 #include "expression.h"
 #include "pattern.h"
-#include <set>
+#include "cost_storage.h"
 #include "property_table.h"
 
 class EGraph
 {
 public:
-    EGraph() = default;
-    explicit EGraph(PropertyTable pt) : property_table(std::move(pt)) {}
+    EGraph() = delete;
+    explicit EGraph(PropertyTable pt) : property_table(std::move(pt)), cost_storage(*this)
+    {
+    }
     void canonicalize_node(ENode &node);
     std::optional<Id> find_node_id(const ENode &node) const;
     Id find_class_id(Id node_id) const;
@@ -36,6 +39,8 @@ public:
     std::optional<Id> find_class_with_property(const MatrixProperty &prop) const;
     void to_dot_file(const std::string &filename) const;
     void to_img(const std::string &filename, const std::string &format) const;
+    CostStorage &get_cost_storage() { return cost_storage; }
+    const CostStorage &get_cost_storage() const { return cost_storage; }
 
 private:
     // stores the union-find structure for e-classes (which stores equivalences)
@@ -49,6 +54,7 @@ private:
     // stores mapping from EClass id to EClass, classes being merged will be removed
     std::unordered_map<Id, std::unique_ptr<EClass>> classes;
     PropertyTable property_table;
+    CostStorage cost_storage;
     std::string to_dot() const;
     AnalysisData make_analysis(const ENode &node) const;
     void merge_analysis_data(AnalysisData &data1, const AnalysisData &data2) const;

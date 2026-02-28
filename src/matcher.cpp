@@ -5,6 +5,9 @@
 
 #include <algorithm>
 
+Matcher::Matcher(const EGraph &egraph)
+    : egraph(egraph), cost_storage(egraph.get_cost_storage()) {}
+
 bool Matcher::atoms_match(const Atom &pat_atom, const Atom &enode_atom) const
 {
     if (pat_atom.index() != enode_atom.index())
@@ -22,32 +25,31 @@ bool Matcher::atoms_match(const Atom &pat_atom, const Atom &enode_atom) const
     return false;
 }
 
-std::vector<const ENode *> Matcher::ordered_nodes(Id eclass_id) const
+std::vector<const ENode *> Matcher::ordered_nodes(Id eclass_id, size_t limit) const
 {
     const auto &nodes = egraph.get_class_nodes(eclass_id);
     std::vector<const ENode *> ordered(nodes.begin(), nodes.end());
 
-    if (!cost_storage)
-    {
-        return ordered;
-    }
-
     std::ranges::sort(ordered, [&](const ENode *lhs, const ENode *rhs)
-                      { return cost_storage->node_cost(*lhs) < cost_storage->node_cost(*rhs); });
+                      { return cost_storage.node_cost(*lhs) < cost_storage.node_cost(*rhs); });
 
+    if (limit > 0 && limit < ordered.size())
+    {
+        ordered.resize(limit);
+    }
     return ordered;
 }
 
-std::set<Substitution> Matcher::find_matches_in_eclass(Id eclass_id, const Pattern &pattern) const
+std::set<Substitution> Matcher::find_matches_in_eclass(Id eclass_id, const Pattern &pattern, size_t limit) const
 {
     Substitution initial_subst;
     std::set<Substitution> out_substitutions;
-    auto matches = search_eclass_for_pattern(eclass_id, pattern, initial_subst);
+    auto matches = search_eclass_for_pattern(eclass_id, pattern, initial_subst, limit);
     out_substitutions.insert(matches.begin(), matches.end());
     return out_substitutions;
 }
 
-std::vector<Substitution> Matcher::search_eclass_for_pattern(Id eclass_id, const Pattern &pattern, const Substitution &initial_subst) const
+std::vector<Substitution> Matcher::search_eclass_for_pattern(Id eclass_id, const Pattern &pattern, const Substitution &initial_subst, size_t limit) const
 {
     std::vector<Substitution> results;
     Id canonical_id = egraph.find_class_id(eclass_id);
@@ -76,7 +78,7 @@ std::vector<Substitution> Matcher::search_eclass_for_pattern(Id eclass_id, const
         }
     }
 
-    for (const ENode *node : ordered_nodes(canonical_id))
+    for (const ENode *node : ordered_nodes(canonical_id, limit))
     {
         if (!atoms_match(pattern.atom, node->get_atom()) || node->get_children().size() != pattern.children.size())
         {
@@ -94,7 +96,7 @@ std::vector<Substitution> Matcher::search_eclass_for_pattern(Id eclass_id, const
 
             for (const auto &subst : current_matches)
             {
-                auto child_results = search_eclass_for_pattern(child_eclass_id, child_pattern, subst);
+                auto child_results = search_eclass_for_pattern(child_eclass_id, child_pattern, subst, limit);
                 next_matches.insert(next_matches.end(), child_results.begin(), child_results.end());
             }
 
