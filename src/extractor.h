@@ -11,12 +11,12 @@ struct ExtractionResult
 class Extractor
 {
 public:
-    explicit Extractor(const EGraph &egraph);
+    explicit Extractor(EGraph &egraph);
 
     ExtractionResult extract(Id class_id) const;
 
 private:
-    const EGraph &egraph;
-    const CostStorage &cost_storage;
+    EGraph &egraph;
+    CostStorage &cost_storage;
     Expression build_expression(Id class_id) const;
 };

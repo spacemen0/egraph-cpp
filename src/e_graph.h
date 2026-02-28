@@ -28,7 +28,7 @@ public:
     bool union_classes(Id id1, Id id2);
     void rebuild();
     void print_egraph() const;
-    void find_matches_in_eclass(Id eclass_id, const Pattern &pattern, std::set<Substitution> &out_substitutions) const;
+    void find_matches_in_eclass(Id eclass_id, const Pattern &pattern, std::set<Substitution> &out_substitutions);
     const ENode &at(Id id) const;
     std::vector<Id> get_all_class_ids() const;
     const std::vector<const ENode *> &get_class_nodes(Id class_id) const;
@@ -40,7 +40,6 @@ public:
     void to_dot_file(const std::string &filename) const;
     void to_img(const std::string &filename, const std::string &format) const;
     CostStorage &get_cost_storage() { return cost_storage; }
-    const CostStorage &get_cost_storage() const { return cost_storage; }
 
 private:
     // stores the union-find structure for e-classes (which stores equivalences)

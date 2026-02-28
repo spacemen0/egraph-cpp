@@ -2,7 +2,10 @@
 #include <limits>
 #include "errors.h"
 
-Extractor::Extractor(const EGraph &egraph) : egraph(egraph), cost_storage(egraph.get_cost_storage()) {}
+Extractor::Extractor(EGraph &egraph) : egraph(egraph), cost_storage(egraph.get_cost_storage())
+{
+    cost_storage.recompute();
+}
 
 Expression Extractor::build_expression(Id class_id) const
 {

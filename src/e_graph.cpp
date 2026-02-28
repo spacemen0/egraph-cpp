@@ -243,7 +243,7 @@ void EGraph::merge_analysis_data(AnalysisData &data1, const AnalysisData &data2)
     MatrixAnalysis::merge(data1, data2);
 }
 
-void EGraph::find_matches_in_eclass(Id eclass_id, const Pattern &pattern, std::set<Substitution> &out_substitutions) const
+void EGraph::find_matches_in_eclass(Id eclass_id, const Pattern &pattern, std::set<Substitution> &out_substitutions)
 {
     Matcher matcher(*this);
     auto matches = matcher.find_matches_in_eclass(eclass_id, pattern);

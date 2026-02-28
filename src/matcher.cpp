@@ -5,7 +5,7 @@
 
 #include <algorithm>
 
-Matcher::Matcher(const EGraph &egraph)
+Matcher::Matcher(EGraph &egraph)
     : egraph(egraph), cost_storage(egraph.get_cost_storage()) {}
 
 bool Matcher::atoms_match(const Atom &pat_atom, const Atom &enode_atom) const
