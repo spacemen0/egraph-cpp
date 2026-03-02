@@ -274,56 +274,42 @@ inline std::optional<Expression> get_representative_expression_impl(
     std::unordered_set<Id> &visiting)
 {
     Id root = g.find_class_id(class_id);
-    if (visiting.count(root))
-    {
+    if (!visiting.insert(root).second)
         return std::nullopt;
-    }
+
+    auto cleanup = [&]()
+    { visiting.erase(root); };
 
     const auto &nodes = g.get_class_nodes(root);
     if (nodes.empty())
-    {
         throw std::runtime_error("No nodes in class");
-    }
 
     std::vector<const ENode *> candidates;
-    for (const auto &node : nodes)
-    {
-        candidates.push_back(node);
-    }
+    std::ranges::copy(nodes, std::back_inserter(candidates));
+    std::ranges::sort(candidates, {}, [](const ENode *n)
+                      { return n->get_children().size(); });
 
-    auto sort_by_children_size = [](const ENode *a, const ENode *b)
-    {
-        return a->get_children().size() < b->get_children().size();
-    };
-    std::sort(candidates.begin(), candidates.end(), sort_by_children_size);
-
-    visiting.insert(root);
+    // Try simpler nodes first (with fewer children)
     for (const ENode *candidate : candidates)
     {
+        const auto &children = candidate->get_children();
         std::vector<Expression> children_exprs;
-        bool candidate_success = true;
+        children_exprs.reserve(children.size());
 
-        for (auto child_id : candidate->get_children())
+        bool success = std::ranges::all_of(children, [&](Id child_id)
+                                           {
+            auto res = get_representative_expression_impl(g, child_id, visiting);
+            if (res) children_exprs.push_back(std::move(*res));
+            return res.has_value(); });
+
+        if (success)
         {
-            auto child_result = get_representative_expression_impl(g, child_id, visiting);
-
-            if (!child_result.has_value())
-            {
-                candidate_success = false;
-                break;
-            }
-
-            children_exprs.push_back(child_result.value());
-        }
-
-        if (candidate_success)
-        {
-            visiting.erase(root);
+            cleanup();
             return Expression(candidate->get_atom(), children_exprs);
         }
     }
 
-    visiting.erase(root);
+    cleanup();
     return std::nullopt;
 }
 
@@ -334,7 +320,7 @@ inline Expression get_representative_expression(const EGraph &g, Id class_id)
 
     if (!result.has_value())
     {
-        throw std::runtime_error("Failed to extract: Target class is entirely cyclic with no base cases.");
+        throw std::runtime_error("Failed to extract: Target class is entirely cyclic.");
     }
     return result.value();
 }
