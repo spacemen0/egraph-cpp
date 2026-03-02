@@ -63,20 +63,19 @@ TEST(Integration, MinimalRealisticExplosionRules)
 {
     EGraph egraph(get_property_table());
     auto id = egraph.add_expression(Expression("Mul(Mul(Inv(A), A), A)"));
+    auto mul_assoc_right = make_rewrite("mul-assoc-right", "Mul(Mul(?a, ?b), ?c)", "Mul(?a, Mul(?b, ?c))", nullptr, nullptr, 10);
     std::vector<Rewrite> rules = {
         mul_assoc_right,
         invert_cancel_left,
         mul_identity_right,
     };
-    Rewriter rewriter(egraph, rules, 2000);
-    int i = 20;
+    Rewriter rewriter(egraph, rules, 2000, false, false);
+    int iteration_number = 20;
+    int i = iteration_number;
     while (i-- > 0)
     {
-        if (!rewriter.apply_one_iteration())
-        {
-            break;
-        }
-        egraph.to_img("explosion_" + std::to_string(20 - i), "svg");
+        rewriter.apply_one_iteration();
+        egraph.to_img("explosion_" + std::to_string(iteration_number - i), "svg");
     }
     Extractor extractor(egraph);
     auto result = extractor.extract(id);

@@ -78,7 +78,7 @@ bool Rewriter::apply_one_iteration(size_t node_match_limit)
             }
         }
 
-        size_t budget_remaining = current_match_limits[i] - rewrite_application_counts[i];
+        size_t budget_remaining = enable_backoff ? current_match_limits[i] - rewrite_application_counts[i] : total_valid_matches;
         size_t matches_to_apply = std::min(total_valid_matches, budget_remaining);
 
         for (size_t j = 0; j < matches_to_apply; ++j)
@@ -87,7 +87,7 @@ bool Rewriter::apply_one_iteration(size_t node_match_limit)
         }
         rewrite_application_counts[i] += matches_to_apply;
 
-        if (total_valid_matches > budget_remaining)
+        if (total_valid_matches > budget_remaining && enable_backoff)
         {
             ban_iterations_remaining[i] = ban_duration_next[i];
             ban_duration_next[i] *= 2;
@@ -140,9 +140,9 @@ bool Rewriter::apply_rewrites(int max_iterations)
     for (int i = 0; i < max_iterations; ++i)
     {
         size_t node_match_limit = 0;
-        if (enable_backoff)
+        if (enable_node_match_limit)
         {
-            node_match_limit = (i % 3 == 2) ? 0 : 3;
+            node_match_limit = (i % 2 == 1) ? 0 : 1;
         }
 
         if (!apply_one_iteration(node_match_limit))
@@ -164,9 +164,9 @@ bool Rewriter::apply_rewrites()
     while (true)
     {
         size_t node_match_limit = 0;
-        if (enable_backoff)
+        if (enable_node_match_limit)
         {
-            node_match_limit = (iteration % 3 == 2) ? 0 : 3;
+            node_match_limit = (iteration % 2 == 1) ? 0 : 1;
         }
 
         if (!apply_one_iteration(node_match_limit))
