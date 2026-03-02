@@ -69,14 +69,16 @@ TEST(Integration, MinimalRealisticExplosionRules)
         invert_cancel_left,
         mul_identity_right,
     };
-    Rewriter rewriter(egraph, rules, 2000, false, false);
+    egraph.update_cost_storage();
+    Rewriter rewriter(egraph, rules, 2000, false, true);
     int iteration_number = 20;
-    int i = iteration_number;
-    while (i-- > 0)
-    {
-        rewriter.apply_one_iteration();
-        egraph.to_img("explosion_" + std::to_string(iteration_number - i), "svg");
-    }
+    rewriter.apply_rewrites(iteration_number);
+    // int i = iteration_number;
+    // while (i-- > 0)
+    // {
+    //     rewriter.apply_one_iteration();
+    //     egraph.to_img("explosion_" + std::to_string(iteration_number - i), "svg");
+    // }
     Extractor extractor(egraph);
     auto result = extractor.extract(id);
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;

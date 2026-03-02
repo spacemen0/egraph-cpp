@@ -142,7 +142,7 @@ bool Rewriter::apply_rewrites(int max_iterations)
         size_t node_match_limit = 0;
         if (enable_node_match_limit)
         {
-            node_match_limit = (i % 2 == 1) ? 0 : 1;
+            node_match_limit = (i % 3 == 2) ? 0 : 3;
         }
 
         if (!apply_one_iteration(node_match_limit))
@@ -166,7 +166,7 @@ bool Rewriter::apply_rewrites()
         size_t node_match_limit = 0;
         if (enable_node_match_limit)
         {
-            node_match_limit = (iteration % 2 == 1) ? 0 : 1;
+            node_match_limit = (iteration % 3 == 2) ? 0 : 3;
         }
 
         if (!apply_one_iteration(node_match_limit))
