@@ -30,7 +30,7 @@ AnalysisData MatrixAnalysis::make(const EGraph &egraph, const ENode &node)
 
 void MatrixAnalysis::merge(AnalysisData &data1, const AnalysisData &data2)
 {
-    if (data1 != data2)
+    if (data1 != data2) // has a custom operator ==
     {
         throw ShapeMismatchError("Merging e-classes with conflicting size data");
     }
@@ -65,6 +65,10 @@ void MatrixAnalysis::merge(AnalysisData &data1, const AnalysisData &data2)
         if (!t2)
         {
             throw AnalysisError("Cannot merge TupleProperty with non-TupleProperty");
+        }
+        if (t1->size() != t2->size())
+        {
+            throw AnalysisError("Cannot merge TupleProperties of different sizes");
         }
         for (size_t i = 0; i < t1->size(); ++i)
         {

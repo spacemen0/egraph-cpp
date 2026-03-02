@@ -8,20 +8,6 @@
 #include <unordered_set>
 #include <algorithm>
 
-bool ENode::equals(const ENode &other) const
-{
-    if (atom != other.atom)
-        return false;
-    if (children.size() != other.children.size())
-        return false;
-    for (size_t i = 0; i < children.size(); ++i)
-    {
-        if (children[i] != other.children[i])
-            return false;
-    }
-    return true;
-}
-
 double ENode::compute_cost(const EGraph &egraph) const
 {
     return 1.0;

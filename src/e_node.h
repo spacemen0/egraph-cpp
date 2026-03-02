@@ -16,7 +16,6 @@ private:
 public:
     explicit ENode(const Children &children, Atom const &atom)
         : children(children), atom(atom) {}
-    bool equals(const ENode &other) const;
     double compute_cost(const EGraph &egraph) const;
 
     // access children (mutable/immutable)
@@ -33,7 +32,16 @@ public:
     // Declare operator== as a hidden friend
     friend bool operator==(const ENode &a, const ENode &b) noexcept
     {
-        return a.equals(b);
+        if (a.atom != b.atom)
+            return false;
+        if (a.children.size() != b.children.size())
+            return false;
+        for (size_t i = 0; i < a.children.size(); ++i)
+        {
+            if (a.children[i] != b.children[i])
+                return false;
+        }
+        return true;
     };
 };
 
