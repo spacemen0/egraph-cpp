@@ -31,7 +31,7 @@ std::vector<const ENode *> Matcher::ordered_nodes(Id eclass_id, size_t limit) co
     std::vector<const ENode *> ordered(nodes.begin(), nodes.end());
 
     std::ranges::sort(ordered, [&](const ENode *lhs, const ENode *rhs)
-                      { return cost_storage.node_cost(*lhs) < cost_storage.node_cost(*rhs); });
+                      { return cost_storage.node_cost(lhs) < cost_storage.node_cost(rhs); });
 
     if (limit > 0 && limit < ordered.size())
     {

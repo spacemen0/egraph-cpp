@@ -40,6 +40,7 @@ public:
     void to_dot_file(const std::string &filename) const;
     void to_img(const std::string &filename, const std::string &format) const;
     CostStorage &get_cost_storage() { return cost_storage; }
+    void update_cost_storage() { cost_storage.compute(); }
 
 private:
     // stores the union-find structure for e-classes (which stores equivalences)
