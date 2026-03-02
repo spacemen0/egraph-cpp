@@ -10,7 +10,11 @@ echo "Building project..."
 cmake --build build
 
 echo "Running tests..."
-./build/tests/unit_tests
+if [ -n "$1" ]; then
+    ./build/tests/unit_tests --gtest_filter="$1"
+else
+    ./build/tests/unit_tests
+fi
 
 echo "Generating coverage report..."
 grcov . -s . --binary-path ./build/ -t html -o ./coverage_report
