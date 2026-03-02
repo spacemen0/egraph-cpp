@@ -6,6 +6,7 @@
 #include <string>
 #include <format>
 #include <unordered_set>
+#include <algorithm>
 
 bool ENode::equals(const ENode &other) const
 {
@@ -97,10 +98,8 @@ std::string ENode::format() const
     }
 
     std::string str = "(" + to_string();
-    for (Id child : children)
-    {
-        str += std::format(" {}", child);
-    }
+    std::ranges::for_each(children, [&](Id child_id)
+                          { str += " " + std::to_string(child_id); });
     str += ")";
     return str;
 }

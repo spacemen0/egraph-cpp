@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include <sstream>
+#include <algorithm>
 #include "expression.h"
 #include "utils.h"
 
@@ -9,10 +10,11 @@ Expression::Expression(std::string_view string)
 {
     auto parsed = string_to_parsed_atom(string);
     atom = parsed.atom;
-    for (const auto &child_str : parsed.children_strings)
-    {
-        children.emplace_back(child_str); // recursively parse child expressions
-    }
+    std::ranges::transform(parsed.children_strings, std::back_inserter(children),
+                           [](const std::string &str)
+                           {
+                               return Expression(str);
+                           });
 }
 
 std::string Expression::to_string() const

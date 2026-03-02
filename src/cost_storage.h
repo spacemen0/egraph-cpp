@@ -11,7 +11,7 @@ class CostStorage
 public:
     explicit CostStorage(const EGraph &egraph);
 
-    void recompute();
+    void compute();
     double eclass_cost(Id class_id) const;
     double node_cost(const ENode &node) const;
     bool has_finite_cost(Id class_id) const;

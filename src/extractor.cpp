@@ -1,10 +1,11 @@
-#include "extractor.h"
 #include <limits>
+#include <algorithm>
 #include "errors.h"
+#include "extractor.h"
 
 Extractor::Extractor(EGraph &egraph) : egraph(egraph), cost_storage(egraph.get_cost_storage())
 {
-    cost_storage.recompute();
+    cost_storage.compute();
 }
 
 Expression Extractor::build_expression(Id class_id) const
@@ -17,19 +18,19 @@ Expression Extractor::build_expression(Id class_id) const
     }
 
     std::vector<Expression> children;
-    for (Id child : best_node->get_children())
-    {
-        children.push_back(build_expression(child));
-    }
+    std::ranges::transform(best_node->get_children(), std::back_inserter(children),
+                           [this](Id child_id)
+                           {
+                               return build_expression(child_id);
+                           });
     return Expression(best_node->get_atom(), children);
 }
 
 ExtractionResult Extractor::extract(Id class_id) const
 {
-    Id root = egraph.find_class_id(class_id);
-    if (!cost_storage.has_finite_cost(root))
+    if (!cost_storage.has_finite_cost(class_id))
     {
         throw std::runtime_error("Runtime error: !best_node");
     }
-    return {cost_storage.eclass_cost(root), build_expression(root)};
+    return {cost_storage.eclass_cost(class_id), build_expression(class_id)};
 }

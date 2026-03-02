@@ -36,17 +36,11 @@ bool Rewriter::apply_one_iteration(size_t node_match_limit)
 {
     bool changed = false;
 
-    if (node_match_limit > 0)
-    {
-        cost_storage.recompute();
-    }
-
     Matcher matcher(egraph);
 
     // Store matches to apply them in batch: (class_id, rewrite_index, substitution)
     std::vector<Match> matches;
 
-    // Search phase: collect all matches for each rewrite across all e-classes
     std::vector<Id> class_ids = egraph.get_all_class_ids();
 
     for (size_t i = 0; i < rewrites.size(); ++i)
@@ -133,6 +127,7 @@ bool Rewriter::apply_one_iteration(size_t node_match_limit)
     if (changed)
     {
         egraph.rebuild();
+        cost_storage.compute();
     }
 
     return changed;

@@ -16,6 +16,7 @@ AnalysisData &EClass::get_analysis_data()
     return analysis_data;
 }
 
+// remove duplicates
 void EClass::clean_up_nodes()
 {
     std::sort(nodes.begin(), nodes.end(), [](const ENode *a, const ENode *b)

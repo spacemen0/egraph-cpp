@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <algorithm>
 #include "pattern.h"
 #include "e_graph.h"
 
@@ -26,10 +27,9 @@ public:
         ban_iterations_remaining.resize(this->rewrites.size(), 0);
         ban_duration_next.resize(this->rewrites.size(), 1);
 
-        for (size_t i = 0; i < this->rewrites.size(); ++i)
-        {
-            current_match_limits[i] = this->rewrites[i].initial_match_limit;
-        }
+        std::ranges::transform(this->rewrites, current_match_limits.begin(),
+                               [](const auto &r)
+                               { return r.initial_match_limit; });
     }
     bool apply_one_iteration(size_t node_match_limit = 0);
     bool apply_rewrites(int max_iterations);

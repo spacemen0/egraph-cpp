@@ -6,7 +6,7 @@
 
 CostStorage::CostStorage(const EGraph &egraph) : egraph(egraph)
 {
-    recompute();
+    compute();
 }
 
 double CostStorage::node_cost(const ENode &node) const
@@ -31,7 +31,7 @@ double CostStorage::node_cost(const ENode &node) const
     return cost;
 }
 
-void CostStorage::recompute()
+void CostStorage::compute()
 {
     e_class_costs.clear();
     best_nodes_in_e_class.clear();
