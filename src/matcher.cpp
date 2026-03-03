@@ -29,14 +29,14 @@ std::vector<const ENode *> Matcher::ordered_nodes(Id eclass_id, size_t limit) co
 {
     const auto &nodes = egraph.get_class_nodes(eclass_id);
     std::vector<const ENode *> ordered(nodes.begin(), nodes.end());
-
+    if (limit == 0 || limit >= ordered.size())
+    {
+        return ordered;
+    }
     std::ranges::sort(ordered, [&](const ENode *lhs, const ENode *rhs)
                       { return cost_storage.node_cost(lhs) < cost_storage.node_cost(rhs); });
 
-    if (limit > 0 && limit < ordered.size())
-    {
-        ordered.resize(limit);
-    }
+    ordered.resize(limit);
     return ordered;
 }
 

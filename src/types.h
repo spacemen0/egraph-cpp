@@ -3,6 +3,7 @@
 #include <variant>
 #include <vector>
 #include <string>
+#include <unordered_map>
 
 enum class Op
 {
@@ -13,7 +14,7 @@ enum class Op
     Neg,
     QR,     // output: [Q, R]
     LU,     // output: [L, U, P]
-    LLt,    //
+    LLt,    // output: [L] where A = LLt
     Get,    // [tuple, index]
     Sol,    // [A, B] solving AX = B
     TriSol, // [A, B] solving AX = B where A is triangular
@@ -25,10 +26,11 @@ using Id = uint32_t;
 using Children = std::vector<Id>;
 using Atom = std::variant<Op, std::string, int>; // int for indexes in Get operations
 using Size = std::variant<int, std::string>;
+using Shape = std::pair<Size, Size>;
 
 struct MatrixProperty
 {
-    std::pair<Size, Size> shape; // (rows, cols)
+    Shape shape; // (rows, cols)
     bool is_symmetric = false;
     bool is_orthogonal = false;
     bool is_orthonormal = false;
@@ -192,3 +194,47 @@ struct ParsedAtom
     Atom atom;
     std::vector<std::string> children_strings;
 };
+
+struct Monomial
+{
+    std::vector<std::string> symbols;
+    void normalize() { std::sort(symbols.begin(), symbols.end()); }
+    bool operator==(const Monomial &other) const
+    {
+        Monomial a = *this;
+        Monomial b = other;
+        a.normalize();
+        b.normalize();
+        return a.symbols == b.symbols;
+    }
+};
+
+namespace std
+{
+    template <>
+    struct hash<Monomial>
+    {
+        size_t operator()(const Monomial &m) const
+        {
+            size_t seed = 0;
+            Monomial normalized = m;
+            normalized.normalize();
+            for (const auto &symbol : normalized.symbols)
+            {
+                seed ^= hash<std::string>()(symbol) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+            }
+            return seed;
+        }
+    };
+
+    template <>
+    struct equal_to<Monomial>
+    {
+        bool operator()(const Monomial &a, const Monomial &b) const
+        {
+            return a == b;
+        }
+    };
+}
+
+using SymbolicCost = std::unordered_map<Monomial, double, std::hash<Monomial>, std::equal_to<Monomial>>;

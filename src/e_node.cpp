@@ -1,5 +1,7 @@
 #include "e_node.h"
 #include "e_graph.h"
+#include "types.h"
+#include "utils.h"
 #include <stdexcept>
 #include <functional>
 #include <numeric>
@@ -7,10 +9,213 @@
 #include <format>
 #include <unordered_set>
 #include <algorithm>
-
-double ENode::compute_cost(const EGraph &egraph) const
+std::variant<double, SymbolicCost> ENode::compute_local_cost(const EGraph &egraph) const
 {
-    return 1.0;
+    auto get_one_shape = [&](Id child_id) -> std::pair<std::variant<int, std::string>, std::variant<int, std::string>>
+    {
+        auto data = get_matrix_data(egraph, child_id);
+        if (data)
+        {
+            return data->shape;
+        }
+        return {{}, {}};
+    };
+    auto get_two_shapes = [&](Id child_id1, Id child_id2) -> std::pair<std::pair<std::variant<int, std::string>, std::variant<int, std::string>>,
+                                                                       std::pair<std::variant<int, std::string>, std::variant<int, std::string>>>
+    {
+        auto shape1 = get_one_shape(child_id1);
+        auto shape2 = get_one_shape(child_id2);
+        return {shape1, shape2};
+    };
+    if (is_leaf())
+    {
+        return 0.0;
+    }
+    if (auto op = std::get_if<Op>(&atom))
+    {
+        if (*op == Op::Get)
+        {
+            return 0.0;
+        }
+        switch (*op)
+        {
+            using enum Op;
+        case Add:
+        {
+            auto shape = get_one_shape(children.at(0));
+            if (is_concrete(shape))
+            {
+                int rows = std::get<int>(shape.first);
+                int cols = std::get<int>(shape.second);
+                return static_cast<double>(rows * cols);
+            }
+            if (is_symbolic(shape))
+            {
+                Monomial m = {{std::get<std::string>(shape.first), std::get<std::string>(shape.second)}};
+                SymbolicCost sc;
+                sc[m] = 1.0;
+                return sc;
+            }
+            throw std::invalid_argument("Invalid shape for Add operation in ENode::compute_local_cost");
+        }
+        case Mul:
+        {
+            auto shapes = get_two_shapes(children.at(0), children.at(1));
+            if (is_concrete(shapes.first) && is_concrete(shapes.second))
+            {
+                int rows1 = std::get<int>(shapes.first.first);
+                int cols1 = std::get<int>(shapes.first.second);
+                int cols2 = std::get<int>(shapes.second.second);
+                return static_cast<double>(rows1 * cols1 * cols2);
+            }
+            if (is_symbolic(shapes.first) && is_symbolic(shapes.second))
+            {
+                Monomial m = {{std::get<std::string>(shapes.first.first), std::get<std::string>(shapes.first.second), std::get<std::string>(shapes.second.second)}};
+                SymbolicCost sc;
+                sc[m] = 1.0;
+                return sc;
+            }
+            throw std::invalid_argument("Invalid shapes for Mul operation in ENode::compute_local_cost");
+        }
+        case Tr:
+        {
+            auto shape = get_one_shape(children.at(0));
+            if (is_concrete(shape))
+            {
+                int rows = std::get<int>(shape.first);
+                int cols = std::get<int>(shape.second);
+                return static_cast<double>(rows * cols);
+            }
+            if (is_symbolic(shape))
+            {
+                Monomial m = {{std::get<std::string>(shape.first), std::get<std::string>(shape.second)}};
+                SymbolicCost sc;
+                sc[m] = 1.0;
+                return sc;
+            }
+            throw std::invalid_argument("Invalid shape for Tr operation in ENode::compute_local_cost");
+        }
+        case Inv:
+        {
+            auto shape = get_one_shape(children.at(0));
+            if (is_concrete(shape))
+            {
+                int rows = std::get<int>(shape.first);
+                int cols = std::get<int>(shape.second);
+                if (rows != cols)
+                {
+                    throw std::invalid_argument("Non-square matrix for Inv operation in ENode::compute_local_cost");
+                }
+                return static_cast<double>(rows * rows * rows);
+            }
+            if (is_symbolic(shape))
+            {
+                Monomial m = {{std::get<std::string>(shape.first), std::get<std::string>(shape.first), std::get<std::string>(shape.first)}};
+                SymbolicCost sc;
+                sc[m] = 1.0;
+                return sc;
+            }
+            throw std::invalid_argument("Invalid shape for Inv operation in ENode::compute_local_cost");
+        };
+        case Neg:
+        {
+            auto shape = get_one_shape(children.at(0));
+            if (is_concrete(shape))
+            {
+                int rows = std::get<int>(shape.first);
+                int cols = std::get<int>(shape.second);
+                return static_cast<double>(rows * cols);
+            }
+            if (is_symbolic(shape))
+            {
+                Monomial m = {{std::get<std::string>(shape.first), std::get<std::string>(shape.second)}};
+                SymbolicCost sc;
+                sc[m] = 1.0;
+                return sc;
+            }
+            throw std::invalid_argument("Invalid shape for Neg operation in ENode::compute_local_cost");
+        };
+        case QR:
+        {
+            auto shape = get_one_shape(children.at(0));
+            if (is_concrete(shape))
+            {
+                double rows = std::get<int>(shape.first);
+                double cols = std::get<int>(shape.second);
+                return (2.0 * rows * cols * cols) - ((2.0 / 3.0) * cols * cols * cols);
+            }
+            if (is_symbolic(shape))
+            {
+                std::string r = std::get<std::string>(shape.first);
+                std::string c = std::get<std::string>(shape.second);
+
+                Monomial mn2 = {{r, c, c}};
+                Monomial n3 = {{c, c, c}};
+
+                SymbolicCost sc;
+                sc[mn2] = 2.0;
+                sc[n3] = -2.0 / 3.0;
+                return sc;
+            }
+            throw std::invalid_argument("Invalid shape for QR operation in ENode::compute_local_cost");
+        }
+        case LU:
+        {
+            auto shape = get_one_shape(children.at(0));
+            if (is_concrete(shape))
+            {
+                double rows = std::get<int>(shape.first);
+                double cols = std::get<int>(shape.second);
+                if (rows != cols)
+                    throw std::invalid_argument("Non-square matrix for LU");
+                return (2.0 / 3.0) * rows * rows * rows;
+            }
+            if (is_symbolic(shape))
+            {
+                std::string n = std::get<std::string>(shape.first);
+
+                Monomial n3 = {{n, n, n}};
+                SymbolicCost sc;
+                sc[n3] = 2.0 / 3.0;
+                return sc;
+            }
+            throw std::invalid_argument("Invalid shape for LU operation in ENode::compute_local_cost");
+        }
+        case LLt:
+        {
+            auto shape = get_one_shape(children.at(0));
+            if (is_concrete(shape))
+            {
+                double rows = std::get<int>(shape.first);
+                double cols = std::get<int>(shape.second);
+                if (rows != cols)
+                    throw std::invalid_argument("Non-square matrix for LLt");
+                return (1.0 / 3.0) * rows * rows * rows;
+            }
+            if (is_symbolic(shape))
+            {
+                std::string n = std::get<std::string>(shape.first);
+
+                Monomial n3 = {{n, n, n}};
+                SymbolicCost sc;
+                sc[n3] = 1.0 / 3.0;
+                return sc;
+            }
+            throw std::invalid_argument("Invalid shape for LLt operation in ENode::compute_local_cost");
+        }
+        case Sol:
+            return 5.0;
+        case TriSol:
+            return 3.0;
+        case Det:
+            return 5.0;
+        case Log:
+            return 1.0;
+        default:
+            throw std::invalid_argument("Unknown Op in ENode::compute_local_cost");
+        }
+    }
+    throw std::invalid_argument("ENode with non-Op atom should not have children");
 }
 
 const Children &ENode::get_children() const

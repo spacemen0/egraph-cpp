@@ -14,7 +14,17 @@ double CostStorage::node_cost(const ENode *node)
         return cached->second;
     }
 
-    double cost = node->compute_cost(egraph);
+    auto local_cost = node->compute_local_cost(egraph);
+    double cost;
+    if (std::holds_alternative<double>(local_cost))
+    {
+        cost = std::get<double>(local_cost);
+    }
+    else
+    {
+        throw std::runtime_error("Not Implemented: Symbolic cost encountered in node_cost computation");
+    }
+
     for (Id child : node->get_children())
     {
         Id root = egraph.find_class_id(child);

@@ -2,6 +2,7 @@
 #include "e_graph.h"
 #include "errors.h"
 #include <variant>
+#include "utils.h"
 
 AnalysisData MatrixAnalysis::make(const EGraph &egraph, const ENode &node)
 {
@@ -105,11 +106,6 @@ static void check_arity(const std::vector<Id> &children, size_t expected, const 
     {
         throw AnalysisError(std::string(op_name) + " expects " + std::to_string(expected) + " children, got " + std::to_string(children.size()));
     }
-}
-
-static const MatrixProperty *get_matrix_data(const EGraph &egraph, Id id)
-{
-    return std::get_if<MatrixProperty>(&egraph.get_class_analysis_data(id).property);
 }
 
 static AnalysisData matrix_property_data(MatrixProperty prop)
@@ -222,7 +218,7 @@ static AnalysisData analyze_negate(const EGraph &egraph, const std::vector<Id> &
 static AnalysisData analyze_qr(const EGraph &egraph, const std::vector<Id> &children)
 {
     check_arity(children, 1, "QR");
-    if (auto *data = std::get_if<MatrixProperty>(&egraph.get_class_analysis_data(children.at(0)).property))
+    if (auto data = get_matrix_data(egraph, children.at(0)))
     {
         MatrixProperty Q;
         MatrixProperty R;
@@ -335,6 +331,60 @@ static AnalysisData analyze_triangular_solve(const EGraph &egraph, const std::ve
     return AnalysisData{};
 }
 
+static AnalysisData analyze_lu(const EGraph &egraph, const std::vector<Id> &children)
+{
+    check_arity(children, 1, "LU");
+    if (auto data = get_matrix_data(egraph, children.at(0)))
+    {
+        if (data->shape.first != data->shape.second)
+        {
+            throw InvalidOperationError("LU operation on non-square matrix");
+        }
+
+        MatrixProperty L;
+        MatrixProperty U;
+        MatrixProperty P;
+
+        L.shape = data->shape;
+        L.is_lower_triangular = true;
+
+        U.shape = data->shape;
+        U.is_upper_triangular = true;
+
+        P.shape = data->shape;
+        P.is_permutation = true;
+
+        return AnalysisData{TupleProperty{L, U, P}};
+    }
+    throw AnalysisError("LU expects a Matrix input");
+}
+
+static AnalysisData analyze_llt(const EGraph &egraph, const std::vector<Id> &children)
+{
+    check_arity(children, 1, "LLt");
+    if (auto data = get_matrix_data(egraph, children.at(0)))
+    {
+        if (data->shape.first != data->shape.second)
+        {
+            throw InvalidOperationError("LLt operation on non-square matrix");
+        }
+        if (!data->is_positive_definite)
+        {
+            throw InvalidOperationError("LLt operation on non-positive-definite matrix");
+        }
+        if (!data->is_symmetric)
+        {
+            throw InvalidOperationError("LLt operation on non-symmetric matrix");
+        }
+        MatrixProperty L;
+        L.shape = data->shape;
+        L.is_lower_triangular = true;
+
+        return AnalysisData{TupleProperty{L}};
+    }
+    throw AnalysisError("LLt expects a Matrix input");
+}
+
 AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode &node, Op op)
 {
     const auto &children = node.get_children();
@@ -355,9 +405,9 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
     case QR:
         return analyze_qr(egraph, children);
     case LU:
-        throw AnalysisError("LU analysis not implemented yet");
+        return analyze_lu(egraph, children);
     case LLt:
-        throw AnalysisError("LLt analysis not implemented yet");
+        return analyze_llt(egraph, children);
     case Get:
         return analyze_get(egraph, children);
     case Sol:

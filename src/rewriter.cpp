@@ -127,7 +127,6 @@ bool Rewriter::apply_one_iteration(size_t node_match_limit)
     if (changed)
     {
         egraph.rebuild();
-        cost_storage.compute();
     }
 
     return changed;
