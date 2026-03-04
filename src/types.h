@@ -247,6 +247,15 @@ inline Cost &operator+=(Cost &lhs, const Cost &rhs)
 {
     if (lhs.index() != rhs.index())
     {
+        if (std::holds_alternative<double>(lhs) && std::get<double>(lhs) == 0.0)
+        {
+            lhs = rhs;
+            return lhs;
+        }
+        if (std::holds_alternative<double>(rhs) && std::get<double>(rhs) == 0.0)
+        {
+            return lhs;
+        }
         throw std::invalid_argument("Cost types must match for +=");
     }
     if (std::holds_alternative<double>(lhs))

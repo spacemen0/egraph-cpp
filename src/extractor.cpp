@@ -28,9 +28,5 @@ Expression Extractor::build_expression(Id class_id) const
 
 ExtractionResult Extractor::extract(Id class_id) const
 {
-    if (!cost_storage.has_finite_cost(class_id))
-    {
-        throw std::runtime_error("Runtime error: !best_node");
-    }
     return {cost_storage.eclass_cost(class_id), build_expression(class_id)};
 }

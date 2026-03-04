@@ -52,7 +52,6 @@ void CostStorage::compute()
             Id root = egraph.find_class_id(class_id);
             if (root != class_id)
                 continue;
-
             for (const ENode *node : egraph.get_class_nodes(root))
             {
                 Cost current_node_cost = node_cost(node);
@@ -67,7 +66,6 @@ void CostStorage::compute()
                 }
                 else
                 {
-                    // Skip updating to avoid infinite loops.
                     continue;
                 }
 
@@ -88,16 +86,6 @@ Cost CostStorage::eclass_cost(Id class_id) const
         return std::numeric_limits<double>::infinity();
     }
     return it->second;
-}
-
-bool CostStorage::has_finite_cost(Id class_id) const
-{
-    Cost c = eclass_cost(class_id);
-    if (std::holds_alternative<double>(c))
-    {
-        return std::get<double>(c) != std::numeric_limits<double>::infinity();
-    }
-    return false;
 }
 
 const ENode *CostStorage::best_node(Id class_id) const

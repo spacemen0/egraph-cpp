@@ -66,7 +66,6 @@ TEST(CostStorageTest, BestNodeSelection)
     ASSERT_NE(best, nullptr);
     EXPECT_EQ(*best, sym_a);
     EXPECT_EQ(costs.eclass_cost(id_add), Cost(0.0));
-    EXPECT_TRUE(costs.has_finite_cost(id_add));
 }
 
 TEST(CostStorageTest, RecalculationAndPropagation)

@@ -12,7 +12,6 @@ public:
     void compute();
     Cost eclass_cost(Id class_id) const;
     Cost node_cost(const ENode *node);
-    bool has_finite_cost(Id class_id) const;
     const ENode *best_node(Id class_id) const;
 
 private:
