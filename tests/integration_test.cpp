@@ -17,7 +17,7 @@ TEST(Integration, MatrixPartialSet)
     Extractor extractor(egraph);
     auto result = extractor.extract(id);
     // Should extract 'X'
-    EXPECT_EQ(result.cost, 1.0);
+    EXPECT_EQ(result.cost, 0.0);
     EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
     EXPECT_EQ(std::get<std::string>(result.expr.atom), "X");
 }
@@ -84,7 +84,7 @@ TEST(Integration, MinimalRealisticExplosionRules)
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
 
     // Should extract 'A'
-    EXPECT_EQ(result.cost, 1.0);
+    EXPECT_EQ(result.cost, 0.0);
     EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
     EXPECT_EQ(std::get<std::string>(result.expr.atom), "A");
 }
@@ -115,7 +115,7 @@ TEST(Integration, CyclicTermsThatDoNotExplode)
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
 
     // Should extract 'A'
-    EXPECT_EQ(result.cost, 1.0);
+    EXPECT_EQ(result.cost, 0.0);
     EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
     EXPECT_EQ(std::get<std::string>(result.expr.atom), "A");
 }

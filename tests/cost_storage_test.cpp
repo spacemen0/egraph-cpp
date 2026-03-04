@@ -20,10 +20,10 @@ TEST(CostStorageTest, BasicCost)
     auto &costs = egraph.get_cost_storage();
 
     egraph.update_cost_storage();
-    EXPECT_EQ(costs.eclass_cost(id_a), 1.0);
-    EXPECT_EQ(costs.eclass_cost(id_z), 1.0);
+    EXPECT_EQ(costs.eclass_cost(id_a), 0.0);
+    EXPECT_EQ(costs.eclass_cost(id_z), 0.0);
 
-    EXPECT_EQ(costs.eclass_cost(id_add), 3.0);
+    EXPECT_EQ(costs.eclass_cost(id_add), 9.0);
 }
 
 TEST(CostStorageTest, CycleHandling)
@@ -41,7 +41,7 @@ TEST(CostStorageTest, CycleHandling)
 
     auto &costs = egraph.get_cost_storage();
     egraph.update_cost_storage();
-    EXPECT_EQ(costs.eclass_cost(id_add), 1.0);
+    EXPECT_EQ(costs.eclass_cost(id_add), 0.0);
 
     const ENode *best = costs.best_node(id_add);
     ASSERT_NE(best, nullptr);
@@ -65,7 +65,7 @@ TEST(CostStorageTest, BestNodeSelection)
     const ENode *best = costs.best_node(id_add);
     ASSERT_NE(best, nullptr);
     EXPECT_EQ(*best, sym_a);
-    EXPECT_EQ(costs.eclass_cost(id_add), 1.0);
+    EXPECT_EQ(costs.eclass_cost(id_add), 0.0);
     EXPECT_TRUE(costs.has_finite_cost(id_add));
 }
 
@@ -73,26 +73,26 @@ TEST(CostStorageTest, RecalculationAndPropagation)
 {
     EGraph egraph(get_property_table());
 
-    Id id_a = egraph.add_node(sym_a); // cost 1
-    Id id_z = egraph.add_node(sym_z); // cost 1
+    Id id_a = egraph.add_node(sym_a); // cost 0
+    Id id_z = egraph.add_node(sym_z); // cost 0
 
     ENode add1 = make_op(Op::Add, {id_a, id_z});
-    Id id_add1 = egraph.add_node(add1); // cost 3
+    Id id_add1 = egraph.add_node(add1); // cost 9
 
     ENode add2 = make_op(Op::Add, {id_add1, id_z});
-    Id id_add2 = egraph.add_node(add2); // cost 5
+    Id id_add2 = egraph.add_node(add2); // cost 18
 
     ENode add3 = make_op(Op::Add, {id_add2, id_z});
-    Id id_add3 = egraph.add_node(add3); // cost 7
+    Id id_add3 = egraph.add_node(add3); // cost 27
 
     auto &costs = egraph.get_cost_storage();
     egraph.update_cost_storage();
-    EXPECT_EQ(costs.eclass_cost(id_add3), 7.0);
+    EXPECT_EQ(costs.eclass_cost(id_add3), 27.0);
 
     egraph.union_classes(id_add2, id_a);
     egraph.rebuild();
 
     egraph.update_cost_storage();
-    EXPECT_EQ(costs.eclass_cost(id_add2), 1.0);
-    EXPECT_EQ(costs.eclass_cost(id_add3), 3.0);
+    EXPECT_EQ(costs.eclass_cost(id_add2), 0.0);
+    EXPECT_EQ(costs.eclass_cost(id_add3), 9.0);
 }
