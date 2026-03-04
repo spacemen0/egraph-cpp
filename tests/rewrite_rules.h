@@ -76,26 +76,15 @@ static const auto qr_inner_invert = make_rewrite("qr-inner-invert",
                                                  "Inv( Mul(Tr(?a), ?a) )",
                                                  "Dynamic", nullptr, [](EGraph &g, const Substitution &s)
                                                  { 
-                                                    Id a_id = s.at("a");
-                                                    Id id_0 = g.add_node(ENode( {},0));
-                                                    Id id_1 = g.add_node(ENode({},1));
-                                                    Id q = g.add_node(ENode({
-                                                                                g.add_node(ENode({a_id}, Op::QR)),
-                                                                                id_0
-                                                                        },
-                                                                            Op::Get));
-                                                    Id r = g.add_node(ENode({
-                                                                                g.add_node(ENode({a_id}, Op::QR)),
-                                                                                id_1
-                                                                            },
-                                                                            Op::Get));
-                                                    Id qr_mul = g.add_node(ENode({q, r}, Op::Mul));
-                                                    g.union_classes(a_id, qr_mul);
-                                                    Id r_inv = g.add_node(ENode({r}, Op::Inv));
-                                                    Id r_t_inv = g.add_node(ENode({g.add_node(ENode({r}, Op::Tr))}, Op::Inv));
-                                                    Id final_opt = g.add_node(ENode({r_inv, r_t_inv}, Op::Mul));
+                                                    static const Expression result_expr("Mul(Inv(Get(QR(?a), 1)), Inv(Tr(Get(QR(?a), 1))))");
+                                                    static const Expression qr_expr("Mul(Get(QR(?a), 0), Get(QR(?a), 1))");
+
+                                                    Id result = g.add_expression(result_expr, s);
+                                                    Id qr_equiv = g.add_expression(qr_expr, s);
                                                     
-                                                    return final_opt; });
+                                                    g.union_classes(s.at("a"), qr_equiv);
+                                                    
+                                                    return result; });
 static const auto lu_invert = make_rewrite(
     "lu-invert",
     "Inv(?a)",

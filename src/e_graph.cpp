@@ -125,6 +125,34 @@ Id EGraph::add_expression(const Expression &expr)
     return add_node(current_node);
 }
 
+Id EGraph::add_expression(const Expression &expr, const Substitution &subst)
+{
+    if (std::holds_alternative<std::string>(expr.atom))
+    {
+        const std::string &name = std::get<std::string>(expr.atom);
+        if (name.length() > 1 && name[0] == '?')
+        {
+            std::string var_name = name.substr(1);
+            if (subst.count(var_name))
+            {
+                return subst.at(var_name);
+            }
+        }
+    }
+
+    Children child_ids;
+    child_ids.reserve(expr.children.size());
+    for (const Expression &child_expr : expr.children)
+    {
+        child_ids.push_back(add_expression(child_expr, subst));
+    }
+    ENode current_node{
+        child_ids,
+        expr.atom,
+    };
+    return add_node(current_node);
+}
+
 /// @brief Union two e-classes given their IDs. The classes need not be roots.
 /// @param id1
 /// @param id2

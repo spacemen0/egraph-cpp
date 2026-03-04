@@ -24,6 +24,7 @@ public:
     Id find_class_id(Id node_id) const;
     Id add_node(ENode node);
     Id add_expression(const Expression &expr);
+    Id add_expression(const Expression &expr, const Substitution &subst);
     void register_property(const std::string &name, const MatrixProperty &prop);
     bool union_classes(Id id1, Id id2);
     void rebuild();
