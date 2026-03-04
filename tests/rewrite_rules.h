@@ -71,7 +71,50 @@ static const auto commute_add = make_rewrite("commute-add", "Add(?a, ?b)", "Add(
 static const auto mat_transpose_prod = make_rewrite("mat-transpose-prod", "Tr(Mul(?a, ?b))", "Mul(Tr(?b), Tr(?a))");
 static const auto qr_invert = make_rewrite("qr-invert",
                                            "Inv(?a)",
-                                           "Mul(Inv(Get(QR(?a), 1)), Tr(Get(QR(?a), 0)))");
+                                           "Inv(Mul(Get(QR(?a), 0), Get(QR(?a), 1)))");
+static const auto qr_inner_invert = make_rewrite("qr-inner-invert",
+                                                 "Inv( Mul(Tr(?a), ?a) )",
+                                                 "Dynamic", nullptr, [](EGraph &g, const Substitution &s)
+                                                 { 
+                                                    Id a_id = s.at("a");
+                                                    Id id_0 = g.add_node(ENode( {},0));
+                                                    Id id_1 = g.add_node(ENode({},1));
+                                                    Id q = g.add_node(ENode({
+                                                                                g.add_node(ENode({a_id}, Op::QR)),
+                                                                                id_0
+                                                                        },
+                                                                            Op::Get));
+                                                    Id r = g.add_node(ENode({
+                                                                                g.add_node(ENode({a_id}, Op::QR)),
+                                                                                id_1
+                                                                            },
+                                                                            Op::Get));
+                                                    Id qr_mul = g.add_node(ENode({q, r}, Op::Mul));
+                                                    g.union_classes(a_id, qr_mul);
+                                                    Id r_inv = g.add_node(ENode({r}, Op::Inv));
+                                                    Id r_t_inv = g.add_node(ENode({g.add_node(ENode({r}, Op::Tr))}, Op::Inv));
+                                                    Id final_opt = g.add_node(ENode({r_inv, r_t_inv}, Op::Mul));
+                                                    
+                                                    return final_opt; });
+static const auto lu_invert = make_rewrite(
+    "lu-invert",
+    "Inv(?a)",
+    "Mul(Inv(Get(LU(?a), 1)), Inv(Get(LU(?a), 0)))");
+static const auto llt_invert = make_rewrite(
+    "llt-invert",
+    "Inv(?a)",
+    "Mul(Tr(Inv(Get(LLt(?a), 0))), Inv(Get(LLt(?a), 0)))",
+    [](const EGraph &g, const Substitution &s)
+    {
+        Id a_id = s.at("a");
+        const auto &data = g.get_class_analysis_data(a_id);
+
+        if (auto *prop = std::get_if<MatrixProperty>(&data.property))
+        {
+            return prop->is_positive_definite;
+        }
+        return false;
+    });
 static const auto solve_rule = make_rewrite("solve-rule", "Mul(Inv(?a), ?b)", "Sol(?a, ?b)", [](const EGraph &g, const Substitution &s)
                                             {
     Id a_id = s.at("a");
@@ -82,20 +125,20 @@ static const auto solve_rule = make_rewrite("solve-rule", "Mul(Inv(?a), ?b)", "S
     }
     return false; });
 
-static const auto QR_introduction = make_rewrite("qr-intro", "?a", "Mul(Get(QR(?a), 0), Get(QR(?a), 1))", [](const EGraph &g, const Substitution &s)
-                                                 {
-    Id a_id = s.at("a");
-    auto node = g.at(a_id);
-    if (!node.has_ancestor("Inv", g))
-        return false;
-    if (node.get_children().size() != 0)
-        return false;
-    const auto &data = g.get_class_analysis_data(a_id);
-    if (auto *prop = std::get_if<MatrixProperty>(&data.property))
-    {
-        return true;
-    }
-    return false; });
+// static const auto QR_introduction = make_rewrite("qr-intro", "?a", "Mul(Get(QR(?a), 0), Get(QR(?a), 1))", [](const EGraph &g, const Substitution &s)
+//                                                  {
+//     Id a_id = s.at("a");
+//     auto node = g.at(a_id);
+//     if (!node.has_ancestor("Inv", g))
+//         return false;
+//     if (node.get_children().size() != 0)
+//         return false;
+//     const auto &data = g.get_class_analysis_data(a_id);
+//     if (auto *prop = std::get_if<MatrixProperty>(&data.property))
+//     {
+//         return true;
+//     }
+//     return false; });
 static const auto invert_mat_prod = make_rewrite("invert-mat-prod", "Inv(Mul(?a, ?b))", "Mul(Inv(?b), Inv(?a))", [](const EGraph &g, const Substitution &s)
                                                  {
     Id a_id = s.at("a");

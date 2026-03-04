@@ -126,7 +126,8 @@ TEST(Integration, QRSolveSymbolic)
     auto id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(M), M) ) , Tr(M) ), n)"));
 
     std::vector<Rewrite> rules = {
-        QR_introduction,
+        qr_invert,
+        qr_inner_invert,
         mat_transpose_prod,
         invert_mat_prod,
         orthonormal_transpose,
@@ -158,7 +159,8 @@ TEST(Integration, QRSolveConcrete)
     auto id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(X), X) ) , Tr(X) ), y)"));
 
     std::vector<Rewrite> rules = {
-        QR_introduction,
+        qr_inner_invert,
+        qr_invert,
         mat_transpose_prod,
         invert_mat_prod,
         orthonormal_transpose,
