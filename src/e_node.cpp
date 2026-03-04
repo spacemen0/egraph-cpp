@@ -9,7 +9,8 @@
 #include <format>
 #include <unordered_set>
 #include <algorithm>
-std::variant<double, SymbolicCost> ENode::compute_local_cost(const EGraph &egraph) const
+
+Cost ENode::compute_local_cost(const EGraph &egraph) const
 {
     auto get_one_shape = [&](Id child_id) -> std::pair<std::variant<int, std::string>, std::variant<int, std::string>>
     {
@@ -33,10 +34,6 @@ std::variant<double, SymbolicCost> ENode::compute_local_cost(const EGraph &egrap
     }
     if (auto op = std::get_if<Op>(&atom))
     {
-        if (*op == Op::Get)
-        {
-            return 0.0;
-        }
         switch (*op)
         {
             using enum Op;
@@ -203,6 +200,8 @@ std::variant<double, SymbolicCost> ENode::compute_local_cost(const EGraph &egrap
             }
             throw std::invalid_argument("Invalid shape for LLt operation in ENode::compute_local_cost");
         }
+        case Get:
+            return 0.0;
         case Sol:
             return 5.0;
         case TriSol:

@@ -17,7 +17,7 @@ TEST(Integration, MatrixPartialSet)
     Extractor extractor(egraph);
     auto result = extractor.extract(id);
     // Should extract 'X'
-    EXPECT_EQ(result.cost, 0.0);
+    EXPECT_EQ(result.cost, Cost(0.0));
     EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
     EXPECT_EQ(std::get<std::string>(result.expr.atom), "X");
 }
@@ -84,7 +84,7 @@ TEST(Integration, MinimalRealisticExplosionRules)
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
 
     // Should extract 'A'
-    EXPECT_EQ(result.cost, 0.0);
+    EXPECT_EQ(result.cost, Cost(0.0));
     EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
     EXPECT_EQ(std::get<std::string>(result.expr.atom), "A");
 }
@@ -115,12 +115,12 @@ TEST(Integration, CyclicTermsThatDoNotExplode)
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
 
     // Should extract 'A'
-    EXPECT_EQ(result.cost, 0.0);
+    EXPECT_EQ(result.cost, Cost(0.0));
     EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
     EXPECT_EQ(std::get<std::string>(result.expr.atom), "A");
 }
 
-TEST(Integration, QRSolveSymbolic)
+TEST(Integration, OLSSymbolic)
 {
     EGraph egraph(get_property_table());
     auto id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(M), M) ) , Tr(M) ), n)"));
@@ -153,7 +153,7 @@ TEST(Integration, QRSolveSymbolic)
     FAIL() << "Did not find the QR-based solution within the nodes limit.";
 }
 
-TEST(Integration, QRSolveConcrete)
+TEST(Integration, OLSConcrete)
 {
     EGraph egraph(get_property_table());
     auto id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(X), X) ) , Tr(X) ), y)"));
@@ -171,7 +171,36 @@ TEST(Integration, QRSolveConcrete)
     };
     Rewriter rewriter(egraph, rules, 1000);
     int iteration = 0;
-    egraph.to_img("qr_0", "svg");
+    rewriter.apply_rewrites(10);
+    Extractor extractor(egraph);
+    auto result = extractor.extract(id);
+    std::cout << "Best extracted expression: " << result.expr.to_string() << std::endl;
+    std::cout << "Cost: " << result.cost << std::endl;
+    std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
+}
+
+TEST(Integration, GLSConcrete)
+{
+    EGraph egraph(get_property_table());
+    auto id = egraph.add_expression(Expression("Mul( Mul( Inv( Mul( Mul(Tr(X), Inv(V)), X) ) , Mul(Tr(X), Inv(V)) ), y)"));
+
+    std::vector<Rewrite> rules = {
+        lu_invert,
+        llt_invert,
+        qr_inner_invert,
+        qr_invert,
+        mat_transpose_prod,
+        invert_mat_prod,
+        orthogonal_transpose,
+        invert_cancel_left,
+        invert_cancel_right,
+        mul_identity_left,
+        mul_identity_right,
+        mul_assoc_left,
+        mul_assoc_right,
+    };
+    Rewriter rewriter(egraph, rules, 1000);
+    int iteration = 0;
     rewriter.apply_rewrites(10);
     Extractor extractor(egraph);
     auto result = extractor.extract(id);

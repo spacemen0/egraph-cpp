@@ -18,7 +18,7 @@ TEST(Extractor, CheaperExtraction)
     Extractor extractor(egraph);
     auto result = extractor.extract(id_mul);
     // Should extract 'a'
-    EXPECT_EQ(result.cost, 0.0);
+    EXPECT_EQ(result.cost, Cost(0.0));
     EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
     EXPECT_EQ(std::get<std::string>(result.expr.atom), "A");
 }
@@ -45,7 +45,7 @@ TEST(Extractor, RewriteAndExtract)
 
     Extractor extractor(egraph);
     ExtractionResult result = extractor.extract(root_id);
-    EXPECT_EQ(result.cost, 0.0);
+    EXPECT_EQ(result.cost, Cost(0.0));
 
     EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
     EXPECT_EQ(std::get<std::string>(result.expr.atom), "Z");

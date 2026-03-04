@@ -16,7 +16,7 @@ private:
 public:
     explicit ENode(const Children &children, Atom const &atom)
         : children(children), atom(atom) {}
-    std::variant<double, SymbolicCost> compute_local_cost(const EGraph &egraph) const;
+    Cost compute_local_cost(const EGraph &egraph) const;
 
     // access children (mutable/immutable)
     const Children &get_children() const;

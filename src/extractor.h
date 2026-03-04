@@ -4,7 +4,7 @@
 
 struct ExtractionResult
 {
-    double cost;
+    Cost cost;
     Expression expr;
 };
 

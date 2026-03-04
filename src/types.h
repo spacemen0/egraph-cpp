@@ -4,6 +4,9 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <algorithm>
+#include <stdexcept>
+#include <iostream>
 
 enum class Op
 {
@@ -238,3 +241,51 @@ namespace std
 }
 
 using SymbolicCost = std::unordered_map<Monomial, double, std::hash<Monomial>, std::equal_to<Monomial>>;
+using Cost = std::variant<double, SymbolicCost>;
+
+inline Cost &operator+=(Cost &lhs, const Cost &rhs)
+{
+    if (lhs.index() != rhs.index())
+    {
+        throw std::invalid_argument("Cost types must match for +=");
+    }
+    if (std::holds_alternative<double>(lhs))
+    {
+        std::get<double>(lhs) += std::get<double>(rhs);
+    }
+    else
+    {
+        auto &lhs_map = std::get<SymbolicCost>(lhs);
+        const auto &rhs_map = std::get<SymbolicCost>(rhs);
+        for (const auto &[k, v] : rhs_map)
+        {
+            lhs_map[k] += v;
+        }
+    }
+    return lhs;
+}
+
+inline std::ostream &operator<<(std::ostream &os, const Cost &cost)
+{
+    if (std::holds_alternative<double>(cost))
+    {
+        os << std::get<double>(cost);
+    }
+    else
+    {
+        const auto &symbolic = std::get<SymbolicCost>(cost);
+        bool first = true;
+        for (const auto &[monomial, coeff] : symbolic)
+        {
+            if (!first)
+                os << " + ";
+            os << coeff;
+            for (const auto &symbol : monomial.symbols)
+            {
+                os << "*" << symbol;
+            }
+            first = false;
+        }
+    }
+    return os;
+}

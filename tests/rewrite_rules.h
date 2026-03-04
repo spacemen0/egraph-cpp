@@ -100,7 +100,7 @@ static const auto llt_invert = make_rewrite(
 
         if (auto *prop = std::get_if<MatrixProperty>(&data.property))
         {
-            return prop->is_positive_definite;
+            return prop->is_positive_definite && prop->is_symmetric;
         }
         return false;
     });

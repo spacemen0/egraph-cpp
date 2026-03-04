@@ -34,7 +34,14 @@ std::vector<const ENode *> Matcher::ordered_nodes(Id eclass_id, size_t limit) co
         return ordered;
     }
     std::ranges::sort(ordered, [&](const ENode *lhs, const ENode *rhs)
-                      { return cost_storage.node_cost(lhs) < cost_storage.node_cost(rhs); });
+                      {
+                    auto lhs_cost = cost_storage.node_cost(lhs);
+                    auto rhs_cost = cost_storage.node_cost(rhs);
+                    if (std::holds_alternative<double>(lhs_cost) && std::holds_alternative<double>(rhs_cost))
+                    {
+                        return std::get<double>(lhs_cost) < std::get<double>(rhs_cost);
+                    }
+                    else return false; });
 
     ordered.resize(limit);
     return ordered;

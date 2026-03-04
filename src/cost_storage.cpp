@@ -6,7 +6,7 @@ CostStorage::CostStorage(const EGraph &egraph) : egraph(egraph)
 {
 }
 
-double CostStorage::node_cost(const ENode *node)
+Cost CostStorage::node_cost(const ENode *node)
 {
     auto cached = node_costs.find(node);
     if (cached != node_costs.end())
@@ -14,22 +14,13 @@ double CostStorage::node_cost(const ENode *node)
         return cached->second;
     }
 
-    auto local_cost = node->compute_local_cost(egraph);
-    double cost;
-    if (std::holds_alternative<double>(local_cost))
-    {
-        cost = std::get<double>(local_cost);
-    }
-    else
-    {
-        throw std::runtime_error("Not Implemented: Symbolic cost encountered in node_cost computation");
-    }
+    Cost cost = node->compute_local_cost(egraph);
 
     for (Id child : node->get_children())
     {
         Id root = egraph.find_class_id(child);
         auto it = e_class_costs.find(root);
-        if (it == e_class_costs.end() || it->second == std::numeric_limits<double>::infinity())
+        if (it == e_class_costs.end() || std::holds_alternative<double>(it->second) && std::get<double>(it->second) == std::numeric_limits<double>::infinity())
         {
             cost = std::numeric_limits<double>::infinity();
             break;
@@ -64,10 +55,21 @@ void CostStorage::compute()
 
             for (const ENode *node : egraph.get_class_nodes(root))
             {
-                double current_node_cost = node_cost(node);
+                Cost current_node_cost = node_cost(node);
 
-                if (current_node_cost >= e_class_costs[root])
+                if (std::holds_alternative<double>(current_node_cost) &&
+                    std::holds_alternative<double>(e_class_costs[root]))
+                {
+                    if (std::get<double>(current_node_cost) >= std::get<double>(e_class_costs[root]))
+                    {
+                        continue;
+                    }
+                }
+                else
+                {
+                    // Skip updating to avoid infinite loops.
                     continue;
+                }
 
                 e_class_costs[root] = current_node_cost;
                 best_nodes_in_e_class[root] = node;
@@ -77,7 +79,7 @@ void CostStorage::compute()
     }
 }
 
-double CostStorage::eclass_cost(Id class_id) const
+Cost CostStorage::eclass_cost(Id class_id) const
 {
     Id root = egraph.find_class_id(class_id);
     auto it = e_class_costs.find(root);
@@ -90,7 +92,12 @@ double CostStorage::eclass_cost(Id class_id) const
 
 bool CostStorage::has_finite_cost(Id class_id) const
 {
-    return eclass_cost(class_id) != std::numeric_limits<double>::infinity();
+    Cost c = eclass_cost(class_id);
+    if (std::holds_alternative<double>(c))
+    {
+        return std::get<double>(c) != std::numeric_limits<double>::infinity();
+    }
+    return false;
 }
 
 const ENode *CostStorage::best_node(Id class_id) const
