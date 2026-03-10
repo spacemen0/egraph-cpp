@@ -107,6 +107,7 @@ Id EGraph::add_node(ENode node)
 
     memo[node_ptr] = new_id;
     classes.emplace(new_id, std::move(new_class));
+    ++revision;
     return new_id;
 }
 
@@ -197,6 +198,7 @@ bool EGraph::union_classes(Id id1, Id id2)
                     std::make_move_iterator(parents2.begin()),
                     std::make_move_iterator(parents2.end()));
 
+    ++revision;
     return true;
 }
 

@@ -13,6 +13,11 @@ Extractor::Extractor(EGraph &egraph) : egraph(egraph), cost_storage(egraph.get_c
 std::optional<Extractor::SearchResult> Extractor::find_best_numeric_dag(Id root_class_id) const
 {
     Id root = egraph.find_class_id(root_class_id);
+    if (auto cached = cost_storage.cached_root_extraction(root); cached.has_value())
+    {
+        return SearchResult{cached->cost, cached->choices};
+    }
+
     std::vector<PendingClass> pending = {{root, {}}};
     std::unordered_map<Id, const ENode *> current_choices;
     std::unordered_map<Id, const ENode *> best_choices;
@@ -23,6 +28,7 @@ std::optional<Extractor::SearchResult> Extractor::find_best_numeric_dag(Id root_
     {
         return std::nullopt;
     }
+    cost_storage.store_root_extraction(root, best_cost, best_choices);
     return SearchResult{best_cost, std::move(best_choices)};
 }
 

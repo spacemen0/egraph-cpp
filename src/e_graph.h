@@ -4,6 +4,7 @@
 #include <set>
 #include <memory>
 #include <unordered_map>
+#include <cstdint>
 #include "union_find.h"
 #include "e_node.h"
 #include "e_class.h"
@@ -42,6 +43,8 @@ public:
     void to_img(const std::string &filename, const std::string &format) const;
     CostStorage &get_cost_storage() { return cost_storage; }
     void update_cost_storage() { cost_storage.compute(); }
+    uint64_t get_revision() const noexcept { return revision; }
+    bool is_clean() const noexcept { return pendings.empty(); }
 
 private:
     // stores the union-find structure for e-classes (which stores equivalences)
@@ -56,6 +59,7 @@ private:
     std::unordered_map<Id, std::unique_ptr<EClass>> classes;
     PropertyTable property_table;
     CostStorage cost_storage;
+    uint64_t revision = 0;
     std::string to_dot() const;
     AnalysisData make_analysis(const ENode &node) const;
     void merge_analysis_data(AnalysisData &data1, const AnalysisData &data2) const;
