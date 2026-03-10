@@ -50,3 +50,54 @@ TEST(Extractor, RewriteAndExtract)
     EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
     EXPECT_EQ(std::get<std::string>(result.expr.atom), "Z");
 }
+
+TEST(Extractor, SharedSubexpressionDAGCost)
+{
+
+    EGraph egraph(get_property_table());
+    Id id_x = egraph.add_node(make_symbol("X"));
+    Id id_tr_x = egraph.add_node(make_op(Op::Tr, {id_x}));
+
+    Id id_a = egraph.add_node(make_symbol("A"));
+    Id id_z = egraph.add_node(make_symbol("Z"));
+
+    Id id_mul1 = egraph.add_node(make_op(Op::Mul, {id_tr_x, id_a}));
+
+    Id id_mul2 = egraph.add_node(make_op(Op::Mul, {id_tr_x, id_z}));
+
+    Id id_root = egraph.add_node(make_op(Op::Add, {id_mul1, id_mul2}));
+
+    Extractor extractor(egraph);
+    auto result = extractor.extract(id_root);
+
+    EXPECT_TRUE(std::holds_alternative<double>(result.cost));
+    EXPECT_EQ(std::get<double>(result.cost), 48.0);
+
+    EXPECT_TRUE(std::holds_alternative<Op>(result.expr.atom));
+    EXPECT_EQ(std::get<Op>(result.expr.atom), Op::Add);
+    EXPECT_EQ(result.expr.children.size(), 2);
+}
+
+TEST(Extractor, ExpensiveSharedWinsWithHighReuse)
+{
+
+    EGraph egraph(get_property_table());
+
+    Id id_x = egraph.add_node(make_symbol("X")); // 3x2
+    Id id_y = egraph.add_node(make_symbol("Y")); // 2x3
+    Id id_d = egraph.add_node(make_symbol("D")); // 2x2
+
+    Id id_mul_yx = egraph.add_node(make_op(Op::Mul, {id_y, id_x}));  // 2x2, cost 12
+    Id inv_d = egraph.add_node(make_op(Op::Inv, {id_d}));            // 2x2, cost 8
+    Id mul_inv_d = egraph.add_node(make_op(Op::Mul, {inv_d, id_d})); // 2x2, cost 8
+    egraph.union_classes(id_mul_yx, inv_d);
+
+    // Root expression: Add(Mul(Y, X), Mul(Inv(D), D))
+    Id id_root = egraph.add_node(make_op(Op::Mul, {id_mul_yx, mul_inv_d})); // 2x2
+    Extractor extractor(egraph);
+    auto result = extractor.extract(id_root);
+    EXPECT_TRUE(std::holds_alternative<double>(result.cost));
+    // choice 1: Mul(Y, X) + Mul(Inv(D), D) with cost 12 + 8 +8 +4 = 32
+    // choice 2: Mul(Y, X) + Mul(Mul(Y, X), D) with cost 12 + 8 + 4 = 24
+    EXPECT_EQ(std::get<double>(result.cost), 24.0);
+}

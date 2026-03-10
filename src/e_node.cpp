@@ -95,6 +95,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph) const
         case Inv:
         {
             auto shape = get_one_shape(children.at(0));
+            auto data = get_matrix_data(egraph, egraph.find_node_id(*this).value());
             if (is_concrete(shape))
             {
                 int rows = std::get<int>(shape.first);
@@ -103,13 +104,24 @@ Cost ENode::compute_local_cost(const EGraph &egraph) const
                 {
                     throw std::invalid_argument("Non-square matrix for Inv operation in ENode::compute_local_cost");
                 }
+                if (data && (data->is_upper_triangular || data->is_lower_triangular))
+                {
+                    return (1.0 / 3.0) * rows * rows * rows;
+                }
                 return static_cast<double>(rows * rows * rows);
             }
             if (is_symbolic(shape))
             {
                 Monomial m = {{std::get<std::string>(shape.first), std::get<std::string>(shape.first), std::get<std::string>(shape.first)}};
                 SymbolicCost sc;
-                sc[m] = 1.0;
+                if (data && (data->is_upper_triangular || data->is_lower_triangular))
+                {
+                    sc[m] = 1.0 / 3.0;
+                }
+                else
+                {
+                    sc[m] = 1.0;
+                }
                 return sc;
             }
             throw std::invalid_argument("Invalid shape for Inv operation in ENode::compute_local_cost");
