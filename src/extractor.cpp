@@ -7,7 +7,6 @@
 
 Extractor::Extractor(EGraph &egraph) : egraph(egraph), cost_storage(egraph.get_cost_storage())
 {
-    cost_storage.compute();
 }
 
 std::optional<Extractor::SearchResult> Extractor::find_best_numeric_dag(Id root_class_id) const
@@ -153,25 +152,6 @@ Expression Extractor::build_expression(
     return Expression(it->second->get_atom(), children);
 }
 
-Expression Extractor::build_expression_from_cost_storage(Id class_id) const
-{
-    Id root = egraph.find_class_id(class_id);
-    const ENode *best_node = cost_storage.best_node(root);
-    if (!best_node)
-    {
-        throw std::runtime_error("Runtime error: !best_node");
-    }
-
-    std::vector<Expression> children;
-    children.reserve(best_node->get_children().size());
-    std::ranges::transform(best_node->get_children(), std::back_inserter(children),
-                           [this](Id child_id)
-                           {
-                               return build_expression_from_cost_storage(child_id);
-                           });
-    return Expression(best_node->get_atom(), children);
-}
-
 ExtractionResult Extractor::extract(Id class_id) const
 {
     if (auto best = find_best_numeric_dag(class_id); best.has_value())
@@ -180,6 +160,5 @@ ExtractionResult Extractor::extract(Id class_id) const
         return {best->cost, build_expression(class_id, best->choices, visiting)};
     }
 
-    // Fallback to global cost storage for non-numeric/symbolic-only cases.
-    return {cost_storage.eclass_cost(class_id), build_expression_from_cost_storage(class_id)};
+    throw std::runtime_error("Runtime error: no numeric DAG found for root class");
 }

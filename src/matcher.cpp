@@ -1,12 +1,11 @@
 #include "matcher.h"
 
-#include "cost_storage.h"
 #include "e_graph.h"
 
 #include <algorithm>
 
 Matcher::Matcher(EGraph &egraph)
-    : egraph(egraph), cost_storage(egraph.get_cost_storage()) {}
+    : egraph(egraph) {}
 
 bool Matcher::atoms_match(const Atom &pat_atom, const Atom &enode_atom) const
 {
@@ -29,21 +28,10 @@ std::vector<const ENode *> Matcher::ordered_nodes(Id eclass_id, size_t limit) co
 {
     const auto &nodes = egraph.get_class_nodes(eclass_id);
     std::vector<const ENode *> ordered(nodes.begin(), nodes.end());
-    if (limit == 0 || limit >= ordered.size())
+    if (limit > 0 && limit < ordered.size())
     {
-        return ordered;
+        ordered.resize(limit);
     }
-    std::ranges::sort(ordered, [&](const ENode *lhs, const ENode *rhs)
-                      {
-                    auto lhs_cost = cost_storage.node_cost(lhs);
-                    auto rhs_cost = cost_storage.node_cost(rhs);
-                    if (std::holds_alternative<double>(lhs_cost) && std::holds_alternative<double>(rhs_cost))
-                    {
-                        return std::get<double>(lhs_cost) < std::get<double>(rhs_cost);
-                    }
-                    else return false; });
-
-    ordered.resize(limit);
     return ordered;
 }
 

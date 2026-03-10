@@ -6,7 +6,6 @@ add_executable(unit_tests
     expression_test.cpp
     rewrite_test.cpp
     extractor_test.cpp
-    cost_storage_test.cpp
     integration_test.cpp
 )
 

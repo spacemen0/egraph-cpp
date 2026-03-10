@@ -45,5 +45,4 @@ private:
         Id class_id,
         const std::unordered_map<Id, const ENode *> &choices,
         std::unordered_set<Id> &visiting) const;
-    Expression build_expression_from_cost_storage(Id class_id) const;
 };

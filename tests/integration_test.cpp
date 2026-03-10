@@ -69,7 +69,6 @@ TEST(Integration, MinimalRealisticExplosionRules)
         invert_cancel_left,
         mul_identity_right,
     };
-    egraph.update_cost_storage();
     Rewriter rewriter(egraph, rules, 2000, false, true);
     int iteration_number = 20;
     rewriter.apply_rewrites(iteration_number);
