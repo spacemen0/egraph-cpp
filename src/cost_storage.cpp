@@ -6,7 +6,7 @@ CostStorage::CostStorage(const EGraph &egraph) : egraph(egraph)
 {
 }
 
-void CostStorage::ensure_root_cost_cache_fresh() const
+void CostStorage::ensure_root_cost_cache_fresh()
 {
     uint64_t revision = egraph.get_revision();
     if (root_cost_cache_revision != revision)
@@ -16,7 +16,7 @@ void CostStorage::ensure_root_cost_cache_fresh() const
     }
 }
 
-std::optional<CostStorage::CachedRootExtraction> CostStorage::cached_root_extraction(Id class_id) const
+std::optional<CostStorage::CachedRootExtraction> CostStorage::cached_root_extraction(Id class_id)
 {
     if (!egraph.is_clean())
     {
@@ -33,7 +33,7 @@ std::optional<CostStorage::CachedRootExtraction> CostStorage::cached_root_extrac
     return it->second;
 }
 
-void CostStorage::store_root_extraction(Id class_id, double cost, const std::unordered_map<Id, const ENode *> &choices) const
+void CostStorage::store_root_extraction(Id class_id, double cost, const std::unordered_map<Id, const ENode *> &choices)
 {
     if (!egraph.is_clean() || !std::isfinite(cost) || choices.empty())
     {

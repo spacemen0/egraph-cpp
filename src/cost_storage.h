@@ -16,16 +16,16 @@ public:
         std::unordered_map<Id, const ENode *> choices;
     };
 
-    std::optional<CachedRootExtraction> cached_root_extraction(Id class_id) const;
-    void store_root_extraction(Id class_id, double cost, const std::unordered_map<Id, const ENode *> &choices) const;
+    std::optional<CachedRootExtraction> cached_root_extraction(Id class_id);
+    void store_root_extraction(Id class_id, double cost, const std::unordered_map<Id, const ENode *> &choices);
 
 private:
     explicit CostStorage(const EGraph &egraph);
     const EGraph &egraph;
-    mutable std::unordered_map<Id, CachedRootExtraction> root_extraction_cache;
-    mutable uint64_t root_cost_cache_revision = 0;
+    std::unordered_map<Id, CachedRootExtraction> root_extraction_cache;
+    uint64_t root_cost_cache_revision = 0;
 
-    void ensure_root_cost_cache_fresh() const;
+    void ensure_root_cost_cache_fresh();
 
     friend class EGraph;
 };

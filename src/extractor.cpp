@@ -42,85 +42,81 @@ std::optional<Extractor::SearchResult> Extractor::find_best_numeric_dag(Id root_
 /// @param best_cost (in/out) The cost of the best complete solution found so far. Updated when a better solution is found.
 /// @param best_choices (out) Map storing the node choices of the best solution found so far.
 void Extractor::search_best_numeric_dag(
-    std::vector<PendingClass> &pending,
+    const std::vector<PendingClass> &pending,
     std::unordered_map<Id, const ENode *> &current_choices,
     double current_cost,
     double &best_cost,
     std::unordered_map<Id, const ENode *> &best_choices) const
 {
-    // Process e-classes in the pending stack.
-    while (!pending.empty())
+    std::vector<PendingClass> unresolved_pending = pending;
+    std::erase_if(
+        unresolved_pending,
+        [&](const PendingClass &entry)
+        {
+            Id entry_root = egraph.find_class_id(entry.class_id);
+            return current_choices.contains(entry_root);
+        });
+
+    if (unresolved_pending.empty())
     {
-        PendingClass current_pending = pending.back();
-        Id current = egraph.find_class_id(current_pending.class_id);
-
-        // Skip e-classes that already have a chosen node
-        if (current_choices.contains(current))
+        if (current_cost < best_cost)
         {
-            pending.pop_back();
-            continue;
+            best_cost = current_cost;
+            best_choices = current_choices;
         }
-
-        // Found an e-class that needs a node choice. Save the rest of the pending stack for backtracking after trying candidates for this e-class.
-        std::vector<PendingClass> parent_pending = pending;
-        parent_pending.pop_back();
-
-        for (const ENode *candidate : egraph.get_class_nodes(current))
-        {
-            Cost local_cost = candidate->compute_local_cost(egraph);
-
-            // Skip symbolic-cost candidates
-            if (!std::holds_alternative<double>(local_cost))
-            {
-                continue;
-            }
-
-            double next_cost = current_cost + std::get<double>(local_cost);
-            if (next_cost >= best_cost)
-            {
-                continue;
-            }
-
-            current_choices[current] = candidate;
-
-            // Add children e-classes to the pending list. A child that appears in the
-            // ancestor set for this dependency path would form a cycle.
-            std::vector<PendingClass> child_pending = parent_pending;
-            std::unordered_set<Id> child_ancestors = current_pending.ancestors;
-            child_ancestors.insert(current);
-            bool has_cycle = false;
-            for (Id child : candidate->get_children())
-            {
-                Id child_root = egraph.find_class_id(child);
-                if (child_ancestors.contains(child_root))
-                {
-                    has_cycle = true;
-                    break;
-                }
-                if (!current_choices.contains(child_root)) // only calculate unvisited children
-                {
-                    child_pending.push_back({child_root, child_ancestors});
-                }
-            }
-
-            if (!has_cycle)
-            {
-                // Recursively search with this candidate chosen.
-                search_best_numeric_dag(child_pending, current_choices, next_cost, best_cost, best_choices);
-            }
-
-            // Return to the previous state
-            current_choices.erase(current);
-        }
-
-        // After trying all candidates for this one e-class, backtrack to parent level
         return;
     }
 
-    if (current_cost < best_cost)
+    PendingClass current_pending = unresolved_pending.back();
+    Id current = egraph.find_class_id(current_pending.class_id);
+    unresolved_pending.pop_back();
+
+    for (const ENode *candidate : egraph.get_class_nodes(current))
     {
-        best_cost = current_cost;
-        best_choices = current_choices;
+        Cost local_cost = candidate->compute_local_cost(egraph);
+
+        // Skip symbolic-cost candidates.
+        if (!std::holds_alternative<double>(local_cost))
+        {
+            continue;
+        }
+
+        double next_cost = current_cost + std::get<double>(local_cost);
+        if (next_cost >= best_cost)
+        {
+            continue;
+        }
+
+        current_choices[current] = candidate;
+
+        // Add children e-classes to the pending list. A child that appears in the
+        // ancestor set for this dependency path would form a cycle.
+        std::vector<PendingClass> child_pending = unresolved_pending;
+        std::unordered_set<Id> child_ancestors = current_pending.ancestors;
+        child_ancestors.insert(current);
+        bool has_cycle = false;
+        for (Id child : candidate->get_children())
+        {
+            Id child_root = egraph.find_class_id(child);
+            if (child_ancestors.contains(child_root))
+            {
+                has_cycle = true;
+                break;
+            }
+            if (!current_choices.contains(child_root)) // only calculate unvisited children
+            {
+                child_pending.emplace_back(PendingClass{child_root, child_ancestors});
+            }
+        }
+
+        if (!has_cycle)
+        {
+            // Recursively search with this candidate chosen.
+            search_best_numeric_dag(child_pending, current_choices, next_cost, best_cost, best_choices);
+        }
+
+        // Return to the previous state.
+        current_choices.erase(current);
     }
 }
 

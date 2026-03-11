@@ -330,7 +330,7 @@ std::string EGraph::to_dot() const
         oss << "    style=dotted;\n";
 
         const auto representative = get_representative_expression(*this, class_id);
-        oss << "    label=\"" << representative.to_string() << "\";\n";
+        oss << "    label=\" EC-" << class_id << ": " << representative.to_string() << "\";\n";
 
         int i = 0;
         for (const auto &node : eclass->get_nodes())

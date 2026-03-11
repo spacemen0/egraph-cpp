@@ -93,11 +93,11 @@ TEST(Extractor, ExpensiveSharedWinsWithHighReuse)
     egraph.union_classes(id_mul_yx, inv_d);
 
     // Root expression: Add(Mul(Y, X), Mul(Inv(D), D))
-    Id id_root = egraph.add_node(make_op(Op::Mul, {id_mul_yx, mul_inv_d})); // 2x2
+    Id id_root = egraph.add_node(make_op(Op::Add, {id_mul_yx, mul_inv_d})); // 2x2
+    egraph.to_img("extractor_test_initial", "svg");
     Extractor extractor(egraph);
     auto result = extractor.extract(id_root);
     EXPECT_TRUE(std::holds_alternative<double>(result.cost));
-    // choice 1: Mul(Y, X) + Mul(Inv(D), D) with cost 12 + 8 +8 +4 = 32
-    // choice 2: Mul(Y, X) + Mul(Mul(Y, X), D) with cost 12 + 8 + 4 = 24
-    EXPECT_EQ(std::get<double>(result.cost), 24.0);
+    // E1 = {Mul(Y,X) cost=12, Inv(D) cost=8} is shared by both children of Add.
+    EXPECT_EQ(std::get<double>(result.cost), 20.0);
 }

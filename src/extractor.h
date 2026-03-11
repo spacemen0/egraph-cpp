@@ -36,7 +36,7 @@ private:
     CostStorage &cost_storage;
     std::optional<SearchResult> find_best_numeric_dag(Id root_class_id) const;
     void search_best_numeric_dag(
-        std::vector<PendingClass> &pending,
+        const std::vector<PendingClass> &pending,
         std::unordered_map<Id, const ENode *> &current_choices,
         double current_cost,
         double &best_cost,
