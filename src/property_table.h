@@ -8,7 +8,7 @@
 class PropertyTable
 {
 public:
-    bool add_property_entry(const std::string &name, MatrixProperty property);
+    bool add_or_update_property_entry(const std::string &name, MatrixProperty property);
 
     std::optional<MatrixProperty> get_property(const std::string &name) const;
 

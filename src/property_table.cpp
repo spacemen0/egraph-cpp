@@ -1,8 +1,8 @@
 #include "property_table.h"
 
-bool PropertyTable::add_property_entry(const std::string &name, MatrixProperty property)
+bool PropertyTable::add_or_update_property_entry(const std::string &name, MatrixProperty property)
 {
-    auto result = properties.try_emplace(name, std::move(property));
+    auto result = properties.insert_or_assign(name, std::move(property));
     return result.second;
 }
 

@@ -146,6 +146,12 @@ TEST(Integration, OLSSymbolic)
         if (egraph.find_class_id(id) == egraph.find_class_id(should_be_root_id))
         {
             std::cout << "Found the QR-based solution in iteration " << iteration << "! Num nodes: " << egraph.num_nodes() << std::endl;
+            std::cout << "Sample matrix sizes to try out extraction..." << std::endl;
+            egraph.sample_symbolic_sizes({{"A", 100}, {"B", 10}, {"c", 1}});
+            Extractor extractor(egraph);
+            auto result = extractor.extract(id);
+            std::cout << "Best extracted expression: " << result.expr.to_string() << std::endl;
+            std::cout << "Cost: " << result.cost << std::endl;
             return;
         }
     }

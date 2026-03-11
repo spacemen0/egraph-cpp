@@ -26,7 +26,7 @@ public:
     Id add_node(ENode node);
     Id add_expression(const Expression &expr);
     Id add_expression(const Expression &expr, const Substitution &subst);
-    void register_property(const std::string &name, const MatrixProperty &prop);
+    void register_or_update_property(const std::string &name, const MatrixProperty &prop);
     bool union_classes(Id id1, Id id2);
     void rebuild();
     void print_egraph() const;
@@ -41,6 +41,7 @@ public:
     std::optional<Id> find_class_with_property(const MatrixProperty &prop) const;
     void to_dot_file(const std::string &filename) const;
     void to_img(const std::string &filename, const std::string &format) const;
+    void sample_symbolic_sizes(const std::unordered_map<std::string, int> &size_bindings);
     CostStorage &get_cost_storage() { return cost_storage; }
     uint64_t get_revision() const noexcept { return revision; }
     bool is_clean() const noexcept { return pendings.empty(); }

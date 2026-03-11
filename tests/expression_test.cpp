@@ -53,7 +53,7 @@ TEST(Expression, ToString)
     EXPECT_EQ(repr, "Mul(Add(X, Y), Tr(Z))");
 }
 
-TEST(Expression, ParseFactorizationNode)
+TEST(Expression, ParseQRNode)
 {
     Expression p("Mul(Add(Get(QR(A), 0)), Get(QR(A), 1))");
     EXPECT_EQ(std::get<Op>(p.atom), Op::Mul);

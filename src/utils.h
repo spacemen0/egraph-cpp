@@ -218,7 +218,7 @@ inline Id make_identity_for(EGraph &egraph, const Substitution &s, const std::st
     }
 
     std::string identity_name = "I_" + size_str + "x" + size_str;
-    egraph.register_property(identity_name, prop);
+    egraph.register_or_update_property(identity_name, prop);
     return egraph.add_node(ENode({}, identity_name));
 }
 
@@ -263,7 +263,7 @@ inline Id make_zero_for(EGraph &g, const Substitution &s, const std::string &var
 
     std::string zero_name = "Zero_" + h_str + "x" + w_str;
 
-    g.register_property(zero_name, prop);
+    g.register_or_update_property(zero_name, prop);
 
     return g.add_node(ENode({}, zero_name));
 }

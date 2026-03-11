@@ -75,7 +75,7 @@ TEST(Rewrite, NewNodes)
 
     MatrixProperty prop_a;
     prop_a.shape = {10, 10};
-    pt.add_property_entry("a", prop_a);
+    pt.add_or_update_property_entry("a", prop_a);
     EGraph egraph(std::move(pt));
 
     Id id_add = egraph.add_expression(Expression("Mul(Inv(a), a)"));
@@ -100,11 +100,11 @@ TEST(Rewrite, SolveRule)
 
     MatrixProperty prop_a;
     prop_a.shape = {3, 3};
-    pt.add_property_entry("a", prop_a);
+    pt.add_or_update_property_entry("a", prop_a);
 
     MatrixProperty prop_b;
     prop_b.shape = {3, 2};
-    pt.add_property_entry("b", prop_b);
+    pt.add_or_update_property_entry("b", prop_b);
 
     EGraph egraph(std::move(pt));
 
@@ -119,17 +119,31 @@ TEST(Rewrite, SolveRule)
     EXPECT_EQ(std::get<MatrixProperty>(egraph.get_class_analysis_data(id_expr).property).shape, std::make_pair(Size(3), Size(2)));
 }
 
+TEST(Rewrite, LLtRewrite)
+{
+    EGraph egraph(get_property_table());
+
+    Id id_expr = egraph.add_expression(Expression("Inv(V)"));
+
+    Rewriter rewriter(egraph, {llt_invert}, 100);
+    bool changed = rewriter.apply_rewrites();
+    EXPECT_TRUE(changed);
+
+    Id id_llt = egraph.add_expression(Expression("Mul(Tr(Inv(Get(LLt(V), 0))), Inv(Get(LLt(V), 0)))"));
+    EXPECT_EQ(egraph.find_class_id(id_expr), egraph.find_class_id(id_llt));
+}
+
 TEST(Rewrite, BackoffScheduler)
 {
     PropertyTable pt;
 
     MatrixProperty prop_3x3;
     prop_3x3.shape = {3, 3};
-    pt.add_property_entry("a", prop_3x3);
+    pt.add_or_update_property_entry("a", prop_3x3);
 
     MatrixProperty prop_4x4;
     prop_4x4.shape = {4, 4};
-    pt.add_property_entry("b", prop_4x4);
+    pt.add_or_update_property_entry("b", prop_4x4);
 
     EGraph egraph(std::move(pt));
 

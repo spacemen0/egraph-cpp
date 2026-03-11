@@ -126,6 +126,56 @@ Id EGraph::add_expression(const Expression &expr)
     return add_node(current_node);
 }
 
+void EGraph::sample_symbolic_sizes(const std::unordered_map<std::string, int> &size_bindings)
+{
+    auto replace_size = [&](Size &dim) -> bool
+    {
+        if (!std::holds_alternative<std::string>(dim))
+        {
+            return false;
+        }
+        const std::string &symbol = std::get<std::string>(dim);
+        auto it = size_bindings.find(symbol);
+        if (it == size_bindings.end())
+        {
+            return false;
+        }
+        dim = it->second;
+        return true;
+    };
+
+    auto concretize_matrix_property = [&](MatrixProperty &prop) -> bool
+    {
+        bool changed = false;
+        changed |= replace_size(prop.shape.first);
+        changed |= replace_size(prop.shape.second);
+        return changed;
+    };
+
+    bool any_changed = false;
+    for (auto &[_, eclass_ptr] : classes)
+    {
+        AnalysisData &analysis = eclass_ptr->get_analysis_data();
+        if (auto *matrix_prop = std::get_if<MatrixProperty>(&analysis.property))
+        {
+            any_changed |= concretize_matrix_property(*matrix_prop);
+            continue;
+        }
+
+        if (auto *tuple_prop = std::get_if<TupleProperty>(&analysis.property))
+        {
+            for (auto &matrix_prop : *tuple_prop)
+            {
+                any_changed |= concretize_matrix_property(matrix_prop);
+            }
+        }
+    }
+
+    if (any_changed)
+    {
+        ++revision;
+    }
+}
 Id EGraph::add_expression(const Expression &expr, const Substitution &subst)
 {
     if (std::holds_alternative<std::string>(expr.atom))
@@ -311,9 +361,9 @@ std::vector<Id> EGraph::get_class_parents(Id class_id) const
     return classes.at(root)->get_parents();
 }
 
-void EGraph::register_property(const std::string &name, const MatrixProperty &prop)
+void EGraph::register_or_update_property(const std::string &name, const MatrixProperty &prop)
 {
-    property_table.add_property_entry(name, prop);
+    property_table.add_or_update_property_entry(name, prop);
 }
 
 std::string EGraph::to_dot() const

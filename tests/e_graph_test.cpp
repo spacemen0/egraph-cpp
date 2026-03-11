@@ -258,3 +258,32 @@ TEST(EGraph, ErrorConditions)
     ENode invalid_invert = make_op(Op::Inv, {x});
     EXPECT_THROW(egraph.add_node(invalid_invert), InvalidOperationError);
 }
+
+TEST(EGraph, SampleSymbolicSizesIntoAnalysisData)
+{
+    EGraph egraph(get_property_table());
+
+    Id id_m = egraph.add_node(make_symbol("M"));
+    Id id_tr_m = egraph.add_node(make_op(Op::Tr, {id_m}));
+    Id id_mul = egraph.add_node(make_op(Op::Mul, {id_tr_m, id_m}));
+
+    const auto *m_prop_before = std::get_if<MatrixProperty>(&egraph.get_class_analysis_data(id_m).property);
+    ASSERT_NE(m_prop_before, nullptr);
+    EXPECT_TRUE(std::holds_alternative<std::string>(m_prop_before->shape.first));
+    EXPECT_TRUE(std::holds_alternative<std::string>(m_prop_before->shape.second));
+
+    const auto *mul_prop_before = std::get_if<MatrixProperty>(&egraph.get_class_analysis_data(id_mul).property);
+    ASSERT_NE(mul_prop_before, nullptr);
+    EXPECT_TRUE(std::holds_alternative<std::string>(mul_prop_before->shape.first));
+    EXPECT_TRUE(std::holds_alternative<std::string>(mul_prop_before->shape.second));
+
+    egraph.sample_symbolic_sizes({{"A", 5}, {"B", 3}});
+
+    const auto *m_prop_after = std::get_if<MatrixProperty>(&egraph.get_class_analysis_data(id_m).property);
+    ASSERT_NE(m_prop_after, nullptr);
+    EXPECT_EQ(m_prop_after->shape, std::make_pair(Size(5), Size(3)));
+
+    const auto *mul_prop_after = std::get_if<MatrixProperty>(&egraph.get_class_analysis_data(id_mul).property);
+    ASSERT_NE(mul_prop_after, nullptr);
+    EXPECT_EQ(mul_prop_after->shape, std::make_pair(Size(3), Size(3)));
+}
