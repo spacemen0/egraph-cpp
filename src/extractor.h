@@ -18,6 +18,7 @@ public:
     explicit Extractor(EGraph &egraph);
 
     ExtractionResult extract(Id class_id) const;
+    std::vector<ExtractionResult> extract_symbolic(Id class_id) const;
 
 private:
     struct PendingClass
@@ -26,21 +27,34 @@ private:
         std::unordered_set<Id> ancestors;
     };
 
-    struct SearchResult
+    struct NumericSearchResult
     {
         double cost;
         std::unordered_map<Id, const ENode *> choices;
     };
 
+    struct SymbolicSearchResult
+    {
+        SymbolicCost cost;
+        std::unordered_map<Id, const ENode *> choices;
+    };
+
     EGraph &egraph;
     CostStorage &cost_storage;
-    std::optional<SearchResult> find_best_numeric_dag(Id root_class_id) const;
+    std::optional<NumericSearchResult> find_best_numeric_dag(Id root_class_id) const;
+    std::vector<SymbolicSearchResult> find_symbolic_dags(Id root_class_id) const;
     void search_best_numeric_dag(
         const std::vector<PendingClass> &pending,
         std::unordered_map<Id, const ENode *> &current_choices,
         double current_cost,
         double &best_cost,
         std::unordered_map<Id, const ENode *> &best_choices) const;
+    void search_symbolic_dags(
+        const std::vector<PendingClass> &pending,
+        std::unordered_map<Id, const ENode *> &current_choices,
+        SymbolicCost current_cost,
+        std::vector<SymbolicSearchResult> &results) const;
+
     Expression build_expression(
         Id class_id,
         const std::unordered_map<Id, const ENode *> &choices,

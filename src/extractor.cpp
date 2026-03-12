@@ -9,12 +9,12 @@ Extractor::Extractor(EGraph &egraph) : egraph(egraph), cost_storage(egraph.get_c
 {
 }
 
-std::optional<Extractor::SearchResult> Extractor::find_best_numeric_dag(Id root_class_id) const
+std::optional<Extractor::NumericSearchResult> Extractor::find_best_numeric_dag(Id root_class_id) const
 {
     Id root = egraph.find_class_id(root_class_id);
     if (auto cached = cost_storage.cached_root_extraction(root); cached.has_value())
     {
-        return SearchResult{cached->cost, cached->choices};
+        return NumericSearchResult{cached->cost, cached->choices};
     }
 
     std::vector<PendingClass> pending = {{root, {}}};
@@ -28,7 +28,20 @@ std::optional<Extractor::SearchResult> Extractor::find_best_numeric_dag(Id root_
         return std::nullopt;
     }
     cost_storage.store_root_extraction(root, best_cost, best_choices);
-    return SearchResult{best_cost, std::move(best_choices)};
+    return NumericSearchResult{best_cost, std::move(best_choices)};
+}
+
+std::vector<Extractor::SymbolicSearchResult> Extractor::find_symbolic_dags(Id root_class_id) const
+{
+    Id root = egraph.find_class_id(root_class_id);
+
+    std::vector<PendingClass> pending = {{root, {}}};
+    std::unordered_map<Id, const ENode *> current_choices;
+    std::vector<SymbolicSearchResult> results;
+    SymbolicCost initial_cost;
+
+    search_symbolic_dags(pending, current_choices, initial_cost, results);
+    return results;
 }
 
 /// @param pending Stack of e-classes that still need a node choice, each annotated with the ancestors on the path that reached it.
@@ -115,6 +128,74 @@ void Extractor::search_best_numeric_dag(
     }
 }
 
+void Extractor::search_symbolic_dags(const std::vector<PendingClass> &pending, std::unordered_map<Id, const ENode *> &current_choices, SymbolicCost current_cost, std::vector<SymbolicSearchResult> &results) const
+{
+    if (pending.empty())
+    {
+        results.push_back(SymbolicSearchResult{current_cost, current_choices});
+        return;
+    }
+
+    std::vector<PendingClass> local_pending = pending;
+    PendingClass current_pending = local_pending.back();
+    Id current = egraph.find_class_id(current_pending.class_id);
+    local_pending.pop_back();
+
+    for (const ENode *candidate : egraph.get_class_nodes(current))
+    {
+        Cost local_cost = candidate->compute_local_cost(egraph);
+
+        SymbolicCost next_cost = current_cost;
+        if (std::holds_alternative<SymbolicCost>(local_cost))
+        {
+            next_cost = next_cost + std::get<SymbolicCost>(local_cost);
+        }
+        else if (std::holds_alternative<double>(local_cost) && std::get<double>(local_cost) != 0.0)
+        {
+            continue;
+        }
+
+        current_choices[current] = candidate;
+
+        // Add children e-classes to the pending list. A child that appears in the
+        // ancestor set for this dependency path would form a cycle.
+        std::vector<PendingClass> child_pending = local_pending;
+        std::unordered_set<Id> child_ancestors = current_pending.ancestors;
+        child_ancestors.insert(current);
+        bool has_cycle = false;
+        for (Id child : candidate->get_children())
+        {
+            Id child_root = egraph.find_class_id(child);
+            if (child_ancestors.contains(child_root))
+            {
+                has_cycle = true;
+                break;
+            }
+
+            bool child_already_pending = std::ranges::any_of(
+                child_pending,
+                [&](const PendingClass &entry)
+                {
+                    return egraph.find_class_id(entry.class_id) == child_root;
+                });
+
+            if (!current_choices.contains(child_root) && !child_already_pending) // only calculate unvisited children
+            {
+                child_pending.emplace_back(PendingClass{child_root, child_ancestors});
+            }
+        }
+
+        if (!has_cycle)
+        {
+            // Recursively search with this candidate chosen.
+            search_symbolic_dags(child_pending, current_choices, next_cost, results);
+        }
+
+        // Return to the previous state.
+        current_choices.erase(current);
+    }
+}
+
 Expression Extractor::build_expression(
     Id class_id,
     const std::unordered_map<Id, const ENode *> &choices,
@@ -152,4 +233,16 @@ ExtractionResult Extractor::extract(Id class_id) const
     }
 
     throw std::runtime_error("Runtime error: no numeric DAG found for root class");
+}
+
+std::vector<ExtractionResult> Extractor::extract_symbolic(Id class_id) const
+{
+    auto symbolic_dags = find_symbolic_dags(class_id);
+    std::vector<ExtractionResult> results;
+    for (const auto &dag : symbolic_dags)
+    {
+        std::unordered_set<Id> visiting;
+        results.push_back({dag.cost, build_expression(class_id, dag.choices, visiting)});
+    }
+    return results;
 }

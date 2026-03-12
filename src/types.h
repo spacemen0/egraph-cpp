@@ -243,6 +243,16 @@ namespace std
 using SymbolicCost = std::unordered_map<Monomial, double, std::hash<Monomial>, std::equal_to<Monomial>>;
 using Cost = std::variant<double, SymbolicCost>;
 
+inline SymbolicCost operator+(const SymbolicCost &a, const SymbolicCost &b)
+{
+    SymbolicCost result = a;
+    for (const auto &[monomial, coeff] : b)
+    {
+        result[monomial] += coeff;
+    }
+    return result;
+}
+
 inline Cost &operator+=(Cost &lhs, const Cost &rhs)
 {
     if (lhs.index() != rhs.index())
