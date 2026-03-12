@@ -12,6 +12,7 @@
 #include "pattern.h"
 #include "cost_storage.h"
 #include "property_table.h"
+#include "e_graph_visualization.h"
 
 class EGraph
 {

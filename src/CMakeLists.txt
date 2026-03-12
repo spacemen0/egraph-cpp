@@ -2,6 +2,7 @@ add_library(core_lib STATIC
     union_find.cpp
     e_node.cpp
     e_graph.cpp
+    e_graph_visualization.cpp
     e_class.cpp 
     expression.cpp
     pattern.cpp
