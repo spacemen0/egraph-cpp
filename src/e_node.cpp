@@ -10,14 +10,49 @@
 #include <unordered_set>
 #include <algorithm>
 
-Cost ENode::compute_local_cost(const EGraph &egraph) const
+namespace
+{
+    Size bind_size(const Size &size, const SizeBindings *size_bindings)
+    {
+        if (!size_bindings)
+        {
+            return size;
+        }
+
+        if (const auto *symbol = std::get_if<std::string>(&size))
+        {
+            if (auto it = size_bindings->find(*symbol); it != size_bindings->end())
+            {
+                return it->second;
+            }
+        }
+
+        return size;
+    }
+
+    Shape bind_shape(const Shape &shape, const SizeBindings *size_bindings)
+    {
+        return {bind_size(shape.first, size_bindings), bind_size(shape.second, size_bindings)};
+    }
+
+    std::string size_to_symbol(const Size &size)
+    {
+        if (const auto *value = std::get_if<int>(&size))
+        {
+            return std::to_string(*value);
+        }
+        return std::get<std::string>(size);
+    }
+}
+
+Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bindings) const
 {
     auto get_one_shape = [&](Id child_id) -> std::pair<std::variant<int, std::string>, std::variant<int, std::string>>
     {
         auto data = get_matrix_data(egraph, child_id);
         if (data)
         {
-            return data->shape;
+            return bind_shape(data->shape, size_bindings);
         }
         return {{}, {}};
     };
@@ -48,7 +83,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph) const
             }
             if (is_symbolic(shape))
             {
-                Monomial m = {{std::get<std::string>(shape.first), std::get<std::string>(shape.second)}};
+                Monomial m = {{size_to_symbol(shape.first), size_to_symbol(shape.second)}};
                 SymbolicCost sc;
                 sc[m] = 1.0;
                 return sc;
@@ -67,7 +102,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph) const
             }
             if (is_symbolic(shapes.first) && is_symbolic(shapes.second))
             {
-                Monomial m = {{std::get<std::string>(shapes.first.first), std::get<std::string>(shapes.first.second), std::get<std::string>(shapes.second.second)}};
+                Monomial m = {{size_to_symbol(shapes.first.first), size_to_symbol(shapes.first.second), size_to_symbol(shapes.second.second)}};
                 SymbolicCost sc;
                 sc[m] = 1.0;
                 return sc;
@@ -85,7 +120,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph) const
             }
             if (is_symbolic(shape))
             {
-                Monomial m = {{std::get<std::string>(shape.first), std::get<std::string>(shape.second)}};
+                Monomial m = {{size_to_symbol(shape.first), size_to_symbol(shape.second)}};
                 SymbolicCost sc;
                 sc[m] = 1.0;
                 return sc;
@@ -112,7 +147,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph) const
             }
             if (is_symbolic(shape))
             {
-                Monomial m = {{std::get<std::string>(shape.first), std::get<std::string>(shape.first), std::get<std::string>(shape.first)}};
+                Monomial m = {{size_to_symbol(shape.first), size_to_symbol(shape.first), size_to_symbol(shape.first)}};
                 SymbolicCost sc;
                 if (data && (data->is_upper_triangular || data->is_lower_triangular))
                 {
@@ -137,7 +172,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph) const
             }
             if (is_symbolic(shape))
             {
-                Monomial m = {{std::get<std::string>(shape.first), std::get<std::string>(shape.second)}};
+                Monomial m = {{size_to_symbol(shape.first), size_to_symbol(shape.second)}};
                 SymbolicCost sc;
                 sc[m] = 1.0;
                 return sc;
@@ -155,8 +190,8 @@ Cost ENode::compute_local_cost(const EGraph &egraph) const
             }
             if (is_symbolic(shape))
             {
-                std::string r = std::get<std::string>(shape.first);
-                std::string c = std::get<std::string>(shape.second);
+                std::string r = size_to_symbol(shape.first);
+                std::string c = size_to_symbol(shape.second);
 
                 Monomial mn2 = {{r, c, c}};
                 Monomial n3 = {{c, c, c}};
@@ -181,7 +216,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph) const
             }
             if (is_symbolic(shape))
             {
-                std::string n = std::get<std::string>(shape.first);
+                std::string n = size_to_symbol(shape.first);
 
                 Monomial n3 = {{n, n, n}};
                 SymbolicCost sc;
@@ -203,7 +238,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph) const
             }
             if (is_symbolic(shape))
             {
-                std::string n = std::get<std::string>(shape.first);
+                std::string n = size_to_symbol(shape.first);
 
                 Monomial n3 = {{n, n, n}};
                 SymbolicCost sc;

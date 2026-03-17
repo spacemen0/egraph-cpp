@@ -42,7 +42,6 @@ public:
     std::optional<Id> find_class_with_property(const MatrixProperty &prop) const;
     void to_dot_file(const std::string &filename) const;
     void to_img(const std::string &filename, const std::string &format) const;
-    void sample_symbolic_sizes(const std::unordered_map<std::string, int> &size_bindings);
     CostStorage &get_cost_storage() { return cost_storage; }
     uint64_t get_revision() const noexcept { return revision; }
     bool is_clean() const noexcept { return pendings.empty(); }

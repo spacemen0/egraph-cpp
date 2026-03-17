@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "e_graph.h"
+#include "extractor.h"
 #include "test_helper.h"
 #include "errors.h"
 
@@ -259,7 +260,7 @@ TEST(EGraph, ErrorConditions)
     EXPECT_THROW(egraph.add_node(invalid_invert), InvalidOperationError);
 }
 
-TEST(EGraph, SampleSymbolicSizesIntoAnalysisData)
+TEST(EGraph, BoundExtractionDoesNotMutateAnalysisData)
 {
     EGraph egraph(get_property_table());
 
@@ -277,13 +278,16 @@ TEST(EGraph, SampleSymbolicSizesIntoAnalysisData)
     EXPECT_TRUE(std::holds_alternative<std::string>(mul_prop_before->shape.first));
     EXPECT_TRUE(std::holds_alternative<std::string>(mul_prop_before->shape.second));
 
-    egraph.sample_symbolic_sizes({{"A", 5}, {"B", 3}});
+    Extractor extractor(egraph);
+    auto result = extractor.extract(id_mul, {{"A", 5}, {"B", 3}});
+    EXPECT_TRUE(std::holds_alternative<double>(result.cost));
+    EXPECT_EQ(std::get<double>(result.cost), 60.0);
 
     const auto *m_prop_after = std::get_if<MatrixProperty>(&egraph.get_class_analysis_data(id_m).property);
     ASSERT_NE(m_prop_after, nullptr);
-    EXPECT_EQ(m_prop_after->shape, std::make_pair(Size(5), Size(3)));
+    EXPECT_EQ(m_prop_after->shape, std::make_pair(Size(std::string("A")), Size(std::string("B"))));
 
     const auto *mul_prop_after = std::get_if<MatrixProperty>(&egraph.get_class_analysis_data(id_mul).property);
     ASSERT_NE(mul_prop_after, nullptr);
-    EXPECT_EQ(mul_prop_after->shape, std::make_pair(Size(3), Size(3)));
+    EXPECT_EQ(mul_prop_after->shape, std::make_pair(Size(std::string("B")), Size(std::string("B"))));
 }

@@ -9,12 +9,15 @@ Extractor::Extractor(EGraph &egraph) : egraph(egraph), cost_storage(egraph.get_c
 {
 }
 
-std::optional<Extractor::NumericSearchResult> Extractor::find_best_numeric_dag(Id root_class_id) const
+std::optional<Extractor::NumericSearchResult> Extractor::find_best_numeric_dag(Id root_class_id, const SizeBindings *size_bindings) const
 {
     Id root = egraph.find_class_id(root_class_id);
-    if (auto cached = cost_storage.cached_root_extraction(root); cached.has_value())
+    if (!size_bindings)
     {
-        return NumericSearchResult{cached->cost, cached->choices};
+        if (auto cached = cost_storage.cached_root_extraction(root); cached.has_value())
+        {
+            return NumericSearchResult{cached->cost, cached->choices};
+        }
     }
 
     std::vector<PendingClass> pending = {{root, {}}};
@@ -22,12 +25,15 @@ std::optional<Extractor::NumericSearchResult> Extractor::find_best_numeric_dag(I
     std::unordered_map<Id, const ENode *> best_choices;
     double best_cost = std::numeric_limits<double>::infinity();
 
-    search_best_numeric_dag(pending, current_choices, 0.0, best_cost, best_choices);
+    search_best_numeric_dag(pending, current_choices, size_bindings, 0.0, best_cost, best_choices);
     if (!std::isfinite(best_cost))
     {
         return std::nullopt;
     }
-    cost_storage.store_root_extraction(root, best_cost, best_choices);
+    if (!size_bindings)
+    {
+        cost_storage.store_root_extraction(root, best_cost, best_choices);
+    }
     return NumericSearchResult{best_cost, std::move(best_choices)};
 }
 
@@ -52,6 +58,7 @@ std::vector<Extractor::SymbolicSearchResult> Extractor::find_symbolic_dags(Id ro
 void Extractor::search_best_numeric_dag(
     const std::vector<PendingClass> &pending,
     std::unordered_map<Id, const ENode *> &current_choices,
+    const SizeBindings *size_bindings,
     double current_cost,
     double &best_cost,
     std::unordered_map<Id, const ENode *> &best_choices) const
@@ -73,7 +80,7 @@ void Extractor::search_best_numeric_dag(
 
     for (const ENode *candidate : egraph.get_class_nodes(current))
     {
-        Cost local_cost = candidate->compute_local_cost(egraph);
+        Cost local_cost = candidate->compute_local_cost(egraph, size_bindings);
 
         // Skip symbolic-cost candidates.
         if (!std::holds_alternative<double>(local_cost))
@@ -120,7 +127,7 @@ void Extractor::search_best_numeric_dag(
         if (!has_cycle)
         {
             // Recursively search with this candidate chosen.
-            search_best_numeric_dag(child_pending, current_choices, next_cost, best_cost, best_choices);
+            search_best_numeric_dag(child_pending, current_choices, size_bindings, next_cost, best_cost, best_choices);
         }
 
         // Return to the previous state.
@@ -233,6 +240,17 @@ ExtractionResult Extractor::extract(Id class_id) const
     }
 
     throw std::runtime_error("Runtime error: no numeric DAG found for root class");
+}
+
+ExtractionResult Extractor::extract(Id class_id, const SizeBindings &size_bindings) const
+{
+    if (auto best = find_best_numeric_dag(class_id, &size_bindings); best.has_value())
+    {
+        std::unordered_set<Id> visiting;
+        return {best->cost, build_expression(class_id, best->choices, visiting)};
+    }
+
+    throw std::runtime_error("Runtime error: no numeric DAG found for root class under supplied size bindings");
 }
 
 std::vector<ExtractionResult> Extractor::extract_symbolic(Id class_id) const

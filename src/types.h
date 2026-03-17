@@ -30,6 +30,7 @@ using Children = std::vector<Id>;
 using Atom = std::variant<Op, std::string, int>; // int for indexes in Get operations
 using Size = std::variant<int, std::string>;
 using Shape = std::pair<Size, Size>;
+using SizeBindings = std::unordered_map<std::string, int>;
 
 struct MatrixProperty
 {
