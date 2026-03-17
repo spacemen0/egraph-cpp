@@ -75,13 +75,13 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
         case Add:
         {
             auto shape = get_one_shape(children.at(0));
-            if (is_concrete(shape))
+            if (is_numeric(shape))
             {
                 int rows = std::get<int>(shape.first);
                 int cols = std::get<int>(shape.second);
                 return static_cast<double>(rows * cols);
             }
-            if (is_symbolic(shape))
+            if (!is_numeric(shape))
             {
                 Monomial m = {{size_to_symbol(shape.first), size_to_symbol(shape.second)}};
                 SymbolicCost sc;
@@ -93,14 +93,14 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
         case Mul:
         {
             auto shapes = get_two_shapes(children.at(0), children.at(1));
-            if (is_concrete(shapes.first) && is_concrete(shapes.second))
+            if (is_numeric(shapes.first) && is_numeric(shapes.second))
             {
                 int rows1 = std::get<int>(shapes.first.first);
                 int cols1 = std::get<int>(shapes.first.second);
                 int cols2 = std::get<int>(shapes.second.second);
                 return static_cast<double>(rows1 * cols1 * cols2);
             }
-            if (is_symbolic(shapes.first) && is_symbolic(shapes.second))
+            if (!(is_numeric(shapes.first) && is_numeric(shapes.second)))
             {
                 Monomial m = {{size_to_symbol(shapes.first.first), size_to_symbol(shapes.first.second), size_to_symbol(shapes.second.second)}};
                 SymbolicCost sc;
@@ -112,13 +112,13 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
         case Tr:
         {
             auto shape = get_one_shape(children.at(0));
-            if (is_concrete(shape))
+            if (is_numeric(shape))
             {
                 int rows = std::get<int>(shape.first);
                 int cols = std::get<int>(shape.second);
                 return static_cast<double>(rows * cols);
             }
-            if (is_symbolic(shape))
+            if (!is_numeric(shape))
             {
                 Monomial m = {{size_to_symbol(shape.first), size_to_symbol(shape.second)}};
                 SymbolicCost sc;
@@ -131,7 +131,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
         {
             auto shape = get_one_shape(children.at(0));
             auto data = get_matrix_data(egraph, egraph.find_node_id(*this).value());
-            if (is_concrete(shape))
+            if (is_numeric(shape))
             {
                 int rows = std::get<int>(shape.first);
                 int cols = std::get<int>(shape.second);
@@ -145,7 +145,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
                 }
                 return static_cast<double>(rows * rows * rows);
             }
-            if (is_symbolic(shape))
+            if (!is_numeric(shape))
             {
                 Monomial m = {{size_to_symbol(shape.first), size_to_symbol(shape.first), size_to_symbol(shape.first)}};
                 SymbolicCost sc;
@@ -164,13 +164,13 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
         case Neg:
         {
             auto shape = get_one_shape(children.at(0));
-            if (is_concrete(shape))
+            if (is_numeric(shape))
             {
                 int rows = std::get<int>(shape.first);
                 int cols = std::get<int>(shape.second);
                 return static_cast<double>(rows * cols);
             }
-            if (is_symbolic(shape))
+            if (!is_numeric(shape))
             {
                 Monomial m = {{size_to_symbol(shape.first), size_to_symbol(shape.second)}};
                 SymbolicCost sc;
@@ -182,13 +182,13 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
         case QR:
         {
             auto shape = get_one_shape(children.at(0));
-            if (is_concrete(shape))
+            if (is_numeric(shape))
             {
                 double rows = std::get<int>(shape.first);
                 double cols = std::get<int>(shape.second);
                 return (2.0 * rows * cols * cols) - ((2.0 / 3.0) * cols * cols * cols);
             }
-            if (is_symbolic(shape))
+            if (!is_numeric(shape))
             {
                 std::string r = size_to_symbol(shape.first);
                 std::string c = size_to_symbol(shape.second);
@@ -206,7 +206,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
         case LU:
         {
             auto shape = get_one_shape(children.at(0));
-            if (is_concrete(shape))
+            if (is_numeric(shape))
             {
                 double rows = std::get<int>(shape.first);
                 double cols = std::get<int>(shape.second);
@@ -214,7 +214,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
                     throw std::invalid_argument("Non-square matrix for LU");
                 return (2.0 / 3.0) * rows * rows * rows;
             }
-            if (is_symbolic(shape))
+            if (!is_numeric(shape))
             {
                 std::string n = size_to_symbol(shape.first);
 
@@ -228,7 +228,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
         case LLt:
         {
             auto shape = get_one_shape(children.at(0));
-            if (is_concrete(shape))
+            if (is_numeric(shape))
             {
                 double rows = std::get<int>(shape.first);
                 double cols = std::get<int>(shape.second);
@@ -236,7 +236,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
                     throw std::invalid_argument("Non-square matrix for LLt");
                 return (1.0 / 3.0) * rows * rows * rows;
             }
-            if (is_symbolic(shape))
+            if (!is_numeric(shape))
             {
                 std::string n = size_to_symbol(shape.first);
 

@@ -346,13 +346,7 @@ inline const MatrixProperty *get_matrix_data(const EGraph &egraph, Id id)
     return std::get_if<MatrixProperty>(&egraph.get_class_analysis_data(id).property);
 }
 
-inline bool is_symbolic(const Shape &shape)
-{
-    return std::holds_alternative<std::string>(shape.first) &&
-           std::holds_alternative<std::string>(shape.second);
-}
-
-inline bool is_concrete(const Shape &shape)
+inline bool is_numeric(const Shape &shape)
 {
     return std::holds_alternative<int>(shape.first) &&
            std::holds_alternative<int>(shape.second);

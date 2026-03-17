@@ -117,7 +117,7 @@ TEST(Extractor, ExtractSymbolicSingleDag)
 
     SymbolicCost expected;
     expected[Monomial{{"A", "B"}}] = 1.0;      // Tr(M)
-    expected[Monomial{{"A", "B", "c"}}] = 1.0; // Mul(Tr(M), n)
+    expected[Monomial{{"A", "B", "1"}}] = 1.0; // Mul(Tr(M), n)
     EXPECT_EQ(std::get<SymbolicCost>(results[0].cost), expected);
 }
 
@@ -148,7 +148,7 @@ TEST(Extractor, ExtractSymbolicMultipleDags)
         ASSERT_TRUE(std::holds_alternative<SymbolicCost>(r.cost));
         SymbolicCost expected;
         expected[Monomial{{"A", "B"}}] = 1.0;
-        expected[Monomial{{"A", "B", "c"}}] = 1.0;
+        expected[Monomial{{"A", "B", "1"}}] = 1.0;
         EXPECT_EQ(std::get<SymbolicCost>(r.cost), expected);
     }
 

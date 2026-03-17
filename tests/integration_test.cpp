@@ -148,7 +148,7 @@ TEST(Integration, OLSSymbolic)
             std::cout << "Found the QR-based solution in iteration " << iteration << "! Num nodes: " << egraph.num_nodes() << std::endl;
             std::cout << "Sample matrix sizes to try out extraction..." << std::endl;
             Extractor extractor(egraph);
-            auto result = extractor.extract(id, {{"A", 100}, {"B", 10}, {"c", 1}});
+            auto result = extractor.extract(id, {{"A", 100}, {"B", 10}});
             std::cout << "Best extracted expression: " << result.expr.to_string() << std::endl;
             std::cout << "Cost: " << result.cost << std::endl;
             return;
@@ -157,7 +157,7 @@ TEST(Integration, OLSSymbolic)
     FAIL() << "Did not find the QR-based solution within the nodes limit.";
 }
 
-TEST(Integration, OLSConcrete)
+TEST(Integration, OLSNumeric)
 {
     EGraph egraph(get_property_table());
     auto id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(X), X) ) , Tr(X) ), y)"));
@@ -183,7 +183,7 @@ TEST(Integration, OLSConcrete)
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
 }
 
-TEST(Integration, GLSConcrete)
+TEST(Integration, GLSNumeric)
 {
     EGraph egraph(get_property_table());
     auto id = egraph.add_expression(Expression("Mul( Mul( Inv( Mul( Mul(Tr(X), Inv(V)), X) ) , Mul(Tr(X), Inv(V)) ), y)"));
@@ -208,6 +208,36 @@ TEST(Integration, GLSConcrete)
     rewriter.apply_rewrites(10);
     Extractor extractor(egraph);
     auto result = extractor.extract(id);
+    std::cout << "Best extracted expression: " << result.expr.to_string() << std::endl;
+    std::cout << "Cost: " << result.cost << std::endl;
+    std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
+}
+
+TEST(Integration, GLSSymbolic)
+{
+    EGraph egraph(get_property_table());
+    auto id = egraph.add_expression(Expression("Mul( Mul( Inv( Mul( Mul(Tr(M), Inv(v)), M) ) , Mul(Tr(M), Inv(v)) ), n)"));
+
+    std::vector<Rewrite> rules = {
+        lu_invert,
+        llt_invert,
+        qr_inner_invert,
+        qr_invert,
+        mat_transpose_prod,
+        invert_mat_prod,
+        orthogonal_transpose,
+        invert_cancel_left,
+        invert_cancel_right,
+        mul_identity_left,
+        mul_identity_right,
+        mul_assoc_left,
+        mul_assoc_right,
+    };
+    Rewriter rewriter(egraph, rules, 1000);
+    int iteration = 0;
+    rewriter.apply_rewrites(10);
+    Extractor extractor(egraph);
+    auto result = extractor.extract(id, {{"A", 100}, {"B", 10}});
     std::cout << "Best extracted expression: " << result.expr.to_string() << std::endl;
     std::cout << "Cost: " << result.cost << std::endl;
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
