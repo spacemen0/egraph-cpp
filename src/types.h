@@ -294,17 +294,24 @@ inline std::ostream &operator<<(std::ostream &os, const Cost &cost)
     else
     {
         const auto &symbolic = std::get<SymbolicCost>(cost);
-        bool first = true;
-        for (const auto &[monomial, coeff] : symbolic)
+        if (symbolic.empty())
         {
-            if (!first)
-                os << " + ";
-            os << coeff;
-            for (const auto &symbol : monomial.symbols)
+            os << "0";
+        }
+        else
+        {
+            bool first = true;
+            for (const auto &[monomial, coeff] : symbolic)
             {
-                os << "*" << symbol;
+                if (!first)
+                    os << " + ";
+                os << coeff;
+                for (const auto &symbol : monomial.symbols)
+                {
+                    os << "*" << symbol;
+                }
+                first = false;
             }
-            first = false;
         }
     }
     return os;
