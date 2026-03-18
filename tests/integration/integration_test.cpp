@@ -1,11 +1,13 @@
 #include <gtest/gtest.h>
 #include <algorithm>
+#include <array>
 #include "e_graph.h"
 #include "extractor.h"
 #include "rewriter.h"
 #include "rewrite_rules.h"
 #include "utils.h"
 #include "test_helpers.h"
+#include <random>
 
 TEST(Integration, MatrixPartialSet)
 {
@@ -103,13 +105,52 @@ TEST(Integration, MatrixChainSymbolicSizes)
 {
     EGraph egraph(get_property_table_with_symbolic_shapes());
 
-    Expression root_expr("Mul(Mul(Mul(Mul(A, B), C), D), E)");
-    Id root_id = egraph.add_expression(root_expr);
+    const Expression root_expr("Mul(Mul(Mul(Mul(Mul(A, B), C), D), E), F)");
+    const Id root_id = egraph.add_expression(root_expr);
     Rewriter rewriter(egraph, {mul_assoc_left, mul_assoc_right}, 1000);
     rewriter.apply_rewrites();
+
     Extractor extractor(egraph);
-    std::vector<Expression> possible_expressions;
-    auto results = extractor.extract_symbolic(root_id);
-    std::ranges::transform(results, std::back_inserter(possible_expressions), &ExtractionResult::expr);
+
+    const auto symbolic_results = extractor.extract_symbolic(root_id);
+    std::vector<Expression> candidate_expressions;
+    candidate_expressions.reserve(symbolic_results.size());
+    std::ranges::transform(symbolic_results, std::back_inserter(candidate_expressions),
+                           &ExtractionResult::expr);
+
+    ASSERT_FALSE(candidate_expressions.empty());
+
+    std::vector<bool> expression_seen(candidate_expressions.size(), false);
+    auto sample_size_bindings = []() -> SizeBindings
+    {
+        static std::random_device rd;
+        static std::mt19937 gen(rd());
+        std::uniform_int_distribution<int> dist(10, 10000);
+
+        SizeBindings bindings;
+        constexpr std::array<const char *, 7> keys = {"a", "b", "c", "d", "e", "f", "g"};
+
+        for (const char *key : keys)
+        {
+            bindings[key] = dist(gen);
+        }
+        return bindings;
+    };
+
+    int k = 1000;
+    for (int i = 0; i < k; ++i)
+    {
+        const auto extracted_expr = extractor.extract(root_id, sample_size_bindings()).expr;
+        const auto it = std::ranges::find(candidate_expressions, extracted_expr);
+        if (it != candidate_expressions.end())
+        {
+            const size_t index = static_cast<size_t>(std::distance(candidate_expressions.begin(), it));
+            expression_seen[index] = true;
+        }
+    }
+
+    const auto matched_count = std::ranges::count(expression_seen, true);
+    std::cout << "Matched " << matched_count << " out of " << candidate_expressions.size()
+              << " possible expressions." << std::endl;
     SUCCEED();
 }
