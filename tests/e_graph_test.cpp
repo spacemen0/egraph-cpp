@@ -281,7 +281,7 @@ TEST(EGraph, BoundExtractionDoesNotMutateAnalysisData)
     Extractor extractor(egraph);
     auto result = extractor.extract(id_mul, {{"A", 5}, {"B", 3}});
     EXPECT_TRUE(std::holds_alternative<double>(result.cost));
-    EXPECT_EQ(std::get<double>(result.cost), 60.0);
+    EXPECT_EQ(std::get<double>(result.cost), 90.0);
 
     const auto *m_prop_after = std::get_if<MatrixProperty>(&egraph.get_class_analysis_data(id_m).property);
     ASSERT_NE(m_prop_after, nullptr);

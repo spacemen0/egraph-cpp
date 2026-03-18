@@ -72,7 +72,7 @@ TEST(Extractor, SharedSubexpressionDAGCost)
     auto result = extractor.extract(id_root);
 
     EXPECT_TRUE(std::holds_alternative<double>(result.cost));
-    EXPECT_EQ(std::get<double>(result.cost), 48.0);
+    EXPECT_EQ(std::get<double>(result.cost), 78.0);
 
     EXPECT_TRUE(std::holds_alternative<Op>(result.expr.atom));
     EXPECT_EQ(std::get<Op>(result.expr.atom), Op::Add);
@@ -99,8 +99,8 @@ TEST(Extractor, ExpensiveSharedWinsWithHighReuse)
     Extractor extractor(egraph);
     auto result = extractor.extract(id_root);
     EXPECT_TRUE(std::holds_alternative<double>(result.cost));
-    // E1 = {Mul(Y,X) cost=12, Inv(D) cost=8} is shared by both children of Add.
-    EXPECT_EQ(std::get<double>(result.cost), 20.0);
+    // E1 = {Mul(Y,X) cost=24, Inv(D) cost=16} is shared by both children of Add.
+    EXPECT_EQ(std::get<double>(result.cost), 36.0);
 }
 
 TEST(Extractor, ExtractSymbolicSingleDag)
@@ -116,8 +116,7 @@ TEST(Extractor, ExtractSymbolicSingleDag)
     ASSERT_TRUE(std::holds_alternative<SymbolicCost>(results[0].cost));
 
     SymbolicCost expected;
-    expected[Monomial{{"A", "B"}}] = 1.0;      // Tr(M)
-    expected[Monomial{{"A", "B", "1"}}] = 1.0; // Mul(Tr(M), n)
+    expected[Monomial{{"A", "B", "1"}}] = 2.0; // Mul(Tr(M), n), with Tr local cost = 0
     EXPECT_EQ(std::get<SymbolicCost>(results[0].cost), expected);
 }
 
@@ -147,8 +146,7 @@ TEST(Extractor, ExtractSymbolicMultipleDags)
         exprs.insert(r.expr.to_string());
         ASSERT_TRUE(std::holds_alternative<SymbolicCost>(r.cost));
         SymbolicCost expected;
-        expected[Monomial{{"A", "B"}}] = 1.0;
-        expected[Monomial{{"A", "B", "1"}}] = 1.0;
+        expected[Monomial{{"A", "B", "1"}}] = 2.0;
         EXPECT_EQ(std::get<SymbolicCost>(r.cost), expected);
     }
 

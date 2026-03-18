@@ -108,6 +108,7 @@ void Extractor::search_best_numeric_dag(
             if (child_ancestors.contains(child_root))
             {
                 has_cycle = true;
+                // continue searching other candidates
                 break;
             }
 

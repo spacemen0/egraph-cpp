@@ -131,14 +131,14 @@ TEST(Integration, OLSSymbolic)
     while (rewriter.apply_one_iteration())
     {
         iteration++;
-        auto should_be_root_id = egraph.add_expression(Expression("Mul(Mul(Inv(Get(QR(M), 1)), Tr(Get(QR(M), 0))), n)"));
+        auto should_be_root_id = egraph.add_expression(Expression("Mul(Inv(Get(QR(M), 1)), Mul(Tr(Get(QR(M), 0)), n))"));
         egraph.to_img("qr_" + std::to_string(iteration), "svg");
         if (egraph.find_class_id(id) == egraph.find_class_id(should_be_root_id))
         {
             std::cout << "Found the QR-based solution in iteration " << iteration << "! Num nodes: " << egraph.num_nodes() << std::endl;
             std::cout << "Sample matrix sizes to try out extraction..." << std::endl;
             Extractor extractor(egraph);
-            auto result = extractor.extract(id, {{"A", 100}, {"B", 10}});
+            auto result = extractor.extract(id, {{"A", 100}, {"B", 50}});
             std::cout << "Best extracted expression: " << result.expr.to_string() << std::endl;
             std::cout << "Cost: " << result.cost << std::endl;
             return;

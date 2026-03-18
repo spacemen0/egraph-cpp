@@ -47,7 +47,7 @@ namespace
 
 Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bindings) const
 {
-    auto get_one_shape = [&](Id child_id) -> std::pair<std::variant<int, std::string>, std::variant<int, std::string>>
+    auto get_one_shape = [&](Id child_id) -> Shape
     {
         auto data = get_matrix_data(egraph, child_id);
         if (data)
@@ -56,8 +56,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
         }
         return {{}, {}};
     };
-    auto get_two_shapes = [&](Id child_id1, Id child_id2) -> std::pair<std::pair<std::variant<int, std::string>, std::variant<int, std::string>>,
-                                                                       std::pair<std::variant<int, std::string>, std::variant<int, std::string>>>
+    auto get_two_shapes = [&](Id child_id1, Id child_id2) -> std::pair<Shape, Shape>
     {
         auto shape1 = get_one_shape(child_id1);
         auto shape2 = get_one_shape(child_id2);
@@ -98,13 +97,13 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
                 int rows1 = std::get<int>(shapes.first.first);
                 int cols1 = std::get<int>(shapes.first.second);
                 int cols2 = std::get<int>(shapes.second.second);
-                return static_cast<double>(rows1 * cols1 * cols2);
+                return static_cast<double>(2 * rows1 * cols1 * cols2);
             }
             if (!(is_numeric(shapes.first) && is_numeric(shapes.second)))
             {
                 Monomial m = {{size_to_symbol(shapes.first.first), size_to_symbol(shapes.first.second), size_to_symbol(shapes.second.second)}};
                 SymbolicCost sc;
-                sc[m] = 1.0;
+                sc[m] = 2.0;
                 return sc;
             }
             throw std::invalid_argument("Invalid shapes for Mul operation in ENode::compute_local_cost");
@@ -112,21 +111,9 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
         case Tr:
         {
             auto shape = get_one_shape(children.at(0));
-            if (is_numeric(shape))
-            {
-                int rows = std::get<int>(shape.first);
-                int cols = std::get<int>(shape.second);
-                return static_cast<double>(rows * cols);
-            }
-            if (!is_numeric(shape))
-            {
-                Monomial m = {{size_to_symbol(shape.first), size_to_symbol(shape.second)}};
-                SymbolicCost sc;
-                sc[m] = 1.0;
-                return sc;
-            }
-            throw std::invalid_argument("Invalid shape for Tr operation in ENode::compute_local_cost");
+            return 0.0;
         }
+        // LU L-1 then Solve
         case Inv:
         {
             auto shape = get_one_shape(children.at(0));
@@ -143,7 +130,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
                 {
                     return (1.0 / 3.0) * rows * rows * rows;
                 }
-                return static_cast<double>(rows * rows * rows);
+                return static_cast<double>(2.0 * rows * rows * rows);
             }
             if (!is_numeric(shape))
             {
@@ -155,7 +142,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
                 }
                 else
                 {
-                    sc[m] = 1.0;
+                    sc[m] = 2.0;
                 }
                 return sc;
             }
@@ -186,7 +173,9 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
             {
                 double rows = std::get<int>(shape.first);
                 double cols = std::get<int>(shape.second);
-                return (2.0 * rows * cols * cols) - ((2.0 / 3.0) * cols * cols * cols);
+                auto min_dim = std::min(rows, cols);
+                auto max_dim = std::max(rows, cols);
+                return 2.0 * min_dim * min_dim * max_dim - (2.0 / 3.0) * min_dim * min_dim * min_dim;
             }
             if (!is_numeric(shape))
             {
