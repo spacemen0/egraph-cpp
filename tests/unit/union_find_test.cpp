@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 #include "union_find.h"
-#include <vector>
 
 TEST(UnionFind, ParentsLayoutAfterCompression)
 {

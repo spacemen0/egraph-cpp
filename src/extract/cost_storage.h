@@ -1,9 +1,9 @@
 #pragma once
 
-#include "e_node.h"
 #include <cstdint>
 #include <optional>
 #include <unordered_map>
+#include "e_node.h"
 
 class EGraph;
 

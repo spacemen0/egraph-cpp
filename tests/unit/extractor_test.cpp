@@ -3,7 +3,6 @@
 #include "extractor.h"
 #include "rewriter.h"
 #include "test_helpers.h"
-#include <set>
 
 TEST(Extractor, CheaperExtraction)
 {

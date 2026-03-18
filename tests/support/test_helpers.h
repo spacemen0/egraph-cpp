@@ -38,6 +38,18 @@ static PropertyTable get_property_table()
 
     return pt;
 }
+
+static PropertyTable get_property_table_with_symbolic_shapes()
+{
+    PropertyTable pt;
+    pt.add_or_update_property_entry("A", {.shape = std::make_pair("a", "b")});
+    pt.add_or_update_property_entry("B", {.shape = std::make_pair("b", "c")});
+    pt.add_or_update_property_entry("C", {.shape = std::make_pair("c", "d")});
+    pt.add_or_update_property_entry("D", {.shape = std::make_pair("d", "e")});
+    pt.add_or_update_property_entry("E", {.shape = std::make_pair("e", "f")});
+    return pt;
+}
+
 const static ENode sym_a = make_symbol("A");
 const static ENode sym_b = make_symbol("B");
 const static ENode sym_c = make_symbol("C");

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "pattern.h"
 #include <set>
 #include <vector>
+#include "pattern.h"
 
 class EGraph;
 class ENode;

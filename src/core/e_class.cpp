@@ -1,5 +1,5 @@
-#include "e_class.h"
 #include <algorithm>
+#include "e_class.h"
 
 std::vector<const ENode *> &EClass::get_nodes()
 {

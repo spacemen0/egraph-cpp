@@ -1,10 +1,10 @@
-#include "e_graph.h"
-#include "e_graph_visualization.h"
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include "e_graph.h"
+#include "e_graph_visualization.h"
 #include "utils.h"
 
 namespace EGraphVisualization

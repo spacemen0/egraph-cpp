@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <algorithm>
 #include "e_graph.h"
 #include "extractor.h"
 #include "rewriter.h"
@@ -96,4 +97,19 @@ TEST(Integration, CyclicTermsThatDoNotExplode)
     EXPECT_EQ(result.cost, Cost(0.0));
     EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
     EXPECT_EQ(std::get<std::string>(result.expr.atom), "A");
+}
+
+TEST(Integration, MatrixChainSymbolicSizes)
+{
+    EGraph egraph(get_property_table_with_symbolic_shapes());
+
+    Expression root_expr("Mul(Mul(Mul(Mul(A, B), C), D), E)");
+    Id root_id = egraph.add_expression(root_expr);
+    Rewriter rewriter(egraph, {mul_assoc_left, mul_assoc_right}, 1000);
+    rewriter.apply_rewrites();
+    Extractor extractor(egraph);
+    std::vector<Expression> possible_expressions;
+    auto results = extractor.extract_symbolic(root_id);
+    std::ranges::transform(results, std::back_inserter(possible_expressions), &ExtractionResult::expr);
+    SUCCEED();
 }

@@ -1,7 +1,7 @@
-#include "pattern.h"
-#include "utils.h"
 #include <algorithm>
 #include <iterator>
+#include "pattern.h"
+#include "utils.h"
 
 /// @brief Construct a Pattern from a string representation
 /// @param s

@@ -1,6 +1,5 @@
 #include "cost_storage.h"
 #include "e_graph.h"
-#include <cmath>
 
 CostStorage::CostStorage(const EGraph &egraph) : egraph(egraph)
 {

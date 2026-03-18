@@ -1,5 +1,5 @@
-#include "e_graph.h"
 #include <iostream>
+#include "e_graph.h"
 #include "pattern.h"
 #include "errors.h"
 #include "analysis.h"

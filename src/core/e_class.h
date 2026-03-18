@@ -1,4 +1,5 @@
 #pragma once
+
 #include <vector>
 #include "types.h"
 #include "e_node.h"
