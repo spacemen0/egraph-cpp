@@ -87,7 +87,7 @@ TEST(Integration, CyclicTermsThatDoNotExplode)
         {
             break;
         }
-        egraph.to_img("cyclic_" + std::to_string(20 - i), "svg");
+        // egraph.to_img("cyclic_" + std::to_string(20 - i), "svg");
     }
     Extractor extractor(egraph);
     auto result = extractor.extract(id);

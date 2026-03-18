@@ -8,9 +8,9 @@ add_executable(unit_tests
     unit/expression_test.cpp
     unit/rewrite_test.cpp
     unit/extractor_test.cpp
-    integration/integration_simplification_test.cpp
-    integration/integration_ols_test.cpp
-    integration/integration_gls_test.cpp
+    integration/integration_test.cpp
+    integration/ols_test.cpp
+    integration/gls_test.cpp
 )
 
 target_include_directories(unit_tests PRIVATE
