@@ -44,7 +44,7 @@ TEST(Integration, SimplifyComplexMatrixChain)
     auto results = extractor.extract_symbolic(root_id);
     for (const auto &result : results)
     {
-        std::cout << "Extracted expression: " << result.expr.to_string() << std::endl;
+        std::cout << "Extracted expression: " << result.expr.to_human_string() << std::endl;
         std::cout << "Cost: " << result.cost << std::endl;
     }
 }
@@ -139,7 +139,7 @@ TEST(Integration, OLSSymbolic)
             std::cout << "Sample matrix sizes to try out extraction..." << std::endl;
             Extractor extractor(egraph);
             auto result = extractor.extract(id, {{"A", 100}, {"B", 50}});
-            std::cout << "Best extracted expression: " << result.expr.to_string() << std::endl;
+            std::cout << "Best extracted expression: " << result.expr.to_human_string() << std::endl;
             std::cout << "Cost: " << result.cost << std::endl;
             return;
         }
@@ -168,7 +168,7 @@ TEST(Integration, OLSNumeric)
     rewriter.apply_rewrites(10);
     Extractor extractor(egraph);
     auto result = extractor.extract(id);
-    std::cout << "Best extracted expression: " << result.expr.to_string() << std::endl;
+    std::cout << "Best extracted expression: " << result.expr.to_human_string() << std::endl;
     std::cout << "Cost: " << result.cost << std::endl;
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
 }
@@ -198,7 +198,7 @@ TEST(Integration, GLSNumeric)
     rewriter.apply_rewrites(10);
     Extractor extractor(egraph);
     auto result = extractor.extract(id);
-    std::cout << "Best extracted expression: " << result.expr.to_string() << std::endl;
+    std::cout << "Best extracted expression: " << result.expr.to_human_string() << std::endl;
     std::cout << "Cost: " << result.cost << std::endl;
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
 }
@@ -212,7 +212,6 @@ TEST(Integration, GLSSymbolic)
         lu_invert,
         llt_invert,
         qr_inner_invert,
-        qr_invert,
         mat_transpose_prod,
         invert_mat_prod,
         orthogonal_transpose,
@@ -228,7 +227,7 @@ TEST(Integration, GLSSymbolic)
     rewriter.apply_rewrites(10);
     Extractor extractor(egraph);
     auto result = extractor.extract(id, {{"A", 100}, {"B", 10}});
-    std::cout << "Best extracted expression: " << result.expr.to_string() << std::endl;
+    std::cout << "Best extracted expression: " << result.expr.to_human_string() << std::endl;
     std::cout << "Cost: " << result.cost << std::endl;
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
 }

@@ -53,6 +53,21 @@ TEST(Expression, ToString)
     EXPECT_EQ(repr, "Mul(Add(X, Y), Tr(Z))");
 }
 
+TEST(Expression, ToHumanString)
+{
+    Expression p("Mul(Add(X, Y), Tr(Z))");
+    std::string repr = p.to_human_string();
+    EXPECT_EQ(repr, "(X + Y) * Z^T");
+}
+
+TEST(Expression, ToHumanStringFactorizationIndexing)
+{
+    Expression q("Get(QR(A), 0)");
+    Expression r("Get(QR(A), 1)");
+    EXPECT_EQ(q.to_human_string(), "Q(A)");
+    EXPECT_EQ(r.to_human_string(), "R(A)");
+}
+
 TEST(Expression, ParseQRNode)
 {
     Expression p("Mul(Add(Get(QR(A), 0)), Get(QR(A), 1))");
