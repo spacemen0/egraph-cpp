@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "e_node.h"
-#include "test_helper.h"
+#include "test_helpers.h"
 
 using enum Op;
 

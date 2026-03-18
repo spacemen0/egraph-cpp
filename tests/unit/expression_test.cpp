@@ -57,7 +57,7 @@ TEST(Expression, ToHumanString)
 {
     Expression p("Mul(Add(X, Y), Tr(Z))");
     std::string repr = p.to_human_string();
-    EXPECT_EQ(repr, "(X + Y) * Z^T");
+    EXPECT_EQ(repr, "(X + Y) * Zᵀ");
 }
 
 TEST(Expression, ToHumanStringFactorizationIndexing)

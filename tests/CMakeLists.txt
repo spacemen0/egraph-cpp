@@ -1,12 +1,21 @@
 add_executable(unit_tests 
-    union_find_test.cpp
-    e_node_test.cpp
-    e_graph_test.cpp
-    e_class_test.cpp
-    expression_test.cpp
-    rewrite_test.cpp
-    extractor_test.cpp
-    integration_test.cpp
+    unit/union_find_test.cpp
+    unit/e_node_test.cpp
+    unit/e_graph_test.cpp
+    unit/pattern_test.cpp
+    unit/analysis_test.cpp
+    unit/e_class_test.cpp
+    unit/expression_test.cpp
+    unit/rewrite_test.cpp
+    unit/extractor_test.cpp
+    integration/integration_simplification_test.cpp
+    integration/integration_ols_test.cpp
+    integration/integration_gls_test.cpp
+)
+
+target_include_directories(unit_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/support
 )
 
 target_link_libraries(unit_tests 
