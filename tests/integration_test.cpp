@@ -115,7 +115,6 @@ TEST(Integration, OLSSymbolic)
     auto id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(M), M) ) , Tr(M) ), n)"));
 
     std::vector<Rewrite> rules = {
-        qr_invert,
         qr_inner_invert,
         mat_transpose_prod,
         invert_mat_prod,
@@ -127,12 +126,11 @@ TEST(Integration, OLSSymbolic)
     };
     Rewriter rewriter(egraph, rules, 1000);
     int iteration = 0;
-    egraph.to_img("qr_0", "svg");
     while (rewriter.apply_one_iteration())
     {
         iteration++;
         auto should_be_root_id = egraph.add_expression(Expression("Mul(Inv(Get(QR(M), 1)), Mul(Tr(Get(QR(M), 0)), n))"));
-        egraph.to_img("qr_" + std::to_string(iteration), "svg");
+        // egraph.to_img("qr_" + std::to_string(iteration), "svg");
         if (egraph.find_class_id(id) == egraph.find_class_id(should_be_root_id))
         {
             std::cout << "Found the QR-based solution in iteration " << iteration << "! Num nodes: " << egraph.num_nodes() << std::endl;
@@ -154,7 +152,6 @@ TEST(Integration, OLSNumeric)
 
     std::vector<Rewrite> rules = {
         qr_inner_invert,
-        qr_invert,
         mat_transpose_prod,
         invert_mat_prod,
         orthonormal_transpose,
@@ -165,7 +162,7 @@ TEST(Integration, OLSNumeric)
     };
     Rewriter rewriter(egraph, rules, 1000);
     int iteration = 0;
-    rewriter.apply_rewrites(10);
+    rewriter.apply_rewrites(5);
     Extractor extractor(egraph);
     auto result = extractor.extract(id);
     std::cout << "Best extracted expression: " << result.expr.to_human_string() << std::endl;
@@ -179,13 +176,14 @@ TEST(Integration, GLSNumeric)
     auto id = egraph.add_expression(Expression("Mul( Mul( Inv( Mul( Mul(Tr(X), Inv(V)), X) ) , Mul(Tr(X), Inv(V)) ), y)"));
 
     std::vector<Rewrite> rules = {
-        lu_invert,
-        llt_invert,
+        lu_invert_leaf,
+        llt_invert_leaf,
         qr_inner_invert,
-        qr_invert,
+        qr_invert_leaf,
         mat_transpose_prod,
         invert_mat_prod,
         orthogonal_transpose,
+        orthonormal_transpose,
         invert_cancel_left,
         invert_cancel_right,
         mul_identity_left,
@@ -209,12 +207,14 @@ TEST(Integration, GLSSymbolic)
     auto id = egraph.add_expression(Expression("Mul( Mul( Inv( Mul( Mul(Tr(M), Inv(v)), M) ) , Mul(Tr(M), Inv(v)) ), n)"));
 
     std::vector<Rewrite> rules = {
-        lu_invert,
-        llt_invert,
+        lu_invert_leaf,
+        llt_invert_leaf,
+        qr_invert_leaf,
         qr_inner_invert,
         mat_transpose_prod,
         invert_mat_prod,
         orthogonal_transpose,
+        orthonormal_transpose,
         invert_cancel_left,
         invert_cancel_right,
         mul_identity_left,
@@ -226,7 +226,7 @@ TEST(Integration, GLSSymbolic)
     int iteration = 0;
     rewriter.apply_rewrites(10);
     Extractor extractor(egraph);
-    auto result = extractor.extract(id, {{"A", 100}, {"B", 10}});
+    auto result = extractor.extract(id, {{"A", 10}, {"B", 5}});
     std::cout << "Best extracted expression: " << result.expr.to_human_string() << std::endl;
     std::cout << "Cost: " << result.cost << std::endl;
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;

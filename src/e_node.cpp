@@ -238,6 +238,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
         }
         case Get:
             return 0.0;
+        // Ops below are not implemented
         case Sol:
             return 5.0;
         case TriSol:
