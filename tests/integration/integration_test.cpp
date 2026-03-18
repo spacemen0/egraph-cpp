@@ -145,6 +145,11 @@ TEST(Integration, MatrixChainSymbolicSizes)
         if (it != candidate_expressions.end())
         {
             const size_t index = static_cast<size_t>(std::distance(candidate_expressions.begin(), it));
+            if (!expression_seen[index])
+            {
+                std::cout << "Expression " << index << " Matched at Sample " << (i + 1) << std::endl;
+                std::cout << "Symbolic Cost: " << symbolic_results[index].cost << std::endl;
+            }
             expression_seen[index] = true;
         }
     }

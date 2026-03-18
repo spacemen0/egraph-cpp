@@ -234,3 +234,17 @@ std::string Expression::to_human_string() const
     // Fallback to canonical form if we do not have a custom pretty renderer.
     return to_string();
 }
+
+bool Expression::operator==(const Expression &other) const
+{
+    if (atom != other.atom)
+        return false;
+    if (children.size() != other.children.size())
+        return false;
+    for (size_t i = 0; i < children.size(); ++i)
+    {
+        if (!(children[i] == other.children[i]))
+            return false;
+    }
+    return true;
+}
