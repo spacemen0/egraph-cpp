@@ -1,21 +1,15 @@
 #include "property_table.h"
 
-bool PropertyTable::add_or_update_property_entry(const std::string &name, MatrixProperty property)
-{
+bool PropertyTable::add_or_update_property_entry(const std::string &name, MatrixProperty property) {
     auto result = properties.insert_or_assign(name, std::move(property));
     return result.second;
 }
 
-std::optional<MatrixProperty> PropertyTable::get_property(const std::string &name) const
-{
-    if (auto it = properties.find(name); it != properties.end())
-    {
+std::optional<MatrixProperty> PropertyTable::get_property(const std::string &name) const {
+    if (auto it = properties.find(name); it != properties.end()) {
         return it->second;
     }
     return std::nullopt;
 }
 
-bool PropertyTable::has_property(const std::string &name) const
-{
-    return properties.contains(name);
-}
+bool PropertyTable::has_property(const std::string &name) const { return properties.contains(name); }

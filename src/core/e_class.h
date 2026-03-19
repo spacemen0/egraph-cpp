@@ -1,15 +1,12 @@
 #pragma once
 
-#include <vector>
-#include "types.h"
 #include "e_node.h"
+#include "types.h"
+#include <vector>
 
-class EClass
-{
-public:
-    explicit EClass(Id id, const ENode *initial_node, AnalysisData data)
-        : _id(id), analysis_data(std::move(data))
-    {
+class EClass {
+  public:
+    explicit EClass(Id id, const ENode *initial_node, AnalysisData data) : _id(id), analysis_data(std::move(data)) {
         nodes.push_back(initial_node);
     }
     std::vector<const ENode *> &get_nodes();
@@ -17,7 +14,7 @@ public:
     AnalysisData &get_analysis_data();
     void clean_up_nodes();
 
-private:
+  private:
     Id _id;
     std::vector<const ENode *> nodes;
     // parents are Enodes pointing to this class

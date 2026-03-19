@@ -1,17 +1,15 @@
 #pragma once
 
+#include "e_node.h"
 #include <cstdint>
 #include <optional>
 #include <unordered_map>
-#include "e_node.h"
 
 class EGraph;
 
-class CostStorage
-{
-public:
-    struct CachedRootExtraction
-    {
+class CostStorage {
+  public:
+    struct CachedRootExtraction {
         double cost;
         std::unordered_map<Id, const ENode *> choices;
     };
@@ -19,7 +17,7 @@ public:
     std::optional<CachedRootExtraction> cached_root_extraction(Id class_id);
     void store_root_extraction(Id class_id, double cost, const std::unordered_map<Id, const ENode *> &choices);
 
-private:
+  private:
     explicit CostStorage(const EGraph &egraph);
     const EGraph &egraph;
     std::unordered_map<Id, CachedRootExtraction> root_extraction_cache;

@@ -1,11 +1,10 @@
-#include <gtest/gtest.h>
 #include "e_graph.h"
+#include "errors.h"
 #include "extractor.h"
 #include "test_helpers.h"
-#include "errors.h"
+#include <gtest/gtest.h>
 
-TEST(EGraph, ErrorConditions)
-{
+TEST(EGraph, ErrorConditions) {
     EGraph egraph(get_property_table());
 
     ENode unknown_var = make_symbol("UNKNOWN_VAR");
@@ -23,8 +22,7 @@ TEST(EGraph, ErrorConditions)
     EXPECT_THROW(egraph.add_node(invalid_invert), InvalidOperationError);
 }
 
-TEST(EGraph, BoundExtractionDoesNotMutateAnalysisData)
-{
+TEST(EGraph, BoundExtractionDoesNotMutateAnalysisData) {
     EGraph egraph(get_property_table());
 
     Id id_m = egraph.add_node(make_symbol("M"));

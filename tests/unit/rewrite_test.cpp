@@ -1,11 +1,10 @@
-#include <gtest/gtest.h>
 #include "e_graph.h"
+#include "rewrite_rules.h"
 #include "rewriter.h"
 #include "test_helpers.h"
-#include "rewrite_rules.h"
+#include <gtest/gtest.h>
 
-TEST(Rewrite, SimpleRewrite)
-{
+TEST(Rewrite, SimpleRewrite) {
     EGraph egraph(get_property_table());
 
     ENode zero_node({}, "Zero");
@@ -20,8 +19,9 @@ TEST(Rewrite, SimpleRewrite)
 
     EXPECT_NE(id_mul, id0);
     std::vector<Rewrite> rules = {
-        make_rewrite("mul_zero", "Mul(?x, ?z)", "?z", [](const EGraph &g, const Substitution &s)
-                     { return is_zero(s, g, "z"); }, nullptr)};
+        make_rewrite("mul_zero", "Mul(?x, ?z)", "?z", [](const EGraph &g, const Substitution &s) {
+        return is_zero(s, g, "z");
+    }, nullptr)};
 
     Rewriter rewriter(egraph, rules, 100);
     bool changed = rewriter.apply_rewrites();
@@ -29,8 +29,7 @@ TEST(Rewrite, SimpleRewrite)
     EXPECT_EQ(egraph.find_class_id(id_mul), egraph.find_class_id(id0));
 }
 
-TEST(Rewrite, Commutativity)
-{
+TEST(Rewrite, Commutativity) {
     EGraph egraph(get_property_table());
 
     Id id_add = egraph.add_expression(Expression("Add(A, Z)"));
@@ -52,8 +51,7 @@ TEST(Rewrite, Commutativity)
     EXPECT_EQ(egraph.find_class_id(id_add), egraph.find_class_id(id_commuted));
 }
 
-TEST(Rewrite, NoMatch)
-{
+TEST(Rewrite, NoMatch) {
     EGraph egraph(get_property_table());
 
     egraph.add_node(sym_a);
@@ -69,8 +67,7 @@ TEST(Rewrite, NoMatch)
     EXPECT_FALSE(changed);
 }
 
-TEST(Rewrite, NewNodes)
-{
+TEST(Rewrite, NewNodes) {
     auto pt = get_property_table();
 
     MatrixProperty prop_a;
@@ -81,8 +78,9 @@ TEST(Rewrite, NewNodes)
     Id id_add = egraph.add_expression(Expression("Mul(Inv(a), a)"));
 
     std::vector<Rewrite> rules = {
-        make_rewrite("inv-mul-left", "Mul(Inv(?a), ?a)", "?__dynamic__", nullptr, [](EGraph &g, const Substitution &s)
-                     { return make_identity_for(g, s, "a"); })};
+        make_rewrite("inv-mul-left", "Mul(Inv(?a), ?a)", "?__dynamic__", nullptr, [](EGraph &g, const Substitution &s) {
+        return make_identity_for(g, s, "a");
+    })};
 
     Rewriter rewriter(egraph, rules, 100);
     bool changed = rewriter.apply_rewrites();
@@ -94,8 +92,7 @@ TEST(Rewrite, NewNodes)
     EXPECT_EQ(results.value(), egraph.find_class_id(id_add));
 }
 
-TEST(Rewrite, SolveRule)
-{
+TEST(Rewrite, SolveRule) {
     auto pt = get_property_table();
 
     MatrixProperty prop_a;
@@ -116,11 +113,12 @@ TEST(Rewrite, SolveRule)
 
     Id id_solve = egraph.add_expression(Expression("Sol(a, b)"));
     EXPECT_EQ(egraph.find_class_id(id_expr), egraph.find_class_id(id_solve));
-    EXPECT_EQ(std::get<MatrixProperty>(egraph.get_class_analysis_data(id_expr).property).shape, std::make_pair(Size(3), Size(2)));
+    EXPECT_EQ(
+        std::get<MatrixProperty>(egraph.get_class_analysis_data(id_expr).property).shape,
+        std::make_pair(Size(3), Size(2)));
 }
 
-TEST(Rewrite, LLtRewrite)
-{
+TEST(Rewrite, LLtRewrite) {
     EGraph egraph(get_property_table());
 
     Id id_expr = egraph.add_expression(Expression("Inv(V)"));
@@ -133,8 +131,7 @@ TEST(Rewrite, LLtRewrite)
     EXPECT_EQ(egraph.find_class_id(id_expr), egraph.find_class_id(id_llt));
 }
 
-TEST(Rewrite, BackoffScheduler)
-{
+TEST(Rewrite, BackoffScheduler) {
     PropertyTable pt;
 
     MatrixProperty prop_3x3;
@@ -150,8 +147,7 @@ TEST(Rewrite, BackoffScheduler)
     Id id1 = egraph.add_expression(Expression("Inv(Inv(Inv(a)))"));
     Id id2 = egraph.add_expression(Expression("Inv(Inv(Inv(b)))"));
 
-    std::vector<Rewrite> rules = {
-        make_rewrite("inv_inv", "Inv(Inv(?x))", "?x", nullptr, nullptr, 1)};
+    std::vector<Rewrite> rules = {make_rewrite("inv_inv", "Inv(Inv(?x))", "?x", nullptr, nullptr, 1)};
 
     Rewriter rewriter(egraph, rules, 1000, true);
 

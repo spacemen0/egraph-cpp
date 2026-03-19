@@ -1,12 +1,10 @@
 #pragma once
 
-#include <cstdint>
-#include <vector>
 #include "types.h"
+#include <vector>
 
-class UnionFind
-{
-public:
+class UnionFind {
+  public:
     UnionFind() = default;
 
     Id find_root(Id current) const;
@@ -17,6 +15,6 @@ public:
     std::vector<Id> get_parents() const noexcept;
     Id make_set();
 
-private:
+  private:
     std::vector<Id> parents;
 };

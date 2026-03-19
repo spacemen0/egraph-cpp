@@ -1,11 +1,10 @@
-#include <gtest/gtest.h>
 #include "e_graph.h"
 #include "extractor.h"
 #include "rewriter.h"
 #include "test_helpers.h"
+#include <gtest/gtest.h>
 
-TEST(Extractor, CheaperExtraction)
-{
+TEST(Extractor, CheaperExtraction) {
     EGraph egraph(get_property_table());
     // Expr: A * Identity
     Id id_a = egraph.add_node(make_symbol("A"));
@@ -23,8 +22,7 @@ TEST(Extractor, CheaperExtraction)
     EXPECT_EQ(std::get<std::string>(result.expr.atom), "A");
 }
 
-TEST(Extractor, RewriteAndExtract)
-{
+TEST(Extractor, RewriteAndExtract) {
     EGraph egraph(get_property_table());
 
     Id root_id = egraph.add_expression(Expression("Add(Mul(A, Zero), Z)"));
@@ -51,8 +49,7 @@ TEST(Extractor, RewriteAndExtract)
     EXPECT_EQ(std::get<std::string>(result.expr.atom), "Z");
 }
 
-TEST(Extractor, SharedSubexpressionDAGCost)
-{
+TEST(Extractor, SharedSubexpressionDAGCost) {
 
     EGraph egraph(get_property_table());
     Id id_x = egraph.add_node(make_symbol("X"));
@@ -78,8 +75,7 @@ TEST(Extractor, SharedSubexpressionDAGCost)
     EXPECT_EQ(result.expr.children.size(), 2);
 }
 
-TEST(Extractor, ExpensiveSharedWinsWithHighReuse)
-{
+TEST(Extractor, ExpensiveSharedWinsWithHighReuse) {
 
     EGraph egraph(get_property_table());
 
@@ -102,8 +98,7 @@ TEST(Extractor, ExpensiveSharedWinsWithHighReuse)
     EXPECT_EQ(std::get<double>(result.cost), 36.0);
 }
 
-TEST(Extractor, ExtractSymbolicSingleDag)
-{
+TEST(Extractor, ExtractSymbolicSingleDag) {
     EGraph egraph(get_property_table());
     Id id_root = egraph.add_expression(Expression("Mul(Tr(M), n)"));
 
@@ -119,8 +114,7 @@ TEST(Extractor, ExtractSymbolicSingleDag)
     EXPECT_EQ(std::get<SymbolicCost>(results[0].cost), expected);
 }
 
-TEST(Extractor, ExtractSymbolicMultipleDags)
-{
+TEST(Extractor, ExtractSymbolicMultipleDags) {
     EGraph egraph(get_property_table());
     egraph.register_or_update_property("P", MatrixProperty{.shape = std::make_pair(Size("A"), Size("B"))});
 
@@ -140,8 +134,7 @@ TEST(Extractor, ExtractSymbolicMultipleDags)
     ASSERT_EQ(results.size(), 2);
 
     std::set<std::string> exprs;
-    for (const auto &r : results)
-    {
+    for (const auto &r : results) {
         exprs.insert(r.expr.to_string());
         ASSERT_TRUE(std::holds_alternative<SymbolicCost>(r.cost));
         SymbolicCost expected;

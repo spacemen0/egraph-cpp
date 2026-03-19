@@ -1,12 +1,11 @@
-#include <gtest/gtest.h>
 #include "e_class.h"
 #include "e_node.h"
 #include "types.h"
+#include <gtest/gtest.h>
 
 using enum Op;
 
-TEST(EClass, CleanUpNodes)
-{
+TEST(EClass, CleanUpNodes) {
     Children c12 = {1, 2};
     Children c34 = {3, 4};
 
@@ -35,8 +34,7 @@ TEST(EClass, CleanUpNodes)
     int countMul12 = 0;
     int countAdd34 = 0;
 
-    for (const auto *node : nodes)
-    {
+    for (const auto *node : nodes) {
         if (*node == nodeA)
             countAdd12++;
         else if (*node == nodeC)

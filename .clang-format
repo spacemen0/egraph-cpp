@@ -1,0 +1,14 @@
+Language: Cpp
+BasedOnStyle: LLVM
+IndentWidth: 4
+ColumnLimit: 120 
+
+BinPackArguments: true 
+BinPackParameters: true
+
+LambdaBodyIndentation: OuterScope
+AllowShortLambdasOnASingleLine: Empty
+
+AlignAfterOpenBracket: AlwaysBreak 
+
+ContinuationIndentWidth: 4

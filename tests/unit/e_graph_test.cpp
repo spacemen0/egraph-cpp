@@ -1,9 +1,8 @@
-#include <gtest/gtest.h>
 #include "e_graph.h"
 #include "test_helpers.h"
+#include <gtest/gtest.h>
 
-TEST(EGraph, AddAndLookUpNode)
-{
+TEST(EGraph, AddAndLookUpNode) {
     EGraph egraph(get_property_table());
 
     Id id1 = egraph.add_node(sym_x);
@@ -18,16 +17,14 @@ TEST(EGraph, AddAndLookUpNode)
     EXPECT_NE(id1, id3);
 }
 
-TEST(EGraph, BreakWithInvalidChildId)
-{
+TEST(EGraph, BreakWithInvalidChildId) {
     EGraph egraph(get_property_table());
     Id fake_id = 999999;
     ENode dangerous_node = make_op(Op::Neg, Children{fake_id});
     EXPECT_ANY_THROW(egraph.add_node(dangerous_node));
 }
 
-TEST(EGraph, UnionClasses)
-{
+TEST(EGraph, UnionClasses) {
     EGraph egraph(get_property_table());
 
     Id id1 = egraph.add_node(sym_z);
@@ -44,8 +41,7 @@ TEST(EGraph, UnionClasses)
     EXPECT_EQ(root1, root2);
 }
 
-TEST(EGraph, RebuildParentsBasic)
-{
+TEST(EGraph, RebuildParentsBasic) {
     EGraph egraph(get_property_table());
 
     auto id_node1 = egraph.add_expression(Expression("Add(D, D)"));
@@ -61,8 +57,7 @@ TEST(EGraph, RebuildParentsBasic)
     EXPECT_EQ(egraph.find_class_id(id_node1), egraph.find_class_id(id_node2));
 }
 
-TEST(EGraph, RebuildMultiLevelParents)
-{
+TEST(EGraph, RebuildMultiLevelParents) {
     EGraph egraph(get_property_table());
 
     Id id_add_ab = egraph.add_expression(Expression("Add(A, Z)"));
@@ -87,8 +82,7 @@ TEST(EGraph, RebuildMultiLevelParents)
     EXPECT_EQ(root_nested, egraph.find_class_id(id_nested2));
 }
 
-TEST(EGraph, RebuildCleanUpEClass)
-{
+TEST(EGraph, RebuildCleanUpEClass) {
     EGraph egraph(get_property_table());
 
     Id x = egraph.add_node(sym_a);
@@ -110,8 +104,7 @@ TEST(EGraph, RebuildCleanUpEClass)
     EXPECT_EQ(egraph.get_class_nodes(egraph.find_class_id(neg_x)).size(), 1);
 }
 
-TEST(EGraph, AddExpression)
-{
+TEST(EGraph, AddExpression) {
     EGraph egraph(get_property_table());
 
     Expression expr("Add(Mul(X, Y), Tr(Z))");
@@ -126,7 +119,8 @@ TEST(EGraph, AddExpression)
     EXPECT_TRUE(egraph.find_node_id(mul_xy).has_value());
     EXPECT_TRUE(egraph.find_node_id(transpose_z).has_value());
 
-    auto add_expr = make_op(Op::Add, Children{egraph.find_node_id(mul_xy).value(), egraph.find_node_id(transpose_z).value()});
+    auto add_expr =
+        make_op(Op::Add, Children{egraph.find_node_id(mul_xy).value(), egraph.find_node_id(transpose_z).value()});
     EXPECT_TRUE(egraph.find_node_id(add_expr).has_value());
     EXPECT_EQ(egraph.find_node_id(add_expr).value(), expr_id);
 
@@ -141,8 +135,7 @@ TEST(EGraph, AddExpression)
     EXPECT_NE(expr_id, expr_diff_id);
 }
 
-TEST(EGraph, ENodeMatching)
-{
+TEST(EGraph, ENodeMatching) {
     EGraph egraph(get_property_table());
 
     Id id1 = egraph.add_node(sym_x);

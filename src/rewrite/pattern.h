@@ -1,15 +1,12 @@
 #pragma once
 
-#include <string>
-#include <variant>
-#include <vector>
-#include <map>
 #include "types.h"
+#include <map>
+#include <string>
+#include <vector>
 
-struct Pattern
-{
-    explicit Pattern(const Atom &atom, const std::vector<Pattern> &children)
-        : atom(atom), children(children) {}
+struct Pattern {
+    explicit Pattern(const Atom &atom, const std::vector<Pattern> &children) : atom(atom), children(children) {}
     explicit Pattern(std::string_view s);
     Atom atom;
     std::vector<Pattern> children;

@@ -1,27 +1,24 @@
 #pragma once
 
-#include <vector>
-#include <optional>
-#include <set>
-#include <memory>
-#include <unordered_map>
-#include <cstdint>
-#include "union_find.h"
-#include "e_node.h"
+#include "cost_storage.h"
 #include "e_class.h"
+#include "e_graph_visualization.h"
+#include "e_node.h"
 #include "expression.h"
 #include "pattern.h"
-#include "cost_storage.h"
 #include "property_table.h"
-#include "e_graph_visualization.h"
+#include "union_find.h"
+#include <cstdint>
+#include <memory>
+#include <optional>
+#include <set>
+#include <unordered_map>
+#include <vector>
 
-class EGraph
-{
-public:
+class EGraph {
+  public:
     EGraph() = delete;
-    explicit EGraph(PropertyTable pt) : property_table(std::move(pt)), cost_storage(*this)
-    {
-    }
+    explicit EGraph(PropertyTable pt) : property_table(std::move(pt)), cost_storage(*this) {}
     void canonicalize_node(ENode &node);
     std::optional<Id> find_node_id(const ENode &node) const;
     Id find_class_id(Id node_id) const;
@@ -47,7 +44,7 @@ public:
     uint64_t get_revision() const noexcept { return revision; }
     bool is_clean() const noexcept { return pendings.empty(); }
 
-private:
+  private:
     // stores the union-find structure for e-classes (which stores equivalences)
     UnionFind uf;
     // stores all e-nodes in the order they were added
@@ -56,7 +53,8 @@ private:
     std::vector<Id> pendings;
     // stores mapping from ENode to EClass id (canonicalized one after rebuild)
     std::unordered_map<const ENode *, Id, ENodePtrHash, ENodePtrEqual> memo;
-    // stores mapping from EClass id to EClass, classes being merged will be removed
+    // stores mapping from EClass id to EClass, classes being merged will be
+    // removed
     std::unordered_map<Id, std::unique_ptr<EClass>> classes;
     PropertyTable property_table;
     CostStorage cost_storage;

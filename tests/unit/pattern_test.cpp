@@ -1,9 +1,8 @@
-#include <gtest/gtest.h>
 #include "e_graph.h"
 #include "test_helpers.h"
+#include <gtest/gtest.h>
 
-TEST(EGraph, PatternMatchingSimple)
-{
+TEST(EGraph, PatternMatchingSimple) {
     EGraph egraph(get_property_table());
 
     Id expr_id = egraph.add_expression(Expression("Mul(X, Y)"));
@@ -22,8 +21,7 @@ TEST(EGraph, PatternMatchingSimple)
     EXPECT_EQ(egraph.at(substitution.at("b")).get_atom(), sym_y.get_atom());
 }
 
-TEST(EGraph, PatternMatchingNested)
-{
+TEST(EGraph, PatternMatchingNested) {
     EGraph egraph(get_property_table());
 
     Id expr_id = egraph.add_expression(Expression("Add(Mul(X, Y), Tr(Z))"));
@@ -44,8 +42,7 @@ TEST(EGraph, PatternMatchingNested)
     EXPECT_EQ(egraph.at(substitution.at("c")).get_atom(), sym_z.get_atom());
 }
 
-TEST(EGraph, PatternMatchingMultipleMatchesInClass)
-{
+TEST(EGraph, PatternMatchingMultipleMatchesInClass) {
     EGraph egraph(get_property_table());
 
     Id id1 = egraph.add_expression(Expression("Mul(X, Y)"));
@@ -65,17 +62,13 @@ TEST(EGraph, PatternMatchingMultipleMatchesInClass)
     bool found_xy = false;
     bool found_wz = false;
 
-    for (const auto &sub : substitutions)
-    {
+    for (const auto &sub : substitutions) {
         auto atom_a = egraph.at(sub.at("a")).get_atom();
         auto atom_b = egraph.at(sub.at("b")).get_atom();
 
-        if (atom_a == sym_x.get_atom() && atom_b == sym_y.get_atom())
-        {
+        if (atom_a == sym_x.get_atom() && atom_b == sym_y.get_atom()) {
             found_xy = true;
-        }
-        else if (atom_a == sym_a.get_atom() && atom_b == sym_z.get_atom())
-        {
+        } else if (atom_a == sym_a.get_atom() && atom_b == sym_z.get_atom()) {
             found_wz = true;
         }
     }

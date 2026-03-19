@@ -1,23 +1,20 @@
-#include <gtest/gtest.h>
-#include "expression.h"
 #include "errors.h"
+#include "expression.h"
+#include <gtest/gtest.h>
 
-TEST(Expression, ParseVariable)
-{
+TEST(Expression, ParseVariable) {
     Expression p("X");
     EXPECT_EQ(std::get<std::string>(p.atom), "X");
     EXPECT_TRUE(p.children.empty());
 }
 
-TEST(Expression, ParseOperationWithoutChildren)
-{
+TEST(Expression, ParseOperationWithoutChildren) {
     Expression p("Identity");
     EXPECT_EQ(std::get<std::string>(p.atom), "Identity");
     EXPECT_TRUE(p.children.empty());
 }
 
-TEST(Expression, ParseOperationWithChildren)
-{
+TEST(Expression, ParseOperationWithChildren) {
     Expression p(" Add ( X, Y) ");
     EXPECT_EQ(std::get<Op>(p.atom), Op::Add);
     ASSERT_EQ(p.children.size(), 2);
@@ -27,8 +24,7 @@ TEST(Expression, ParseOperationWithChildren)
     EXPECT_EQ(std::get<std::string>(p.children[1].atom), "Y");
 }
 
-TEST(Expression, ParseNestedOperations)
-{
+TEST(Expression, ParseNestedOperations) {
     Expression p("Mul(Add( Add(X,Y), Y), Tr(Z))");
     EXPECT_EQ(std::get<Op>(p.atom), Op::Mul);
     ASSERT_EQ(p.children.size(), 2);
@@ -46,30 +42,26 @@ TEST(Expression, ParseNestedOperations)
     EXPECT_EQ(std::get<std::string>(transpose_child.children[0].atom), "Z");
 }
 
-TEST(Expression, ToString)
-{
+TEST(Expression, ToString) {
     Expression p("Mul(Add(X, Y), Tr(Z))");
     std::string repr = p.to_string();
     EXPECT_EQ(repr, "Mul(Add(X, Y), Tr(Z))");
 }
 
-TEST(Expression, ToHumanString)
-{
+TEST(Expression, ToHumanString) {
     Expression p("Mul(Add(X, Y), Tr(Z))");
     std::string repr = p.to_human_string();
     EXPECT_EQ(repr, "(X + Y) * Zᵀ");
 }
 
-TEST(Expression, ToHumanStringFactorizationIndexing)
-{
+TEST(Expression, ToHumanStringFactorizationIndexing) {
     Expression q("Get(QR(A), 0)");
     Expression r("Get(QR(A), 1)");
     EXPECT_EQ(q.to_human_string(), "Q(A)");
     EXPECT_EQ(r.to_human_string(), "R(A)");
 }
 
-TEST(Expression, ParseQRNode)
-{
+TEST(Expression, ParseQRNode) {
     Expression p("Mul(Add(Get(QR(A), 0)), Get(QR(A), 1))");
     EXPECT_EQ(std::get<Op>(p.atom), Op::Mul);
     ASSERT_EQ(p.children.size(), 2);
@@ -92,8 +84,7 @@ TEST(Expression, ParseQRNode)
     EXPECT_EQ(std::get<int>(get_r.children[1].atom), 1);
 }
 
-TEST(Expression, ParsingErrors)
-{
+TEST(Expression, ParsingErrors) {
     EXPECT_THROW(Expression(""), ParseError);
     EXPECT_THROW(Expression("Add(X, Y"), ParseError);
 }

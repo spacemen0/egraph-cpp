@@ -2,23 +2,13 @@
 #include "e_node.h"
 #include "property_table.h"
 
-static ENode make_symbol(const std::string &name)
-{
-    return ENode(Children{}, std::string(name));
-}
+static ENode make_symbol(const std::string &name) { return ENode(Children{}, std::string(name)); }
 
-static ENode make_leaf(Op op)
-{
-    return ENode(Children{}, op);
-}
+static ENode make_leaf(Op op) { return ENode(Children{}, op); }
 
-static ENode make_op(Op op, const Children &children)
-{
-    return ENode(children, op);
-}
+static ENode make_op(Op op, const Children &children) { return ENode(children, op); }
 
-static PropertyTable get_property_table()
-{
+static PropertyTable get_property_table() {
     PropertyTable pt;
     pt.add_or_update_property_entry("A", {.shape = std::make_pair(3, 3)});
     pt.add_or_update_property_entry("B", {.shape = std::make_pair(2, 4)});
@@ -28,25 +18,21 @@ static PropertyTable get_property_table()
     pt.add_or_update_property_entry("Y", {.shape = std::make_pair(2, 3)});
     pt.add_or_update_property_entry("Z", {.shape = std::make_pair(3, 3)});
     pt.add_or_update_property_entry("W", {.shape = std::make_pair(2, 2)});
-    pt.add_or_update_property_entry("V", {.shape = std::make_pair(3, 3),
-                                          .is_symmetric = true,
-                                          .is_positive_definite = true});
+    pt.add_or_update_property_entry(
+        "V", {.shape = std::make_pair(3, 3), .is_symmetric = true, .is_positive_definite = true});
     pt.add_or_update_property_entry("I_3x3", {.shape = std::make_pair(3, 3), .is_identity = true});
     pt.add_or_update_property_entry("Zero", {.shape = std::make_pair(3, 3), .is_zero = true});
     pt.add_or_update_property_entry("y", {.shape = std::make_pair(3, 1)});
-    pt.add_or_update_property_entry("M", {.shape = std::make_pair("A", "B"),
-                                          .is_positive_definite = true,
-                                          .is_tall = true});
+    pt.add_or_update_property_entry(
+        "M", {.shape = std::make_pair("A", "B"), .is_positive_definite = true, .is_tall = true});
     pt.add_or_update_property_entry("n", {.shape = std::make_pair("A", 1)});
-    pt.add_or_update_property_entry("v", {.shape = std::make_pair("A", "A"),
-                                          .is_symmetric = true,
-                                          .is_positive_definite = true});
+    pt.add_or_update_property_entry(
+        "v", {.shape = std::make_pair("A", "A"), .is_symmetric = true, .is_positive_definite = true});
 
     return pt;
 }
 
-static PropertyTable get_property_table_with_symbolic_shapes()
-{
+static PropertyTable get_property_table_with_symbolic_shapes() {
     PropertyTable pt;
     pt.add_or_update_property_entry("A", {.shape = std::make_pair("a", "b")});
     pt.add_or_update_property_entry("B", {.shape = std::make_pair("b", "c")});

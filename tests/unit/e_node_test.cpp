@@ -1,11 +1,10 @@
-#include <gtest/gtest.h>
 #include "e_node.h"
 #include "test_helpers.h"
+#include <gtest/gtest.h>
 
 using enum Op;
 
-TEST(ENode, IsLeaf)
-{
+TEST(ENode, IsLeaf) {
     auto s = make_symbol("S");
     EXPECT_TRUE(s.is_leaf());
 
@@ -14,8 +13,7 @@ TEST(ENode, IsLeaf)
     EXPECT_FALSE(add.is_leaf());
 }
 
-TEST(ENode, MatchesBehavior)
-{
+TEST(ENode, MatchesBehavior) {
     auto sx1 = make_symbol("X");
     auto sx2 = make_symbol("X");
     auto sy = make_symbol("Y");
@@ -32,8 +30,7 @@ TEST(ENode, MatchesBehavior)
     EXPECT_FALSE(a1 == a_short);
 }
 
-TEST(ENode, HashConsistencyAndSensitivity)
-{
+TEST(ENode, HashConsistencyAndSensitivity) {
     Children c12 = {Id(1), Id(2)};
     auto n1 = make_op(Mul, c12);
     auto n2 = make_op(Mul, c12);

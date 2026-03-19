@@ -4,3 +4,4 @@ coverage_report/
 *.dot
 *.png
 *.svg
+.cache/

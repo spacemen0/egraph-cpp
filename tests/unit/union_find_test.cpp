@@ -1,8 +1,7 @@
-#include <gtest/gtest.h>
 #include "union_find.h"
+#include <gtest/gtest.h>
 
-TEST(UnionFind, ParentsLayoutAfterCompression)
-{
+TEST(UnionFind, ParentsLayoutAfterCompression) {
     UnionFind uf;
     const Id n = 10;
     for (Id i = 0; i < n; ++i)
