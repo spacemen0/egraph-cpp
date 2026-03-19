@@ -78,7 +78,7 @@ static const auto qr_invert_leaf = make_rewrite("qr-invert-leaf",
                                                 [](const EGraph &g, const Substitution &s)
                                                 {
                                                     Id a_id = s.at("a");
-                                                    auto node = g.at(a_id);
+                                                    const auto &node = g.at(a_id);
                                                     if (node.get_children().size() != 0)
                                                         return false;
                                                     return true;
@@ -106,7 +106,7 @@ static const auto lu_invert_leaf = make_rewrite(
     "Mul(Inv(Get(LU(?a), 1)), Inv(Get(LU(?a), 0)))",
     [](const EGraph &g, const Substitution &s)
     {        Id a_id = s.at("a");
-        auto node = g.at(a_id);
+        const auto &node = g.at(a_id);
         if (node.get_children().size() != 0)            return false;
         return true; });
 static const auto llt_invert = make_rewrite(
@@ -130,7 +130,7 @@ static const auto llt_invert_leaf = make_rewrite(
     "Mul(Tr(Inv(Get(LLt(?a), 0))), Inv(Get(LLt(?a), 0)))",
     [](const EGraph &g, const Substitution &s)
     {        Id a_id = s.at("a");
-        auto node = g.at(a_id);
+        const auto &node = g.at(a_id);
         if (node.get_children().size() != 0)            return false;
         return true; });
 static const auto solve_rule = make_rewrite("solve-rule", "Mul(Inv(?a), ?b)", "Sol(?a, ?b)", [](const EGraph &g, const Substitution &s)

@@ -10,7 +10,7 @@ echo "Building project..."
 cmake --build build
 
 echo "Running tests..."
-if [ -n "$1" ]; then
+if [[ -n "$1" ]]; then
     ./build/tests/unit_tests --gtest_filter="$1"
 else
     ./build/tests/unit_tests

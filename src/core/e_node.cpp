@@ -97,7 +97,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
                 int rows1 = std::get<int>(shapes.first.first);
                 int cols1 = std::get<int>(shapes.first.second);
                 int cols2 = std::get<int>(shapes.second.second);
-                return static_cast<double>(2 * rows1 * cols1 * cols2);
+                return 2.0 * rows1 * cols1 * cols2;
             }
             if (!(is_numeric(shapes.first) && is_numeric(shapes.second)))
             {
@@ -130,7 +130,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
                 {
                     return (1.0 / 3.0) * rows * rows * rows;
                 }
-                return static_cast<double>(2.0 * rows * rows * rows);
+                return 2.0 * rows * rows * rows;
             }
             if (!is_numeric(shape))
             {

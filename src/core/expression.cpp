@@ -30,11 +30,6 @@ namespace
         }
     }
 
-    bool is_op(const Expression &expr, Op op)
-    {
-        return std::holds_alternative<Op>(expr.atom) && std::get<Op>(expr.atom) == op;
-    }
-
     std::string parenthesize_if_needed(const Expression &expr, int parent_precedence)
     {
         std::string rendered = expr.to_human_string();

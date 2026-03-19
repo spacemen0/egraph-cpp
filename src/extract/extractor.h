@@ -55,7 +55,7 @@ private:
     void search_symbolic_dags(
         const std::vector<PendingClass> &pending,
         std::unordered_map<Id, const ENode *> &current_choices,
-        SymbolicCost current_cost,
+        SymbolicCost &current_cost,
         std::vector<SymbolicSearchResult> &results) const;
 
     Expression build_expression(

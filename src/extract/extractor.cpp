@@ -121,7 +121,7 @@ void Extractor::search_best_numeric_dag(
 
             if (!current_choices.contains(child_root) && !child_already_pending) // only calculate unvisited children
             {
-                child_pending.emplace_back(PendingClass{child_root, child_ancestors});
+                child_pending.emplace_back(child_root, child_ancestors);
             }
         }
 
@@ -136,11 +136,11 @@ void Extractor::search_best_numeric_dag(
     }
 }
 
-void Extractor::search_symbolic_dags(const std::vector<PendingClass> &pending, std::unordered_map<Id, const ENode *> &current_choices, SymbolicCost current_cost, std::vector<SymbolicSearchResult> &results) const
+void Extractor::search_symbolic_dags(const std::vector<PendingClass> &pending, std::unordered_map<Id, const ENode *> &current_choices, SymbolicCost &current_cost, std::vector<SymbolicSearchResult> &results) const
 {
     if (pending.empty())
     {
-        results.push_back(SymbolicSearchResult{current_cost, current_choices});
+        results.emplace_back(current_cost, current_choices);
         return;
     }
 
@@ -189,7 +189,7 @@ void Extractor::search_symbolic_dags(const std::vector<PendingClass> &pending, s
 
             if (!current_choices.contains(child_root) && !child_already_pending) // only calculate unvisited children
             {
-                child_pending.emplace_back(PendingClass{child_root, child_ancestors});
+                child_pending.emplace_back(child_root, child_ancestors);
             }
         }
 
@@ -261,7 +261,7 @@ std::vector<ExtractionResult> Extractor::extract_symbolic(Id class_id) const
     for (const auto &dag : symbolic_dags)
     {
         std::unordered_set<Id> visiting;
-        results.push_back({dag.cost, build_expression(class_id, dag.choices, visiting)});
+        results.emplace_back(dag.cost, build_expression(class_id, dag.choices, visiting));
     }
     return results;
 }
