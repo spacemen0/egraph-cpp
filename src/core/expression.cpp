@@ -64,7 +64,7 @@ std::string format_indexed_factorization(const Expression &base, const Expressio
         break;
     case LLt:
         if (index == 0)
-            return "L(" + inner_str + ")";
+            return "LC(" + inner_str + ")";
         break;
     default:
         break;

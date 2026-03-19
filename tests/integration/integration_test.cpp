@@ -116,7 +116,7 @@ TEST(Integration, MatrixChainSymbolicSizes) {
     auto sample_size_bindings = []() -> SizeBindings {
         static std::random_device rd;
         static std::mt19937 gen(rd());
-        std::uniform_int_distribution<int> dist(10, 10000);
+        std::uniform_int_distribution<int> dist(1, 100000);
 
         SizeBindings bindings;
         constexpr std::array<const char *, 7> keys = {"a", "b", "c", "d", "e", "f", "g"};
@@ -127,7 +127,7 @@ TEST(Integration, MatrixChainSymbolicSizes) {
         return bindings;
     };
 
-    int k = 1000;
+    int k = 2000;
     for (int i = 0; i < k; ++i) {
         const auto extracted_expr = extractor.extract(root_id, sample_size_bindings()).expr;
         const auto it = std::ranges::find(candidate_expressions, extracted_expr);

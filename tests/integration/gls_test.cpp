@@ -37,7 +37,7 @@ TEST(Integration, GLSSymbolic) {
     Rewriter rewriter(egraph, rules, 1000);
     rewriter.apply_rewrites(10);
     Extractor extractor(egraph);
-    auto result = extractor.extract(id, {{"A", 10}, {"B", 5}});
+    auto result = extractor.extract(id, {{"A", 100}, {"B", 20}});
     std::cout << "Best extracted expression: " << result.expr.to_human_string() << std::endl;
     std::cout << "Cost: " << result.cost << std::endl;
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
