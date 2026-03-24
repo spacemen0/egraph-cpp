@@ -61,6 +61,16 @@ TEST(Expression, ToHumanStringFactorizationIndexing) {
     EXPECT_EQ(r.to_human_string(), "R(A)");
 }
 
+TEST(Expression, ToHumanStringMulChainPreservesLeftGrouping) {
+    Expression p("Mul(Mul(A, B), C)");
+    EXPECT_EQ(p.to_human_string(), "(A * B) * C");
+}
+
+TEST(Expression, ToHumanStringMulChainPreservesRightGrouping) {
+    Expression p("Mul(A, Mul(B, C))");
+    EXPECT_EQ(p.to_human_string(), "A * (B * C)");
+}
+
 TEST(Expression, ParseQRNode) {
     Expression p("Mul(Add(Get(QR(A), 0)), Get(QR(A), 1))");
     EXPECT_EQ(std::get<Op>(p.atom), Op::Mul);

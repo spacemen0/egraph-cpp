@@ -25,9 +25,21 @@ int precedence(const Expression &expr) {
     }
 }
 
-std::string parenthesize_if_needed(const Expression &expr, int parent_precedence) {
+std::string parenthesize(const Expression &expr, int parent_precedence) {
     std::string rendered = expr.to_human_string();
     if (precedence(expr) < parent_precedence) {
+        return "(" + rendered + ")";
+    }
+    return rendered;
+}
+
+std::string parenthesize_mul_chain(const Expression &expr) {
+    constexpr int MulPrecedence = 20;
+    std::string rendered = expr.to_human_string();
+    if (std::holds_alternative<Op>(expr.atom) && std::get<Op>(expr.atom) == Op::Mul) {
+        return "(" + rendered + ")";
+    }
+    if (precedence(expr) < MulPrecedence) {
         return "(" + rendered + ")";
     }
     return rendered;
@@ -119,7 +131,7 @@ std::string Expression::to_human_string() const {
         for (size_t i = 0; i < children.size(); ++i) {
             if (i > 0)
                 ss << " + ";
-            ss << parenthesize_if_needed(children[i], precedence(*this));
+            ss << parenthesize(children[i], precedence(*this));
         }
         return ss.str();
     }
@@ -130,14 +142,14 @@ std::string Expression::to_human_string() const {
         for (size_t i = 0; i < children.size(); ++i) {
             if (i > 0)
                 ss << " * ";
-            ss << parenthesize_if_needed(children[i], precedence(*this));
+            ss << parenthesize_mul_chain(children[i]);
         }
         return ss.str();
     }
     case Neg: {
         if (children.empty())
             return "-?";
-        return "-" + parenthesize_if_needed(children[0], precedence(*this));
+        return "-" + parenthesize(children[0], precedence(*this));
     }
     case Tr: {
         if (children.empty())
