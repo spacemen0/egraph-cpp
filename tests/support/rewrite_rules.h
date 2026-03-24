@@ -139,7 +139,7 @@ static const auto llt_invert = make_rewrite(
     const auto &data = g.get_class_analysis_data(a_id);
 
     if (auto *prop = std::get_if<MatrixProperty>(&data.property)) {
-        return prop->is_positive_definite && prop->is_symmetric;
+        return prop->flags.is_positive_definite && prop->flags.is_symmetric;
     }
     return false;
 });
@@ -157,7 +157,7 @@ static const auto solve_rule =
     Id a_id = s.at("a");
     const auto &data = g.get_class_analysis_data(a_id);
     if (auto *prop = std::get_if<MatrixProperty>(&data.property)) {
-        return prop->is_square() && !prop->is_singular;
+        return prop->is_square() && !prop->flags.is_singular;
     }
     return false;
 });
@@ -185,7 +185,8 @@ static const auto invert_mat_prod = make_rewrite(
     const auto &data_b = g.get_class_analysis_data(b_id);
     if (auto *prop_a = std::get_if<MatrixProperty>(&data_a.property)) {
         if (auto *prop_b = std::get_if<MatrixProperty>(&data_b.property)) {
-            return prop_a->is_square() && !prop_a->is_singular && prop_b->is_square() && !prop_b->is_singular;
+            return prop_a->is_square() && !prop_a->flags.is_singular && prop_b->is_square() &&
+                   !prop_b->flags.is_singular;
         }
     }
     return false;
@@ -195,7 +196,7 @@ static const auto orthogonal_transpose =
     Id a_id = s.at("a");
     const auto &data = g.get_class_analysis_data(a_id);
     if (auto *prop = std::get_if<MatrixProperty>(&data.property)) {
-        return prop->is_orthogonal;
+        return prop->flags.is_orthogonal;
     }
     return false;
 }, [](EGraph &g, const Substitution &s) {
@@ -207,7 +208,7 @@ static const auto orthonormal_transpose =
     Id a_id = s.at("a");
     const auto &data = g.get_class_analysis_data(a_id);
     if (auto *prop = std::get_if<MatrixProperty>(&data.property)) {
-        return prop->is_orthonormal;
+        return prop->flags.is_orthonormal;
     }
     return false;
 }, [](EGraph &g, const Substitution &s) {

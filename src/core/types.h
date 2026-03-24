@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <iostream>
 #include <stdexcept>
@@ -34,19 +35,43 @@ using SizeBindings = std::unordered_map<std::string, int>;
 
 struct MatrixProperty {
     Shape shape; // (rows, cols)
-    bool is_symmetric = false;
-    bool is_orthogonal = false;
-    bool is_orthonormal = false;
-    bool is_identity = false;
-    bool is_zero = false;
-    bool is_upper_triangular = false;
-    bool is_lower_triangular = false;
-    bool is_diagonal = false;
-    bool is_positive_definite = false;
-    bool is_singular = false;
-    bool is_permutation = false;
-    bool is_tall = false;
-    bool is_wide = false;
+    struct MatrixFlags {
+        bool is_symmetric = false;
+        bool is_orthogonal = false;
+        bool is_orthonormal = false;
+        bool is_identity = false;
+        bool is_zero = false;
+        bool is_upper_triangular = false;
+        bool is_lower_triangular = false;
+        bool is_diagonal = false;
+        bool is_positive_definite = false;
+        bool is_singular = false;
+        bool is_permutation = false;
+        bool is_tall = false;
+        bool is_wide = false;
+    };
+    MatrixFlags flags;
+
+    struct FlagDescriptor {
+        bool MatrixFlags::*member;
+        const char *label;
+    };
+
+    static constexpr std::array<FlagDescriptor, 13> flag_descriptors = {{
+        {&MatrixFlags::is_symmetric, "Symmetric"},
+        {&MatrixFlags::is_orthogonal, "Orthogonal"},
+        {&MatrixFlags::is_orthonormal, "Orthonormal"},
+        {&MatrixFlags::is_identity, "Identity"},
+        {&MatrixFlags::is_zero, "Zero"},
+        {&MatrixFlags::is_upper_triangular, "UpperTriangular"},
+        {&MatrixFlags::is_lower_triangular, "LowerTriangular"},
+        {&MatrixFlags::is_diagonal, "Diagonal"},
+        {&MatrixFlags::is_positive_definite, "PositiveDefinite"},
+        {&MatrixFlags::is_singular, "Singular"},
+        {&MatrixFlags::is_permutation, "Permutation"},
+        {&MatrixFlags::is_tall, "Tall"},
+        {&MatrixFlags::is_wide, "Wide"},
+    }};
 
     bool is_square() const { return shape.first == shape.second; }
     bool has_symbolic_shape() const {
@@ -58,7 +83,7 @@ struct MatrixProperty {
                 return *rows > *cols;
             }
         }
-        return is_tall;
+        return flags.is_tall;
     }
     bool is_wide_matrix() const {
         if (auto rows = std::get_if<int>(&shape.first)) {
@@ -66,7 +91,7 @@ struct MatrixProperty {
                 return *rows < *cols;
             }
         }
-        return is_wide;
+        return flags.is_wide;
     }
     bool is_scalar() const {
         if (auto w = std::get_if<int>(&shape.first)) {
@@ -91,11 +116,17 @@ struct MatrixProperty {
 
     bool operator==(const MatrixProperty &other) const { return shape == other.shape; };
     bool strict_equal(const MatrixProperty &other) const {
-        return shape == other.shape && is_symmetric == other.is_symmetric && is_orthogonal == other.is_orthogonal &&
-               is_orthonormal == other.is_orthonormal && is_identity == other.is_identity && is_zero == other.is_zero &&
-               is_upper_triangular == other.is_upper_triangular && is_lower_triangular == other.is_lower_triangular &&
-               is_diagonal == other.is_diagonal && is_positive_definite == other.is_positive_definite &&
-               is_singular == other.is_singular && is_permutation == other.is_permutation;
+        if (shape != other.shape) {
+            return false;
+        }
+
+        for (const auto &flag : flag_descriptors) {
+            if (this->flags.*(flag.member) != other.flags.*(flag.member)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     std::string to_string() const {
@@ -114,28 +145,13 @@ struct MatrixProperty {
 
         s += ")";
 
-        if (is_identity)
-            s += " [Identity]";
-        if (is_zero)
-            s += " [Zero]";
-        if (is_symmetric)
-            s += " [Symmetric]";
-        if (is_orthogonal)
-            s += " [Orthogonal]";
-        if (is_orthonormal)
-            s += " [Orthonormal]";
-        if (is_upper_triangular)
-            s += " [UpperTriangular]";
-        if (is_lower_triangular)
-            s += " [LowerTriangular]";
-        if (is_diagonal)
-            s += " [Diagonal]";
-        if (is_positive_definite)
-            s += " [PositiveDefinite]";
-        if (is_singular)
-            s += " [Singular]";
-        if (is_permutation)
-            s += " [Permutation]";
+        for (const auto &flag : flag_descriptors) {
+            if (this->flags.*(flag.member)) {
+                s += " [";
+                s += flag.label;
+                s += "]";
+            }
+        }
 
         return s;
     }

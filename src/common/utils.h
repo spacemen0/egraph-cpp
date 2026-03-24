@@ -169,17 +169,15 @@ make_identity_for(EGraph &egraph, const Substitution &s, const std::string &var_
 
     MatrixProperty prop;
     prop.shape = use_first_dim ? std::make_pair(shape.first, shape.first) : std::make_pair(shape.second, shape.second);
-    prop.is_identity = true;
-    prop.is_symmetric = true;
-    prop.is_orthogonal = true;
-    prop.is_zero = false;
-
-    prop.is_diagonal = true;
-    prop.is_orthogonal = true;
-    prop.is_singular = false;
-    prop.is_upper_triangular = true;
-    prop.is_lower_triangular = true;
-    prop.is_symmetric = true;
+    prop.flags = {
+        .is_symmetric = true,
+        .is_orthogonal = true,
+        .is_identity = true,
+        .is_zero = false,
+        .is_upper_triangular = true,
+        .is_lower_triangular = true,
+        .is_diagonal = true,
+        .is_singular = false};
 
     if (egraph.find_class_with_property(prop).has_value()) {
         return egraph.find_class_with_property(prop).value();
@@ -215,14 +213,15 @@ inline Id make_zero_for(EGraph &g, const Substitution &s, const std::string &var
 
     MatrixProperty prop;
     prop.shape = shape;
-    prop.is_zero = true;
-    prop.is_identity = false;
-    prop.is_diagonal = true;
-    prop.is_identity = false;
-    prop.is_singular = true;
-    prop.is_upper_triangular = true;
-    prop.is_lower_triangular = true;
-    prop.is_symmetric = true;
+    prop.flags = {
+        .is_symmetric = true,
+        .is_identity = false,
+        .is_zero = true,
+        .is_upper_triangular = true,
+        .is_lower_triangular = true,
+        .is_diagonal = true,
+        .is_singular = true,
+    };
 
     if (g.find_class_with_property(prop).has_value()) {
         return g.find_class_with_property(prop).value();
@@ -302,14 +301,14 @@ inline Expression get_representative_expression(const EGraph &g, Id class_id) {
 inline bool is_identity(const Substitution &s, const EGraph &g, const std::string &var) {
     Id id = s.at(var);
     if (auto prop = std::get_if<MatrixProperty>(&g.get_class_analysis_data(id).property))
-        return prop->is_identity;
+        return prop->flags.is_identity;
     return false;
 }
 
 inline bool is_zero(const Substitution &s, const EGraph &g, const std::string &var) {
     Id id = s.at(var);
     if (auto prop = std::get_if<MatrixProperty>(&g.get_class_analysis_data(id).property))
-        return prop->is_zero;
+        return prop->flags.is_zero;
     return false;
 }
 

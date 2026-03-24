@@ -30,17 +30,9 @@ void MatrixAnalysis::merge(AnalysisData &data1, const AnalysisData &data2) {
     }
 
     auto merge_matrix_props = [](MatrixProperty &p1, const MatrixProperty &p2) {
-        p1.is_symmetric = p1.is_symmetric || p2.is_symmetric;
-        p1.is_orthogonal = p1.is_orthogonal || p2.is_orthogonal;
-        p1.is_orthonormal = p1.is_orthonormal || p2.is_orthonormal;
-        p1.is_identity = p1.is_identity || p2.is_identity;
-        p1.is_zero = p1.is_zero || p2.is_zero;
-        p1.is_upper_triangular = p1.is_upper_triangular || p2.is_upper_triangular;
-        p1.is_lower_triangular = p1.is_lower_triangular || p2.is_lower_triangular;
-        p1.is_diagonal = p1.is_diagonal || p2.is_diagonal;
-        p1.is_positive_definite = p1.is_positive_definite || p2.is_positive_definite;
-        p1.is_singular = p1.is_singular || p2.is_singular;
-        p1.is_permutation = p1.is_permutation || p2.is_permutation;
+        for (const auto &flag : MatrixProperty::flag_descriptors) {
+            p1.flags.*(flag.member) = p1.flags.*(flag.member) || p2.flags.*(flag.member);
+        }
     };
 
     if (auto *p1 = std::get_if<MatrixProperty>(&data1.property)) {
@@ -66,20 +58,20 @@ void MatrixAnalysis::merge(AnalysisData &data1, const AnalysisData &data2) {
 }
 
 void MatrixAnalysis::enforce_hierarchy(MatrixProperty &p) {
-    if (p.is_zero) {
-        p.is_diagonal = true;
-        p.is_identity = false;
-        p.is_singular = true;
+    if (p.flags.is_zero) {
+        p.flags.is_diagonal = true;
+        p.flags.is_identity = false;
+        p.flags.is_singular = true;
     }
-    if (p.is_identity) {
-        p.is_diagonal = true;
-        p.is_orthogonal = true;
-        p.is_singular = false;
+    if (p.flags.is_identity) {
+        p.flags.is_diagonal = true;
+        p.flags.is_orthogonal = true;
+        p.flags.is_singular = false;
     }
-    if (p.is_diagonal) {
-        p.is_upper_triangular = true;
-        p.is_lower_triangular = true;
-        p.is_symmetric = true;
+    if (p.flags.is_diagonal) {
+        p.flags.is_upper_triangular = true;
+        p.flags.is_lower_triangular = true;
+        p.flags.is_symmetric = true;
     }
 }
 
@@ -105,11 +97,11 @@ static AnalysisData analyze_add(const EGraph &egraph, const std::vector<Id> &chi
 
             MatrixProperty prop;
             prop.shape = data1->shape;
-            prop.is_symmetric = data1->is_symmetric && data2->is_symmetric;
-            prop.is_upper_triangular = data1->is_upper_triangular && data2->is_upper_triangular;
-            prop.is_lower_triangular = data1->is_lower_triangular && data2->is_lower_triangular;
-            prop.is_diagonal = data1->is_diagonal && data2->is_diagonal;
-            prop.is_zero = data1->is_zero && data2->is_zero;
+            prop.flags.is_symmetric = data1->flags.is_symmetric && data2->flags.is_symmetric;
+            prop.flags.is_upper_triangular = data1->flags.is_upper_triangular && data2->flags.is_upper_triangular;
+            prop.flags.is_lower_triangular = data1->flags.is_lower_triangular && data2->flags.is_lower_triangular;
+            prop.flags.is_diagonal = data1->flags.is_diagonal && data2->flags.is_diagonal;
+            prop.flags.is_zero = data1->flags.is_zero && data2->flags.is_zero;
             return matrix_property_data(prop);
         }
     }
@@ -126,14 +118,14 @@ static AnalysisData analyze_mul(const EGraph &egraph, const std::vector<Id> &chi
 
             MatrixProperty prop;
             prop.shape = std::make_pair(data1->shape.first, data2->shape.second);
-            prop.is_identity = data1->is_identity && data2->is_identity;
-            prop.is_permutation = data1->is_permutation && data2->is_permutation;
-            prop.is_singular = data1->is_singular || data2->is_singular;
-            prop.is_zero = data1->is_zero || data2->is_zero;
-            prop.is_lower_triangular = data1->is_lower_triangular && data2->is_lower_triangular;
-            prop.is_upper_triangular = data1->is_upper_triangular && data2->is_upper_triangular;
-            prop.is_orthogonal = data1->is_orthogonal && data2->is_orthogonal;
-            prop.is_diagonal = data1->is_diagonal && data2->is_diagonal;
+            prop.flags.is_identity = data1->flags.is_identity && data2->flags.is_identity;
+            prop.flags.is_permutation = data1->flags.is_permutation && data2->flags.is_permutation;
+            prop.flags.is_singular = data1->flags.is_singular || data2->flags.is_singular;
+            prop.flags.is_zero = data1->flags.is_zero || data2->flags.is_zero;
+            prop.flags.is_lower_triangular = data1->flags.is_lower_triangular && data2->flags.is_lower_triangular;
+            prop.flags.is_upper_triangular = data1->flags.is_upper_triangular && data2->flags.is_upper_triangular;
+            prop.flags.is_orthogonal = data1->flags.is_orthogonal && data2->flags.is_orthogonal;
+            prop.flags.is_diagonal = data1->flags.is_diagonal && data2->flags.is_diagonal;
             return matrix_property_data(prop);
         }
     }
@@ -147,8 +139,8 @@ static AnalysisData analyze_transpose(const EGraph &egraph, const std::vector<Id
         MatrixProperty prop = *data;
 
         prop.shape = std::make_pair(child_size.second, child_size.first);
-        prop.is_lower_triangular = data->is_upper_triangular;
-        prop.is_upper_triangular = data->is_lower_triangular;
+        prop.flags.is_lower_triangular = data->flags.is_upper_triangular;
+        prop.flags.is_upper_triangular = data->flags.is_lower_triangular;
         return matrix_property_data(prop);
     }
     throw AnalysisError("Tr expects a Matrix input");
@@ -160,7 +152,7 @@ static AnalysisData analyze_invert(const EGraph &egraph, const std::vector<Id> &
         if (data->shape.first != data->shape.second) {
             throw InvalidOperationError("Inv operation on non-square matrix");
         }
-        if (data->is_singular) {
+        if (data->flags.is_singular) {
             throw InvalidOperationError("Inv operation on singular matrix");
         }
 
@@ -174,9 +166,9 @@ static AnalysisData analyze_negate(const EGraph &egraph, const std::vector<Id> &
     check_arity(children, 1, "Neg");
     if (auto data = get_matrix_data(egraph, children.at(0))) {
         MatrixProperty prop = *data;
-        prop.is_identity = false;
-        prop.is_permutation = false;
-        prop.is_positive_definite = false;
+        prop.flags.is_identity = false;
+        prop.flags.is_permutation = false;
+        prop.flags.is_positive_definite = false;
         return matrix_property_data(prop);
     }
     throw AnalysisError("Neg expects a Matrix input");
@@ -188,30 +180,30 @@ static AnalysisData analyze_qr(const EGraph &egraph, const std::vector<Id> &chil
         MatrixProperty Q;
         MatrixProperty R;
 
-        Q.is_orthonormal = true;
-        R.is_upper_triangular = true;
+        Q.flags.is_orthonormal = true;
+        R.flags.is_upper_triangular = true;
 
         if (data->is_tall_matrix()) {
             Q.shape = data->shape;
-            Q.is_tall = true;
+            Q.flags.is_tall = true;
             R.shape = std::make_pair(data->shape.second, data->shape.second);
         } else if (data->is_wide_matrix()) {
             Q.shape = std::make_pair(data->shape.first, data->shape.first);
-            Q.is_orthogonal = true;
+            Q.flags.is_orthogonal = true;
             R.shape = data->shape;
-            R.is_wide = true;
+            R.flags.is_wide = true;
         } else {
             Q.shape = data->shape;
             R.shape = data->shape;
-            Q.is_orthogonal = true;
+            Q.flags.is_orthogonal = true;
         }
 
-        if (data->is_identity) {
-            Q.is_identity = true;
-            R.is_identity = true;
+        if (data->flags.is_identity) {
+            Q.flags.is_identity = true;
+            R.flags.is_identity = true;
         }
-        if (data->is_zero) {
-            R.is_zero = true;
+        if (data->flags.is_zero) {
+            R.flags.is_zero = true;
         }
 
         return AnalysisData{TupleProperty{Q, R}};
@@ -263,7 +255,7 @@ static AnalysisData analyze_triangular_solve(const EGraph &egraph, const std::ve
             if (data1->shape.second != data2->shape.first) {
                 throw ShapeMismatchError("TriSol operation with incompatible sizes");
             }
-            if (!data1->is_lower_triangular && !data1->is_upper_triangular) {
+            if (!data1->flags.is_lower_triangular && !data1->flags.is_upper_triangular) {
                 throw InvalidOperationError("TriSol operation on non-triangular matrix");
             }
 
@@ -288,13 +280,13 @@ static AnalysisData analyze_lu(const EGraph &egraph, const std::vector<Id> &chil
         MatrixProperty P;
 
         L.shape = data->shape;
-        L.is_lower_triangular = true;
+        L.flags.is_lower_triangular = true;
 
         U.shape = data->shape;
-        U.is_upper_triangular = true;
+        U.flags.is_upper_triangular = true;
 
         P.shape = data->shape;
-        P.is_permutation = true;
+        P.flags.is_permutation = true;
 
         return AnalysisData{TupleProperty{L, U, P}};
     }
@@ -307,15 +299,15 @@ static AnalysisData analyze_llt(const EGraph &egraph, const std::vector<Id> &chi
         if (data->shape.first != data->shape.second) {
             throw InvalidOperationError("LLt operation on non-square matrix");
         }
-        if (!data->is_positive_definite) {
+        if (!data->flags.is_positive_definite) {
             throw InvalidOperationError("LLt operation on non-positive-definite matrix");
         }
-        if (!data->is_symmetric) {
+        if (!data->flags.is_symmetric) {
             throw InvalidOperationError("LLt operation on non-symmetric matrix");
         }
         MatrixProperty L;
         L.shape = data->shape;
-        L.is_lower_triangular = true;
+        L.flags.is_lower_triangular = true;
 
         return AnalysisData{TupleProperty{L}};
     }

@@ -22,3 +22,6 @@ target_include_directories(core_lib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/common
     ${CMAKE_CURRENT_SOURCE_DIR}/io
 )
+
+add_executable(egraph_cli main.cpp)
+target_link_libraries(egraph_cli PRIVATE core_lib)
