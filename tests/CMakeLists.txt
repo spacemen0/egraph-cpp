@@ -8,6 +8,7 @@ add_executable(unit_tests
     unit/expression_test.cpp
     unit/rewrite_test.cpp
     unit/extractor_test.cpp
+    unit/utils_test.cpp
     integration/integration_test.cpp
     integration/ols_test.cpp
     integration/gls_test.cpp

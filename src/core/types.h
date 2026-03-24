@@ -6,6 +6,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <variant>
 #include <vector>
@@ -58,20 +59,22 @@ struct MatrixProperty {
     };
 
     static constexpr std::array<FlagDescriptor, 13> flag_descriptors = {{
-        {&MatrixFlags::is_symmetric, "Symmetric"},
-        {&MatrixFlags::is_orthogonal, "Orthogonal"},
-        {&MatrixFlags::is_orthonormal, "Orthonormal"},
-        {&MatrixFlags::is_identity, "Identity"},
-        {&MatrixFlags::is_zero, "Zero"},
-        {&MatrixFlags::is_upper_triangular, "UpperTriangular"},
-        {&MatrixFlags::is_lower_triangular, "LowerTriangular"},
-        {&MatrixFlags::is_diagonal, "Diagonal"},
-        {&MatrixFlags::is_positive_definite, "PositiveDefinite"},
-        {&MatrixFlags::is_singular, "Singular"},
-        {&MatrixFlags::is_permutation, "Permutation"},
-        {&MatrixFlags::is_tall, "Tall"},
-        {&MatrixFlags::is_wide, "Wide"},
+        {&MatrixFlags::is_symmetric, "symmetric"},
+        {&MatrixFlags::is_orthogonal, "orthogonal"},
+        {&MatrixFlags::is_orthonormal, "orthonormal"},
+        {&MatrixFlags::is_identity, "identity"},
+        {&MatrixFlags::is_zero, "zero"},
+        {&MatrixFlags::is_upper_triangular, "upper_triangular"},
+        {&MatrixFlags::is_lower_triangular, "lower_triangular"},
+        {&MatrixFlags::is_diagonal, "diagonal"},
+        {&MatrixFlags::is_positive_definite, "positive_definite"},
+        {&MatrixFlags::is_singular, "singular"},
+        {&MatrixFlags::is_permutation, "permutation"},
+        {&MatrixFlags::is_tall, "tall"},
+        {&MatrixFlags::is_wide, "wide"},
     }};
+
+    static MatrixProperty from_string(std::string_view text);
 
     bool is_square() const { return shape.first == shape.second; }
     bool has_symbolic_shape() const {
