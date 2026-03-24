@@ -167,8 +167,7 @@ void Extractor::search_symbolic_dags(
             bool child_already_pending = pending_it != child_pending.end();
 
             if (child_already_pending) {
-                // Preserve all known ancestors for this pending class as additional
-                // incoming edges are discovered.
+                // Merge ancestor sets (without re-inserting to pending)
                 pending_it->ancestors.insert(child_ancestors.begin(), child_ancestors.end());
             }
 

@@ -149,3 +149,36 @@ TEST(EGraph, ENodeMatching) {
     auto node_diff = make_op(Op::Neg, Children{id1 + 1});
     EXPECT_FALSE(egraph.find_node_id(node_diff).has_value());
 }
+
+TEST(EGraph, MultipleExpressionsShareCommonSubexpression) {
+    EGraph egraph(get_property_table());
+
+    Id expr1 = egraph.add_expression(Expression("Add(Mul(X, Y), Tr(Z))"));
+    Id expr2 = egraph.add_expression(Expression("Add(Mul(X, Y), Inv(Z))"));
+
+    auto id_x = egraph.find_node_id(sym_x);
+    auto id_y = egraph.find_node_id(sym_y);
+    ASSERT_TRUE(id_x.has_value());
+    ASSERT_TRUE(id_y.has_value());
+
+    auto mul_xy = make_op(Op::Mul, Children{id_x.value(), id_y.value()});
+    auto mul_xy_id = egraph.find_node_id(mul_xy);
+    ASSERT_TRUE(mul_xy_id.has_value());
+
+    auto mul_xy_class = egraph.find_class_id(mul_xy_id.value());
+    auto parents = egraph.get_class_parents(mul_xy_class);
+
+    EXPECT_NE(expr1, expr2);
+    EXPECT_GE(parents.size(), 2);
+
+    auto add1 = make_op(
+        Op::Add,
+        Children{
+            mul_xy_id.value(), egraph.find_node_id(make_op(Op::Tr, {egraph.find_node_id(sym_z).value()})).value()});
+    auto add2 = make_op(
+        Op::Add,
+        Children{
+            mul_xy_id.value(), egraph.find_node_id(make_op(Op::Inv, {egraph.find_node_id(sym_z).value()})).value()});
+    EXPECT_TRUE(egraph.find_node_id(add1).has_value());
+    EXPECT_TRUE(egraph.find_node_id(add2).has_value());
+}
