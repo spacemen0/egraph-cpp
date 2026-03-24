@@ -4,11 +4,6 @@
 #include "utils.h"
 #include <charconv>
 
-bool PropertyTable::add_or_update_property_entry(const std::string &name, MatrixProperty property) {
-    auto result = properties.insert_or_assign(name, std::move(property));
-    return result.second;
-}
-
 MatrixProperty MatrixProperty::from_string(std::string_view text) {
     auto parse_size = [](std::string_view token) -> Size {
         int v = 0;
@@ -79,6 +74,18 @@ MatrixProperty MatrixProperty::from_string(std::string_view text) {
     return prop;
 }
 
+PropertyTable::PropertyTable(std::vector<std::string> propertiy_strings) {
+    for (const auto &string : propertiy_strings) {
+        auto name_end = string.find(':');
+        if (name_end == std::string::npos) {
+            throw ParseError("PropertyTable::PropertyTable: expected ':' separating name and property");
+        }
+        auto name = std::string(trim(string.substr(0, name_end)));
+        MatrixProperty property = MatrixProperty::from_string(trim(string.substr(name_end + 1)));
+        properties.insert_or_assign(name, property);
+    }
+}
+
 std::optional<MatrixProperty> PropertyTable::get_property(const std::string &name) const {
     if (auto it = properties.find(name); it != properties.end()) {
         return it->second;
@@ -87,3 +94,8 @@ std::optional<MatrixProperty> PropertyTable::get_property(const std::string &nam
 }
 
 bool PropertyTable::has_property(const std::string &name) const { return properties.contains(name); }
+
+bool PropertyTable::add_or_update_property_entry(const std::string &name, MatrixProperty property) {
+    auto result = properties.insert_or_assign(name, std::move(property));
+    return result.second;
+}

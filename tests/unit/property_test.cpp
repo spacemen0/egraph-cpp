@@ -43,3 +43,47 @@ TEST(MatrixPropertyFromString, ThrowsOnMalformedShape) {
     EXPECT_THROW(MatrixProperty::from_string("Matrix(2x) [identity]"), ParseError);
     EXPECT_THROW(MatrixProperty::from_string("2x2 [identity]"), ParseError);
 }
+
+TEST(PropertyTableConstructor, ParsesEntriesFromStrings) {
+    PropertyTable pt({"A: Matrix(3x3) [identity]", "b: Matrix(mxn) [wide]"});
+
+    auto a = pt.get_property("A");
+    ASSERT_TRUE(a.has_value());
+    EXPECT_EQ(std::get<int>(a->shape.first), 3);
+    EXPECT_EQ(std::get<int>(a->shape.second), 3);
+    EXPECT_TRUE(a->flags.is_identity);
+
+    auto b = pt.get_property("b");
+    ASSERT_TRUE(b.has_value());
+    EXPECT_EQ(std::get<std::string>(b->shape.first), "m");
+    EXPECT_EQ(std::get<std::string>(b->shape.second), "n");
+    EXPECT_TRUE(b->flags.is_wide);
+}
+
+TEST(PropertyTableConstructor, TrimsWhitespaceAroundNameAndProperty) {
+    PropertyTable pt({"   X_1   :   Matrix( 5 x 2 )   [tall]   "});
+
+    auto p = pt.get_property("X_1");
+    ASSERT_TRUE(p.has_value());
+    EXPECT_EQ(std::get<int>(p->shape.first), 5);
+    EXPECT_EQ(std::get<int>(p->shape.second), 2);
+    EXPECT_TRUE(p->flags.is_tall);
+}
+
+TEST(PropertyTableConstructor, LastDuplicateNameWins) {
+    PropertyTable pt({"A: Matrix(3x3)", "A: Matrix(2x2) [diagonal]"});
+
+    auto p = pt.get_property("A");
+    ASSERT_TRUE(p.has_value());
+    EXPECT_EQ(std::get<int>(p->shape.first), 2);
+    EXPECT_EQ(std::get<int>(p->shape.second), 2);
+    EXPECT_TRUE(p->flags.is_diagonal);
+}
+
+TEST(PropertyTableConstructor, ThrowsOnMissingNamePropertySeparator) {
+    EXPECT_THROW(PropertyTable({"A Matrix(3x3)"}), ParseError);
+}
+
+TEST(PropertyTableConstructor, ThrowsOnInvalidMatrixPropertyText) {
+    EXPECT_THROW(PropertyTable({"A: Matrix(3,3) [identity]"}), ParseError);
+}
