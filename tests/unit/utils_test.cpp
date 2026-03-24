@@ -1,5 +1,5 @@
 #include "errors.h"
-#include "types.h"
+#include "property_table.h"
 #include <gtest/gtest.h>
 
 TEST(MatrixPropertyFromString, ParsesNumericShapeAndFlags) {

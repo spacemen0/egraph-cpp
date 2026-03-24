@@ -1,6 +1,6 @@
 #pragma once
 #include "e_node.h"
-#include "types.h"
+#include "property_table.h"
 
 class EGraph;
 

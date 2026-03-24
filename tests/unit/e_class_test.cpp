@@ -1,6 +1,5 @@
 #include "e_class.h"
 #include "e_node.h"
-#include "types.h"
 #include <gtest/gtest.h>
 
 using enum Op;
