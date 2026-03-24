@@ -96,9 +96,15 @@ void Extractor::search_best_numeric_dag(
                 break;
             }
 
-            bool child_already_pending = std::ranges::any_of(child_pending, [&](const PendingClass &entry) {
+            auto pending_it = std::find_if(child_pending.begin(), child_pending.end(), [&](const PendingClass &entry) {
                 return egraph.find_class_id(entry.class_id) == child_root;
             });
+            bool child_already_pending = pending_it != child_pending.end();
+
+            if (child_already_pending) {
+                // Need to merge ancestor sets even if this child is already pending via another path.
+                pending_it->ancestors.insert(child_ancestors.begin(), child_ancestors.end());
+            }
 
             if (!current_choices.contains(child_root) && !child_already_pending) // only calculate unvisited children
             {
@@ -149,14 +155,22 @@ void Extractor::search_symbolic_dags(
         bool has_cycle = false;
         for (Id child : candidate->get_children()) {
             Id child_root = egraph.find_class_id(child);
+
             if (child_ancestors.contains(child_root)) {
                 has_cycle = true;
                 break;
             }
 
-            bool child_already_pending = std::ranges::any_of(child_pending, [&](const PendingClass &entry) {
+            auto pending_it = std::find_if(child_pending.begin(), child_pending.end(), [&](const PendingClass &entry) {
                 return egraph.find_class_id(entry.class_id) == child_root;
             });
+            bool child_already_pending = pending_it != child_pending.end();
+
+            if (child_already_pending) {
+                // Preserve all known ancestors for this pending class as additional
+                // incoming edges are discovered.
+                pending_it->ancestors.insert(child_ancestors.begin(), child_ancestors.end());
+            }
 
             if (!current_choices.contains(child_root) && !child_already_pending) // only calculate unvisited children
             {

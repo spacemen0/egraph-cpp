@@ -98,11 +98,12 @@ TEST(Integration, CyclicTermsThatDoNotExplode) {
 TEST(Integration, MatrixChainSymbolicSizes) {
     EGraph egraph(get_property_table_with_symbolic_shapes());
 
-    const Expression root_expr("Mul(Mul(Mul(Mul(Mul(A, B), C), D), E), F)");
+    const Expression root_expr("Mul(Mul(Mul(Mul(Mul(Mul(A, B), C), D), E), F), G)");
     const Id root_id = egraph.add_expression(root_expr);
     Rewriter rewriter(egraph, {mul_assoc_left, mul_assoc_right}, 1000);
     rewriter.apply_rewrites();
 
+    egraph.to_img("MatrixChain", "svg");
     Extractor extractor(egraph);
 
     const auto symbolic_results = extractor.extract_symbolic(root_id);
@@ -112,6 +113,10 @@ TEST(Integration, MatrixChainSymbolicSizes) {
 
     ASSERT_FALSE(candidate_expressions.empty());
 
+    for (auto expression : candidate_expressions) {
+        std::cout << "Candidate expression: " << expression.to_string() << std::endl;
+    }
+
     std::vector<bool> expression_seen(candidate_expressions.size(), false);
     auto sample_size_bindings = []() -> SizeBindings {
         static std::random_device rd;
@@ -119,7 +124,7 @@ TEST(Integration, MatrixChainSymbolicSizes) {
         std::uniform_int_distribution<int> dist(1, 100000);
 
         SizeBindings bindings;
-        constexpr std::array<const char *, 7> keys = {"a", "b", "c", "d", "e", "f", "g"};
+        constexpr std::array<const char *, 8> keys = {"a", "b", "c", "d", "e", "f", "g", "h"};
 
         for (const char *key : keys) {
             bindings[key] = dist(gen);
@@ -127,7 +132,7 @@ TEST(Integration, MatrixChainSymbolicSizes) {
         return bindings;
     };
 
-    int k = 2000;
+    int k = 10000;
     for (int i = 0; i < k; ++i) {
         const auto extracted_expr = extractor.extract(root_id, sample_size_bindings()).expr;
         const auto it = std::ranges::find(candidate_expressions, extracted_expr);

@@ -24,9 +24,15 @@ TEST(Integration, OLSSymbolic) {
                       << "! Num nodes: " << egraph.num_nodes() << std::endl;
             std::cout << "Sample matrix sizes to try out extraction..." << std::endl;
             Extractor extractor(egraph);
-            auto result = extractor.extract(id, {{"A", 100}, {"B", 50}});
-            std::cout << "Best extracted expression: " << result.expr.to_human_string() << std::endl;
-            std::cout << "Cost: " << result.cost << std::endl;
+            // auto result = extractor.extract(id, {{"A", 100}, {"B", 50}});
+            // std::cout << "Best extracted expression: " << result.expr.to_human_string() << std::endl;
+            // std::cout << "Cost: " << result.cost << std::endl;
+            egraph.to_img("OLS", "svg");
+            auto symbolic_results = extractor.extract_symbolic(id);
+            for (const auto &result : symbolic_results) {
+                std::cout << "Candidate expression: " << result.expr.to_human_string() << std::endl;
+                std::cout << "Cost: " << result.cost << std::endl;
+            }
             return;
         }
     }

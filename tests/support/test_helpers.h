@@ -40,6 +40,7 @@ static PropertyTable get_property_table_with_symbolic_shapes() {
     pt.add_or_update_property_entry("D", {.shape = std::make_pair("d", "e")});
     pt.add_or_update_property_entry("E", {.shape = std::make_pair("e", "f")});
     pt.add_or_update_property_entry("F", {.shape = std::make_pair("f", "g")});
+    pt.add_or_update_property_entry("G", {.shape = std::make_pair("g", "h")});
     return pt;
 }
 
