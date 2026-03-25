@@ -86,11 +86,32 @@ PropertyTable::PropertyTable(std::vector<std::string> propertiy_strings) {
     }
 }
 
+bool PropertyTable::add_or_update_property_entry_by_string(const std::string &string_value) {
+    auto name_end = string_value.find(':');
+    if (name_end == std::string::npos) {
+        throw ParseError(
+            "PropertyTable::add_or_update_property_entry_by_string: expected ':' separating name and property");
+    }
+    auto name = std::string(trim(string_value.substr(0, name_end)));
+    MatrixProperty property = MatrixProperty::from_string(trim(string_value.substr(name_end + 1)));
+    return add_or_update_property_entry(name, property);
+}
+
 std::optional<MatrixProperty> PropertyTable::get_property(const std::string &name) const {
     if (auto it = properties.find(name); it != properties.end()) {
         return it->second;
     }
     return std::nullopt;
+}
+
+void PropertyTable::print_all_properties() const {
+    if (properties.empty()) {
+        std::cout << "  <none>\n";
+        return;
+    }
+    for (const auto &entry : properties) {
+        std::cout << "  " << entry.first << ": " << entry.second.to_string() << "\n";
+    }
 }
 
 bool PropertyTable::has_property(const std::string &name) const { return properties.contains(name); }

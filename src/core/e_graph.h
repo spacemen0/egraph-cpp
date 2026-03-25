@@ -1,5 +1,6 @@
 #pragma once
 
+#include "basic_types.h"
 #include "cost_storage.h"
 #include "e_class.h"
 #include "e_graph_visualization.h"
@@ -17,10 +18,11 @@
 
 class EGraph {
   public:
-    EGraph() = delete;
-    explicit EGraph(PropertyTable pt) : property_table(std::move(pt)), cost_storage(*this) {}
+    EGraph() = default;
+    explicit EGraph(PropertyTable pt) : property_table(std::move(pt)) {}
     void canonicalize_node(ENode &node);
     std::optional<Id> find_node_id(const ENode &node) const;
+    std::optional<ENode> find_node(Id node_id) const;
     Id find_class_id(Id node_id) const;
     Id add_node(ENode node);
     Id add_expression(const Expression &expr);
@@ -37,14 +39,18 @@ class EGraph {
     size_t num_nodes() const noexcept;
     const AnalysisData &get_class_analysis_data(Id class_id) const;
     const PropertyTable &get_property_table() const noexcept;
+    PropertyTable &get_property_table() noexcept;
     std::optional<Id> find_class_with_property(const MatrixProperty &prop) const;
     void to_dot_file(const std::string &filename) const;
     void to_img(const std::string &filename, const std::string &format) const;
-    CostStorage &get_cost_storage() { return cost_storage; }
     uint64_t get_revision() const noexcept { return revision; }
     bool is_clean() const noexcept { return pendings.empty(); }
 
   private:
+    std::string to_dot() const;
+    AnalysisData make_analysis(const ENode &node) const;
+    void merge_analysis_data(AnalysisData &data1, const AnalysisData &data2) const;
+
     // stores the union-find structure for e-classes (which stores equivalences)
     UnionFind uf;
     // stores all e-nodes in the order they were added
@@ -57,9 +63,5 @@ class EGraph {
     // removed
     std::unordered_map<Id, std::unique_ptr<EClass>> classes;
     PropertyTable property_table;
-    CostStorage cost_storage;
     uint64_t revision = 0;
-    std::string to_dot() const;
-    AnalysisData make_analysis(const ENode &node) const;
-    void merge_analysis_data(AnalysisData &data1, const AnalysisData &data2) const;
 };

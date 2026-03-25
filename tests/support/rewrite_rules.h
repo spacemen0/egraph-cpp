@@ -97,9 +97,10 @@ static const auto mul_identity_left =
     make_rewrite("mul-identity-left", "Mul(?a, ?i)", "?a", [](const EGraph &g, const Substitution &s) {
     return is_identity(s, g, "i");
 });
-static const auto mul_assoc = make_rewrite("mul-assoc", "Mul(?a, Mul(?b, ?c))", "Mul(Mul(?a, ?b), ?c)");
 static const auto commute_add = make_rewrite("commute-add", "Add(?a, ?b)", "Add(?b, ?a)");
 static const auto mat_transpose_prod = make_rewrite("mat-transpose-prod", "Tr(Mul(?a, ?b))", "Mul(Tr(?b), Tr(?a))");
+static const auto mat_transpose_prod_right =
+    make_rewrite("mat-transpose-prod-right", "Mul(Tr(?b), Tr(?a))", "Tr(Mul(?a, ?b))");
 static const auto qr_invert = make_rewrite("qr-invert", "Inv(?a)", "Inv(Mul(Get(QR(?a), 0), Get(QR(?a), 1)))");
 static const auto qr_invert_leaf = make_rewrite(
     "qr-invert-leaf", "Inv(?a)", "Mul(Inv(Get(QR(?a), 0)), Inv(Get(QR(?a), 1)))",
@@ -150,7 +151,12 @@ static const auto llt_invert_leaf = make_rewrite(
     const auto &node = g.at(a_id);
     if (node.get_children().size() != 0)
         return false;
-    return true;
+    const auto &data = g.get_class_analysis_data(a_id);
+
+    if (auto *prop = std::get_if<MatrixProperty>(&data.property)) {
+        return prop->flags.is_positive_definite && prop->flags.is_symmetric;
+    }
+    return false;
 });
 static const auto solve_rule =
     make_rewrite("solve-rule", "Mul(Inv(?a), ?b)", "Sol(?a, ?b)", [](const EGraph &g, const Substitution &s) {

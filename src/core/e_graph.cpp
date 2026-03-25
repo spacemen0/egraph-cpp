@@ -1,9 +1,11 @@
 #include "e_graph.h"
 #include "analysis.h"
 #include "e_graph_visualization.h"
+#include "e_node.h"
 #include "matcher.h"
 #include "pattern.h"
 #include <iostream>
+#include <optional>
 
 /// @brief Canonicalize the children of a node.
 /// @param node
@@ -21,6 +23,8 @@ const AnalysisData &EGraph::get_class_analysis_data(Id class_id) const {
 }
 
 const PropertyTable &EGraph::get_property_table() const noexcept { return property_table; }
+
+PropertyTable &EGraph::get_property_table() noexcept { return property_table; }
 
 /// @brief  Find an e-class with the given matrix property.
 /// @param prop
@@ -41,6 +45,13 @@ std::optional<Id> EGraph::find_class_with_property(const MatrixProperty &prop) c
         }
     }
     return std::nullopt;
+}
+
+std::optional<ENode> EGraph::find_node(Id node_id) const {
+    if (node_id >= nodes.size()) {
+        return std::nullopt;
+    }
+    return *nodes[node_id];
 }
 
 /// @brief Look up a node in the e-graph. The node does not need to be

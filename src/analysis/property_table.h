@@ -158,8 +158,10 @@ class PropertyTable {
     PropertyTable() = default;
     PropertyTable(std::vector<std::string> propertiy_strings);
     bool add_or_update_property_entry(const std::string &name, MatrixProperty property);
+    bool add_or_update_property_entry_by_string(const std::string &string_value);
 
     std::optional<MatrixProperty> get_property(const std::string &name) const;
+    void print_all_properties() const;
 
     bool has_property(const std::string &name) const;
 

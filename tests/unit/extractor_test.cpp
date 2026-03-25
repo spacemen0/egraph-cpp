@@ -14,7 +14,8 @@ TEST(Extractor, CheaperExtraction) {
     egraph.union_classes(id_mul, id_a);
     egraph.rebuild();
 
-    Extractor extractor(egraph);
+    CostStorage cost_storage(egraph);
+    Extractor extractor(egraph, cost_storage);
     auto result = extractor.extract(id_mul);
     // Should extract 'a'
     EXPECT_EQ(result.cost, Cost(0.0));
@@ -41,7 +42,8 @@ TEST(Extractor, RewriteAndExtract) {
     Rewriter rewriter(egraph, rules, 1000);
     rewriter.apply_rewrites();
 
-    Extractor extractor(egraph);
+    CostStorage cost_storage(egraph);
+    Extractor extractor(egraph, cost_storage);
     ExtractionResult result = extractor.extract(root_id);
     EXPECT_EQ(result.cost, Cost(0.0));
 
@@ -64,7 +66,8 @@ TEST(Extractor, SharedSubexpressionDAGCost) {
 
     Id id_root = egraph.add_node(make_op(Op::Add, {id_mul1, id_mul2}));
 
-    Extractor extractor(egraph);
+    CostStorage cost_storage(egraph);
+    Extractor extractor(egraph, cost_storage);
     auto result = extractor.extract(id_root);
 
     EXPECT_TRUE(std::holds_alternative<double>(result.cost));
@@ -91,7 +94,8 @@ TEST(Extractor, ExpensiveSharedWinsWithHighReuse) {
     // Root expression: Add(Mul(Y, X), Mul(Inv(D), D))
     Id id_root = egraph.add_node(make_op(Op::Add, {id_mul_yx, mul_inv_d})); // 2x2
     egraph.to_img("extractor_test_initial", "svg");
-    Extractor extractor(egraph);
+    CostStorage cost_storage(egraph);
+    Extractor extractor(egraph, cost_storage);
     auto result = extractor.extract(id_root);
     EXPECT_TRUE(std::holds_alternative<double>(result.cost));
     // E1 = {Mul(Y,X) cost=24, Inv(D) cost=16} is shared by both children of Add.
@@ -102,7 +106,8 @@ TEST(Extractor, ExtractSymbolicSingleDag) {
     EGraph egraph(get_property_table());
     Id id_root = egraph.add_expression(Expression("Mul(Tr(M), n)"));
 
-    Extractor extractor(egraph);
+    CostStorage cost_storage(egraph);
+    Extractor extractor(egraph, cost_storage);
     auto results = extractor.extract_symbolic(id_root);
 
     ASSERT_EQ(results.size(), 1);
@@ -129,7 +134,8 @@ TEST(Extractor, ExtractSymbolicMultipleDags) {
 
     Id id_root = egraph.add_node(make_op(Op::Mul, {id_tr_m, id_n}));
 
-    Extractor extractor(egraph);
+    CostStorage cost_storage(egraph);
+    Extractor extractor(egraph, cost_storage);
     auto results = extractor.extract_symbolic(id_root);
     ASSERT_EQ(results.size(), 2);
 

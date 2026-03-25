@@ -23,7 +23,8 @@ TEST(Integration, OLSSymbolic) {
             std::cout << "Found the QR-based solution in iteration " << iteration
                       << "! Num nodes: " << egraph.num_nodes() << std::endl;
             std::cout << "Sample matrix sizes to try out extraction..." << std::endl;
-            Extractor extractor(egraph);
+            CostStorage cost_storage(egraph);
+            Extractor extractor(egraph, cost_storage);
             // auto result = extractor.extract(id, {{"A", 100}, {"B", 50}});
             // std::cout << "Best extracted expression: " << result.expr.to_human_string() << std::endl;
             // std::cout << "Cost: " << result.cost << std::endl;
@@ -49,7 +50,8 @@ TEST(Integration, OLSNumeric) {
     };
     Rewriter rewriter(egraph, rules, 1000);
     rewriter.apply_rewrites(5);
-    Extractor extractor(egraph);
+    CostStorage cost_storage(egraph);
+    Extractor extractor(egraph, cost_storage);
     auto result = extractor.extract(id);
     std::cout << "Best extracted expression: " << result.expr.to_human_string() << std::endl;
     std::cout << "Cost: " << result.cost << std::endl;

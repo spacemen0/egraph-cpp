@@ -1,3 +1,4 @@
+#include "cost_storage.h"
 #include "e_graph.h"
 #include "extractor.h"
 #include "rewrite_rules.h"
@@ -14,9 +15,11 @@ TEST(Integration, MatrixPartialSet) {
 
     auto id = egraph.add_expression(Expression("Mul(Mul(Mul(Inv(Mul(A, Z)), A), Z), X)"));
     std::vector<Rewrite> rules = {mul_assoc_right, invert_cancel_left, mul_identity_right};
+
     Rewriter rewriter(egraph, rules, 1000);
     rewriter.apply_rewrites(4);
-    Extractor extractor(egraph);
+    CostStorage cost_storage(egraph);
+    Extractor extractor(egraph, cost_storage);
     auto result = extractor.extract(id);
     EXPECT_EQ(result.cost, Cost(0.0));
     EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
@@ -39,7 +42,8 @@ TEST(Integration, SimplifyComplexMatrixChain) {
     Rewriter rewriter(egraph, rules, 1000);
     rewriter.apply_rewrites(8);
 
-    Extractor extractor(egraph);
+    CostStorage cost_storage(egraph);
+    Extractor extractor(egraph, cost_storage);
     auto results = extractor.extract_symbolic(root_id);
     for (const auto &result : results) {
         std::cout << "Extracted expression: " << result.expr.to_human_string() << std::endl;
@@ -60,7 +64,8 @@ TEST(Integration, MinimalRealisticExplosionRules) {
     Rewriter rewriter(egraph, rules, 2000, false, true);
     rewriter.apply_rewrites(20);
 
-    Extractor extractor(egraph);
+    CostStorage cost_storage(egraph);
+    Extractor extractor(egraph, cost_storage);
     auto result = extractor.extract(id);
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
 
@@ -86,7 +91,8 @@ TEST(Integration, CyclicTermsThatDoNotExplode) {
         }
         // egraph.to_img("cyclic_" + std::to_string(20 - i), "svg");
     }
-    Extractor extractor(egraph);
+    CostStorage cost_storage(egraph);
+    Extractor extractor(egraph, cost_storage);
     auto result = extractor.extract(id);
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
 
@@ -104,7 +110,8 @@ TEST(Integration, MatrixChainSymbolicSizes) {
     rewriter.apply_rewrites();
 
     egraph.to_img("MatrixChain", "svg");
-    Extractor extractor(egraph);
+    CostStorage cost_storage(egraph);
+    Extractor extractor(egraph, cost_storage);
 
     const auto symbolic_results = extractor.extract_symbolic(root_id);
     std::vector<Expression> candidate_expressions;

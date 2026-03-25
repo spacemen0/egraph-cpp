@@ -14,7 +14,7 @@ struct ExtractionResult {
 
 class Extractor {
   public:
-    explicit Extractor(EGraph &egraph);
+    explicit Extractor(EGraph &egraph, CostStorage &cost_storage);
 
     ExtractionResult extract(Id class_id) const;
     ExtractionResult extract(Id class_id, const SizeBindings &size_bindings) const;

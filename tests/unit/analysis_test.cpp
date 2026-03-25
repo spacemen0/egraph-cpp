@@ -39,7 +39,8 @@ TEST(EGraph, BoundExtractionDoesNotMutateAnalysisData) {
     EXPECT_TRUE(std::holds_alternative<std::string>(mul_prop_before->shape.first));
     EXPECT_TRUE(std::holds_alternative<std::string>(mul_prop_before->shape.second));
 
-    Extractor extractor(egraph);
+    CostStorage cost_storage(egraph);
+    Extractor extractor(egraph, cost_storage);
     auto result = extractor.extract(id_mul, {{"A", 5}, {"B", 3}});
     EXPECT_TRUE(std::holds_alternative<double>(result.cost));
     EXPECT_EQ(std::get<double>(result.cost), 90.0);

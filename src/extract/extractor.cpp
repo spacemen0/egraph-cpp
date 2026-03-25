@@ -4,7 +4,7 @@
 #include <limits>
 #include <unordered_set>
 
-Extractor::Extractor(EGraph &egraph) : egraph(egraph), cost_storage(egraph.get_cost_storage()) {}
+Extractor::Extractor(EGraph &egraph, CostStorage &cost_storage) : egraph(egraph), cost_storage(cost_storage) {}
 
 std::optional<Extractor::NumericSearchResult>
 Extractor::find_best_numeric_dag(Id root_class_id, const SizeBindings *size_bindings) const {

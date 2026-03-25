@@ -13,17 +13,14 @@ class CostStorage {
         double cost;
         std::unordered_map<Id, const ENode *> choices;
     };
-
+    CostStorage(const EGraph &egraph);
     std::optional<CachedRootExtraction> cached_root_extraction(Id class_id);
     void store_root_extraction(Id class_id, double cost, const std::unordered_map<Id, const ENode *> &choices);
 
   private:
-    explicit CostStorage(const EGraph &egraph);
     const EGraph &egraph;
     std::unordered_map<Id, CachedRootExtraction> root_extraction_cache;
     uint64_t root_cost_cache_revision = 0;
 
     void ensure_root_cost_cache_fresh();
-
-    friend class EGraph;
 };
