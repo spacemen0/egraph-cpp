@@ -170,7 +170,7 @@ void print_repl_help() {
     std::cout
         << "Session commands:\n"
         << "  parse <expr>                         Store an expression in the session\n"
-        << "  add [properties|rule-set] <string>   Add properties or a rule-set to the session\n"
+        << "  add [properties|rule-set] <item...>  Add one or more properties or rule-set names\n"
         << "  rewrite <num-iterations|null>        Rewrite for N iterations or null for rewrite until saturation\n"
         << "  extract <expr-id>                    Extract best expression for a stored expression id\n"
         << "  show [state|available-rule-sets]     Display session state or available rule-sets\n"
@@ -192,15 +192,23 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
     }
     if (command == "add") {
         if (tokens.size() < 3) {
-            std::cerr << "usage: add [properties|rule-set] <string>\n";
+            std::cerr << "usage: add [properties|rule-set] <item...>\n";
             return;
         }
         if (tokens[1] == "properties") {
             add_properties_to_state(state, std::vector<std::string>(tokens.begin() + 2, tokens.end()));
         } else if (tokens[1] == "rule-set") {
-            add_rule_set_to_state(state, tokens[2]);
+            for (size_t i = 2; i < tokens.size(); ++i) {
+                try {
+                    add_rule_set_to_state(state, tokens[i]);
+                    std::cout << "Added rule set: " << tokens[i] << "\n";
+                } catch (const std::exception &e) {
+                    std::cerr << e.what() << "\n";
+                    std::cerr << "Use 'show available-rule-sets' to list valid names.\n";
+                }
+            }
         } else {
-            std::cerr << "usage: add [properties|rule-set] <string>\n";
+            std::cerr << "usage: add [properties|rule-set] <item...>\n";
         }
         return;
     }
@@ -271,11 +279,19 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
             std::cerr << "No expression loaded. Use parse <expr> first.\n";
             return;
         }
-        if (tokens.size() != 2) {
-            std::cerr << "usage: extract <expr-id>\n";
+        if (tokens.size() != 2 && state.expressions.size() != 1) {
+            std::cerr << "usage: extract <expr-id> when you have more than one expression loaded\n";
             return;
         }
+        if (tokens.size() == 1) {
+            auto expression_id = state.egraph.find_expression_id(Expression(state.expressions[0]));
 
+            if (!expression_id.has_value()) {
+                std::cerr << "Failed to find the expression in the e-graph.\n";
+                return;
+            }
+            return extract_expression(state, expression_id.value());
+        }
         size_t expression_id = 0;
         if (!parse_non_negative_index(tokens[1], expression_id)) {
             std::cerr << "extract expects non-negative expression id.\n";
