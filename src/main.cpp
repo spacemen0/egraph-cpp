@@ -108,8 +108,8 @@ void add_rule_set_to_state(SessionState &state, const std::string &set_name) {
     if (!is_available_rule_set(set_name)) {
         throw std::invalid_argument("Unknown rule set: " + set_name);
     }
-    state.rewrites.insert(
-        state.rewrites.end(), get_rewrite_set_by_name(set_name).begin(), get_rewrite_set_by_name(set_name).end());
+    std::vector<Rewrite> set_rewrites = get_rewrite_set_by_name(set_name);
+    state.rewrites.insert(state.rewrites.end(), set_rewrites.begin(), set_rewrites.end());
 }
 
 void rewrite_e_graph(SessionState &state, std::optional<int> num_iterations) {
@@ -145,11 +145,12 @@ void print_session_state(const SessionState &state) {
         std::cout << "  <none>\n";
     } else {
         for (size_t i = 0; i < state.expressions.size(); ++i) {
-            std::cout << "  [" << i << "] " << state.expressions[i];
-            if (i + 1 == state.expressions.size()) {
-                std::cout << " (current)";
+            auto id = state.egraph.find_expression_id(Expression(state.expressions[i]));
+            if (id.has_value()) {
+                std::cout << "  [" << id.value() << "] " << state.expressions[i] << "\n";
+            } else {
+                std::cout << "  [unresolved] " << state.expressions[i] << "\n";
             }
-            std::cout << "\n";
         }
     }
 
@@ -169,10 +170,10 @@ void print_repl_help() {
     std::cout
         << "Session commands:\n"
         << "  parse <expr>                         Store an expression in the session\n"
-        << "  add [properties|rule-sets] <string>  Add properties or rule sets to the session\n"
-        << "  rewrite [num-iterations|null]        Rewrite for N iterations or null for rewrite until saturation\n"
+        << "  add [properties|rule-set] <string>   Add properties or a rule-set to the session\n"
+        << "  rewrite <num-iterations|null>        Rewrite for N iterations or null for rewrite until saturation\n"
         << "  extract <expr-id>                    Extract best expression for a stored expression id\n"
-        << "  show [state|available-rule-sets]     Display session state or rewrite sets\n"
+        << "  show [state|available-rule-sets]     Display session state or available rule-sets\n"
         << "  reset                                Clear session state\n"
         << "  help                                 Show this message\n"
         << "  quit | exit                          Leave the interactive shell\n";
@@ -191,7 +192,7 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
     }
     if (command == "add") {
         if (tokens.size() < 3) {
-            std::cerr << "usage: add [properties|rule-sets] <string>\n";
+            std::cerr << "usage: add [properties|rule-set] <string>\n";
             return;
         }
         if (tokens[1] == "properties") {
@@ -199,7 +200,7 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
         } else if (tokens[1] == "rule-set") {
             add_rule_set_to_state(state, tokens[2]);
         } else {
-            std::cerr << "usage: add [properties|rule-sets] <string>\n";
+            std::cerr << "usage: add [properties|rule-set] <string>\n";
         }
         return;
     }
@@ -225,8 +226,15 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
             std::cerr << "parse requires an expression\n";
             return;
         }
-        state.expressions.push_back(join_tokens(tokens, 1));
-        parse_expression(state, join_tokens(tokens, 1));
+        const std::string expression_text = join_tokens(tokens, 1);
+        try {
+            parse_expression(state, expression_text);
+            state.expressions.push_back(expression_text);
+        } catch (const ParseError &e) {
+            std::cerr << e.what() << "\n";
+        } catch (const std::exception &e) {
+            std::cerr << "parse failed: " << e.what() << "\n";
+        }
         return;
     }
     if (command == "rewrite") {
@@ -234,28 +242,21 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
             std::cerr << "No expression loaded. Use parse <expr> first.\n";
             return;
         }
-        if (tokens.size() > 2) {
-            std::cerr << "usage: rewrite [num-iterations|null]\n";
+        if (tokens.size() != 2) {
+            std::cerr << "usage: rewrite <num-iterations|null>\n";
             return;
-        }
-        if (tokens.size() == 1) {
-            try {
-                return rewrite_e_graph(state, std::nullopt);
-            } catch (const ParseError &e) {
-                std::cerr << e.what() << "\n";
-                return;
-            } catch (const std::exception &e) {
-                std::cerr << "rewrite failed: " << e.what() << "\n";
-                return;
-            }
         }
 
-        int num_iterations = 0;
-        if (!parse_positive_int(tokens[1], num_iterations)) {
-            std::cerr << "rewrite expects a positive integer iteration count or null for saturation\n";
-            return;
-        }
         try {
+            if (tokens[1] == "null") {
+                return rewrite_e_graph(state, std::nullopt);
+            }
+
+            int num_iterations = 0;
+            if (!parse_positive_int(tokens[1], num_iterations)) {
+                std::cerr << "rewrite expects a positive integer iteration count or null for saturation\n";
+                return;
+            }
             return rewrite_e_graph(state, num_iterations);
         } catch (const ParseError &e) {
             std::cerr << e.what() << "\n";
@@ -276,8 +277,8 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
         }
 
         size_t expression_id = 0;
-        if (!parse_non_negative_index(tokens[1], expression_id) || expression_id >= state.expressions.size()) {
-            std::cerr << "extract expects a valid expression id. Use show state to list ids.\n";
+        if (!parse_non_negative_index(tokens[1], expression_id)) {
+            std::cerr << "extract expects non-negative expression id.\n";
             return;
         }
 

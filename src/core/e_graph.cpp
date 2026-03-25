@@ -54,6 +54,18 @@ std::optional<ENode> EGraph::find_node(Id node_id) const {
     return *nodes[node_id];
 }
 
+std::optional<Id> EGraph::find_expression_id(const Expression &expr) const {
+    ENode temp_node({}, expr.atom);
+    for (const Expression &child : expr.children) {
+        auto child_id_opt = find_expression_id(child);
+        if (!child_id_opt.has_value()) {
+            return std::nullopt;
+        }
+        temp_node.get_children_mut().push_back(child_id_opt.value());
+    }
+    return find_node_id(temp_node);
+}
+
 /// @brief Look up a node in the e-graph. The node does not need to be
 /// canonicalized beforehand.
 /// @param node

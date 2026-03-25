@@ -19,7 +19,6 @@ endif()
 if (TARGET gtest_main)
     set_property(TARGET gtest_main PROPERTY CXX_CLANG_TIDY "")
 endif()
-
 add_compile_options(--coverage -g)
 add_link_options(--coverage)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")

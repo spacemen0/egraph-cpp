@@ -22,6 +22,7 @@ class EGraph {
     explicit EGraph(PropertyTable pt) : property_table(std::move(pt)) {}
     void canonicalize_node(ENode &node);
     std::optional<Id> find_node_id(const ENode &node) const;
+    std::optional<Id> find_expression_id(const Expression &expr) const;
     std::optional<ENode> find_node(Id node_id) const;
     Id find_class_id(Id node_id) const;
     Id add_node(ENode node);
