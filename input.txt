@@ -1,0 +1,11 @@
+add properties X:Matrix(100x20)[tall]
+add properties y:Matrix(100x1)
+add rule-set factorization
+add rule-set algebraic
+add rule-set inverse
+add rule-set orthogonality
+parse Mul(Mul(Inv(Mul(Tr(X),X)),Tr(X)),y)
+rewrite 5
+show state
+extract 6
+quit

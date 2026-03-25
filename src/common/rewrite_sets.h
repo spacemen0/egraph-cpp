@@ -165,7 +165,7 @@ static const std::vector<Rewrite> basic_zero_negation_rewrite_set = {
     negate_involutive, negate_involutive_right, add_negate_cancel_left, add_comm_zero, mul_zero_left, mul_zero_right,
 };
 
-static std::vector<Rewrite> build_basic_rewrite_set() {
+static std::vector<Rewrite> build_complete_rewrite_set() {
     std::vector<Rewrite> rewrites;
     rewrites.insert(rewrites.end(), basic_algebraic_rewrite_set.begin(), basic_algebraic_rewrite_set.end());
     rewrites.insert(rewrites.end(), basic_inverse_rewrite_set.begin(), basic_inverse_rewrite_set.end());
@@ -174,25 +174,23 @@ static std::vector<Rewrite> build_basic_rewrite_set() {
     return rewrites;
 }
 
-static const std::vector<Rewrite> basic_rewrite_set = build_basic_rewrite_set();
-
 inline std::vector<Rewrite> get_rewrite_set_by_name(const std::string &name) {
-    if (name == "basic") {
-        return basic_rewrite_set;
+    if (name == "complete") {
+        return build_complete_rewrite_set();
     }
     if (name == "factorization") {
         return factorization_set;
     }
-    if (name == "basic-algebraic") {
+    if (name == "algebraic") {
         return basic_algebraic_rewrite_set;
     }
-    if (name == "basic-inverse") {
+    if (name == "inverse") {
         return basic_inverse_rewrite_set;
     }
-    if (name == "basic-orthogonality") {
+    if (name == "orthogonality") {
         return basic_orthogonality_rewrite_set;
     }
-    if (name == "basic-zero-negation") {
+    if (name == "zero-negation") {
         return basic_zero_negation_rewrite_set;
     }
     throw std::invalid_argument("Unknown rewrite set name: " + name);

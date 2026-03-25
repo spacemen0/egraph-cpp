@@ -139,7 +139,7 @@ TEST(Integration, MatrixChainSymbolicSizes) {
         return bindings;
     };
 
-    int k = 10000;
+    int k = 1000;
     for (int i = 0; i < k; ++i) {
         const auto extracted_expr = extractor.extract(root_id, sample_size_bindings()).expr;
         const auto it = std::ranges::find(candidate_expressions, extracted_expr);

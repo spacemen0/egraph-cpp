@@ -7,7 +7,8 @@ rm -rf ./*.svg
 find build -name "*.gcda" -type f -delete
 
 echo "Building project..."
-cmake --build build
+cmake -S . -B build -DENABLE_COVERAGE=ON
+cmake --build build --target unit_tests
 
 echo "Running tests..."
 if [[ -n "$1" ]]; then
