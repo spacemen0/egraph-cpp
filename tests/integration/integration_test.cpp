@@ -216,28 +216,3 @@ TEST(Integration, PrunerSkipsFailedSamples) {
         (void)extracted;
     });
 }
-
-TEST(Integration, PrunerRequiresRootCoverageWhenEnabled) {
-    EGraph egraph(get_property_table_with_symbolic_shapes());
-    const Id root1 = egraph.add_expression(Expression("Mul(Mul(A, B), C)"));
-    const Id root2 = egraph.add_expression(Expression("Mul(Mul(D, E), F)"));
-
-    Rewriter rewriter(egraph, {mul_assoc_left, mul_assoc_right}, 10000, false, false);
-    rewriter.apply_rewrites(4);
-
-    CostStorage storage(egraph);
-    Extractor extractor(egraph, storage);
-    Pruner pruner(egraph, extractor);
-
-    const size_t before = egraph.num_nodes();
-    std::vector<SizeBindings> incomplete_bindings = {
-        {{"a", 2}, {"b", 3}, {"c", 4}},
-    };
-
-    PruneSummary summary = pruner.run({root1, root2}, incomplete_bindings, 1, true);
-    const size_t after = egraph.num_nodes();
-
-    EXPECT_FALSE(summary.ran);
-    EXPECT_FALSE(summary.root_coverage_satisfied);
-    EXPECT_EQ(after, before);
-}

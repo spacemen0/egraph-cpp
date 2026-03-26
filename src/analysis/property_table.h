@@ -156,7 +156,7 @@ struct AnalysisData {
 class PropertyTable {
   public:
     PropertyTable() = default;
-    PropertyTable(std::vector<std::string> propertiy_strings);
+    explicit PropertyTable(std::vector<std::string> propertiy_strings);
     bool add_or_update_property_entry(const std::string &name, MatrixProperty property);
     bool add_or_update_property_entry_by_string(const std::string &string_value);
 
