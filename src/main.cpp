@@ -62,28 +62,6 @@ bool is_available_rule_set(const std::string &name) {
     return false;
 }
 
-bool parse_positive_int(const std::string &text, int &value) {
-    std::istringstream iss(text);
-    int parsed = 0;
-    char trailing = '\0';
-    if (!(iss >> parsed) || (iss >> trailing) || parsed <= 0) {
-        return false;
-    }
-    value = parsed;
-    return true;
-}
-
-bool parse_non_negative_index(const std::string &text, size_t &value) {
-    std::istringstream iss(text);
-    size_t parsed = 0;
-    char trailing = '\0';
-    if (!(iss >> parsed) || (iss >> trailing)) {
-        return false;
-    }
-    value = parsed;
-    return true;
-}
-
 void parse_expression(SessionState &state, const std::string &expr_str) {
     Expression expr = Expression(expr_str);
     Id id = state.egraph.add_expression(expr);
@@ -104,12 +82,14 @@ void add_properties_to_state(SessionState &state, const std::vector<std::string>
     }
 }
 
-void add_rule_set_to_state(SessionState &state, const std::string &set_name) {
-    if (!is_available_rule_set(set_name)) {
-        throw std::invalid_argument("Unknown rule set: " + set_name);
+void add_rule_set_to_state(SessionState &state, const std::vector<std::string> &set_names) {
+    for (const auto &set_name : set_names) {
+        if (!is_available_rule_set(set_name)) {
+            throw std::invalid_argument("Unknown rule set: " + set_name);
+        }
+        std::vector<Rewrite> set_rewrites = get_rewrite_set_by_name(set_name);
+        state.rewrites.insert(state.rewrites.end(), set_rewrites.begin(), set_rewrites.end());
     }
-    std::vector<Rewrite> set_rewrites = get_rewrite_set_by_name(set_name);
-    state.rewrites.insert(state.rewrites.end(), set_rewrites.begin(), set_rewrites.end());
 }
 
 void rewrite_e_graph(SessionState &state, std::optional<int> num_iterations) {
@@ -198,15 +178,7 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
         if (tokens[1] == "properties") {
             add_properties_to_state(state, std::vector<std::string>(tokens.begin() + 2, tokens.end()));
         } else if (tokens[1] == "rule-set") {
-            for (size_t i = 2; i < tokens.size(); ++i) {
-                try {
-                    add_rule_set_to_state(state, tokens[i]);
-                    std::cout << "Added rule set: " << tokens[i] << "\n";
-                } catch (const std::exception &e) {
-                    std::cerr << e.what() << "\n";
-                    std::cerr << "Use 'show available-rule-sets' to list valid names.\n";
-                }
-            }
+            add_rule_set_to_state(state, std::vector<std::string>(tokens.begin() + 2, tokens.end()));
         } else {
             std::cerr << "usage: add [properties|rule-set] <item...>\n";
         }
@@ -260,12 +232,8 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
                 return rewrite_e_graph(state, std::nullopt);
             }
 
-            int num_iterations = 0;
-            if (!parse_positive_int(tokens[1], num_iterations)) {
-                std::cerr << "rewrite expects a positive integer iteration count or null for saturation\n";
-                return;
-            }
-            return rewrite_e_graph(state, num_iterations);
+            return rewrite_e_graph(state, std::stoi(tokens[1]));
+
         } catch (const ParseError &e) {
             std::cerr << e.what() << "\n";
             return;
@@ -292,14 +260,8 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
             }
             return extract_expression(state, expression_id.value());
         }
-        size_t expression_id = 0;
-        if (!parse_non_negative_index(tokens[1], expression_id)) {
-            std::cerr << "extract expects non-negative expression id.\n";
-            return;
-        }
-
         try {
-            extract_expression(state, expression_id);
+            extract_expression(state, std::stoi(tokens[1]));
             return;
         } catch (const ParseError &e) {
             std::cerr << e.what() << "\n";
