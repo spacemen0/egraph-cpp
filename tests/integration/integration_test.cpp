@@ -1,6 +1,7 @@
 #include "cost_storage.h"
 #include "e_graph.h"
 #include "extractor.h"
+#include "pruner.h"
 #include "rewrite_rules.h"
 #include "rewriter.h"
 #include "test_helpers.h"
@@ -158,4 +159,85 @@ TEST(Integration, MatrixChainSymbolicSizes) {
     std::cout << "Matched " << matched_count << " out of " << candidate_expressions.size() << " possible expressions."
               << std::endl;
     SUCCEED();
+}
+
+TEST(Integration, PrunerKeepsRootExtractable) {
+    EGraph egraph(get_property_table_with_symbolic_shapes());
+    const Id root_id = egraph.add_expression(Expression("Mul(Mul(Mul(Mul(Mul(Mul(A, B), C), D), E), F), G)"));
+
+    std::vector<SizeBindings> bindings = {
+        {{"a", 3}, {"b", 4}, {"c", 5}, {"d", 6}, {"e", 7}, {"f", 8}, {"g", 9}, {"h", 10}},
+        {{"a", 9}, {"b", 7}, {"c", 5}, {"d", 4}, {"e", 3}, {"f", 6}, {"g", 8}, {"h", 2}},
+        {{"a", 2}, {"b", 3}, {"c", 11}, {"d", 13}, {"e", 17}, {"f", 19}, {"g", 23}, {"h", 29}},
+    };
+
+    Rewriter rewriter(egraph, {mul_assoc_left, mul_assoc_right}, 10000, false, false);
+    rewriter.apply_rewrites(8);
+    const size_t before = egraph.num_nodes();
+
+    CostStorage storage(egraph);
+    Extractor extractor(egraph, storage);
+    Pruner pruner(egraph, extractor);
+    PruneSummary summary = pruner.run(egraph.get_all_class_ids(), bindings, 1);
+    const size_t after = egraph.num_nodes();
+
+    auto extracted = extractor.extract(root_id, bindings.front());
+
+    EXPECT_LT(after, before);
+    EXPECT_GT(summary.prune_result.nodes_pruned, 0U);
+    EXPECT_TRUE(summary.ran);
+    EXPECT_GE(summary.sampling_stats.samples_succeeded, 1U);
+    EXPECT_TRUE(std::holds_alternative<double>(extracted.cost));
+}
+
+TEST(Integration, PrunerSkipsFailedSamples) {
+    EGraph egraph(get_property_table_with_symbolic_shapes());
+    const Id root_id = egraph.add_expression(Expression("Mul(Mul(Mul(Mul(A, B), C), D), E)"));
+
+    std::vector<SizeBindings> bindings = {
+        {{"a", 2}, {"b", 3}, {"c", 4}, {"d", 5}, {"e", 6}, {"f", 7}},
+        {{"a", 2}},
+    };
+
+    Rewriter rewriter(egraph, {mul_assoc_left, mul_assoc_right}, 10000, false, false);
+    rewriter.apply_rewrites(4);
+
+    CostStorage storage(egraph);
+    Extractor extractor(egraph, storage);
+    Pruner pruner(egraph, extractor);
+    PruneSummary summary = pruner.run(egraph.get_all_class_ids(), bindings, 1);
+
+    EXPECT_TRUE(summary.ran);
+    EXPECT_GE(summary.sampling_stats.samples_attempted, 2U);
+    EXPECT_GE(summary.sampling_stats.samples_succeeded, 1U);
+
+    EXPECT_NO_THROW({
+        auto extracted = extractor.extract(root_id, bindings.front());
+        (void)extracted;
+    });
+}
+
+TEST(Integration, PrunerRequiresRootCoverageWhenEnabled) {
+    EGraph egraph(get_property_table_with_symbolic_shapes());
+    const Id root1 = egraph.add_expression(Expression("Mul(Mul(A, B), C)"));
+    const Id root2 = egraph.add_expression(Expression("Mul(Mul(D, E), F)"));
+
+    Rewriter rewriter(egraph, {mul_assoc_left, mul_assoc_right}, 10000, false, false);
+    rewriter.apply_rewrites(4);
+
+    CostStorage storage(egraph);
+    Extractor extractor(egraph, storage);
+    Pruner pruner(egraph, extractor);
+
+    const size_t before = egraph.num_nodes();
+    std::vector<SizeBindings> incomplete_bindings = {
+        {{"a", 2}, {"b", 3}, {"c", 4}},
+    };
+
+    PruneSummary summary = pruner.run({root1, root2}, incomplete_bindings, 1, true);
+    const size_t after = egraph.num_nodes();
+
+    EXPECT_FALSE(summary.ran);
+    EXPECT_FALSE(summary.root_coverage_satisfied);
+    EXPECT_EQ(after, before);
 }

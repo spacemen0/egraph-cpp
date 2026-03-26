@@ -16,6 +16,14 @@
 #include <unordered_map>
 #include <vector>
 
+struct PruneResult {
+    size_t nodes_before = 0;
+    size_t nodes_after = 0;
+    size_t nodes_pruned = 0;
+    size_t classes_with_removed_nodes = 0;
+    bool changed = false;
+};
+
 class EGraph {
   public:
     EGraph() = default;
@@ -37,6 +45,7 @@ class EGraph {
     std::vector<Id> get_all_class_ids() const;
     const std::vector<const ENode *> &get_class_nodes(Id class_id) const;
     std::vector<Id> get_class_parents(Id class_id) const;
+    PruneResult prune_nodes_except(const std::unordered_map<Id, const ENode *> &keep_choices);
     size_t num_nodes() const noexcept;
     const AnalysisData &get_class_analysis_data(Id class_id) const;
     const PropertyTable &get_property_table() const noexcept;

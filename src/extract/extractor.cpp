@@ -238,3 +238,27 @@ std::vector<ExtractionResult> Extractor::extract_symbolic(Id class_id) const {
     }
     return results;
 }
+
+bool Extractor::collect_selected_nodes_for_binding(
+    const std::vector<Id> &roots, const SizeBindings &size_bindings,
+    std::unordered_map<Id, const ENode *> &selected_choices, PruneStats &stats) const {
+    stats.samples_attempted++;
+    bool any_root_succeeded = false;
+
+    for (Id root : roots) {
+        stats.roots_attempted++;
+        if (auto best = find_best_numeric_dag(root, &size_bindings); best.has_value()) {
+            any_root_succeeded = true;
+            stats.roots_succeeded++;
+            for (const auto &[class_id, node] : best->choices) {
+                selected_choices[class_id] = node;
+            }
+        }
+    }
+
+    if (any_root_succeeded) {
+        stats.samples_succeeded++;
+    }
+    stats.classes_with_choices = selected_choices.size();
+    return any_root_succeeded;
+}

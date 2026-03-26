@@ -12,6 +12,14 @@ struct ExtractionResult {
     Expression expr;
 };
 
+struct PruneStats {
+    size_t samples_attempted = 0;
+    size_t samples_succeeded = 0;
+    size_t roots_attempted = 0;
+    size_t roots_succeeded = 0;
+    size_t classes_with_choices = 0;
+};
+
 class Extractor {
   public:
     explicit Extractor(EGraph &egraph, CostStorage &cost_storage);
@@ -19,6 +27,9 @@ class Extractor {
     ExtractionResult extract(Id class_id) const;
     ExtractionResult extract(Id class_id, const SizeBindings &size_bindings) const;
     std::vector<ExtractionResult> extract_symbolic(Id class_id) const;
+    bool collect_selected_nodes_for_binding(
+        const std::vector<Id> &roots, const SizeBindings &size_bindings,
+        std::unordered_map<Id, const ENode *> &selected_choices, PruneStats &stats) const;
 
   private:
     struct PendingClass {

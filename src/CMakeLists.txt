@@ -9,6 +9,7 @@ add_library(core_lib STATIC
     rewrite/rewriter.cpp
     extract/cost_storage.cpp
     extract/extractor.cpp
+    prune/pruner.cpp
     analysis/property_table.cpp
     analysis/analysis.cpp
     io/e_graph_visualization.cpp
@@ -18,6 +19,7 @@ target_include_directories(core_lib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/core
     ${CMAKE_CURRENT_SOURCE_DIR}/rewrite
     ${CMAKE_CURRENT_SOURCE_DIR}/extract
+    ${CMAKE_CURRENT_SOURCE_DIR}/prune
     ${CMAKE_CURRENT_SOURCE_DIR}/analysis
     ${CMAKE_CURRENT_SOURCE_DIR}/common
     ${CMAKE_CURRENT_SOURCE_DIR}/io

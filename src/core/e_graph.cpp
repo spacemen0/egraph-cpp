@@ -279,6 +279,76 @@ std::vector<Id> EGraph::get_class_parents(Id class_id) const {
     return classes.at(root)->get_parents();
 }
 
+PruneResult EGraph::prune_nodes_except(const std::unordered_map<Id, const ENode *> &keep_choices) {
+    PruneResult result;
+    result.nodes_before = memo.size();
+
+    std::unordered_map<const ENode *, Id, ENodePtrHash, ENodePtrEqual> new_memo;
+    new_memo.reserve(memo.size());
+
+    std::vector<Id> class_ids = get_all_class_ids();
+    size_t removed_nodes = 0;
+    size_t changed_classes = 0;
+
+    for (Id class_id : class_ids) {
+        Id root = uf.find_root(class_id);
+        if (root != class_id) {
+            continue;
+        }
+
+        auto class_it = classes.find(root);
+        if (class_it == classes.end()) {
+            continue;
+        }
+
+        auto &class_nodes = class_it->second->get_nodes();
+        auto keep_it = keep_choices.find(root);
+        if (keep_it == keep_choices.end()) {
+            continue;
+        }
+
+        const ENode *keep_node = keep_it->second;
+        size_t before = class_nodes.size();
+        class_nodes.erase(
+            std::remove_if(
+                class_nodes.begin(), class_nodes.end(),
+                [&](const ENode *node) {
+            return node != keep_node;
+        }),
+            class_nodes.end());
+
+        if (class_nodes.empty()) {
+            class_nodes.push_back(keep_node);
+        }
+
+        if (class_nodes.size() < before) {
+            removed_nodes += (before - class_nodes.size());
+            changed_classes++;
+        }
+    }
+
+    for (const auto &[class_id, eclass_ptr] : classes) {
+        if (uf.find_root(class_id) != class_id) {
+            continue;
+        }
+
+        for (const ENode *node : eclass_ptr->get_nodes()) {
+            new_memo[node] = class_id;
+        }
+    }
+
+    memo = std::move(new_memo);
+    result.nodes_after = memo.size();
+    result.nodes_pruned = removed_nodes;
+    result.classes_with_removed_nodes = changed_classes;
+    result.changed = removed_nodes > 0;
+
+    if (result.changed) {
+        ++revision;
+    }
+    return result;
+}
+
 void EGraph::register_or_update_property(const std::string &name, const MatrixProperty &prop) {
     property_table.add_or_update_property_entry(name, prop);
 }
