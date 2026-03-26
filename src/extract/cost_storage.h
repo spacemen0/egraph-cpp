@@ -1,7 +1,6 @@
 #pragma once
 
 #include "e_node.h"
-#include <cstdint>
 #include <optional>
 #include <unordered_map>
 
@@ -20,7 +19,7 @@ class CostStorage {
   private:
     const EGraph &egraph;
     std::unordered_map<Id, CachedRootExtraction> root_extraction_cache;
-    uint64_t root_cost_cache_revision = 0;
+    size_t root_cost_cache_revision = 0;
 
     void ensure_root_cost_cache_fresh();
 };

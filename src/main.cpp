@@ -11,6 +11,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <unistd.h>
 #include <vector>
 
 namespace {
@@ -261,7 +262,7 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
             return extract_expression(state, expression_id.value());
         }
         try {
-            extract_expression(state, std::stoi(tokens[1]));
+            extract_expression(state, std::stoul(tokens[1]));
             return;
         } catch (const ParseError &e) {
             std::cerr << e.what() << "\n";
@@ -286,7 +287,9 @@ int main(int argc, char **argv) {
     SessionState state;
     std::string line;
     while (true) {
-        std::cout << "egraph> " << std::flush;
+        if (isatty(fileno(stdin))) {
+            std::cout << "egraph> " << std::flush;
+        }
         if (!std::getline(std::cin, line)) {
             std::cout << "\n";
             break;

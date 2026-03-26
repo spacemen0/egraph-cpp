@@ -4,7 +4,7 @@
 CostStorage::CostStorage(const EGraph &egraph) : egraph(egraph) {}
 
 void CostStorage::ensure_root_cost_cache_fresh() {
-    uint64_t revision = egraph.get_revision();
+    size_t revision = egraph.get_revision();
     if (root_cost_cache_revision != revision) {
         root_extraction_cache.clear();
         root_cost_cache_revision = revision;

@@ -9,7 +9,7 @@
 #include "pattern.h"
 #include "property_table.h"
 #include "union_find.h"
-#include <cstdint>
+#include <cstddef>
 #include <memory>
 #include <optional>
 #include <set>
@@ -44,7 +44,7 @@ class EGraph {
     std::optional<Id> find_class_with_property(const MatrixProperty &prop) const;
     void to_dot_file(const std::string &filename) const;
     void to_img(const std::string &filename, const std::string &format) const;
-    uint64_t get_revision() const noexcept { return revision; }
+    size_t get_revision() const noexcept { return revision; }
     bool is_clean() const noexcept { return pendings.empty(); }
 
   private:
@@ -64,5 +64,5 @@ class EGraph {
     // removed
     std::unordered_map<Id, std::unique_ptr<EClass>> classes;
     PropertyTable property_table;
-    uint64_t revision = 0;
+    size_t revision = 0;
 };

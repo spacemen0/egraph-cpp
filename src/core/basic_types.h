@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <variant>
@@ -22,7 +21,7 @@ enum class Op {
     Log,    //
 };
 
-using Id = uint32_t;
+using Id = size_t;
 using Children = std::vector<Id>;
 using Atom = std::variant<Op, std::string, int>; // int for indexes in Get operations
 using Size = std::variant<int, std::string>;
