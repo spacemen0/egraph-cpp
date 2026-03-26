@@ -2,8 +2,7 @@
 #include "test_helpers.h"
 #include <gtest/gtest.h>
 
-TEST(EGraph, AddAndLookUpNode) {
-    EGraph egraph(get_property_table());
+TEST_F(EGraphTest, AddAndLookUpNode) {
 
     Id id1 = egraph.add_node(sym_x);
     std::optional<Id> lookup1 = egraph.find_node_id(sym_x);
@@ -17,15 +16,13 @@ TEST(EGraph, AddAndLookUpNode) {
     EXPECT_NE(id1, id3);
 }
 
-TEST(EGraph, BreakWithInvalidChildId) {
-    EGraph egraph(get_property_table());
+TEST_F(EGraphTest, BreakWithInvalidChildId) {
     Id fake_id = 999999;
     ENode dangerous_node = make_op(Op::Neg, Children{fake_id});
     EXPECT_ANY_THROW(egraph.add_node(dangerous_node));
 }
 
-TEST(EGraph, UnionClasses) {
-    EGraph egraph(get_property_table());
+TEST_F(EGraphTest, UnionClasses) {
 
     Id id1 = egraph.add_node(sym_z);
     Id id2 = egraph.add_node(sym_a);
@@ -41,8 +38,7 @@ TEST(EGraph, UnionClasses) {
     EXPECT_EQ(root1, root2);
 }
 
-TEST(EGraph, RebuildParentsBasic) {
-    EGraph egraph(get_property_table());
+TEST_F(EGraphTest, RebuildParentsBasic) {
 
     auto id_node1 = egraph.add_expression(Expression("Add(D, D)"));
     auto id_node2 = egraph.add_expression(Expression("Add(D, W)"));
@@ -57,8 +53,7 @@ TEST(EGraph, RebuildParentsBasic) {
     EXPECT_EQ(egraph.find_class_id(id_node1), egraph.find_class_id(id_node2));
 }
 
-TEST(EGraph, RebuildMultiLevelParents) {
-    EGraph egraph(get_property_table());
+TEST_F(EGraphTest, RebuildMultiLevelParents) {
 
     Id id_add_ab = egraph.add_expression(Expression("Add(A, Z)"));
     Id id_add_ac = egraph.add_expression(Expression("Add(A, A)"));
@@ -82,8 +77,7 @@ TEST(EGraph, RebuildMultiLevelParents) {
     EXPECT_EQ(root_nested, egraph.find_class_id(id_nested2));
 }
 
-TEST(EGraph, RebuildCleanUpEClass) {
-    EGraph egraph(get_property_table());
+TEST_F(EGraphTest, RebuildCleanUpEClass) {
 
     Id x = egraph.add_node(sym_a);
     Id y = egraph.add_node(sym_z);
@@ -104,8 +98,7 @@ TEST(EGraph, RebuildCleanUpEClass) {
     EXPECT_EQ(egraph.get_class_nodes(egraph.find_class_id(neg_x)).size(), 1);
 }
 
-TEST(EGraph, AddExpression) {
-    EGraph egraph(get_property_table());
+TEST_F(EGraphTest, AddExpression) {
 
     Expression expr("Add(Mul(X, Y), Tr(Z))");
     Id expr_id = egraph.add_expression(expr);
@@ -135,8 +128,7 @@ TEST(EGraph, AddExpression) {
     EXPECT_NE(expr_id, expr_diff_id);
 }
 
-TEST(EGraph, ENodeMatching) {
-    EGraph egraph(get_property_table());
+TEST_F(EGraphTest, ENodeMatching) {
 
     Id id1 = egraph.add_node(sym_x);
 
@@ -150,8 +142,7 @@ TEST(EGraph, ENodeMatching) {
     EXPECT_FALSE(egraph.find_node_id(node_diff).has_value());
 }
 
-TEST(EGraph, MultipleExpressionsShareCommonSubexpression) {
-    EGraph egraph(get_property_table());
+TEST_F(EGraphTest, MultipleExpressionsShareCommonSubexpression) {
 
     Id expr1 = egraph.add_expression(Expression("Add(Mul(X, Y), Tr(Z))"));
     Id expr2 = egraph.add_expression(Expression("Add(Mul(X, Y), Inv(Z))"));

@@ -168,21 +168,6 @@ static const auto solve_rule =
     return false;
 });
 
-// static const auto QR_introduction = make_rewrite("qr-intro", "?a", "Mul(Get(QR(?a), 0),
-// Get(QR(?a), 1))", [](const EGraph &g, const Substitution &s)
-//                                                  {
-//     Id a_id = s.at("a");
-//     auto node = g.at(a_id);
-//     if (!node.has_ancestor("Inv", g))
-//         return false;
-//     if (node.get_children().size() != 0)
-//         return false;
-//     const auto &data = g.get_class_analysis_data(a_id);
-//     if (auto *prop = std::get_if<MatrixProperty>(&data.property))
-//     {
-//         return true;
-//     }
-//     return false; });
 static const auto invert_mat_prod = make_rewrite(
     "invert-mat-prod", "Inv(Mul(?a, ?b))", "Mul(Inv(?b), Inv(?a))", [](const EGraph &g, const Substitution &s) {
     Id a_id = s.at("a");

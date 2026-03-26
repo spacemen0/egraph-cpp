@@ -2,9 +2,7 @@
 #include "test_helpers.h"
 #include <gtest/gtest.h>
 
-TEST(EGraph, PatternMatchingSimple) {
-    EGraph egraph(get_property_table());
-
+TEST_F(EGraphTest, PatternMatchingSimple) {
     Id expr_id = egraph.add_expression(Expression("Mul(X, Y)"));
 
     Pattern pattern("Mul(?a, ?b)");
@@ -21,9 +19,7 @@ TEST(EGraph, PatternMatchingSimple) {
     EXPECT_EQ(egraph.at(substitution.at("b")).get_atom(), sym_y.get_atom());
 }
 
-TEST(EGraph, PatternMatchingNested) {
-    EGraph egraph(get_property_table());
-
+TEST_F(EGraphTest, PatternMatchingNested) {
     Id expr_id = egraph.add_expression(Expression("Add(Mul(X, Y), Tr(Z))"));
 
     Pattern pattern("Add(Mul(?a, ?b), Tr(?c))");
@@ -42,9 +38,7 @@ TEST(EGraph, PatternMatchingNested) {
     EXPECT_EQ(egraph.at(substitution.at("c")).get_atom(), sym_z.get_atom());
 }
 
-TEST(EGraph, PatternMatchingMultipleMatchesInClass) {
-    EGraph egraph(get_property_table());
-
+TEST_F(EGraphTest, PatternMatchingMultipleMatchesInClass) {
     Id id1 = egraph.add_expression(Expression("Mul(X, Y)"));
 
     Id id2 = egraph.add_expression(Expression("Mul(A, Z)"));

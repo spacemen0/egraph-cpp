@@ -1,6 +1,9 @@
 #pragma once
+#include "e_graph.h"
 #include "e_node.h"
+#include "extractor.h"
 #include "property_table.h"
+#include <gtest/gtest.h>
 
 static ENode make_symbol(const std::string &name) { return ENode(Children{}, std::string(name)); }
 
@@ -43,6 +46,17 @@ static PropertyTable get_property_table_with_symbolic_shapes() {
     pt.add_or_update_property_entry("G", {.shape = std::make_pair("g", "h")});
     return pt;
 }
+
+class EGraphTest : public ::testing::Test {
+  protected:
+    EGraph egraph{get_property_table()};
+};
+
+class ExtractorTest : public EGraphTest {
+  protected:
+    CostStorage cost_storage{egraph};
+    Extractor extractor{egraph, cost_storage};
+};
 
 const static ENode sym_a = make_symbol("A");
 const static ENode sym_b = make_symbol("B");

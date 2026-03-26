@@ -4,8 +4,7 @@
 #include "test_helpers.h"
 #include <gtest/gtest.h>
 
-TEST(Extractor, CheaperExtraction) {
-    EGraph egraph(get_property_table());
+TEST_F(ExtractorTest, CheaperExtraction) {
     // Expr: A * Identity
     Id id_a = egraph.add_node(make_symbol("A"));
     Id id_identity = egraph.add_node(make_symbol("I_3x3"));
@@ -14,8 +13,6 @@ TEST(Extractor, CheaperExtraction) {
     egraph.union_classes(id_mul, id_a);
     egraph.rebuild();
 
-    CostStorage cost_storage(egraph);
-    Extractor extractor(egraph, cost_storage);
     auto result = extractor.extract(id_mul);
     // Should extract 'a'
     EXPECT_EQ(result.cost, Cost(0.0));
@@ -23,8 +20,7 @@ TEST(Extractor, CheaperExtraction) {
     EXPECT_EQ(std::get<std::string>(result.expr.atom), "A");
 }
 
-TEST(Extractor, RewriteAndExtract) {
-    EGraph egraph(get_property_table());
+TEST_F(ExtractorTest, RewriteAndExtract) {
 
     Id root_id = egraph.add_expression(Expression("Add(Mul(A, Zero), Z)"));
 
@@ -42,8 +38,6 @@ TEST(Extractor, RewriteAndExtract) {
     Rewriter rewriter(egraph, rules, 1000);
     rewriter.apply_rewrites();
 
-    CostStorage cost_storage(egraph);
-    Extractor extractor(egraph, cost_storage);
     ExtractionResult result = extractor.extract(root_id);
     EXPECT_EQ(result.cost, Cost(0.0));
 
@@ -51,9 +45,8 @@ TEST(Extractor, RewriteAndExtract) {
     EXPECT_EQ(std::get<std::string>(result.expr.atom), "Z");
 }
 
-TEST(Extractor, SharedSubexpressionDAGCost) {
+TEST_F(ExtractorTest, SharedSubexpressionDAGCost) {
 
-    EGraph egraph(get_property_table());
     Id id_x = egraph.add_node(make_symbol("X"));
     Id id_tr_x = egraph.add_node(make_op(Op::Tr, {id_x}));
 
@@ -66,8 +59,6 @@ TEST(Extractor, SharedSubexpressionDAGCost) {
 
     Id id_root = egraph.add_node(make_op(Op::Add, {id_mul1, id_mul2}));
 
-    CostStorage cost_storage(egraph);
-    Extractor extractor(egraph, cost_storage);
     auto result = extractor.extract(id_root);
 
     EXPECT_TRUE(std::holds_alternative<double>(result.cost));
@@ -78,9 +69,7 @@ TEST(Extractor, SharedSubexpressionDAGCost) {
     EXPECT_EQ(result.expr.children.size(), 2);
 }
 
-TEST(Extractor, ExpensiveSharedWinsWithHighReuse) {
-
-    EGraph egraph(get_property_table());
+TEST_F(ExtractorTest, ExpensiveSharedWinsWithHighReuse) {
 
     Id id_x = egraph.add_node(make_symbol("X")); // 3x2
     Id id_y = egraph.add_node(make_symbol("Y")); // 2x3
@@ -94,20 +83,17 @@ TEST(Extractor, ExpensiveSharedWinsWithHighReuse) {
     // Root expression: Add(Mul(Y, X), Mul(Inv(D), D))
     Id id_root = egraph.add_node(make_op(Op::Add, {id_mul_yx, mul_inv_d})); // 2x2
     egraph.to_img("extractor_test_initial", "svg");
-    CostStorage cost_storage(egraph);
-    Extractor extractor(egraph, cost_storage);
+
     auto result = extractor.extract(id_root);
     EXPECT_TRUE(std::holds_alternative<double>(result.cost));
     // E1 = {Mul(Y,X) cost=24, Inv(D) cost=16} is shared by both children of Add.
     EXPECT_EQ(std::get<double>(result.cost), 36.0);
 }
 
-TEST(Extractor, ExtractSymbolicSingleDag) {
-    EGraph egraph(get_property_table());
+TEST_F(ExtractorTest, ExtractSymbolicSingleDag) {
+
     Id id_root = egraph.add_expression(Expression("Mul(Tr(M), n)"));
 
-    CostStorage cost_storage(egraph);
-    Extractor extractor(egraph, cost_storage);
     auto results = extractor.extract_symbolic(id_root);
 
     ASSERT_EQ(results.size(), 1);
@@ -119,8 +105,8 @@ TEST(Extractor, ExtractSymbolicSingleDag) {
     EXPECT_EQ(std::get<SymbolicCost>(results[0].cost), expected);
 }
 
-TEST(Extractor, ExtractSymbolicMultipleDags) {
-    EGraph egraph(get_property_table());
+TEST_F(ExtractorTest, ExtractSymbolicMultipleDags) {
+
     egraph.register_or_update_property("P", MatrixProperty{.shape = std::make_pair(Size("A"), Size("B"))});
 
     Id id_m = egraph.add_node(make_symbol("M"));
@@ -134,8 +120,6 @@ TEST(Extractor, ExtractSymbolicMultipleDags) {
 
     Id id_root = egraph.add_node(make_op(Op::Mul, {id_tr_m, id_n}));
 
-    CostStorage cost_storage(egraph);
-    Extractor extractor(egraph, cost_storage);
     auto results = extractor.extract_symbolic(id_root);
     ASSERT_EQ(results.size(), 2);
 
