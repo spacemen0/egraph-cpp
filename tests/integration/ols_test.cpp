@@ -32,10 +32,10 @@ TEST(Integration, OLSSymbolic) {
             // std::cout << "Cost: " << result.cost << std::endl;
             egraph.to_img("OLS", "svg");
             auto symbolic_results = extractor.extract_symbolic(id);
-            for (const auto &result : symbolic_results) {
-                std::cout << "Candidate expression: " << result.expr.to_human_string() << std::endl;
-                std::cout << "Cost: " << result.cost << std::endl;
-            }
+            // for (const auto &result : symbolic_results) {
+            //     std::cout << "Candidate expression: " << result.expr.to_human_string() << std::endl;
+            //     std::cout << "Cost: " << result.cost << std::endl;
+            // }
             return;
         }
     }
@@ -79,14 +79,12 @@ TEST(Integration, OLSSymbolicRewritePruneConverges) {
 
     constexpr int outer_iterations = 8;
     constexpr int rewrite_steps_per_iteration = 6;
-    constexpr size_t prune_samples_per_iteration = 100;
+    constexpr size_t prune_samples_per_iteration = 20;
     const std::vector<std::string> size_keys = {"A", "B"};
 
     std::vector<size_t> nodes_after_iteration;
     nodes_after_iteration.reserve(outer_iterations);
 
-    bool reached_plateau = false;
-    bool non_increasing = true;
     size_t total_pruned = 0;
     Rewriter rewriter(egraph, rules, 1000);
     CostStorage cost_storage(egraph);
