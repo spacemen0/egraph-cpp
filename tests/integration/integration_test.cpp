@@ -154,11 +154,7 @@ TEST(Integration, PrunerKeepsRootExtractable) {
     const Id root_id = egraph.add_expression(Expression("Mul(Mul(Mul(Mul(Mul(Mul(A, B), C), D), E), F), G)"));
 
     std::vector<std::string> size_keys = {"a", "b", "c", "d", "e", "f", "g", "h"};
-    std::vector<SizeBindings> bindings;
-    int num_bindings = 50;
-    for (int i = 0; i < num_bindings; ++i) {
-        bindings.push_back(sample_size_bindings(1, 100000, size_keys));
-    }
+    auto bindings = sample_size_bindings(50, 1, 100000, size_keys);
 
     Rewriter rewriter(egraph, {mul_assoc_left, mul_assoc_right}, 10000, false, false);
     rewriter.apply_rewrites(10);
@@ -167,7 +163,7 @@ TEST(Integration, PrunerKeepsRootExtractable) {
     CostStorage storage(egraph);
     Extractor extractor(egraph, storage);
     Pruner pruner(egraph, extractor);
-    PruneResult result = pruner.run(egraph.get_all_class_ids(), bindings);
+    PruneResult result = pruner.run({root_id}, bindings);
     const size_t after = egraph.num_nodes();
 
     auto extracted = extractor.extract(root_id, bindings.front());

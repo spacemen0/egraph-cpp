@@ -305,6 +305,9 @@ PruneResult EGraph::prune_nodes_except(const std::unordered_map<Id, const ENode 
         auto &class_nodes = class_it->second->get_nodes();
         auto keep_it = keep_choices.find(root);
         if (keep_it == keep_choices.end()) {
+            removed_nodes += class_nodes.size();
+            changed_classes++;
+            classes.erase(class_it);
             continue;
         }
 

@@ -353,3 +353,13 @@ inline SizeBindings sample_size_bindings(int lower_bound, int upper_bound, std::
     }
     return bindings;
 }
+
+inline std::vector<SizeBindings>
+sample_size_bindings(size_t k, int lower_bound, int upper_bound, const std::vector<std::string> &keys) {
+    std::vector<SizeBindings> samples;
+    samples.reserve(k);
+    for (size_t i = 0; i < k; ++i) {
+        samples.push_back(sample_size_bindings(lower_bound, upper_bound, keys));
+    }
+    return samples;
+}
