@@ -16,14 +16,6 @@
 #include <unordered_map>
 #include <vector>
 
-struct PruneResult {
-    size_t nodes_before = 0;
-    size_t nodes_after = 0;
-    size_t nodes_pruned = 0;
-    size_t classes_with_removed_nodes = 0;
-    bool changed = false;
-};
-
 class EGraph {
   public:
     EGraph() = default;

@@ -4,6 +4,7 @@
 #include "e_node.h"
 #include "matcher.h"
 #include "pattern.h"
+#include <cassert>
 #include <iostream>
 #include <optional>
 
@@ -298,7 +299,7 @@ PruneResult EGraph::prune_nodes_except(const std::unordered_map<Id, const ENode 
 
         auto class_it = classes.find(root);
         if (class_it == classes.end()) {
-            continue;
+            continue; // This should not happen
         }
 
         auto &class_nodes = class_it->second->get_nodes();
@@ -317,10 +318,6 @@ PruneResult EGraph::prune_nodes_except(const std::unordered_map<Id, const ENode 
         }),
             class_nodes.end());
 
-        if (class_nodes.empty()) {
-            class_nodes.push_back(keep_node);
-        }
-
         if (class_nodes.size() < before) {
             removed_nodes += (before - class_nodes.size());
             changed_classes++;
@@ -328,9 +325,7 @@ PruneResult EGraph::prune_nodes_except(const std::unordered_map<Id, const ENode 
     }
 
     for (const auto &[class_id, eclass_ptr] : classes) {
-        if (uf.find_root(class_id) != class_id) {
-            continue;
-        }
+        assert(uf.find_root(class_id) == class_id);
 
         for (const ENode *node : eclass_ptr->get_nodes()) {
             new_memo[node] = class_id;

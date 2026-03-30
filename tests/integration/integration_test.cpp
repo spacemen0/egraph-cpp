@@ -7,9 +7,9 @@
 #include "test_helpers.h"
 #include "utils.h"
 #include <algorithm>
-#include <array>
 #include <gtest/gtest.h>
-#include <random>
+#include <iostream>
+#include <string>
 
 TEST(Integration, MatrixPartialSet) {
     EGraph egraph(get_property_table());
@@ -126,23 +126,11 @@ TEST(Integration, MatrixChainSymbolicSizes) {
     }
 
     std::vector<bool> expression_seen(candidate_expressions.size(), false);
-    auto sample_size_bindings = []() -> SizeBindings {
-        static std::random_device rd;
-        static std::mt19937 gen(rd());
-        std::uniform_int_distribution<int> dist(1, 100000);
-
-        SizeBindings bindings;
-        constexpr std::array<const char *, 8> keys = {"a", "b", "c", "d", "e", "f", "g", "h"};
-
-        for (const char *key : keys) {
-            bindings[key] = dist(gen);
-        }
-        return bindings;
-    };
+    std::vector<std::string> size_keys = {"a", "b", "c", "d", "e", "f", "g", "h"};
 
     int k = 1000;
     for (int i = 0; i < k; ++i) {
-        const auto extracted_expr = extractor.extract(root_id, sample_size_bindings()).expr;
+        const auto extracted_expr = extractor.extract(root_id, sample_size_bindings(1, 100000, size_keys)).expr;
         const auto it = std::ranges::find(candidate_expressions, extracted_expr);
         if (it != candidate_expressions.end()) {
             const size_t index = static_cast<size_t>(std::distance(candidate_expressions.begin(), it));
@@ -165,54 +153,28 @@ TEST(Integration, PrunerKeepsRootExtractable) {
     EGraph egraph(get_property_table_with_symbolic_shapes());
     const Id root_id = egraph.add_expression(Expression("Mul(Mul(Mul(Mul(Mul(Mul(A, B), C), D), E), F), G)"));
 
-    std::vector<SizeBindings> bindings = {
-        {{"a", 3}, {"b", 4}, {"c", 5}, {"d", 6}, {"e", 7}, {"f", 8}, {"g", 9}, {"h", 10}},
-        {{"a", 9}, {"b", 7}, {"c", 5}, {"d", 4}, {"e", 3}, {"f", 6}, {"g", 8}, {"h", 2}},
-        {{"a", 2}, {"b", 3}, {"c", 11}, {"d", 13}, {"e", 17}, {"f", 19}, {"g", 23}, {"h", 29}},
-    };
+    std::vector<std::string> size_keys = {"a", "b", "c", "d", "e", "f", "g", "h"};
+    std::vector<SizeBindings> bindings;
+    int num_bindings = 50;
+    for (int i = 0; i < num_bindings; ++i) {
+        bindings.push_back(sample_size_bindings(1, 100000, size_keys));
+    }
 
     Rewriter rewriter(egraph, {mul_assoc_left, mul_assoc_right}, 10000, false, false);
-    rewriter.apply_rewrites(8);
+    rewriter.apply_rewrites(10);
     const size_t before = egraph.num_nodes();
 
     CostStorage storage(egraph);
     Extractor extractor(egraph, storage);
     Pruner pruner(egraph, extractor);
-    PruneSummary summary = pruner.run(egraph.get_all_class_ids(), bindings, 1);
+    PruneResult result = pruner.run(egraph.get_all_class_ids(), bindings);
     const size_t after = egraph.num_nodes();
 
     auto extracted = extractor.extract(root_id, bindings.front());
 
     EXPECT_LT(after, before);
-    EXPECT_GT(summary.prune_result.nodes_pruned, 0U);
-    EXPECT_TRUE(summary.ran);
-    EXPECT_GE(summary.sampling_stats.samples_succeeded, 1U);
+    EXPECT_GT(result.nodes_pruned, 0U);
     EXPECT_TRUE(std::holds_alternative<double>(extracted.cost));
-}
-
-TEST(Integration, PrunerSkipsFailedSamples) {
-    EGraph egraph(get_property_table_with_symbolic_shapes());
-    const Id root_id = egraph.add_expression(Expression("Mul(Mul(Mul(Mul(A, B), C), D), E)"));
-
-    std::vector<SizeBindings> bindings = {
-        {{"a", 2}, {"b", 3}, {"c", 4}, {"d", 5}, {"e", 6}, {"f", 7}},
-        {{"a", 2}},
-    };
-
-    Rewriter rewriter(egraph, {mul_assoc_left, mul_assoc_right}, 10000, false, false);
-    rewriter.apply_rewrites(4);
-
-    CostStorage storage(egraph);
-    Extractor extractor(egraph, storage);
-    Pruner pruner(egraph, extractor);
-    PruneSummary summary = pruner.run(egraph.get_all_class_ids(), bindings, 1);
-
-    EXPECT_TRUE(summary.ran);
-    EXPECT_GE(summary.sampling_stats.samples_attempted, 2U);
-    EXPECT_GE(summary.sampling_stats.samples_succeeded, 1U);
-
-    EXPECT_NO_THROW({
-        auto extracted = extractor.extract(root_id, bindings.front());
-        (void)extracted;
-    });
+    std::cout << "Pruning removed " << result.nodes_pruned << " nodes, leaving " << result.nodes_after
+              << " nodes. Extracted expression cost: " << std::get<double>(extracted.cost) << std::endl;
 }

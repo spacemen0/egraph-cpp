@@ -4,6 +4,8 @@
 #include "rewriter.h"
 #include "types.h"
 #include <charconv>
+#include <random>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -318,4 +320,36 @@ inline const MatrixProperty *get_matrix_data(const EGraph &egraph, Id id) {
 
 inline bool is_numeric(const Shape &shape) {
     return std::holds_alternative<int>(shape.first) && std::holds_alternative<int>(shape.second);
+}
+
+inline SizeBindings sample_size_bindings(int lower_bound, int upper_bound, std::span<const std::string_view> keys) {
+    if (lower_bound > upper_bound) {
+        throw std::invalid_argument("sample_size_bindings: lower_bound cannot be greater than upper_bound");
+    }
+
+    static thread_local std::mt19937 gen(std::random_device{}());
+    std::uniform_int_distribution<int> dist(lower_bound, upper_bound);
+
+    SizeBindings bindings;
+    bindings.reserve(keys.size());
+    for (std::string_view key : keys) {
+        bindings[std::string(key)] = dist(gen);
+    }
+    return bindings;
+}
+
+inline SizeBindings sample_size_bindings(int lower_bound, int upper_bound, std::vector<std::string> keys) {
+    if (lower_bound > upper_bound) {
+        throw std::invalid_argument("sample_size_bindings: lower_bound cannot be greater than upper_bound");
+    }
+
+    static thread_local std::mt19937 gen(std::random_device{}());
+    std::uniform_int_distribution<int> dist(lower_bound, upper_bound);
+
+    SizeBindings bindings;
+    bindings.reserve(keys.size());
+    for (const std::string &key : keys) {
+        bindings[key] = dist(gen);
+    }
+    return bindings;
 }
