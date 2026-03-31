@@ -148,16 +148,15 @@ void print_session_state(const SessionState &state) {
 }
 
 void print_repl_help() {
-    std::cout
-        << "Session commands:\n"
-        << "  parse <expr>                         Store an expression in the session\n"
-        << "  add [properties|rule-set] <item...>  Add one or more properties or rule-set names\n"
-        << "  rewrite <num-iterations|null>        Rewrite for N iterations or null for rewrite until saturation\n"
-        << "  extract <expr-id>                    Extract best expression for a stored expression id\n"
-        << "  show [state|available-rule-sets]     Display session state or available rule-sets\n"
-        << "  reset                                Clear session state\n"
-        << "  help                                 Show this message\n"
-        << "  quit | exit                          Leave the interactive shell\n";
+    std::cout << "Session commands:\n"
+              << "  parse <expr>                         Store an expression in the session\n"
+              << "  add [properties|rule-set] <item...>  Add one or more properties or rule-set names\n"
+              << "  rewrite [num-iterations]             Rewrite for N iterations or no args for saturation\n"
+              << "  extract <expr-id>                    Extract best expression for a stored expression id\n"
+              << "  show [state|available-rule-sets]     Display session state or available rule-sets\n"
+              << "  reset                                Clear session state\n"
+              << "  help                                 Show this message\n"
+              << "  quit | exit                          Leave the interactive shell\n";
 }
 
 void execute_session_command(const std::vector<std::string> &tokens, SessionState &state) {
@@ -223,13 +222,14 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
             std::cerr << "No expression loaded. Use parse <expr> first.\n";
             return;
         }
-        if (tokens.size() != 2) {
-            std::cerr << "usage: rewrite <num-iterations|null>\n";
+        if (tokens.size() > 2) {
+            std::cerr << "usage: rewrite [num-iterations]\n";
             return;
         }
 
         try {
-            if (tokens[1] == "null") {
+            if (tokens.size() == 1) {
+                // rewrite until saturation
                 return rewrite_e_graph(state, std::nullopt);
             }
 
