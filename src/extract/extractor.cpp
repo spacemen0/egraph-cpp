@@ -246,11 +246,6 @@ bool Extractor::collect_selected_nodes_for_binding(
     bool any_root_succeeded = false;
 
     for (Id root : roots) {
-        std::cout << "Collecting selected nodes for root " << root << " with size bindings: ";
-        for (const auto &[key, value] : size_bindings) {
-            std::cout << key << "=" << value << " ";
-        }
-        std::cout << std::endl;
         if (auto best = find_best_numeric_dag(root, &size_bindings); best.has_value()) {
             any_root_succeeded = true;
             for (const auto &[class_id, node] : best->choices) {

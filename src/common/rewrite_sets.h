@@ -169,6 +169,7 @@ static std::vector<Rewrite> build_complete_rewrite_set() {
     rewrites.insert(rewrites.end(), basic_inverse_rewrite_set.begin(), basic_inverse_rewrite_set.end());
     rewrites.insert(rewrites.end(), basic_orthogonality_rewrite_set.begin(), basic_orthogonality_rewrite_set.end());
     rewrites.insert(rewrites.end(), basic_zero_negation_rewrite_set.begin(), basic_zero_negation_rewrite_set.end());
+    rewrites.insert(rewrites.end(), factorization_set.begin(), factorization_set.end());
     return rewrites;
 }
 
