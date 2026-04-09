@@ -116,8 +116,6 @@ static const Rewrite orthonormal_transpose =
 
 static const Rewrite negate_involutive = make_rewrite("negate-involutive", "Neg(Neg(?a))", "?a");
 
-static const Rewrite negate_involutive_right = make_rewrite("negate-involutive-right", "?a", "Neg(Neg(?a))");
-
 static const Rewrite add_negate_cancel_left = make_rewrite(
     "add-negate-cancel-left", "Add(?a, Neg(?a))", "?__dynamic__", nullptr, [](EGraph &g, const Substitution &s) {
     return make_zero_for(g, s, "a");
@@ -162,7 +160,7 @@ static const std::vector<Rewrite> basic_orthogonality_rewrite_set = {
 };
 
 static const std::vector<Rewrite> basic_zero_negation_rewrite_set = {
-    negate_involutive, negate_involutive_right, add_negate_cancel_left, add_comm_zero, mul_zero_left, mul_zero_right,
+    negate_involutive, add_negate_cancel_left, add_comm_zero, mul_zero_left, mul_zero_right,
 };
 
 static std::vector<Rewrite> build_complete_rewrite_set() {

@@ -44,7 +44,7 @@ std::string join_tokens(const std::vector<std::string> &tokens, size_t start_idx
 }
 
 static const std::vector<std::string_view> AvailableRuleSets = {
-    "factorization", "algebraic", "inverse", "orthogonality", "zero-negation",
+    "factorization", "algebraic", "inverse", "orthogonality", "zero-negation", "complete",
 };
 
 void print_available_rule_sets() {

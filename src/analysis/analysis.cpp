@@ -2,6 +2,7 @@
 #include "e_graph.h"
 #include "errors.h"
 #include "utils.h"
+#include <iostream>
 #include <variant>
 
 AnalysisData MatrixAnalysis::make(const EGraph &egraph, const ENode &node) {

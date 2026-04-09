@@ -27,9 +27,9 @@ TEST(Integration, OLSSymbolic) {
             std::cout << "Sample matrix sizes to try out extraction..." << std::endl;
             CostStorage cost_storage(egraph);
             Extractor extractor(egraph, cost_storage);
-            // auto result = extractor.extract(id, {{"A", 100}, {"B", 50}});
-            // std::cout << "Best extracted expression: " << result.expr.to_human_string() << std::endl;
-            // std::cout << "Cost: " << result.cost << std::endl;
+            auto result = extractor.extract(id, {{"A", 100}, {"B", 50}});
+            std::cout << "Best extracted expression: " << result.expr.to_human_string() << std::endl;
+            std::cout << "Cost: " << result.cost << std::endl;
             egraph.to_img("OLS", "svg");
             auto symbolic_results = extractor.extract_symbolic(id);
             // for (const auto &result : symbolic_results) {

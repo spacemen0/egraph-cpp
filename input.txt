@@ -1,8 +1,7 @@
-add properties X:Matrix(100x20)[tall] y:Matrix(100x1) 
-add rule-set factorization algebraic inverse orthogonality
+add properties X:Matrix(100x20)[positive_definite] y:Matrix(100x1) 
+add rule-set complete
 parse Mul(Mul(Inv(Mul(Tr(X),X)),Tr(X)),y)
-parse Mul(Tr(X),y)
-rewrite 5
+rewrite 6
 show state
-extract 6
+extract
 quit
