@@ -54,7 +54,7 @@ TEST(Integration, SimplifyComplexMatrixChain) {
 
 TEST(Integration, MinimalRealisticExplosionRules) {
     EGraph egraph(get_property_table());
-    auto id = egraph.add_expression(Expression("Mul(Mul(Inv(A), A), A)"));
+    const auto root_id = egraph.add_expression(Expression("Mul(Mul(Inv(A), A), A)"));
     auto mul_assoc_right =
         make_rewrite("mul-assoc-right", "Mul(Mul(?a, ?b), ?c)", "Mul(?a, Mul(?b, ?c))", nullptr, nullptr, 10);
     std::vector<Rewrite> rules = {
@@ -63,12 +63,37 @@ TEST(Integration, MinimalRealisticExplosionRules) {
         mul_identity_right,
     };
     Rewriter rewriter(egraph, rules, 2000, false, true);
-    rewriter.apply_rewrites(20);
-
     CostStorage cost_storage(egraph);
     Extractor extractor(egraph, cost_storage);
-    auto result = extractor.extract(id);
-    std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
+    Pruner pruner(egraph, extractor);
+
+    constexpr int outer_iterations = 8;
+    constexpr int rewrite_steps_per_iteration = 6;
+    constexpr size_t prune_samples_per_iteration = 20;
+    const std::vector<std::string> size_keys = {"A", "B"};
+
+    std::cout << "Initial nodes: " << egraph.num_nodes() << std::endl;
+    for (int iteration = 0; iteration < outer_iterations; ++iteration) {
+        const bool changed = rewriter.apply_rewrites(rewrite_steps_per_iteration);
+        std::cout << "Iteration " << (iteration + 1) << ": rewrites=" << (changed ? "changed" : "stalled")
+                  << ", nodes before pruning=" << egraph.num_nodes() << std::endl;
+
+        const auto bindings = sample_size_bindings(prune_samples_per_iteration, 1, 1000, size_keys);
+        const auto prune_result = pruner.run({root_id}, bindings);
+        std::cout << "Iteration " << (iteration + 1) << ": pruned=" << prune_result.nodes_pruned
+                  << ", nodes after pruning=" << prune_result.nodes_after << std::endl;
+
+        if (!changed && prune_result.nodes_pruned == 0) {
+            std::cout << "No rewrite or pruning progress in iteration " << (iteration + 1) << ", stopping early."
+                      << std::endl;
+            break;
+        }
+    }
+
+    auto result = extractor.extract(root_id);
+    std::cout << "Num nodes after iterative rewriting/pruning: " << egraph.num_nodes() << std::endl;
+    std::cout << "Final extracted expression: " << result.expr.to_human_string() << std::endl;
+    std::cout << "Final extracted cost: " << result.cost << std::endl;
 
     EXPECT_EQ(result.cost, Cost(0.0));
     EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
