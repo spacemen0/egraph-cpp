@@ -62,8 +62,6 @@ TEST(Integration, OLSNumeric) {
 
 TEST(Integration, OLSSymbolicRewritePruneConverges) {
     EGraph egraph(get_property_table());
-    const Id root_id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(M), M) ) , Tr(M) ), n)"));
-
     const auto factorization_rules = get_rewrite_set_by_name("factorization");
     const auto algebraic_rules = get_rewrite_set_by_name("algebraic");
     const auto inverse_rules = get_rewrite_set_by_name("inverse");
@@ -90,9 +88,10 @@ TEST(Integration, OLSSymbolicRewritePruneConverges) {
     CostStorage cost_storage(egraph);
     Extractor extractor(egraph, cost_storage);
     Pruner pruner(egraph, extractor);
+    Id root_id;
 
     for (int i = 0; i < outer_iterations; ++i) {
-
+        root_id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(M), M) ) , Tr(M) ), n)"));
         rewriter.apply_rewrites(rewrite_steps_per_iteration);
 
         egraph.to_img(std::format("iteration_{}_before_pruning", i + 1), "svg");

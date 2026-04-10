@@ -121,9 +121,9 @@ TEST(Integration, MatrixChainSymbolicSizes) {
 
     ASSERT_FALSE(candidate_expressions.empty());
 
-    for (auto expression : candidate_expressions) {
-        std::cout << "Candidate expression: " << expression.to_human_string() << std::endl;
-    }
+    // for (auto expression : candidate_expressions) {
+    //     std::cout << "Candidate expression: " << expression.to_human_string() << std::endl;
+    // }
 
     std::vector<bool> expression_seen(candidate_expressions.size(), false);
     std::vector<std::string> size_keys = {"a", "b", "c", "d", "e", "f", "g", "h"};
