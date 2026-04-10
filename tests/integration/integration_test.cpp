@@ -134,11 +134,11 @@ TEST(Integration, MatrixChainSymbolicSizes) {
         const auto it = std::ranges::find(candidate_expressions, extracted_expr);
         if (it != candidate_expressions.end()) {
             const size_t index = static_cast<size_t>(std::distance(candidate_expressions.begin(), it));
-            if (!expression_seen[index]) {
-                std::cout << "Expression " << index << " Matched at Sample " << (i + 1) << std::endl;
-                std::cout << "Symbolic Cost: " << symbolic_results[index].cost << std::endl;
-                std::cout << "Extracted Expression: " << extracted_expr.to_human_string() << std::endl;
-            }
+            // if (!expression_seen[index]) {
+            //     std::cout << "Expression " << index << " Matched at Sample " << (i + 1) << std::endl;
+            //     std::cout << "Symbolic Cost: " << symbolic_results[index].cost << std::endl;
+            //     std::cout << "Extracted Expression: " << extracted_expr.to_human_string() << std::endl;
+            // }
             expression_seen[index] = true;
         }
     }

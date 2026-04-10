@@ -32,10 +32,10 @@ TEST(Integration, OLSSymbolic) {
             std::cout << "Cost: " << result.cost << std::endl;
             egraph.to_img("OLS", "svg");
             auto symbolic_results = extractor.extract_symbolic(id);
-            for (const auto &result : symbolic_results) {
-                std::cout << "Candidate expression: " << result.expr.to_human_string() << std::endl;
-                std::cout << "Cost: " << result.cost << std::endl;
-            }
+            // for (const auto &result : symbolic_results) {
+            //     std::cout << "Candidate expression: " << result.expr.to_human_string() << std::endl;
+            //     std::cout << "Cost: " << result.cost << std::endl;
+            // }
             return;
         }
     }

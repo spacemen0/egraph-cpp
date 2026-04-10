@@ -107,7 +107,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
                 if (data && (data->flags.is_upper_triangular || data->flags.is_lower_triangular)) {
                     return (1.0 / 3.0) * rows * rows * rows;
                 }
-                return 2.0 * rows * rows * rows;
+                return 8.0 * rows * rows * rows;
             }
             if (!is_numeric(shape)) {
                 Monomial m = {{size_to_symbol(shape.first), size_to_symbol(shape.first), size_to_symbol(shape.first)}};
@@ -115,7 +115,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
                 if (data && (data->flags.is_upper_triangular || data->flags.is_lower_triangular)) {
                     sc[m] = 1.0 / 3.0;
                 } else {
-                    sc[m] = 2.0;
+                    sc[m] = 8.0;
                 }
                 return sc;
             }

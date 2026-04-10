@@ -76,7 +76,7 @@ TEST_F(ExtractorTest, ExpensiveSharedWinsWithHighReuse) {
     Id id_d = egraph.add_node(make_symbol("D")); // 2x2
 
     Id id_mul_yx = egraph.add_node(make_op(Op::Mul, {id_y, id_x}));  // 2x2, cost 12
-    Id inv_d = egraph.add_node(make_op(Op::Inv, {id_d}));            // 2x2, cost 8
+    Id inv_d = egraph.add_node(make_op(Op::Inv, {id_d}));            // 2x2, cost 64
     Id mul_inv_d = egraph.add_node(make_op(Op::Mul, {inv_d, id_d})); // 2x2, cost 8
     egraph.union_classes(id_mul_yx, inv_d);
 
@@ -86,8 +86,7 @@ TEST_F(ExtractorTest, ExpensiveSharedWinsWithHighReuse) {
 
     auto result = extractor.extract(id_root);
     EXPECT_TRUE(std::holds_alternative<double>(result.cost));
-    // E1 = {Mul(Y,X) cost=24, Inv(D) cost=16} is shared by both children of Add.
-    EXPECT_EQ(std::get<double>(result.cost), 36.0);
+    EXPECT_EQ(std::get<double>(result.cost), 44.0);
 }
 
 TEST_F(ExtractorTest, ExtractSymbolicSingleDag) {
