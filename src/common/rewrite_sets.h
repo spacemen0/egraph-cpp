@@ -9,7 +9,7 @@ static auto is_leaf_condition = [](const EGraph &g, const Substitution &s) {
         return false;
     return true;
 };
-
+static const auto qr_invert = make_rewrite("qr-invert", "Inv(?a)", "Inv(Mul(Get(QR(?a), 0), Get(QR(?a), 1)))");
 static const Rewrite qr_invert_leaf =
     make_rewrite("qr-invert-leaf", "Inv(?a)", "Mul(Inv(Get(QR(?a), 0)), Inv(Get(QR(?a), 1)))", is_leaf_condition);
 
@@ -25,10 +25,20 @@ static const Rewrite qr_inner_invert =
 
     return result;
 });
-
+static const auto lu_invert = make_rewrite("lu-invert", "Inv(?a)", "Mul(Inv(Get(LU(?a), 1)), Inv(Get(LU(?a), 0)))");
 static const Rewrite lu_invert_leaf =
     make_rewrite("lu-invert-leaf", "Inv(?a)", "Mul(Inv(Get(LU(?a), 1)), Inv(Get(LU(?a), 0)))", is_leaf_condition);
+static const auto llt_invert = make_rewrite(
+    "llt-invert", "Inv(?a)", "Mul(Tr(Inv(Get(LLt(?a), 0))), Inv(Get(LLt(?a), 0)))",
+    [](const EGraph &g, const Substitution &s) {
+    Id a_id = s.at("a");
+    const auto &data = g.get_class_analysis_data(a_id);
 
+    if (auto *prop = std::get_if<MatrixProperty>(&data.property)) {
+        return prop->flags.is_positive_definite && prop->flags.is_symmetric;
+    }
+    return false;
+});
 static const Rewrite llt_invert_leaf = make_rewrite(
     "llt-invert-leaf", "Inv(?a)", "Mul(Tr(Inv(Get(LLt(?a), 0))), Inv(Get(LLt(?a), 0)))",
     [](const EGraph &g, const Substitution &s) {
@@ -136,12 +146,7 @@ static const Rewrite mul_zero_right =
     return is_zero(s, g, "z");
 });
 
-static const std::vector<Rewrite> factorization_set = {
-    qr_invert_leaf,
-    qr_inner_invert,
-    lu_invert_leaf,
-    llt_invert_leaf,
-};
+static const std::vector<Rewrite> factorization_set = {qr_invert, qr_inner_invert, lu_invert, llt_invert};
 
 static const std::vector<Rewrite> basic_algebraic_rewrite_set = {
     mul_identity_left, mul_identity_right, mul_assoc_left,           mul_assoc_right,
@@ -193,4 +198,13 @@ inline std::vector<Rewrite> get_rewrite_set_by_name(const std::string &name) {
         return basic_zero_negation_rewrite_set;
     }
     throw std::invalid_argument("Unknown rewrite set name: " + name);
+}
+
+inline std::vector<Rewrite> build_rewrite_sets(std::initializer_list<std::string_view> set_names) {
+    std::vector<Rewrite> rules;
+    for (std::string_view set_name : set_names) {
+        auto set_rules = get_rewrite_set_by_name(std::string(set_name));
+        rules.insert(rules.end(), set_rules.begin(), set_rules.end());
+    }
+    return rules;
 }

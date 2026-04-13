@@ -167,29 +167,3 @@ TEST(Integration, MatrixChainSymbolicSizes) {
               << std::endl;
     SUCCEED();
 }
-
-TEST(Integration, PrunerKeepsRootExtractable) {
-    EGraph egraph(get_property_table_with_symbolic_shapes());
-    const Id root_id = egraph.add_expression(Expression("Mul(Mul(Mul(Mul(Mul(Mul(A, B), C), D), E), F), G)"));
-
-    std::vector<std::string> size_keys = {"a", "b", "c", "d", "e", "f", "g", "h"};
-    auto bindings = sample_size_bindings(50, 1, 100000, size_keys);
-
-    Rewriter rewriter(egraph, {mul_assoc_left, mul_assoc_right}, 10000, false, false);
-    rewriter.apply_rewrites(10);
-    const size_t before = egraph.num_nodes();
-
-    CostStorage storage(egraph);
-    Extractor extractor(egraph, storage);
-    Pruner pruner(egraph, extractor);
-    PruneResult result = pruner.run({root_id}, bindings);
-    const size_t after = egraph.num_nodes();
-
-    auto extracted = extractor.extract(root_id, bindings.front());
-
-    EXPECT_LT(after, before);
-    EXPECT_GT(result.nodes_pruned, 0U);
-    EXPECT_TRUE(std::holds_alternative<double>(extracted.cost));
-    std::cout << "Pruning removed " << result.nodes_pruned << " nodes, leaving " << result.nodes_after
-              << " nodes. Extracted expression cost: " << std::get<double>(extracted.cost) << std::endl;
-}

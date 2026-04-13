@@ -1,7 +1,7 @@
 #include "cost_storage.h"
 #include "e_graph.h"
 #include "extractor.h"
-#include "rewrite_rules.h"
+#include "rewrite_sets.h"
 #include "rewriter.h"
 #include "test_helpers.h"
 #include <gtest/gtest.h>
@@ -11,11 +11,7 @@ TEST(Integration, GLSNumeric) {
     auto id =
         egraph.add_expression(Expression("Mul( Mul( Inv( Mul( Mul(Tr(X), Inv(V)), X) ) , Mul(Tr(X), Inv(V)) ), y)"));
 
-    std::vector<Rewrite> rules = {
-        lu_invert,         llt_invert,           qr_inner_invert,       qr_invert,          mat_transpose_prod,
-        invert_mat_prod,   orthogonal_transpose, orthonormal_transpose, invert_cancel_left, invert_cancel_right,
-        mul_identity_left, mul_identity_right,   mul_assoc_left,        mul_assoc_right,
-    };
+    std::vector<Rewrite> rules = build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality"});
     CostStorage cost_storage(egraph);
     Rewriter rewriter(egraph, rules, 1000);
     rewriter.apply_rewrites(10);
@@ -33,11 +29,7 @@ TEST(Integration, GLSSymbolic) {
     auto id =
         egraph.add_expression(Expression("Mul( Mul( Inv( Mul( Mul(Tr(M), Inv(v)), M) ) , Mul(Tr(M), Inv(v)) ), n)"));
 
-    std::vector<Rewrite> rules = {
-        lu_invert,         llt_invert,           qr_inner_invert,       qr_invert,          mat_transpose_prod,
-        invert_mat_prod,   orthogonal_transpose, orthonormal_transpose, invert_cancel_left, invert_cancel_right,
-        mul_identity_left, mul_identity_right,   mul_assoc_left,        mul_assoc_right,
-    };
+    std::vector<Rewrite> rules = build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality"});
     CostStorage cost_storage(egraph);
     Rewriter rewriter(egraph, rules, 1000);
     rewriter.apply_rewrites(10);

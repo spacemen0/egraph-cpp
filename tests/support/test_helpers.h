@@ -27,7 +27,10 @@ static PropertyTable get_property_table() {
     pt.add_or_update_property_entry("Zero", {.shape = std::make_pair(3, 3), .flags = {.is_zero = true}});
     pt.add_or_update_property_entry("y", {.shape = std::make_pair(3, 1)});
     pt.add_or_update_property_entry(
-        "M", {.shape = std::make_pair("A", "B"), .flags = {.is_positive_definite = true, .is_tall = true}});
+        "M", {.shape = std::make_pair("A", "B"),
+              .flags = {
+                  .is_positive_definite = true,
+              }});
     pt.add_or_update_property_entry("n", {.shape = std::make_pair("A", 1)});
     pt.add_or_update_property_entry(
         "v", {.shape = std::make_pair("A", "A"), .flags = {.is_symmetric = true, .is_positive_definite = true}});

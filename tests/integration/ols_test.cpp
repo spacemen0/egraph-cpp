@@ -62,18 +62,7 @@ TEST(Integration, OLSNumeric) {
 
 TEST(Integration, OLSSymbolicRewritePruneConverges) {
     EGraph egraph(get_property_table());
-    const auto factorization_rules = get_rewrite_set_by_name("factorization");
-    const auto algebraic_rules = get_rewrite_set_by_name("algebraic");
-    const auto inverse_rules = get_rewrite_set_by_name("inverse");
-    const auto orthogonality_rules = get_rewrite_set_by_name("orthogonality");
-
-    std::vector<Rewrite> rules;
-    rules.reserve(
-        factorization_rules.size() + algebraic_rules.size() + inverse_rules.size() + orthogonality_rules.size());
-    rules.insert(rules.end(), factorization_rules.begin(), factorization_rules.end());
-    rules.insert(rules.end(), algebraic_rules.begin(), algebraic_rules.end());
-    rules.insert(rules.end(), inverse_rules.begin(), inverse_rules.end());
-    rules.insert(rules.end(), orthogonality_rules.begin(), orthogonality_rules.end());
+    std::vector<Rewrite> rules = build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality"});
 
     constexpr int outer_iterations = 8;
     constexpr int rewrite_steps_per_iteration = 6;
