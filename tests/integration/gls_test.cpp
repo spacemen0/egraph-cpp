@@ -12,7 +12,7 @@ TEST(Integration, GLSNumeric) {
         egraph.add_expression(Expression("Mul( Mul( Inv( Mul( Mul(Tr(X), Inv(V)), X) ) , Mul(Tr(X), Inv(V)) ), y)"));
 
     std::vector<Rewrite> rules = {
-        lu_invert_leaf,    llt_invert_leaf,      qr_inner_invert,       qr_invert_leaf,     mat_transpose_prod,
+        lu_invert,         llt_invert,           qr_inner_invert,       qr_invert,          mat_transpose_prod,
         invert_mat_prod,   orthogonal_transpose, orthonormal_transpose, invert_cancel_left, invert_cancel_right,
         mul_identity_left, mul_identity_right,   mul_assoc_left,        mul_assoc_right,
     };
@@ -20,9 +20,11 @@ TEST(Integration, GLSNumeric) {
     Rewriter rewriter(egraph, rules, 1000);
     rewriter.apply_rewrites(10);
     Extractor extractor(egraph, cost_storage);
-    auto result = extractor.extract(id);
-    std::cout << "Best extracted expression: " << result.expr.to_human_string() << std::endl;
-    std::cout << "Cost: " << result.cost << std::endl;
+    auto result = extractor.extract(id, 10);
+    for (const auto &r : result) {
+        std::cout << "Candidate expression: " << r.expr.to_human_string() << std::endl;
+        std::cout << "Cost: " << r.cost << std::endl;
+    }
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
 }
 
@@ -32,7 +34,7 @@ TEST(Integration, GLSSymbolic) {
         egraph.add_expression(Expression("Mul( Mul( Inv( Mul( Mul(Tr(M), Inv(v)), M) ) , Mul(Tr(M), Inv(v)) ), n)"));
 
     std::vector<Rewrite> rules = {
-        lu_invert_leaf,    llt_invert_leaf,      qr_invert_leaf,        qr_inner_invert,    mat_transpose_prod,
+        lu_invert,         llt_invert,           qr_inner_invert,       qr_invert,          mat_transpose_prod,
         invert_mat_prod,   orthogonal_transpose, orthonormal_transpose, invert_cancel_left, invert_cancel_right,
         mul_identity_left, mul_identity_right,   mul_assoc_left,        mul_assoc_right,
     };
