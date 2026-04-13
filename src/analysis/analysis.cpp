@@ -2,7 +2,6 @@
 #include "e_graph.h"
 #include "errors.h"
 #include "utils.h"
-#include <iostream>
 #include <variant>
 
 AnalysisData MatrixAnalysis::make(const EGraph &egraph, const ENode &node) {
@@ -184,7 +183,11 @@ static AnalysisData analyze_qr(const EGraph &egraph, const std::vector<Id> &chil
         Q.flags.is_orthonormal = true;
         R.flags.is_upper_triangular = true;
 
-        if (data->is_tall_matrix()) {
+        if (data->is_square()) {
+            Q.shape = data->shape;
+            R.shape = data->shape;
+            Q.flags.is_orthogonal = true;
+        } else if (data->is_tall_matrix()) {
             Q.shape = data->shape;
             Q.flags.is_tall = true;
             R.shape = std::make_pair(data->shape.second, data->shape.second);
@@ -194,9 +197,7 @@ static AnalysisData analyze_qr(const EGraph &egraph, const std::vector<Id> &chil
             R.shape = data->shape;
             R.flags.is_wide = true;
         } else {
-            Q.shape = data->shape;
-            R.shape = data->shape;
-            Q.flags.is_orthogonal = true;
+            throw InvalidOperationError("QR operation on symbolic matrix with ambiguous shape");
         }
 
         if (data->flags.is_identity) {

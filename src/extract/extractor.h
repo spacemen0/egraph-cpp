@@ -3,7 +3,6 @@
 #include "cost_storage.h"
 #include "e_graph.h"
 #include <cstddef>
-#include <optional>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>

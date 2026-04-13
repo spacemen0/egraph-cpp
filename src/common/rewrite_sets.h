@@ -14,8 +14,16 @@ static const Rewrite qr_invert_leaf =
     make_rewrite("qr-invert-leaf", "Inv(?a)", "Mul(Inv(Get(QR(?a), 0)), Inv(Get(QR(?a), 1)))", is_leaf_condition);
 
 static const Rewrite qr_inner_invert =
-    make_rewrite("qr-inner-invert", "Inv( Mul(Tr(?a), ?a) )", "Dynamic", nullptr, [](EGraph &g, const Substitution &s) {
-    static const Expression result_expr("Mul(Inv(Get(QR(?a), 1)), Inv(Tr(Get(QR(?a), 1))))");
+    make_rewrite("qr-inner-invert", "Inv( Mul(Tr(?a), ?a) )", "Dynamic", [](const EGraph &g, const Substitution &s) {
+    Id a_id = s.at("a");
+    const auto &data = g.get_class_analysis_data(a_id);
+    if (const auto *prop = std::get_if<MatrixProperty>(&data.property)) {
+        // Avoid ambiguous symbolic-shape exceptions.
+        return prop->is_square() || prop->is_tall_matrix() || prop->is_wide_matrix();
+    }
+    return false;
+}, [](EGraph &g, const Substitution &s) {
+    static const Expression result_expr("Inv( Mul ( Tr(Get(QR(?a), 1)), Get(QR(?a), 1) ) )");
     static const Expression qr_expr("Mul(Get(QR(?a), 0), Get(QR(?a), 1))");
 
     Id result = g.add_expression(result_expr, s);
