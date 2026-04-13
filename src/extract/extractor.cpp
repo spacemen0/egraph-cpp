@@ -1,34 +1,47 @@
 #include "extractor.h"
+#include "basic_types.h"
 #include <algorithm>
-#include <cmath>
-#include <iostream>
+#include <cassert>
 #include <limits>
 #include <unordered_set>
 
 Extractor::Extractor(EGraph &egraph, CostStorage &cost_storage) : egraph(egraph), cost_storage(cost_storage) {}
 
-std::optional<Extractor::NumericSearchResult>
-Extractor::find_best_numeric_dag(Id root_class_id, const SizeBindings *size_bindings) const {
+std::vector<Extractor::NumericSearchResult>
+Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const SizeBindings *size_bindings) const {
+    if (max_results == 0) {
+        return {};
+    }
+
     Id root = egraph.find_class_id(root_class_id);
-    if (!size_bindings) {
+    if (!size_bindings && max_results == 1) {
         if (auto cached = cost_storage.cached_root_extraction(root); cached.has_value()) {
-            return NumericSearchResult{cached->cost, cached->choices};
+            return {NumericSearchResult{cached->cost, cached->choices}};
         }
     }
 
     std::vector<PendingClass> pending = {{root, {}}};
     std::unordered_map<Id, const ENode *> current_choices;
-    std::unordered_map<Id, const ENode *> best_choices;
-    double best_cost = std::numeric_limits<double>::infinity();
+    std::vector<NumericSearchResult> best_results;
+    double worst_selected_cost = std::numeric_limits<double>::infinity();
 
-    search_best_numeric_dag(pending, current_choices, size_bindings, 0.0, best_cost, best_choices);
-    if (!std::isfinite(best_cost)) {
-        return std::nullopt;
+    search_top_numeric_dags(
+        pending, current_choices, size_bindings, 0.0, max_results, best_results, worst_selected_cost);
+
+    if (best_results.empty()) {
+        return {};
     }
-    if (!size_bindings) {
-        cost_storage.store_root_extraction(root, best_cost, best_choices);
+
+    std::sort(
+        best_results.begin(), best_results.end(), [](const NumericSearchResult &lhs, const NumericSearchResult &rhs) {
+        return lhs.cost < rhs.cost;
+    });
+
+    if (!size_bindings && max_results == 1) {
+        cost_storage.store_root_extraction(root, best_results.front().cost, best_results.front().choices);
     }
-    return NumericSearchResult{best_cost, std::move(best_choices)};
+
+    return best_results;
 }
 
 std::vector<Extractor::SymbolicSearchResult> Extractor::find_symbolic_dags(Id root_class_id) const {
@@ -47,18 +60,37 @@ std::vector<Extractor::SymbolicSearchResult> Extractor::find_symbolic_dags(Id ro
 /// annotated with the ancestors on the path that reached it.
 /// @param current_choices Map from e-class ID to the chosen ENode for the
 /// current search path.
-/// @param current_cost Accumulated cost of the current partial DAG (sum of
-/// local costs of chosen nodes).
-/// @param best_cost The cost of the best complete solution found so far.
-/// @param best_choices The node choices of the best solution found so far.
-void Extractor::search_best_numeric_dag(
+/// @param size_bindings Optional size bindings to use when computing costs.
+/// @param worst_selected_cost The cost of the worst result among the best results selected so far. Used for pruning
+/// search paths.
+void Extractor::search_top_numeric_dags(
     const std::vector<PendingClass> &pending, std::unordered_map<Id, const ENode *> &current_choices,
-    const SizeBindings *size_bindings, double current_cost, double &best_cost,
-    std::unordered_map<Id, const ENode *> &best_choices) const {
+    const SizeBindings *size_bindings, double current_cost, size_t max_results,
+    std::vector<NumericSearchResult> &best_results, double &worst_selected_cost) const {
     if (pending.empty()) {
-        if (current_cost < best_cost) {
-            best_cost = current_cost;
-            best_choices = current_choices;
+        if (best_results.size() < max_results || current_cost < worst_selected_cost) {
+            best_results.push_back(NumericSearchResult{current_cost, current_choices});
+            if (best_results.size() > max_results) {
+                assert(best_results.size() == max_results + 1);
+                auto worst_it = std::max_element(
+                    best_results.begin(), best_results.end(),
+                    [](const NumericSearchResult &lhs, const NumericSearchResult &rhs) {
+                    return lhs.cost < rhs.cost;
+                });
+                best_results.erase(worst_it);
+            }
+
+            if (best_results.size() == max_results) {
+                const auto worst_it = std::max_element(
+                    best_results.begin(), best_results.end(),
+                    [](const NumericSearchResult &lhs, const NumericSearchResult &rhs) {
+                    return lhs.cost < rhs.cost;
+                });
+                worst_selected_cost = worst_it->cost;
+            } else {
+                // slots still available, so no pruning yet
+                worst_selected_cost = std::numeric_limits<double>::infinity();
+            }
         }
         return;
     }
@@ -77,7 +109,7 @@ void Extractor::search_best_numeric_dag(
         }
 
         double next_cost = current_cost + std::get<double>(local_cost);
-        if (next_cost >= best_cost) {
+        if (best_results.size() == max_results && next_cost >= worst_selected_cost) {
             continue;
         }
 
@@ -114,8 +146,9 @@ void Extractor::search_best_numeric_dag(
         }
 
         if (!has_cycle) {
-            // Recursively search with this candidate chosen.
-            search_best_numeric_dag(child_pending, current_choices, size_bindings, next_cost, best_cost, best_choices);
+            search_top_numeric_dags(
+                child_pending, current_choices, size_bindings, next_cost, max_results, best_results,
+                worst_selected_cost);
         }
 
         // Return to the previous state.
@@ -211,23 +244,46 @@ Expression Extractor::build_expression(
 }
 
 ExtractionResult Extractor::extract(Id class_id) const {
-    if (auto best = find_best_numeric_dag(class_id); best.has_value()) {
-        std::unordered_set<Id> visiting;
-        return {best->cost, build_expression(class_id, best->choices, visiting)};
+    auto results = extract(class_id, 1);
+    if (!results.empty()) {
+        return results.front();
     }
 
     throw std::runtime_error("Runtime error: no numeric DAG found for root class");
 }
 
-ExtractionResult Extractor::extract(Id class_id, const SizeBindings &size_bindings) const {
-    if (auto best = find_best_numeric_dag(class_id, &size_bindings); best.has_value()) {
+std::vector<ExtractionResult> Extractor::extract(Id class_id, size_t max_results) const {
+    auto top_dags = find_top_numeric_dags(class_id, max_results);
+    std::vector<ExtractionResult> results;
+    results.reserve(top_dags.size());
+    for (const auto &dag : top_dags) {
         std::unordered_set<Id> visiting;
-        return {best->cost, build_expression(class_id, best->choices, visiting)};
+        results.emplace_back(dag.cost, build_expression(class_id, dag.choices, visiting));
+    }
+    return results;
+}
+
+ExtractionResult Extractor::extract(Id class_id, const SizeBindings &size_bindings) const {
+    auto results = extract(class_id, size_bindings, 1);
+    if (!results.empty()) {
+        return results.front();
     }
 
     throw std::runtime_error(
         "Runtime error: no numeric DAG found for root class "
         "under supplied size bindings");
+}
+
+std::vector<ExtractionResult>
+Extractor::extract(Id class_id, const SizeBindings &size_bindings, size_t max_results) const {
+    auto top_dags = find_top_numeric_dags(class_id, max_results, &size_bindings);
+    std::vector<ExtractionResult> results;
+    results.reserve(top_dags.size());
+    for (const auto &dag : top_dags) {
+        std::unordered_set<Id> visiting;
+        results.emplace_back(dag.cost, build_expression(class_id, dag.choices, visiting));
+    }
+    return results;
 }
 
 std::vector<ExtractionResult> Extractor::extract_symbolic(Id class_id) const {
@@ -241,14 +297,15 @@ std::vector<ExtractionResult> Extractor::extract_symbolic(Id class_id) const {
 }
 
 bool Extractor::collect_selected_nodes_for_binding(
-    const std::vector<Id> &roots, const SizeBindings &size_bindings,
+    const std::vector<Id> &roots, const SizeBindings &size_bindings, size_t max_results,
     std::unordered_map<Id, const ENode *> &selected_choices) const {
     bool any_root_succeeded = false;
 
     for (Id root : roots) {
-        if (auto best = find_best_numeric_dag(root, &size_bindings); best.has_value()) {
+        auto results = find_top_numeric_dags(root, max_results, &size_bindings);
+        for (const auto &result : results) {
             any_root_succeeded = true;
-            for (const auto &[class_id, node] : best->choices) {
+            for (const auto &[class_id, node] : result.choices) {
                 selected_choices[class_id] = node;
             }
         }

@@ -82,12 +82,6 @@ TEST(Integration, MinimalRealisticExplosionRules) {
         const auto prune_result = pruner.run({root_id}, bindings);
         std::cout << "Iteration " << (iteration + 1) << ": pruned=" << prune_result.nodes_pruned
                   << ", nodes after pruning=" << prune_result.nodes_after << std::endl;
-
-        if (!changed && prune_result.nodes_pruned == 0) {
-            std::cout << "No rewrite or pruning progress in iteration " << (iteration + 1) << ", stopping early."
-                      << std::endl;
-            break;
-        }
     }
 
     auto result = extractor.extract(root_id);

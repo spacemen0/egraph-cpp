@@ -134,3 +134,49 @@ TEST_F(ExtractorTest, ExtractSymbolicMultipleDags) {
     EXPECT_TRUE(exprs.contains("Mul(Tr(M), n)"));
     EXPECT_TRUE(exprs.contains("Mul(Tr(P), n)"));
 }
+
+TEST_F(ExtractorTest, ExtractTopNumericDags) {
+    Id id_a = egraph.add_node(make_symbol("A"));
+    Id id_x = egraph.add_node(make_symbol("X"));
+    Id id_y = egraph.add_node(make_symbol("Y"));
+    Id id_mul = egraph.add_node(make_op(Op::Mul, {id_x, id_y}));
+
+    egraph.union_classes(id_a, id_mul);
+    egraph.rebuild();
+
+    auto results = extractor.extract(id_a, 2);
+    ASSERT_EQ(results.size(), 2);
+    EXPECT_TRUE(std::holds_alternative<double>(results[0].cost));
+    EXPECT_TRUE(std::holds_alternative<double>(results[1].cost));
+    EXPECT_LE(std::get<double>(results[0].cost), std::get<double>(results[1].cost));
+
+    std::set<std::string> exprs;
+    for (const auto &result : results) {
+        exprs.insert(result.expr.to_string());
+    }
+    EXPECT_TRUE(exprs.contains("A"));
+    EXPECT_TRUE(exprs.contains("Mul(X, Y)"));
+}
+
+TEST_F(ExtractorTest, ExtractTopDagsWithSizeBindings) {
+    egraph.register_or_update_property("p", MatrixProperty{.shape = std::make_pair(Size("B"), 1)});
+
+    Id id_n = egraph.add_node(make_symbol("n"));
+    Id id_m = egraph.add_node(make_symbol("M"));
+    Id id_p = egraph.add_node(make_symbol("p"));
+    Id id_mul = egraph.add_node(make_op(Op::Mul, {id_m, id_p}));
+
+    egraph.union_classes(id_n, id_mul);
+    egraph.rebuild();
+
+    const SizeBindings size_bindings = {{"A", 64}, {"B", 32}};
+    auto results = extractor.extract(id_n, size_bindings, 2);
+    ASSERT_EQ(results.size(), 2);
+
+    std::set<std::string> exprs;
+    for (const auto &result : results) {
+        exprs.insert(result.expr.to_string());
+    }
+    EXPECT_TRUE(exprs.contains("n"));
+    EXPECT_TRUE(exprs.contains("Mul(M, p)"));
+}
