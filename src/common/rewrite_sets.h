@@ -260,6 +260,9 @@ inline std::vector<Rewrite> get_rewrite_set_by_name(const std::string &name) {
     if (name == "zero-negation") {
         return zero_negation_set;
     }
+    if (name == "solver") {
+        return solver_set;
+    }
     throw std::invalid_argument("Unknown rewrite set name: " + name);
 }
 

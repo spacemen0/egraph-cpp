@@ -13,8 +13,9 @@ TEST(Integration, GLSNumeric) {
 
     std::vector<Rewrite> rules = build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality"});
     CostStorage cost_storage(egraph);
-    Rewriter rewriter(egraph, rules, 1000);
-    rewriter.apply_rewrites(10);
+    Rewriter rewriter(egraph, rules, 6000);
+    while (rewriter.apply_rewrites(10))
+        ;
     Extractor extractor(egraph, cost_storage);
     auto result = extractor.extract(id, 10);
     for (const auto &r : result) {
@@ -29,10 +30,12 @@ TEST(Integration, GLSSymbolic) {
     auto id =
         egraph.add_expression(Expression("Mul( Mul( Inv( Mul( Mul(Tr(M), Inv(v)), M) ) , Mul(Tr(M), Inv(v)) ), n)"));
 
-    std::vector<Rewrite> rules = build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality"});
+    std::vector<Rewrite> rules =
+        build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality", "solver"});
     CostStorage cost_storage(egraph);
-    Rewriter rewriter(egraph, rules, 1000);
-    rewriter.apply_rewrites(10);
+    Rewriter rewriter(egraph, rules, 6000, true);
+    while (rewriter.apply_rewrites(10))
+        ;
     Extractor extractor(egraph, cost_storage);
     auto result = extractor.extract(id, {{"A", 100}, {"B", 20}});
     std::cout << "Best extracted expression: " << result.expr.to_human_string() << std::endl;
