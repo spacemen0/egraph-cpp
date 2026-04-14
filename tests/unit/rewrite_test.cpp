@@ -1,5 +1,5 @@
 #include "e_graph.h"
-#include "rewrite_rules.h"
+#include "rewrite_sets.h"
 #include "rewriter.h"
 #include "test_helpers.h"
 #include <gtest/gtest.h>
@@ -107,7 +107,7 @@ TEST(Rewrite, SolveRule) {
 
     Id id_expr = egraph.add_expression(Expression("Mul(Inv(a), b)"));
 
-    Rewriter rewriter(egraph, {solve_rule}, 100);
+    Rewriter rewriter(egraph, {solver_left}, 100);
     bool changed = rewriter.apply_rewrites();
     EXPECT_TRUE(changed);
 

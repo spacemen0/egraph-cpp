@@ -2,7 +2,7 @@
 #include "e_graph.h"
 #include "extractor.h"
 #include "pruner.h"
-#include "rewrite_rules.h"
+#include "rewrite_sets.h"
 #include "rewriter.h"
 #include "test_helpers.h"
 #include "utils.h"
