@@ -98,6 +98,18 @@ Expression::Expression(std::string_view string) {
     });
 }
 
+Expression::Expression(const ENode &node, const EGraph &egraph) : atom(node.get_atom()) {
+    const auto &child_ids = node.get_children();
+    children.reserve(child_ids.size());
+    for (Id child_id : child_ids) {
+        const auto &child_nodes = egraph.get_class_nodes(child_id);
+        if (child_nodes.empty()) {
+            throw std::runtime_error("No nodes in class for child id: " + std::to_string(child_id));
+        }
+        children.emplace_back(*child_nodes[0], egraph);
+    }
+}
+
 std::string Expression::to_string() const {
     std::stringstream ss;
     std::string atom_str = atom_to_string(this->atom);

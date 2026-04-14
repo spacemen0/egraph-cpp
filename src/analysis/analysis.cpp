@@ -1,6 +1,8 @@
 #include "analysis.h"
 #include "e_graph.h"
 #include "errors.h"
+#include "expression.h"
+#include "property_table.h"
 #include "utils.h"
 #include <variant>
 
@@ -237,17 +239,39 @@ static AnalysisData analyze_get(const EGraph &egraph, const std::vector<Id> &chi
 static AnalysisData analyze_solve(const EGraph &egraph, const std::vector<Id> &children) {
     check_arity(children, 2, "Sol");
     if (auto data1 = get_matrix_data(egraph, children.at(0))) {
+        if (!data1->is_square())
+            throw InvalidOperationError(
+                "Sol operation on non-square matrix " +
+                Expression(egraph.find_node(children.at(0)).value(), egraph).to_human_string());
         if (auto data2 = get_matrix_data(egraph, children.at(1))) {
             if (data1->shape.second != data2->shape.first) {
                 throw ShapeMismatchError("Sol operation with incompatible sizes");
             }
 
             MatrixProperty prop;
-            prop.shape = data2->shape;
+            prop.shape = {data1->shape.first, data2->shape.second};
             return matrix_property_data(prop);
         }
     }
     throw AnalysisError("Sol expects Matrix inputs");
+}
+
+static AnalysisData analyze_solve_right(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 2, "SolR");
+    if (auto data1 = get_matrix_data(egraph, children.at(0))) {
+        if (auto data2 = get_matrix_data(egraph, children.at(1))) {
+            if (data1->shape.second != data2->shape.second) {
+                throw ShapeMismatchError("SolR operation with incompatible sizes");
+            }
+            if (!data2->is_square())
+                throw InvalidOperationError("SolR operation on non-square matrix");
+
+            MatrixProperty prop;
+            prop.shape = {data2->shape.first, data1->shape.first};
+            return matrix_property_data(prop);
+        }
+    }
+    throw AnalysisError("SolR expects Matrix inputs");
 }
 
 static AnalysisData analyze_triangular_solve(const EGraph &egraph, const std::vector<Id> &children) {
@@ -348,7 +372,7 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
     case Log:
         return AnalysisData{};
     case SolR:
-        return analyze_solve(egraph, {children.at(1), children.at(0)});
+        return analyze_solve_right(egraph, children);
     default:
         throw AnalysisError("Unknown operation in analysis");
     }
