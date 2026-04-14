@@ -1,5 +1,7 @@
+#include "e_graph.h"
 #include "rewriter.h"
 #include "utils.h"
+#include <cstddef>
 #include <vector>
 
 static auto is_leaf_condition = [](const EGraph &g, const Substitution &s) {
@@ -154,35 +156,75 @@ static const Rewrite mul_zero_right =
     return is_zero(s, g, "z");
 });
 
+static const Rewrite solver_left = make_rewrite("solver_left", "Mul(Inv(?a), ?b)", "Sol(?a, ?b)");
+static const Rewrite solve_composition =
+    make_rewrite("solve_composition", "Sol(Mul(?a, ?b), ?c)", "Sol(?b, Sol(?a, ?c))");
+static const Rewrite solve_cancel_left = make_rewrite("solve_cancel_left", "Sol(?a, Mul(?a, ?b))", "?b");
+static const Rewrite solve_cancel_right = make_rewrite("solve_cancel_right", "Mul(?a, Sol(?a, ?b))", "?b");
+static const Rewrite solve_by_id =
+    make_rewrite("solve_by_id", "Sol(?b, ?a)", "?a", [](const EGraph &g, const Substitution &s) {
+    return is_identity(s, g, "b");
+}, nullptr);
+static const Rewrite solve_identity =
+    make_rewrite("solve_identity", "Sol(?a, ?a)", "Dynamic", nullptr, [](EGraph &g, const Substitution &s) {
+    return make_identity_for(g, s, "a");
+});
+static const Rewrite inverse_solve = make_rewrite("inverse_solve", "Inv(Sol(?a, ?b))", "Mul(Inv(?b), ?a)");
+static const Rewrite transpose_solve = make_rewrite("transpose_solve", "Tr(Sol(?a, ?b))", "SolR(Tr(?b), Tr(?a))");
+
+static const Rewrite solver_right_composition =
+    make_rewrite("solver_right_composition", "SolR(?c, Mul(?a, ?b))", "SolR(SolR(?c, ?b), ?a)");
+static const Rewrite solver_right = make_rewrite("solver_right", "Mul(?b, Inv(?a))", "SolR(?b, ?a)");
+static const Rewrite solve_r_cancel_left = make_rewrite("solve_r_cancel_left", "SolR(Mul(?b, ?a), ?a)", "?b");
+static const Rewrite solve_r_cancel_right = make_rewrite("solve_r_cancel_right", "Mul(SolR(?b, ?a), ?a)", "?b");
+static const Rewrite solve_r_identity =
+    make_rewrite("solve_r_identity", "SolR(?a, ?a)", "Dynamic", nullptr, [](EGraph &g, const Substitution &s) {
+    return make_identity_for(g, s, "a");
+});
+static const Rewrite solve_r_by_id =
+    make_rewrite("solve_r_by_id", "SolR(?a, ?b)", "?a", [](const EGraph &g, const Substitution &s) {
+    return is_identity(s, g, "b");
+}, nullptr);
+static const Rewrite inverse_solve_r = make_rewrite("inverse_solve_r", "Inv(SolR(?b, ?a))", "SolR(?a, ?b)");
+static const Rewrite transpose_solve_r = make_rewrite("transpose_solve_r", "Tr(SolR(?b, ?a))", "Sol(Tr(?a), Tr(?b))");
+
 static const std::vector<Rewrite> factorization_set = {qr_invert, qr_inner_invert, lu_invert, llt_invert};
 
-static const std::vector<Rewrite> basic_algebraic_rewrite_set = {
+static const std::vector<Rewrite> algebraic_set = {
     mul_identity_left, mul_identity_right, mul_assoc_left,           mul_assoc_right,
     commute_add,       mat_transpose_prod, mat_transpose_prod_right,
 };
 
-static const std::vector<Rewrite> basic_inverse_rewrite_set = {
+static const std::vector<Rewrite> inverse_set = {
     invert_cancel_left,
     invert_cancel_right,
     invert_mat_prod,
 };
 
-static const std::vector<Rewrite> basic_orthogonality_rewrite_set = {
+static const std::vector<Rewrite> orthogonality_set = {
     orthogonal_transpose,
     orthonormal_transpose,
 };
 
-static const std::vector<Rewrite> basic_zero_negation_rewrite_set = {
+static const std::vector<Rewrite> zero_negation_set = {
     negate_involutive, add_negate_cancel_left, add_comm_zero, mul_zero_left, mul_zero_right,
+};
+
+static const std::vector<Rewrite> solver_set = {
+    solver_left,   solve_composition,        solve_cancel_left,   solve_cancel_right,
+    solve_by_id,   solve_identity,           inverse_solve,       transpose_solve,
+    solver_right,  solver_right_composition, solve_r_cancel_left, solve_r_cancel_right,
+    solve_r_by_id, solve_r_identity,         inverse_solve_r,     transpose_solve_r,
 };
 
 static std::vector<Rewrite> build_complete_rewrite_set() {
     std::vector<Rewrite> rewrites;
-    rewrites.insert(rewrites.end(), basic_algebraic_rewrite_set.begin(), basic_algebraic_rewrite_set.end());
-    rewrites.insert(rewrites.end(), basic_inverse_rewrite_set.begin(), basic_inverse_rewrite_set.end());
-    rewrites.insert(rewrites.end(), basic_orthogonality_rewrite_set.begin(), basic_orthogonality_rewrite_set.end());
-    rewrites.insert(rewrites.end(), basic_zero_negation_rewrite_set.begin(), basic_zero_negation_rewrite_set.end());
+    rewrites.insert(rewrites.end(), algebraic_set.begin(), algebraic_set.end());
+    rewrites.insert(rewrites.end(), inverse_set.begin(), inverse_set.end());
+    rewrites.insert(rewrites.end(), orthogonality_set.begin(), orthogonality_set.end());
+    rewrites.insert(rewrites.end(), zero_negation_set.begin(), zero_negation_set.end());
     rewrites.insert(rewrites.end(), factorization_set.begin(), factorization_set.end());
+    rewrites.insert(rewrites.end(), solver_set.begin(), solver_set.end());
     return rewrites;
 }
 
@@ -194,16 +236,16 @@ inline std::vector<Rewrite> get_rewrite_set_by_name(const std::string &name) {
         return factorization_set;
     }
     if (name == "algebraic") {
-        return basic_algebraic_rewrite_set;
+        return algebraic_set;
     }
     if (name == "inverse") {
-        return basic_inverse_rewrite_set;
+        return inverse_set;
     }
     if (name == "orthogonality") {
-        return basic_orthogonality_rewrite_set;
+        return orthogonality_set;
     }
     if (name == "zero-negation") {
-        return basic_zero_negation_rewrite_set;
+        return zero_negation_set;
     }
     throw std::invalid_argument("Unknown rewrite set name: " + name);
 }

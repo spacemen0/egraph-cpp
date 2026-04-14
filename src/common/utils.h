@@ -40,6 +40,8 @@ inline Op parse_op(std::string_view s) {
         return Det;
     if (s == "Log")
         return Log;
+    if (s == "SolR")
+        return SolR;
     throw InvalidOperationError("Unknown operation: " + std::string(s));
 }
 
@@ -140,6 +142,8 @@ inline std::string atom_to_string(const Atom &atom) {
             return "Det";
         case Log:
             return "Log";
+        case SolR:
+            return "SolR";
         }
         return "UnknownOp";
     } else if (std::holds_alternative<std::string>(atom)) {

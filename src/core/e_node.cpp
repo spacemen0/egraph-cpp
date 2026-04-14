@@ -202,6 +202,8 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
         // Ops below are not implemented
         case Sol:
             return 5.0;
+        case SolR:
+            return 5.0;
         case TriSol:
             return 3.0;
         case Det:
@@ -247,6 +249,8 @@ std::string ENode::to_string() const {
             return "Sol";
         case TriSol:
             return "TriSol";
+        case SolR:
+            return "SolR";
         case Det:
             return "Det";
         case Log:

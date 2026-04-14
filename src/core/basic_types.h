@@ -15,7 +15,8 @@ enum class Op {
     LU,     // output: [L, U, P]
     LLt,    // output: [L] where A = LLt
     Get,    // [tuple, index]
-    Sol,    // [A, B] solving AX = B
+    Sol,    // [A, B] solving AX = B, output X
+    SolR,   // [B, A] solving XA = B, output X
     TriSol, // [A, B] solving AX = B where A is triangular
     Det,    // [A] computing det(A)
     Log,    //

@@ -347,6 +347,8 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
         return AnalysisData{};
     case Log:
         return AnalysisData{};
+    case SolR:
+        return analyze_solve(egraph, {children.at(1), children.at(0)});
     default:
         throw AnalysisError("Unknown operation in analysis");
     }
