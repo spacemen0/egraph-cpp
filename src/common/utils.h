@@ -207,25 +207,17 @@ make_identity_for(EGraph &egraph, const Substitution &s, const std::string &var_
     return egraph.add_node(ENode({}, identity_name));
 }
 
-inline Id make_zero_for(EGraph &g, const Substitution &s, const std::string &var_name) {
-    Id id = s.at(var_name);
-    const auto &data = g.get_class_analysis_data(id);
-    const auto *matrix_prop_ptr = std::get_if<MatrixProperty>(&data.property);
-    if (!matrix_prop_ptr) {
-        throw std::runtime_error("make_zero_for: Expected MatrixProperty but got TupleProperty");
-    }
-    const auto &matrix_prop = *matrix_prop_ptr;
-    auto shape = matrix_prop.shape;
-
+inline Id make_zero_of_shape(EGraph &g, const Shape &shape) {
     MatrixProperty prop;
     prop.shape = shape;
+    bool is_sq = shape.first == shape.second;
     prop.flags = {
-        .is_symmetric = true,
+        .is_symmetric = is_sq,
         .is_identity = false,
         .is_zero = true,
-        .is_upper_triangular = true,
-        .is_lower_triangular = true,
-        .is_diagonal = true,
+        .is_upper_triangular = is_sq,
+        .is_lower_triangular = is_sq,
+        .is_diagonal = is_sq,
         .is_singular = true,
     };
 
@@ -249,6 +241,16 @@ inline Id make_zero_for(EGraph &g, const Substitution &s, const std::string &var
     g.register_or_update_property(zero_name, prop);
 
     return g.add_node(ENode({}, zero_name));
+}
+
+inline Id make_zero_for(EGraph &g, const Substitution &s, const std::string &var_name) {
+    Id id = s.at(var_name);
+    const auto &data = g.get_class_analysis_data(id);
+    const auto *matrix_prop_ptr = std::get_if<MatrixProperty>(&data.property);
+    if (!matrix_prop_ptr) {
+        throw std::runtime_error("make_zero_for: Expected MatrixProperty but got TupleProperty");
+    }
+    return make_zero_of_shape(g, matrix_prop_ptr->shape);
 }
 
 inline std::optional<Expression>

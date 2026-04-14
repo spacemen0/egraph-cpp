@@ -147,20 +147,28 @@ static const Rewrite add_comm_zero =
 });
 
 static const Rewrite mul_zero_left =
-    make_rewrite("mul-zero-left", "Mul(?z, ?a)", "?z", [](const EGraph &g, const Substitution &s) {
+    make_rewrite("mul-zero-left", "Mul(?z, ?a)", "Dynamic", [](const EGraph &g, const Substitution &s) {
     return is_zero(s, g, "z");
+}, [](EGraph &g, const Substitution &s) {
+    const auto *z_prop = get_matrix_data(g, s.at("z"));
+    const auto *a_prop = get_matrix_data(g, s.at("a"));
+    return make_zero_of_shape(g, {z_prop->shape.first, a_prop->shape.second});
 });
 
 static const Rewrite mul_zero_right =
-    make_rewrite("mul-zero-right", "Mul(?a, ?z)", "?z", [](const EGraph &g, const Substitution &s) {
+    make_rewrite("mul-zero-right", "Mul(?a, ?z)", "Dynamic", [](const EGraph &g, const Substitution &s) {
     return is_zero(s, g, "z");
+}, [](EGraph &g, const Substitution &s) {
+    const auto *a_prop = get_matrix_data(g, s.at("a"));
+    const auto *z_prop = get_matrix_data(g, s.at("z"));
+    return make_zero_of_shape(g, {a_prop->shape.first, z_prop->shape.second});
 });
 
 static const Rewrite solver_left = make_rewrite("solver_left", "Mul(Inv(?a), ?b)", "Sol(?a, ?b)");
-static const Rewrite solve_composition =
-    make_rewrite("solve_composition", "Sol(Mul(?a, ?b), ?c)", "Sol(?b, Sol(?a, ?c))", [](const EGraph &g, const Substitution &s) {
-        return check_is_square(s, g, "a") && check_is_square(s, g, "b");
-    });
+static const Rewrite solve_composition = make_rewrite(
+    "solve_composition", "Sol(Mul(?a, ?b), ?c)", "Sol(?b, Sol(?a, ?c))", [](const EGraph &g, const Substitution &s) {
+    return check_is_square(s, g, "a") && check_is_square(s, g, "b");
+});
 static const Rewrite solve_cancel_left = make_rewrite("solve_cancel_left", "Sol(?a, Mul(?a, ?b))", "?b");
 static const Rewrite solve_cancel_right = make_rewrite("solve_cancel_right", "Mul(?a, Sol(?a, ?b))", "?b");
 static const Rewrite solve_by_id =
@@ -174,10 +182,11 @@ static const Rewrite solve_identity =
 static const Rewrite inverse_solve = make_rewrite("inverse_solve", "Inv(Sol(?a, ?b))", "Mul(Inv(?b), ?a)");
 static const Rewrite transpose_solve = make_rewrite("transpose_solve", "Tr(Sol(?a, ?b))", "SolR(Tr(?b), Tr(?a))");
 
-static const Rewrite solver_right_composition =
-    make_rewrite("solver_right_composition", "SolR(?c, Mul(?a, ?b))", "SolR(SolR(?c, ?b), ?a)", [](const EGraph &g, const Substitution &s) {
-        return check_is_square(s, g, "a") && check_is_square(s, g, "b");
-    });
+static const Rewrite solver_right_composition = make_rewrite(
+    "solver_right_composition", "SolR(?c, Mul(?a, ?b))", "SolR(SolR(?c, ?b), ?a)",
+    [](const EGraph &g, const Substitution &s) {
+    return check_is_square(s, g, "a") && check_is_square(s, g, "b");
+});
 static const Rewrite solver_right = make_rewrite("solver_right", "Mul(?b, Inv(?a))", "SolR(?b, ?a)");
 static const Rewrite solve_r_cancel_left = make_rewrite("solve_r_cancel_left", "SolR(Mul(?b, ?a), ?a)", "?b");
 static const Rewrite solve_r_cancel_right = make_rewrite("solve_r_cancel_right", "Mul(SolR(?b, ?a), ?a)", "?b");
