@@ -100,12 +100,16 @@ bool Rewriter::apply_one_iteration(size_t node_match_limit) {
             changed = true;
         }
         if (egraph.num_nodes() > max_nodes) {
-            return false;
+            break; // Break the apply loop to enforce limits but guarantee rebuild
         }
     }
 
     if (changed) {
         egraph.rebuild();
+    }
+
+    if (egraph.num_nodes() > max_nodes) {
+        return false;
     }
 
     return changed;

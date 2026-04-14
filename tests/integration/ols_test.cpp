@@ -5,7 +5,6 @@
 #include "rewrite_sets.h"
 #include "rewriter.h"
 #include "test_helpers.h"
-#include <format>
 #include <gtest/gtest.h>
 #include <iostream>
 
@@ -73,10 +72,13 @@ TEST(Integration, OLSNumeric) {
 
 TEST(Integration, OLSSymbolicRewritePruneConverges) {
     EGraph egraph(get_property_table());
+    egraph.register_or_update_property(
+        "M",
+        MatrixProperty{.shape = std::make_pair("A", "B"), .flags = {.is_positive_definite = true, .is_tall = true}});
     std::vector<Rewrite> rules = build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality"});
 
     constexpr int outer_iterations = 8;
-    constexpr int rewrite_steps_per_iteration = 6;
+    constexpr int rewrite_steps_per_iteration = 5;
     constexpr size_t prune_samples_per_iteration = 20;
     const std::vector<std::string> size_keys = {"A", "B"};
 
@@ -94,10 +96,10 @@ TEST(Integration, OLSSymbolicRewritePruneConverges) {
         root_id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(M), M) ) , Tr(M) ), n)"));
         rewriter.apply_rewrites(rewrite_steps_per_iteration);
 
-        egraph.to_img(std::format("iteration_{}_before_pruning", i + 1), "svg");
+        // egraph.to_img(std::format("iteration_{}_before_pruning", i + 1), "svg");
         const auto bindings = sample_size_bindings(prune_samples_per_iteration, 1, 1000, size_keys);
         const auto prune_result = pruner.run({root_id}, bindings);
-        egraph.to_img(std::format("iteration_{}_after_pruning", i + 1), "svg");
+        // egraph.to_img(std::format("iteration_{}_after_pruning", i + 1), "svg");
         total_pruned += prune_result.nodes_pruned;
 
         nodes_after_iteration.push_back(egraph.num_nodes());
