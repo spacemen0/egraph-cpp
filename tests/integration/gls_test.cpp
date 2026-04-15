@@ -1,6 +1,7 @@
 #include "cost_storage.h"
 #include "e_graph.h"
 #include "extractor.h"
+#include "property_table.h"
 #include "rewrite_sets.h"
 #include "rewriter.h"
 #include "test_helpers.h"
@@ -8,8 +9,11 @@
 
 TEST(Integration, GLSNumeric) {
     EGraph egraph(get_property_table());
+    egraph.register_or_update_property(
+        "M",
+        MatrixProperty{.shape = std::make_pair(3, 3), .flags = {.is_symmetric = true, .is_positive_definite = true}});
     auto id =
-        egraph.add_expression(Expression("Mul( Mul( Inv( Mul( Mul(Tr(X), Inv(V)), X) ) , Mul(Tr(X), Inv(V)) ), y)"));
+        egraph.add_expression(Expression("Mul( Mul( Inv( Mul( Mul(Tr(X), Inv(M)), X) ) , Mul(Tr(X), Inv(M)) ), y)"));
 
     std::vector<Rewrite> rules = build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality"});
     CostStorage cost_storage(egraph);
@@ -26,9 +30,14 @@ TEST(Integration, GLSNumeric) {
 }
 
 TEST(Integration, GLSSymbolic) {
-    EGraph egraph(get_property_table());
+    PropertyTable pt;
+    pt.add_or_update_property_entry("X", {.shape = std::make_pair("A", "B"), .flags = {.is_positive_definite = true}});
+    pt.add_or_update_property_entry(
+        "M", {.shape = std::make_pair("A", "A"), .flags = {.is_symmetric = true, .is_positive_definite = true}});
+    pt.add_or_update_property_entry("y", {.shape = std::make_pair("A", 1)});
+    EGraph egraph(pt);
     auto id =
-        egraph.add_expression(Expression("Mul( Mul( Inv( Mul( Mul(Tr(M), Inv(v)), M) ) , Mul(Tr(M), Inv(v)) ), n)"));
+        egraph.add_expression(Expression("Mul( Mul( Inv( Mul( Mul(Tr(X), Inv(M)), X) ) , Mul(Tr(X), Inv(M)) ), y)"));
 
     std::vector<Rewrite> rules =
         build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality", "solver"});

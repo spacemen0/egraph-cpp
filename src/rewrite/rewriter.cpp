@@ -1,6 +1,5 @@
 #include "rewriter.h"
 #include "matcher.h"
-#include <iostream>
 
 using Match = struct {
     Id class_id;
