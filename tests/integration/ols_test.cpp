@@ -86,13 +86,13 @@ TEST(Integration, OLSSymbolicRewritePruneConverges) {
     nodes_after_iteration.reserve(outer_iterations);
 
     size_t total_pruned = 0;
-    Rewriter rewriter(egraph, rules, 3000, true);
+    Rewriter rewriter(egraph, rules, 1000, true, true);
     CostStorage cost_storage(egraph);
-    Extractor extractor(egraph, cost_storage);
-    Pruner pruner(egraph, extractor);
     Id root_id;
 
     for (int i = 0; i < outer_iterations; ++i) {
+        Extractor extractor(egraph, cost_storage);
+        Pruner pruner(egraph, extractor);
         root_id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(M), M) ) , Tr(M) ), n)"));
         rewriter.apply_rewrites(rewrite_steps_per_iteration);
 
@@ -108,7 +108,7 @@ TEST(Integration, OLSSymbolicRewritePruneConverges) {
 
         const size_t n = nodes_after_iteration.size();
     }
-
+    Extractor extractor(egraph, cost_storage);
     auto result = extractor.extract_symbolic(root_id);
     for (const auto &candidate : result) {
         std::cout << "Candidate expression: " << candidate.expr.to_human_string() << std::endl;

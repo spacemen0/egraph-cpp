@@ -161,6 +161,9 @@ bool EGraph::union_classes(Id id1, Id id2) {
     if (root1 == root2) {
         return false;
     }
+    if (!classes.contains(root1) || !classes.contains(root2)) {
+        throw std::runtime_error("union_classes: One or both IDs not found in classes");
+    }
     if (classes.at(root1)->get_parents().size() < classes.at(root2)->get_parents().size()) {
         std::swap(root1, root2);
     }
@@ -336,6 +339,26 @@ PruneResult EGraph::prune_nodes_except(const std::unordered_map<Id, const ENode 
     }
 
     memo = std::move(new_memo);
+
+    for (auto &[class_id, eclass_ptr] : classes) {
+        auto &parents = eclass_ptr->get_parents();
+        parents.erase(
+            std::remove_if(
+                parents.begin(), parents.end(),
+                [&](Id parent_id) {
+            return !memo.contains(nodes[parent_id].get());
+        }),
+            parents.end());
+    }
+
+    pendings.erase(
+        std::remove_if(
+            pendings.begin(), pendings.end(),
+            [&](Id pending_id) {
+        return !memo.contains(nodes[pending_id].get());
+    }),
+        pendings.end());
+
     result.nodes_after = memo.size();
     result.nodes_pruned = removed_nodes;
     result.classes_with_removed_nodes = changed_classes;
