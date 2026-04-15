@@ -267,7 +267,7 @@ static AnalysisData analyze_solve_right(const EGraph &egraph, const std::vector<
                 throw InvalidOperationError("SolR operation on non-square matrix");
 
             MatrixProperty prop;
-            prop.shape = {data2->shape.first, data1->shape.first};
+            prop.shape = {data1->shape.first, data2->shape.second};
             return matrix_property_data(prop);
         }
     }
