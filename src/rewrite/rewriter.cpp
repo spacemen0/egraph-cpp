@@ -79,10 +79,10 @@ bool Rewriter::apply_one_iteration(size_t node_match_limit) {
             ban_duration_next[i] *= 2;
             current_match_limits[i] *= 2;
 
-            std::cout << "Rewrite '" << rewrite.name << "' exceeded match limit (" << total_valid_matches
-                      << " matches found, budget " << budget_remaining << "). Applied " << matches_to_apply
-                      << ". Banning for " << ban_iterations_remaining[i]
-                      << " iterations. New limit: " << current_match_limits[i] << std::endl;
+            // std::cout << "Rewrite '" << rewrite.name << "' exceeded match limit (" << total_valid_matches
+            //           << " matches found, budget " << budget_remaining << "). Applied " << matches_to_apply
+            //           << ". Banning for " << ban_iterations_remaining[i]
+            //           << " iterations. New limit: " << current_match_limits[i] << std::endl;
         }
     }
 

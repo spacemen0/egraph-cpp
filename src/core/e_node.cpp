@@ -148,7 +148,12 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
             if (!is_numeric(shape)) {
                 std::string r = size_to_symbol(shape.first);
                 std::string c = size_to_symbol(shape.second);
-
+                if (auto data = get_matrix_data(egraph, egraph.find_node_id(*this).value())) {
+                    if (data->flags.is_tall) {
+                        r = size_to_symbol(shape.second);
+                        c = size_to_symbol(shape.first);
+                    }
+                }
                 Monomial mn2 = {{r, c, c}};
                 Monomial n3 = {{c, c, c}};
 
@@ -200,10 +205,59 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
         case Get:
             return 0.0;
         // Ops below are not implemented
-        case Sol:
-            return 5.0;
-        case SolR:
-            return 5.0;
+        case Sol: {
+            auto shapeA = get_one_shape(children.at(0));
+            auto shapeB = get_one_shape(children.at(1));
+
+            if (is_numeric(shapeA) && is_numeric(shapeB)) {
+                double n = std::get<int>(shapeA.first);
+                double k = std::get<int>(shapeB.second);
+
+                // LU Factorization (2/3 n^3) + Forward/Back Substitution (2 n^2 k)
+                return (2.0 / 3.0) * n * n * n + 2.0 * n * n * k;
+            }
+
+            if (!is_numeric(shapeA) && !is_numeric(shapeB)) {
+                std::string n = size_to_symbol(shapeA.first);
+                std::string k = size_to_symbol(shapeB.second);
+
+                Monomial n3 = {{n, n, n}};
+                Monomial n2k = {{n, n, k}};
+
+                SymbolicCost sc;
+                sc[n3] = 2.0 / 3.0;
+                sc[n2k] = 2.0;
+                return sc;
+            }
+            throw std::invalid_argument("Invalid or mixed shapes for Sol operation in ENode::compute_local_cost");
+        }
+
+        case SolR: {
+            auto shapeB = get_one_shape(children.at(0));
+            auto shapeA = get_one_shape(children.at(1));
+
+            if (is_numeric(shapeB) && is_numeric(shapeA)) {
+                double m = std::get<int>(shapeB.first);
+                double n = std::get<int>(shapeA.first);
+
+                // LU Factorization (2/3 n^3) + Forward/Back Substitution (2 m n^2)
+                return (2.0 / 3.0) * n * n * n + 2.0 * m * n * n;
+            }
+
+            if (!is_numeric(shapeB) && !is_numeric(shapeA)) {
+                std::string m = size_to_symbol(shapeB.first);
+                std::string n = size_to_symbol(shapeA.first);
+
+                Monomial n3 = {{n, n, n}};
+                Monomial mn2 = {{m, n, n}};
+
+                SymbolicCost sc;
+                sc[n3] = 2.0 / 3.0;
+                sc[mn2] = 2.0;
+                return sc;
+            }
+            throw std::invalid_argument("Invalid or mixed shapes for SolR operation in ENode::compute_local_cost");
+        }
         case TriSol:
             return 3.0;
         case Det:

@@ -16,7 +16,7 @@ TEST(Integration, OLSSymbolic) {
     auto id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(M), M) ) , Tr(M) ), n)"));
 
     std::vector<Rewrite> rules = build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality"});
-    Rewriter rewriter(egraph, rules, 10000);
+    Rewriter rewriter(egraph, rules, 10000, true);
     int iteration = 0;
     while (rewriter.apply_one_iteration()) {
         iteration++;
@@ -47,7 +47,7 @@ TEST(Integration, OLSNumeric) {
     EGraph egraph(get_property_table());
     auto id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(X), X) ) , Tr(X) ), y)"));
     std::vector<Rewrite> rules = build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality"});
-    Rewriter rewriter(egraph, rules, 10000);
+    Rewriter rewriter(egraph, rules, 10000, true);
     auto should_be_root_id = egraph.add_expression(Expression("Mul(Inv(Get(QR(X), 1)), Mul(Tr(Get(QR(X), 0)), y))"));
 
     bool found_qr_form = false;
@@ -78,7 +78,7 @@ TEST(Integration, OLSSymbolicRewritePruneConverges) {
     std::vector<Rewrite> rules = build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality"});
 
     constexpr int outer_iterations = 8;
-    constexpr int rewrite_steps_per_iteration = 5;
+    constexpr int rewrite_steps_per_iteration = 10;
     constexpr size_t prune_samples_per_iteration = 20;
     const std::vector<std::string> size_keys = {"A", "B"};
 
@@ -86,7 +86,7 @@ TEST(Integration, OLSSymbolicRewritePruneConverges) {
     nodes_after_iteration.reserve(outer_iterations);
 
     size_t total_pruned = 0;
-    Rewriter rewriter(egraph, rules, 1000);
+    Rewriter rewriter(egraph, rules, 3000, true);
     CostStorage cost_storage(egraph);
     Extractor extractor(egraph, cost_storage);
     Pruner pruner(egraph, extractor);

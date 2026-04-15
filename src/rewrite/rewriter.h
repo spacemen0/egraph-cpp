@@ -13,7 +13,7 @@ struct Rewrite {
     Pattern rhs;
     std::function<bool(const EGraph &, const Substitution &)> condition = nullptr;
     std::function<Id(EGraph &, const Substitution &)> applier = nullptr;
-    size_t initial_match_limit = std::numeric_limits<size_t>::max();
+    size_t initial_match_limit = 30;
 };
 
 class Rewriter {

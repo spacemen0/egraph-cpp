@@ -33,12 +33,14 @@ TEST(Integration, GLSSymbolic) {
     std::vector<Rewrite> rules =
         build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality", "solver"});
     CostStorage cost_storage(egraph);
-    Rewriter rewriter(egraph, rules, 6000, true);
+    Rewriter rewriter(egraph, rules, 5000, true);
     while (rewriter.apply_rewrites(10))
         ;
     Extractor extractor(egraph, cost_storage);
-    auto result = extractor.extract(id, {{"A", 100}, {"B", 20}});
-    std::cout << "Best extracted expression: " << result.expr.to_human_string() << std::endl;
-    std::cout << "Cost: " << result.cost << std::endl;
+    auto result = extractor.extract(id, {{"A", 100}, {"B", 20}}, 10);
+    for (const auto &r : result) {
+        std::cout << "Candidate expression: " << r.expr.to_human_string() << std::endl;
+        std::cout << "Cost: " << r.cost << std::endl;
+    }
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
 }
