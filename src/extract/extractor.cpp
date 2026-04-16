@@ -20,7 +20,8 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
         }
     }
 
-    std::vector<PendingClass> pending = {{root, {}}};
+    // Pass the pending queue as a simple stack of IDs
+    std::vector<Id> pending = {root};
     std::unordered_map<Id, const ENode *> current_choices;
     std::vector<NumericSearchResult> best_results;
     double worst_selected_cost = std::numeric_limits<double>::infinity();
@@ -32,6 +33,7 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
         return {};
     }
 
+    // The heap guarantees the largest elements are at the front. We sort at the end to guarantee ascending order.
     std::sort(
         best_results.begin(), best_results.end(), [](const NumericSearchResult &lhs, const NumericSearchResult &rhs) {
         return lhs.cost < rhs.cost;
@@ -47,7 +49,7 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
 std::vector<Extractor::SymbolicSearchResult> Extractor::find_symbolic_dags(Id root_class_id) const {
     Id root = egraph.find_class_id(root_class_id);
 
-    std::vector<PendingClass> pending = {{root, {}}};
+    std::vector<Id> pending = {root};
     std::unordered_map<Id, const ENode *> current_choices;
     std::vector<SymbolicSearchResult> results;
     SymbolicCost initial_cost;
@@ -56,49 +58,44 @@ std::vector<Extractor::SymbolicSearchResult> Extractor::find_symbolic_dags(Id ro
     return results;
 }
 
-/// @param pending Stack of e-classes that still need a node choice, each
-/// annotated with the ancestors on the path that reached it.
-/// @param current_choices Map from e-class ID to the chosen ENode for the
-/// current search path.
-/// @param size_bindings Optional size bindings to use when computing costs.
-/// @param worst_selected_cost The cost of the worst result among the best results selected so far. Used for pruning
-/// search paths.
 void Extractor::search_top_numeric_dags(
-    const std::vector<PendingClass> &pending, std::unordered_map<Id, const ENode *> &current_choices,
-    const SizeBindings *size_bindings, double current_cost, size_t max_results,
-    std::vector<NumericSearchResult> &best_results, double &worst_selected_cost) const {
+    std::vector<Id> &pending, std::unordered_map<Id, const ENode *> &current_choices, const SizeBindings *size_bindings,
+    double current_cost, size_t max_results, std::vector<NumericSearchResult> &best_results,
+    double &worst_selected_cost) const {
+
     if (pending.empty()) {
         if (best_results.size() < max_results || current_cost < worst_selected_cost) {
-            // Uniqueness check
             bool is_unique = true;
             for (const auto &res : best_results) {
-                if (std::abs(res.cost - current_cost) < 5) {
+                if (std::abs(res.cost - current_cost) < 1e-9) {
                     is_unique = false;
                     break;
                 }
             }
-
             if (is_unique) {
                 best_results.push_back(NumericSearchResult{current_cost, current_choices});
+
+                // Push into Max-Heap based on cost (worst cost bubbles to the front)
+                std::push_heap(
+                    best_results.begin(), best_results.end(),
+                    [](const NumericSearchResult &a, const NumericSearchResult &b) {
+                    return a.cost < b.cost;
+                });
+
+                // Evict worst result if we exceed max_results
                 if (best_results.size() > max_results) {
-                    assert(best_results.size() == max_results + 1);
-                    auto worst_it = std::max_element(
+                    std::pop_heap(
                         best_results.begin(), best_results.end(),
-                        [](const NumericSearchResult &lhs, const NumericSearchResult &rhs) {
-                        return lhs.cost < rhs.cost;
+                        [](const NumericSearchResult &a, const NumericSearchResult &b) {
+                        return a.cost < b.cost;
                     });
-                    best_results.erase(worst_it);
+                    best_results.pop_back();
                 }
 
+                // Update worst_selected_cost boundary
                 if (best_results.size() == max_results) {
-                    const auto worst_it = std::max_element(
-                        best_results.begin(), best_results.end(),
-                        [](const NumericSearchResult &lhs, const NumericSearchResult &rhs) {
-                        return lhs.cost < rhs.cost;
-                    });
-                    worst_selected_cost = worst_it->cost;
+                    worst_selected_cost = best_results.front().cost;
                 } else {
-                    // slots still available, so no pruning yet
                     worst_selected_cost = std::numeric_limits<double>::infinity();
                 }
             }
@@ -106,15 +103,12 @@ void Extractor::search_top_numeric_dags(
         return;
     }
 
-    std::vector<PendingClass> local_pending = pending;
-    PendingClass current_pending = local_pending.back();
-    Id current = egraph.find_class_id(current_pending.class_id);
-    local_pending.pop_back();
+    Id current = pending.back();
+    pending.pop_back();
 
     for (const ENode *candidate : egraph.get_class_nodes(current)) {
         Cost local_cost = candidate->compute_local_cost(egraph, size_bindings);
 
-        // Skip symbolic-cost candidates.
         if (!std::holds_alternative<double>(local_cost)) {
             continue;
         }
@@ -124,61 +118,49 @@ void Extractor::search_top_numeric_dags(
             continue;
         }
 
+        if (creates_cycle(current, candidate, current_choices)) {
+            continue;
+        }
+
         current_choices[current] = candidate;
 
-        // Add children e-classes to the pending list. A child that appears in the
-        // ancestor set for this dependency path would form a cycle.
-        std::vector<PendingClass> child_pending = local_pending;
-        std::unordered_set<Id> child_ancestors = current_pending.ancestors;
-        child_ancestors.insert(current);
-        bool has_cycle = false;
+        int added_children_count = 0;
         for (Id child : candidate->get_children()) {
             Id child_root = egraph.find_class_id(child);
-            if (child_ancestors.contains(child_root)) {
-                has_cycle = true;
-                // continue searching other candidates
-                break;
-            }
-
-            auto pending_it = std::find_if(child_pending.begin(), child_pending.end(), [&](const PendingClass &entry) {
-                return egraph.find_class_id(entry.class_id) == child_root;
-            });
-            bool child_already_pending = pending_it != child_pending.end();
-
-            if (child_already_pending) {
-                // Need to merge ancestor sets even if this child is already pending via another path.
-                pending_it->ancestors.insert(child_ancestors.begin(), child_ancestors.end());
-            }
-
-            if (!current_choices.contains(child_root) && !child_already_pending) // only calculate unvisited children
-            {
-                child_pending.emplace_back(child_root, child_ancestors);
+            if (!current_choices.contains(child_root)) {
+                // Ensure we don't add the same pending node twice from different paths
+                if (std::find(pending.begin(), pending.end(), child_root) == pending.end()) {
+                    pending.push_back(child_root);
+                    added_children_count++;
+                }
             }
         }
 
-        if (!has_cycle) {
-            search_top_numeric_dags(
-                child_pending, current_choices, size_bindings, next_cost, max_results, best_results,
-                worst_selected_cost);
-        }
+        search_top_numeric_dags(
+            pending, current_choices, size_bindings, next_cost, max_results, best_results, worst_selected_cost);
 
-        // Return to the previous state.
+        // Backtrack (Undo state)
+        for (int i = 0; i < added_children_count; ++i) {
+            pending.pop_back();
+        }
         current_choices.erase(current);
     }
+
+    // Restore pending state for outer stack frames
+    pending.push_back(current);
 }
 
 void Extractor::search_symbolic_dags(
-    const std::vector<PendingClass> &pending, std::unordered_map<Id, const ENode *> &current_choices,
-    SymbolicCost &current_cost, std::vector<SymbolicSearchResult> &results) const {
+    std::vector<Id> &pending, std::unordered_map<Id, const ENode *> &current_choices, SymbolicCost current_cost,
+    std::vector<SymbolicSearchResult> &results) const {
+
     if (pending.empty()) {
         results.emplace_back(current_cost, current_choices);
         return;
     }
 
-    std::vector<PendingClass> local_pending = pending;
-    PendingClass current_pending = local_pending.back();
-    Id current = egraph.find_class_id(current_pending.class_id);
-    local_pending.pop_back();
+    Id current = pending.back();
+    pending.pop_back();
 
     for (const ENode *candidate : egraph.get_class_nodes(current)) {
         Cost local_cost = candidate->compute_local_cost(egraph);
@@ -190,46 +172,34 @@ void Extractor::search_symbolic_dags(
             continue;
         }
 
+        if (creates_cycle(current, candidate, current_choices)) {
+            continue;
+        }
+
         current_choices[current] = candidate;
 
-        // Add children e-classes to the pending list. A child that appears in the
-        // ancestor set for this dependency path would form a cycle.
-        std::vector<PendingClass> child_pending = local_pending;
-        std::unordered_set<Id> child_ancestors = current_pending.ancestors;
-        child_ancestors.insert(current);
-        bool has_cycle = false;
+        int added_children_count = 0;
         for (Id child : candidate->get_children()) {
             Id child_root = egraph.find_class_id(child);
-
-            if (child_ancestors.contains(child_root)) {
-                has_cycle = true;
-                break;
-            }
-
-            auto pending_it = std::find_if(child_pending.begin(), child_pending.end(), [&](const PendingClass &entry) {
-                return egraph.find_class_id(entry.class_id) == child_root;
-            });
-            bool child_already_pending = pending_it != child_pending.end();
-
-            if (child_already_pending) {
-                // Merge ancestor sets (without re-inserting to pending)
-                pending_it->ancestors.insert(child_ancestors.begin(), child_ancestors.end());
-            }
-
-            if (!current_choices.contains(child_root) && !child_already_pending) // only calculate unvisited children
-            {
-                child_pending.emplace_back(child_root, child_ancestors);
+            if (!current_choices.contains(child_root)) {
+                if (std::find(pending.begin(), pending.end(), child_root) == pending.end()) {
+                    pending.push_back(child_root);
+                    added_children_count++;
+                }
             }
         }
 
-        if (!has_cycle) {
-            // Recursively search with this candidate chosen.
-            search_symbolic_dags(child_pending, current_choices, next_cost, results);
-        }
+        search_symbolic_dags(pending, current_choices, next_cost, results);
 
-        // Return to the previous state.
+        // Backtrack
+        for (int i = 0; i < added_children_count; ++i) {
+            pending.pop_back();
+        }
         current_choices.erase(current);
     }
+
+    // Restore pending state
+    pending.push_back(current);
 }
 
 Expression Extractor::build_expression(
@@ -295,6 +265,39 @@ Extractor::extract(Id class_id, const SizeBindings &size_bindings, size_t max_re
         results.emplace_back(dag.cost, build_expression(class_id, dag.choices, visiting));
     }
     return results;
+}
+
+bool Extractor::creates_cycle(
+    Id current_class, const ENode *candidate, const std::unordered_map<Id, const ENode *> &current_choices) const {
+    std::vector<Id> stack;
+    for (Id child : candidate->get_children()) {
+        stack.push_back(egraph.find_class_id(child));
+    }
+
+    std::unordered_set<Id> visited;
+
+    while (!stack.empty()) {
+        Id node = stack.back();
+        stack.pop_back();
+
+        // If we loop back to the class we are currently trying to assign, it's a cycle.
+        if (node == current_class) {
+            return true;
+        }
+
+        // Only explore nodes we haven't checked yet
+        if (visited.insert(node).second) {
+            auto it = current_choices.find(node);
+            if (it != current_choices.end()) {
+                // This child already has a chosen path, follow it downward
+                for (Id next_child : it->second->get_children()) {
+                    stack.push_back(egraph.find_class_id(next_child));
+                }
+            }
+        }
+    }
+
+    return false;
 }
 
 std::vector<ExtractionResult> Extractor::extract_symbolic(Id class_id) const {

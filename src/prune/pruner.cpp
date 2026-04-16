@@ -1,5 +1,4 @@
 #include "pruner.h"
-#include <iostream>
 
 PruneResult Pruner::run(const std::vector<Id> &roots, const std::vector<SizeBindings> &bindings) const {
     PruneResult result;
@@ -7,7 +6,6 @@ PruneResult Pruner::run(const std::vector<Id> &roots, const std::vector<SizeBind
     std::unordered_map<Id, const ENode *> keep_choices;
 
     for (const auto &binding : bindings) {
-        std::cout << "Pruning for one iteration..." << std::endl;
         extractor.collect_selected_nodes_for_binding(roots, binding, 10, keep_choices);
     };
     // Keep all root classes (if multiple roots were passed but only part of them were extractable)

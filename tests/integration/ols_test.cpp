@@ -79,14 +79,14 @@ TEST(Integration, OLSSymbolicRewritePruneConverges) {
 
     constexpr int outer_iterations = 8;
     constexpr int rewrite_steps_per_iteration = 10;
-    constexpr size_t prune_samples_per_iteration = 20;
+    constexpr size_t prune_samples_per_iteration = 50;
     const std::vector<std::string> size_keys = {"A", "B"};
 
     std::vector<size_t> nodes_after_iteration;
     nodes_after_iteration.reserve(outer_iterations);
 
     size_t total_pruned = 0;
-    Rewriter rewriter(egraph, rules, 2000, true);
+    Rewriter rewriter(egraph, rules, 1500, true);
     CostStorage cost_storage(egraph);
     Id root_id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(M), M) ) , Tr(M) ), n)"));
 
@@ -94,7 +94,12 @@ TEST(Integration, OLSSymbolicRewritePruneConverges) {
         Extractor extractor(egraph, cost_storage);
         Pruner pruner(egraph, extractor);
         rewriter.apply_rewrites(rewrite_steps_per_iteration);
-
+        auto should_be_root_id =
+            egraph.add_expression(Expression("Mul(Inv(Get(QR(M), 1)), Mul(Tr(Get(QR(M), 0)), n))"));
+        if (egraph.find_class_id(root_id) == egraph.find_class_id(should_be_root_id)) {
+            std::cout << "Found the QR-based solution in iteration " << (i + 1) << "! Num nodes: " << egraph.num_nodes()
+                      << std::endl;
+        }
         // egraph.to_img(std::format("iteration_{}_before_pruning", i + 1), "svg");
         const auto bindings = sample_size_bindings(prune_samples_per_iteration, 1, 1000, size_keys);
         const auto prune_result = pruner.run({root_id}, bindings);
