@@ -34,8 +34,6 @@ inline Op parse_op(std::string_view s) {
         return Get;
     if (s == "Sol")
         return Sol;
-    if (s == "TriSol")
-        return TriSol;
     if (s == "Det")
         return Det;
     if (s == "Log")
@@ -136,8 +134,6 @@ inline std::string atom_to_string(const Atom &atom) {
             return "Get";
         case Sol:
             return "Sol";
-        case TriSol:
-            return "TriSol";
         case Det:
             return "Det";
         case Log:

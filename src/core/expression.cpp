@@ -202,7 +202,6 @@ std::string Expression::to_human_string() const {
         if (children.size() == 2)
             return "solve(" + children[0].to_human_string() + ", " + children[1].to_human_string() + ")";
         break;
-    case TriSol:
         if (children.size() == 2)
             return "tri_solve(" + children[0].to_human_string() + ", " + children[1].to_human_string() + ")";
         break;

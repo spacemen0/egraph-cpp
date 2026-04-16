@@ -8,6 +8,33 @@
 #include <gtest/gtest.h>
 #include <iostream>
 
+TEST(Integration, OLSNumeric) {
+    EGraph egraph(get_property_table());
+    auto id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(X), X) ) , Tr(X) ), y)"));
+    std::vector<Rewrite> rules = build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality"});
+    Rewriter rewriter(egraph, rules, 4000, true);
+    auto should_be_root_id = egraph.add_expression(Expression("Mul(Inv(Get(QR(X), 1)), Mul(Tr(Get(QR(X), 0)), y))"));
+
+    bool found_qr_form = false;
+    constexpr int max_iterations = 20;
+    for (int iteration = 0; iteration < max_iterations; ++iteration) {
+        rewriter.apply_one_iteration();
+        if (egraph.find_class_id(should_be_root_id) == egraph.find_class_id(id)) {
+            found_qr_form = true;
+            std::cout << "Found the QR-based solution in iteration " << (iteration + 1)
+                      << "! Num nodes: " << egraph.num_nodes() << std::endl;
+        }
+    }
+    ASSERT_TRUE(found_qr_form) << "Did not find the QR-based numeric solution within iteration budget.";
+
+    CostStorage cost_storage(egraph);
+    Extractor extractor(egraph, cost_storage);
+    auto result = extractor.extract(id);
+    std::cout << "Best extracted expression: " << result.expr.to_human_string() << std::endl;
+    std::cout << "Cost: " << result.cost << std::endl;
+    std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
+}
+
 TEST(Integration, OLSSymbolic) {
     EGraph egraph(get_property_table());
     egraph.register_or_update_property(
@@ -43,33 +70,6 @@ TEST(Integration, OLSSymbolic) {
     FAIL() << "Did not find the QR-based solution within the nodes limit.";
 }
 
-TEST(Integration, OLSNumeric) {
-    EGraph egraph(get_property_table());
-    auto id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(X), X) ) , Tr(X) ), y)"));
-    std::vector<Rewrite> rules = build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality"});
-    Rewriter rewriter(egraph, rules, 10000, true);
-    auto should_be_root_id = egraph.add_expression(Expression("Mul(Inv(Get(QR(X), 1)), Mul(Tr(Get(QR(X), 0)), y))"));
-
-    bool found_qr_form = false;
-    constexpr int max_iterations = 20;
-    for (int iteration = 0; iteration < max_iterations && rewriter.apply_one_iteration(); ++iteration) {
-        if (egraph.find_class_id(should_be_root_id) == egraph.find_class_id(id)) {
-            found_qr_form = true;
-            std::cout << "Found the QR-based solution in iteration " << (iteration + 1)
-                      << "! Num nodes: " << egraph.num_nodes() << std::endl;
-            break;
-        }
-    }
-    ASSERT_TRUE(found_qr_form) << "Did not find the QR-based numeric solution within iteration budget.";
-
-    CostStorage cost_storage(egraph);
-    Extractor extractor(egraph, cost_storage);
-    auto result = extractor.extract(id);
-    std::cout << "Best extracted expression: " << result.expr.to_human_string() << std::endl;
-    std::cout << "Cost: " << result.cost << std::endl;
-    std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
-}
-
 TEST(Integration, OLSSymbolicRewritePruneConverges) {
     EGraph egraph(get_property_table());
     egraph.register_or_update_property(
@@ -86,20 +86,19 @@ TEST(Integration, OLSSymbolicRewritePruneConverges) {
     nodes_after_iteration.reserve(outer_iterations);
 
     size_t total_pruned = 0;
-    Rewriter rewriter(egraph, rules, 1000, true, true);
+    Rewriter rewriter(egraph, rules, 2000, true);
     CostStorage cost_storage(egraph);
-    Id root_id;
+    Id root_id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(M), M) ) , Tr(M) ), n)"));
 
     for (int i = 0; i < outer_iterations; ++i) {
         Extractor extractor(egraph, cost_storage);
         Pruner pruner(egraph, extractor);
-        root_id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(M), M) ) , Tr(M) ), n)"));
         rewriter.apply_rewrites(rewrite_steps_per_iteration);
 
         // egraph.to_img(std::format("iteration_{}_before_pruning", i + 1), "svg");
         const auto bindings = sample_size_bindings(prune_samples_per_iteration, 1, 1000, size_keys);
         const auto prune_result = pruner.run({root_id}, bindings);
-        // egraph.to_img(std::format("iteration_{}_after_pruning", i + 1), "svg");
+        egraph.to_img(std::format("iteration_{}_after_pruning", i + 1), "svg");
         total_pruned += prune_result.nodes_pruned;
 
         nodes_after_iteration.push_back(egraph.num_nodes());

@@ -274,26 +274,6 @@ static AnalysisData analyze_solve_right(const EGraph &egraph, const std::vector<
     throw AnalysisError("SolR expects Matrix inputs");
 }
 
-static AnalysisData analyze_triangular_solve(const EGraph &egraph, const std::vector<Id> &children) {
-    check_arity(children, 2, "TriSol");
-    if (auto data1 = get_matrix_data(egraph, children.at(0))) {
-        if (auto data2 = get_matrix_data(egraph, children.at(1))) {
-            if (data1->shape.second != data2->shape.first) {
-                throw ShapeMismatchError("TriSol operation with incompatible sizes");
-            }
-            if (!data1->flags.is_lower_triangular && !data1->flags.is_upper_triangular) {
-                throw InvalidOperationError("TriSol operation on non-triangular matrix");
-            }
-
-            MatrixProperty prop;
-            prop.shape = data2->shape;
-            return matrix_property_data(prop);
-        }
-    }
-
-    return AnalysisData{};
-}
-
 static AnalysisData analyze_lu(const EGraph &egraph, const std::vector<Id> &children) {
     check_arity(children, 1, "LU");
     if (auto data = get_matrix_data(egraph, children.at(0))) {
@@ -365,8 +345,6 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
         return analyze_get(egraph, children);
     case Sol:
         return analyze_solve(egraph, children);
-    case TriSol:
-        return analyze_triangular_solve(egraph, children);
     case Det:
         return AnalysisData{};
     case Log:

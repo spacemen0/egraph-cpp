@@ -69,27 +69,38 @@ void Extractor::search_top_numeric_dags(
     std::vector<NumericSearchResult> &best_results, double &worst_selected_cost) const {
     if (pending.empty()) {
         if (best_results.size() < max_results || current_cost < worst_selected_cost) {
-            best_results.push_back(NumericSearchResult{current_cost, current_choices});
-            if (best_results.size() > max_results) {
-                assert(best_results.size() == max_results + 1);
-                auto worst_it = std::max_element(
-                    best_results.begin(), best_results.end(),
-                    [](const NumericSearchResult &lhs, const NumericSearchResult &rhs) {
-                    return lhs.cost < rhs.cost;
-                });
-                best_results.erase(worst_it);
+            // Uniqueness check
+            bool is_unique = true;
+            for (const auto &res : best_results) {
+                if (std::abs(res.cost - current_cost) < 5) {
+                    is_unique = false;
+                    break;
+                }
             }
 
-            if (best_results.size() == max_results) {
-                const auto worst_it = std::max_element(
-                    best_results.begin(), best_results.end(),
-                    [](const NumericSearchResult &lhs, const NumericSearchResult &rhs) {
-                    return lhs.cost < rhs.cost;
-                });
-                worst_selected_cost = worst_it->cost;
-            } else {
-                // slots still available, so no pruning yet
-                worst_selected_cost = std::numeric_limits<double>::infinity();
+            if (is_unique) {
+                best_results.push_back(NumericSearchResult{current_cost, current_choices});
+                if (best_results.size() > max_results) {
+                    assert(best_results.size() == max_results + 1);
+                    auto worst_it = std::max_element(
+                        best_results.begin(), best_results.end(),
+                        [](const NumericSearchResult &lhs, const NumericSearchResult &rhs) {
+                        return lhs.cost < rhs.cost;
+                    });
+                    best_results.erase(worst_it);
+                }
+
+                if (best_results.size() == max_results) {
+                    const auto worst_it = std::max_element(
+                        best_results.begin(), best_results.end(),
+                        [](const NumericSearchResult &lhs, const NumericSearchResult &rhs) {
+                        return lhs.cost < rhs.cost;
+                    });
+                    worst_selected_cost = worst_it->cost;
+                } else {
+                    // slots still available, so no pruning yet
+                    worst_selected_cost = std::numeric_limits<double>::infinity();
+                }
             }
         }
         return;
