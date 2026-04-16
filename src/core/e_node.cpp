@@ -95,7 +95,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
         // LU L-1 then Solve
         case Inv: {
             auto shape = get_one_shape(children.at(0));
-            auto data = get_matrix_data(egraph, egraph.find_node_id(*this).value());
+            auto data = get_matrix_data(egraph, children.at(0)); // Get from child
             if (is_numeric(shape)) {
                 int rows = std::get<int>(shape.first);
                 int cols = std::get<int>(shape.second);
@@ -104,7 +104,8 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
                         "Non-square matrix for Inv operation in "
                         "ENode::compute_local_cost");
                 }
-                if (data && (data->flags.is_upper_triangular || data->flags.is_lower_triangular)) {
+                if (data &&
+                    (data->flags.is_upper_triangular || data->flags.is_lower_triangular || data->flags.is_diagonal)) {
                     return (1.0 / 3.0) * rows * rows * rows;
                 }
                 return 8.0 * rows * rows * rows;
@@ -112,7 +113,8 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
             if (!is_numeric(shape)) {
                 Monomial m = {{size_to_symbol(shape.first), size_to_symbol(shape.first), size_to_symbol(shape.first)}};
                 SymbolicCost sc;
-                if (data && (data->flags.is_upper_triangular || data->flags.is_lower_triangular)) {
+                if (data &&
+                    (data->flags.is_upper_triangular || data->flags.is_lower_triangular || data->flags.is_diagonal)) {
                     sc[m] = 1.0 / 3.0;
                 } else {
                     sc[m] = 8.0;
@@ -148,10 +150,9 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
             if (!is_numeric(shape)) {
                 std::string r = size_to_symbol(shape.first);
                 std::string c = size_to_symbol(shape.second);
-                if (auto data = get_matrix_data(egraph, egraph.find_node_id(*this).value())) {
-                    if (data->flags.is_tall) {
-                        r = size_to_symbol(shape.second);
-                        c = size_to_symbol(shape.first);
+                if (auto data = get_matrix_data(egraph, children.at(0))) {
+                    if (data->is_wide_matrix()) {
+                        std::swap(r, c);
                     }
                 }
                 Monomial mn2 = {{r, c, c}};
@@ -208,10 +209,11 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
         case Sol: {
             auto shapeA = get_one_shape(children.at(0));
             auto shapeB = get_one_shape(children.at(1));
-            
+
             bool is_triang = false;
             if (auto dataA = get_matrix_data(egraph, children.at(0))) {
-                is_triang = dataA->flags.is_lower_triangular || dataA->flags.is_upper_triangular || dataA->flags.is_diagonal;
+                is_triang =
+                    dataA->flags.is_lower_triangular || dataA->flags.is_upper_triangular || dataA->flags.is_diagonal;
             }
 
             if (is_numeric(shapeA) && is_numeric(shapeB)) {
@@ -247,10 +249,11 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
         case SolR: {
             auto shapeB = get_one_shape(children.at(0));
             auto shapeA = get_one_shape(children.at(1));
-            
+
             bool is_triang = false;
             if (auto dataA = get_matrix_data(egraph, children.at(1))) {
-                is_triang = dataA->flags.is_lower_triangular || dataA->flags.is_upper_triangular || dataA->flags.is_diagonal;
+                is_triang =
+                    dataA->flags.is_lower_triangular || dataA->flags.is_upper_triangular || dataA->flags.is_diagonal;
             }
 
             if (is_numeric(shapeB) && is_numeric(shapeA)) {

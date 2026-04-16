@@ -312,7 +312,7 @@ std::vector<ExtractionResult> Extractor::extract_symbolic(Id class_id) const {
 
 bool Extractor::collect_selected_nodes_for_binding(
     const std::vector<Id> &roots, const SizeBindings &size_bindings, size_t max_results,
-    std::unordered_map<Id, const ENode *> &selected_choices) const {
+    std::unordered_map<Id, std::unordered_set<const ENode *>> &selected_choices) const {
     bool any_root_succeeded = false;
 
     for (Id root : roots) {
@@ -320,7 +320,7 @@ bool Extractor::collect_selected_nodes_for_binding(
         for (const auto &result : results) {
             any_root_succeeded = true;
             for (const auto &[class_id, node] : result.choices) {
-                selected_choices[class_id] = node;
+                selected_choices[class_id].insert(node);
             }
         }
     }

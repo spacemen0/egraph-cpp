@@ -14,6 +14,7 @@
 #include <optional>
 #include <set>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 class EGraph {
@@ -37,7 +38,7 @@ class EGraph {
     std::vector<Id> get_all_class_ids() const;
     const std::vector<const ENode *> &get_class_nodes(Id class_id) const;
     std::vector<Id> get_class_parents(Id class_id) const;
-    PruneResult prune_nodes_except(const std::unordered_map<Id, const ENode *> &keep_choices);
+    PruneResult prune_nodes_except(const std::unordered_map<Id, std::unordered_set<const ENode *>> &keep_choices);
     size_t num_nodes() const noexcept;
     const AnalysisData &get_class_analysis_data(Id class_id) const;
     const PropertyTable &get_property_table() const noexcept;

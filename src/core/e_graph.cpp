@@ -283,7 +283,7 @@ std::vector<Id> EGraph::get_class_parents(Id class_id) const {
     return classes.at(root)->get_parents();
 }
 
-PruneResult EGraph::prune_nodes_except(const std::unordered_map<Id, const ENode *> &keep_choices) {
+PruneResult EGraph::prune_nodes_except(const std::unordered_map<Id, std::unordered_set<const ENode *>> &keep_choices) {
     PruneResult result;
     result.nodes_before = memo.size();
 
@@ -314,13 +314,13 @@ PruneResult EGraph::prune_nodes_except(const std::unordered_map<Id, const ENode 
             continue;
         }
 
-        const ENode *keep_node = keep_it->second;
+        const auto &keep_nodes = keep_it->second;
         size_t before = class_nodes.size();
         class_nodes.erase(
             std::remove_if(
                 class_nodes.begin(), class_nodes.end(),
                 [&](const ENode *node) {
-            return node != keep_node;
+            return !keep_nodes.contains(node);
         }),
             class_nodes.end());
 

@@ -3,10 +3,10 @@
 PruneResult Pruner::run(const std::vector<Id> &roots, const std::vector<SizeBindings> &bindings) const {
     PruneResult result;
 
-    std::unordered_map<Id, const ENode *> keep_choices;
+    std::unordered_map<Id, std::unordered_set<const ENode *>> keep_choices;
 
     for (const auto &binding : bindings) {
-        extractor.collect_selected_nodes_for_binding(roots, binding, 10, keep_choices);
+        extractor.collect_selected_nodes_for_binding(roots, binding, 3, keep_choices);
     };
     // Keep all root classes (if multiple roots were passed but only part of them were extractable)
     for (Id root : roots) {
@@ -17,7 +17,7 @@ PruneResult Pruner::run(const std::vector<Id> &roots, const std::vector<SizeBind
 
         const auto &class_nodes = egraph.get_class_nodes(root_class);
         if (!class_nodes.empty()) {
-            keep_choices[root_class] = class_nodes.front();
+            keep_choices[root_class].insert(class_nodes.front());
         }
     }
 
