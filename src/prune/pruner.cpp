@@ -1,3 +1,4 @@
+#include "utils.h"
 #include "pruner.h"
 
 PruneResult Pruner::run(const std::vector<Id> &roots, const std::vector<SizeBindings> &bindings) const {
@@ -26,4 +27,20 @@ PruneResult Pruner::run(const std::vector<Id> &roots, const std::vector<SizeBind
         egraph.rebuild();
     }
     return result;
+}
+
+
+void Pruner::rewrite_and_run(const std::vector<Id> &roots, Rewriter &rewriter, const PruneOptions &options,
+                               std::function<void(int iteration, const PruneResult &)> callback) const {
+    for (int i = 0; i < options.outer_iterations; ++i) {
+        rewriter.reset();
+        rewriter.apply_rewrites(options.rewrite_steps_per_iteration);
+
+        const auto bindings = sample_size_bindings(options.prune_samples_per_iteration, 1, 1000, options.size_keys);
+        const auto prune_result = run(roots, bindings);
+
+        if (callback) {
+            callback(i, prune_result);
+        }
+    }
 }

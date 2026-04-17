@@ -151,3 +151,12 @@ bool Rewriter::apply_rewrites() {
     }
     return changed;
 }
+
+void Rewriter::reset() {
+    std::fill(rewrite_application_counts.begin(), rewrite_application_counts.end(), 0);
+    std::fill(ban_iterations_remaining.begin(), ban_iterations_remaining.end(), 0);
+    std::fill(ban_duration_next.begin(), ban_duration_next.end(), 1);
+    std::ranges::transform(rewrites, current_match_limits.begin(), [](const auto &r) {
+        return r.initial_match_limit;
+    });
+}

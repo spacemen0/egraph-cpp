@@ -77,42 +77,37 @@ TEST(Integration, OLSSymbolicRewritePruneConverges) {
         MatrixProperty{.shape = std::make_pair("A", "B"), .flags = {.is_positive_definite = true, .is_tall = true}});
     std::vector<Rewrite> rules = build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality"});
 
-    constexpr int outer_iterations = 8;
-    constexpr int rewrite_steps_per_iteration = 10;
-    constexpr size_t prune_samples_per_iteration = 50;
-    const std::vector<std::string> size_keys = {"A", "B"};
-
     std::vector<size_t> nodes_after_iteration;
-    nodes_after_iteration.reserve(outer_iterations);
 
     size_t total_pruned = 0;
     Rewriter rewriter(egraph, rules, 1500, true);
     CostStorage cost_storage(egraph);
+    Extractor extractor(egraph, cost_storage);
+    Pruner pruner(egraph, extractor);
     Id root_id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(M), M) ) , Tr(M) ), n)"));
 
-    for (int i = 0; i < outer_iterations; ++i) {
-        Extractor extractor(egraph, cost_storage);
-        Pruner pruner(egraph, extractor);
-        rewriter.apply_rewrites(rewrite_steps_per_iteration);
+    PruneOptions options{
+        .outer_iterations = 8,
+        .rewrite_steps_per_iteration = 10,
+        .prune_samples_per_iteration = 50,
+        .size_keys = {"A", "B"},
+    };
+
+    auto callback = [&](int i, const PruneResult &prune_result) {
         auto should_be_root_id =
             egraph.add_expression(Expression("Mul(Inv(Get(QR(M), 1)), Mul(Tr(Get(QR(M), 0)), n))"));
         if (egraph.find_class_id(root_id) == egraph.find_class_id(should_be_root_id)) {
             std::cout << "Found the QR-based solution in iteration " << (i + 1) << "! Num nodes: " << egraph.num_nodes()
                       << std::endl;
         }
-        // egraph.to_img(std::format("iteration_{}_before_pruning", i + 1), "svg");
-        const auto bindings = sample_size_bindings(prune_samples_per_iteration, 1, 1000, size_keys);
-        const auto prune_result = pruner.run({root_id}, bindings);
-        egraph.to_img(std::format("iteration_{}_after_pruning", i + 1), "svg");
         total_pruned += prune_result.nodes_pruned;
-
         nodes_after_iteration.push_back(egraph.num_nodes());
         std::cout << "Iteration " << (i + 1) << ": nodes after iteration=" << nodes_after_iteration.back()
                   << ", pruned=" << prune_result.nodes_pruned << std::endl;
+    };
 
-        const size_t n = nodes_after_iteration.size();
-    }
-    Extractor extractor(egraph, cost_storage);
+    pruner.rewrite_and_run({root_id}, rewriter, options, callback);
+
     auto result = extractor.extract_symbolic(root_id);
     for (const auto &candidate : result) {
         std::cout << "Candidate expression: " << candidate.expr.to_human_string() << std::endl;

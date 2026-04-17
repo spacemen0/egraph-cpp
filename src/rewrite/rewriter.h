@@ -35,6 +35,7 @@ class Rewriter {
     bool apply_one_iteration(size_t node_match_limit = 0);
     bool apply_rewrites(int max_iterations);
     bool apply_rewrites();
+    void reset();
 
   private:
     EGraph &egraph;
