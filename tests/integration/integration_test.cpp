@@ -79,7 +79,7 @@ TEST(Integration, MinimalRealisticExplosionRules) {
                   << ", nodes before pruning=" << egraph.num_nodes() << std::endl;
 
         const auto bindings = sample_size_bindings(prune_samples_per_iteration, 1, 1000, size_keys);
-        const auto prune_result = pruner.run({root_id}, bindings);
+        const auto prune_result = pruner.run({root_id}, bindings, 3);
         std::cout << "Iteration " << (iteration + 1) << ": pruned=" << prune_result.nodes_pruned
                   << ", nodes after pruning=" << prune_result.nodes_after << std::endl;
     }

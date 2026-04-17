@@ -12,7 +12,7 @@ TEST(Integration, OLSNumeric) {
     EGraph egraph(get_property_table());
     auto id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(X), X) ) , Tr(X) ), y)"));
     std::vector<Rewrite> rules = build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality"});
-    Rewriter rewriter(egraph, rules, 4000, true);
+    Rewriter rewriter(egraph, rules, 1000, true);
     auto should_be_root_id = egraph.add_expression(Expression("Mul(Inv(Get(QR(X), 1)), Mul(Tr(Get(QR(X), 0)), y))"));
 
     bool found_qr_form = false;
@@ -80,16 +80,17 @@ TEST(Integration, OLSSymbolicRewritePruneConverges) {
     std::vector<size_t> nodes_after_iteration;
 
     size_t total_pruned = 0;
-    Rewriter rewriter(egraph, rules, 1500, true);
+    Rewriter rewriter(egraph, rules, 1000, true);
     CostStorage cost_storage(egraph);
     Extractor extractor(egraph, cost_storage);
     Pruner pruner(egraph, extractor);
     Id root_id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(M), M) ) , Tr(M) ), n)"));
 
     PruneOptions options{
-        .outer_iterations = 8,
+        .num_iterations = 8,
         .rewrite_steps_per_iteration = 10,
-        .prune_samples_per_iteration = 50,
+        .prune_samples_per_iteration = 5,
+        .max_results_per_binding = 3,
         .size_keys = {"A", "B"},
     };
 

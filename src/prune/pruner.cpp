@@ -1,13 +1,14 @@
-#include "utils.h"
 #include "pruner.h"
+#include "utils.h"
 
-PruneResult Pruner::run(const std::vector<Id> &roots, const std::vector<SizeBindings> &bindings) const {
+PruneResult
+Pruner::run(const std::vector<Id> &roots, const std::vector<SizeBindings> &bindings, int max_results) const {
     PruneResult result;
 
     std::unordered_map<Id, std::unordered_set<const ENode *>> keep_choices;
 
     for (const auto &binding : bindings) {
-        extractor.collect_selected_nodes_for_binding(roots, binding, 3, keep_choices);
+        extractor.collect_selected_nodes_for_binding(roots, binding, max_results, keep_choices);
     };
     // Keep all root classes (if multiple roots were passed but only part of them were extractable)
     for (Id root : roots) {
@@ -29,15 +30,15 @@ PruneResult Pruner::run(const std::vector<Id> &roots, const std::vector<SizeBind
     return result;
 }
 
-
-void Pruner::rewrite_and_run(const std::vector<Id> &roots, Rewriter &rewriter, const PruneOptions &options,
-                               std::function<void(int iteration, const PruneResult &)> callback) const {
-    for (int i = 0; i < options.outer_iterations; ++i) {
+void Pruner::rewrite_and_run(
+    const std::vector<Id> &roots, Rewriter &rewriter, const PruneOptions &options,
+    std::function<void(int iteration, const PruneResult &)> callback) const {
+    for (int i = 0; i < options.num_iterations; ++i) {
         rewriter.reset();
         rewriter.apply_rewrites(options.rewrite_steps_per_iteration);
 
         const auto bindings = sample_size_bindings(options.prune_samples_per_iteration, 1, 1000, options.size_keys);
-        const auto prune_result = run(roots, bindings);
+        const auto prune_result = run(roots, bindings, options.max_results_per_binding);
 
         if (callback) {
             callback(i, prune_result);
