@@ -20,6 +20,7 @@ struct SessionState {
     std::vector<std::string> expressions;
     EGraph egraph;
     std::vector<Rewrite> rewrites;
+    bool numeric_mode = true;
 };
 
 std::vector<std::string> split_tokens(const std::string &line) {
@@ -63,6 +64,45 @@ bool is_available_rule_set(const std::string &name) {
     return false;
 }
 
+bool parse_session_mode(const std::string &text, bool &numeric_mode) {
+    if (text == "numeric") {
+        numeric_mode = true;
+        return true;
+    }
+    if (text == "symbolic") {
+        numeric_mode = false;
+        return true;
+    }
+    return false;
+}
+
+bool parse_property_assignment(const std::string &string_value, std::string &name, MatrixProperty &property) {
+    auto name_end = string_value.find(':');
+    if (name_end == std::string::npos) {
+        throw ParseError("Property assignment must use '<name>:<property>' (missing ':')");
+    }
+
+    name = std::string(trim(string_value.substr(0, name_end)));
+    property = MatrixProperty::from_string(trim(string_value.substr(name_end + 1)));
+    return true;
+}
+
+bool parse_binding_token(const std::string &token, std::string &key, int &value) {
+    size_t eq = token.find('=');
+    if (eq == std::string::npos || eq == 0 || eq + 1 >= token.size()) {
+        return false;
+    }
+
+    key = token.substr(0, eq);
+    try {
+        value = std::stoi(token.substr(eq + 1));
+    } catch (const std::exception &) {
+        return false;
+    }
+
+    return true;
+}
+
 void parse_expression(SessionState &state, const std::string &expr_str) {
     Expression expr = Expression(expr_str);
     Id id = state.egraph.add_expression(expr);
@@ -72,7 +112,16 @@ void parse_expression(SessionState &state, const std::string &expr_str) {
 void add_properties_to_state(SessionState &state, const std::vector<std::string> &property_strings) {
     for (const auto &string : property_strings) {
         try {
-            if (state.egraph.get_property_table().add_or_update_property_entry_by_string(string)) {
+            std::string name;
+            MatrixProperty property;
+            parse_property_assignment(string, name, property);
+
+            if (state.numeric_mode && property.has_symbolic_shape()) {
+                std::cerr << "Numeric mode does not accept symbolic matrix sizes: " << string << "\n";
+                continue;
+            }
+
+            if (state.egraph.get_property_table().add_or_update_property_entry(name, property)) {
                 std::cout << "Updated property: " << string << "\n";
             } else {
                 std::cout << "Added property: " << string << "\n";
@@ -98,7 +147,7 @@ void rewrite_e_graph(SessionState &state, std::optional<int> num_iterations) {
         std::cerr << "No rewrites enabled. Use 'add rule-set <name>' to add a rewrite set.\n";
         return;
     }
-    Rewriter rewriter(state.egraph, state.rewrites, 1000);
+    Rewriter rewriter(state.egraph, state.rewrites, 10000, true);
     if (num_iterations.has_value()) {
         rewriter.apply_rewrites(num_iterations.value());
     } else {
@@ -120,6 +169,44 @@ void extract_expression(SessionState &state, size_t expression_id) {
     std::cout << "Cost: " << result.cost << "\n";
 }
 
+void extract_expression_with_bindings(SessionState &state, size_t expression_id, const SizeBindings &bindings) {
+    if (!state.egraph.find_node(expression_id).has_value()) {
+        std::cerr << "Expression id " << expression_id
+                  << " does not exist in the e-graph. Make sure to rewrite the e-graph after parsing to populate the "
+                     "e-classes.\n";
+        return;
+    }
+
+    CostStorage cost_storage(state.egraph);
+    Extractor extractor(state.egraph, cost_storage);
+    auto result = extractor.extract(expression_id, bindings);
+    std::cout << "Best extracted expression (with bindings): " << result.expr.to_human_string() << "\n";
+    std::cout << "Cost: " << result.cost << "\n";
+}
+
+void extract_symbolic_expressions(SessionState &state, size_t expression_id) {
+    if (!state.egraph.find_node(expression_id).has_value()) {
+        std::cerr << "Expression id " << expression_id
+                  << " does not exist in the e-graph. Make sure to rewrite the e-graph after parsing to populate the "
+                     "e-classes.\n";
+        return;
+    }
+
+    CostStorage cost_storage(state.egraph);
+    Extractor extractor(state.egraph, cost_storage);
+    auto results = extractor.extract_symbolic(expression_id);
+    if (results.empty()) {
+        std::cout << "No symbolic extraction candidates found.\n";
+        return;
+    }
+
+    std::cout << "Symbolic extraction candidates: " << results.size() << "\n";
+    for (size_t i = 0; i < results.size(); ++i) {
+        std::cout << "  [" << i << "] " << results[i].expr.to_human_string() << "\n";
+        std::cout << "      Cost: " << results[i].cost << "\n";
+    }
+}
+
 void print_session_state(const SessionState &state) {
     std::cout << "Expressions:\n";
     if (state.expressions.empty()) {
@@ -137,6 +224,7 @@ void print_session_state(const SessionState &state) {
 
     std::cout << "Properties:\n";
     state.egraph.get_property_table().print_all_properties();
+    std::cout << "Mode: " << (state.numeric_mode ? "numeric" : "symbolic") << "\n";
     std::cout << "Enabled rewrites :\n";
     if (state.rewrites.empty()) {
         std::cout << "  <none>\n";
@@ -151,8 +239,9 @@ void print_repl_help() {
     std::cout << "Session commands:\n"
               << "  parse <expr>                         Store an expression in the session\n"
               << "  add [properties|rule-set] <item...>  Add one or more properties or rule-set names\n"
+              << "  mode [numeric|symbolic]              Show or set session mode\n"
               << "  rewrite [num-iterations]             Rewrite for N iterations or no args for saturation\n"
-              << "  extract <expr-id>                    Extract best expression for a stored expression id\n"
+              << "  extract [expr-id] [A=10 B=20 ...]    Extract in current mode (bindings optional in symbolic mode)\n"
               << "  show [state|available-rule-sets]     Display session state or available rule-sets\n"
               << "  reset                                Clear session state\n"
               << "  help                                 Show this message\n"
@@ -182,6 +271,24 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
         } else {
             std::cerr << "usage: add [properties|rule-set] <item...>\n";
         }
+        return;
+    }
+    if (command == "mode") {
+        if (tokens.size() == 1) {
+            std::cout << "Current mode: " << (state.numeric_mode ? "numeric" : "symbolic") << "\n";
+            return;
+        }
+        if (tokens.size() != 2) {
+            std::cerr << "usage: mode [numeric|symbolic]\n";
+            return;
+        }
+        bool parsed_mode;
+        if (!parse_session_mode(tokens[1], parsed_mode)) {
+            std::cerr << "usage: mode [numeric|symbolic]\n";
+            return;
+        }
+        state.numeric_mode = parsed_mode;
+        std::cout << "Mode set to " << (state.numeric_mode ? "numeric" : "symbolic") << ".\n";
         return;
     }
     if (command == "show") {
@@ -248,21 +355,59 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
             std::cerr << "No expression loaded. Use parse <expr> first.\n";
             return;
         }
-        if (tokens.size() != 2 && state.expressions.size() != 1) {
-            std::cerr << "usage: extract <expr-id> when you have more than one expression loaded\n";
-            return;
-        }
-        if (tokens.size() == 1) {
-            auto expression_id = state.egraph.find_expression_id(Expression(state.expressions[0]));
 
-            if (!expression_id.has_value()) {
+        size_t arg_start = 1;
+        std::optional<size_t> requested_expression_id;
+        if (tokens.size() > 1 && tokens[1].find('=') == std::string::npos) {
+            try {
+                requested_expression_id = std::stoul(tokens[1]);
+            } catch (const std::exception &) {
+                std::cerr << "extract: invalid expression id '" << tokens[1] << "'\n";
+                return;
+            }
+            arg_start = 2;
+        }
+
+        size_t expression_id = 0;
+        if (requested_expression_id.has_value()) {
+            expression_id = requested_expression_id.value();
+        } else if (state.expressions.size() == 1) {
+            auto expression_id_opt = state.egraph.find_expression_id(Expression(state.expressions[0]));
+            if (!expression_id_opt.has_value()) {
                 std::cerr << "Failed to find the expression in the e-graph.\n";
                 return;
             }
-            return extract_expression(state, expression_id.value());
+            expression_id = expression_id_opt.value();
+        } else {
+            std::cerr << "usage: extract <expr-id> [A=10 B=20 ...] when you have more than one expression loaded\n";
+            return;
         }
+
+        SizeBindings bindings;
+        for (size_t i = arg_start; i < tokens.size(); ++i) {
+            std::string key;
+            int value = 0;
+            if (!parse_binding_token(tokens[i], key, value)) {
+                std::cerr << "Invalid size binding token '" << tokens[i] << "'. Expected format KEY=INT\n";
+                return;
+            }
+            bindings[key] = value;
+        }
+
         try {
-            extract_expression(state, std::stoul(tokens[1]));
+            if (!state.numeric_mode) {
+                if (bindings.empty()) {
+                    extract_symbolic_expressions(state, expression_id);
+                } else {
+                    extract_expression_with_bindings(state, expression_id, bindings);
+                }
+            } else {
+                if (!bindings.empty()) {
+                    std::cerr << "Numeric mode does not accept size bindings in extract. Use mode symbolic first.\n";
+                    return;
+                }
+                extract_expression(state, expression_id);
+            }
             return;
         } catch (const ParseError &e) {
             std::cerr << e.what() << "\n";
