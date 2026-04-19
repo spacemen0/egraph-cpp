@@ -47,7 +47,7 @@ class EGraph {
     void to_dot_file(const std::string &filename) const;
     void to_img(const std::string &filename, const std::string &format) const;
     size_t get_revision() const noexcept { return revision; }
-    bool is_clean() const noexcept { return pendings.empty(); }
+    bool is_clean() const noexcept { return pending.empty(); }
 
   private:
     std::string to_dot() const;
@@ -59,7 +59,7 @@ class EGraph {
     // stores all e-nodes in the order they were added
     std::vector<std::unique_ptr<ENode>> nodes;
     // stores pending parent updates after unions
-    std::vector<Id> pendings;
+    std::vector<Id> pending;
     // stores mapping from ENode to EClass id (canonicalized one after rebuild)
     std::unordered_map<const ENode *, Id, ENodePtrHash, ENodePtrEqual> memo;
     // stores mapping from EClass id to EClass, classes being merged will be

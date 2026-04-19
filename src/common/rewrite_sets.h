@@ -1,7 +1,6 @@
 #include "e_graph.h"
 #include "rewriter.h"
 #include "utils.h"
-#include <cstddef>
 #include <vector>
 
 static auto is_leaf_condition = [](const EGraph &g, const Substitution &s) {
@@ -32,8 +31,6 @@ static auto leaf_and_not_factorized_and_square = [](const EGraph &g, const Subst
 
 static const auto qr_invert =
     make_rewrite("qr-invert", "Inv(?a)", "Inv(Mul(Get(QR(?a), 0), Get(QR(?a), 1)))", is_not_factorized);
-static const auto qr_invert_leaf = make_rewrite(
-    "qr-invert-leaf", "Inv(?a)", "Mul(Inv(Get(QR(?a), 0)), Inv(Get(QR(?a), 1)))", leaf_and_not_factorized_and_square);
 static const auto qr_leaf =
     make_rewrite("qr-leaf", "?a", "Mul(Get(QR(?a), 0), Get(QR(?a), 1))", [](const EGraph &g, const Substitution &s) {
     if (!leaf_and_not_factorized(g, s))
@@ -46,31 +43,9 @@ static const auto qr_leaf =
     }
     return false;
 });
-// static const auto qr_inner_invert =
-//     make_rewrite("qr-inner-invert", "Inv( Mul(Tr(?a), ?a) )", "Dynamic", [](const EGraph &g, const Substitution &s) {
-//     if (!is_not_factorized(g, s)) return false;
-//     Id a_id = s.at("a");
-//     const auto &data = g.get_class_analysis_data(a_id);
-//     if (const auto *prop = std::get_if<MatrixProperty>(&data.property)) {
-//         // Avoid ambiguous symbolic-shape exceptions.
-//         return prop->is_square() || prop->is_tall_matrix() || prop->is_wide_matrix();
-//     }
-//     return false;
-// }, [](EGraph &g, const Substitution &s) {
-//     static const Expression result_expr("Inv( Mul ( Tr(Get(QR(?a), 1)), Get(QR(?a), 1) ) )");
-//     static const Expression qr_expr("Mul(Get(QR(?a), 0), Get(QR(?a), 1))");
 
-//     Id result = g.add_expression(result_expr, s);
-//     Id qr_equiv = g.add_expression(qr_expr, s);
-
-//     g.union_classes(s.at("a"), qr_equiv);
-
-//     return result;
-// });
 static const auto lu_invert =
     make_rewrite("lu-invert", "Inv(?a)", "Mul(Inv(Get(LU(?a), 1)), Inv(Get(LU(?a), 0)))", is_not_factorized);
-static const auto lu_invert_leaf = make_rewrite(
-    "lu-invert-leaf", "Inv(?a)", "Mul(Inv(Get(LU(?a), 1)), Inv(Get(LU(?a), 0)))", leaf_and_not_factorized_and_square);
 
 static const auto lu_leaf =
     make_rewrite("lu-leaf", "?a", "Mul(Get(LU(?a), 0), Get(LU(?a), 1))", leaf_and_not_factorized_and_square);
@@ -78,19 +53,6 @@ static const auto llt_invert = make_rewrite(
     "llt-invert", "Inv(?a)", "Mul(Tr(Inv(Get(LLt(?a), 0))), Inv(Get(LLt(?a), 0)))",
     [](const EGraph &g, const Substitution &s) {
     if (!is_not_factorized(g, s))
-        return false;
-    Id a_id = s.at("a");
-    const auto &data = g.get_class_analysis_data(a_id);
-
-    if (auto *prop = std::get_if<MatrixProperty>(&data.property)) {
-        return prop->flags.is_positive_definite && prop->flags.is_symmetric;
-    }
-    return false;
-});
-static const auto llt_invert_leaf = make_rewrite(
-    "llt-invert-leaf", "Inv(?a)", "Mul(Tr(Inv(Get(LLt(?a), 0))), Inv(Get(LLt(?a), 0)))",
-    [](const EGraph &g, const Substitution &s) {
-    if (!leaf_and_not_factorized_and_square(g, s))
         return false;
     Id a_id = s.at("a");
     const auto &data = g.get_class_analysis_data(a_id);

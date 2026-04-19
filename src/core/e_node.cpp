@@ -205,14 +205,13 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
         }
         case Get:
             return 0.0;
-        // Ops below are not implemented
         case Sol: {
             auto shapeA = get_one_shape(children.at(0));
             auto shapeB = get_one_shape(children.at(1));
 
-            bool is_triang = false;
+            bool is_triangular = false;
             if (auto dataA = get_matrix_data(egraph, children.at(0))) {
-                is_triang =
+                is_triangular =
                     dataA->flags.is_lower_triangular || dataA->flags.is_upper_triangular || dataA->flags.is_diagonal;
             }
 
@@ -220,7 +219,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
                 double n = std::get<int>(shapeA.first);
                 double k = std::get<int>(shapeB.second);
 
-                if (is_triang) {
+                if (is_triangular) {
                     return 1.0 * n * n * k;
                 }
                 // LU Factorization (2/3 n^3) + Forward/Back Substitution (2 n^2 k)
@@ -235,7 +234,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
                 Monomial n2k = {{n, n, k}};
 
                 SymbolicCost sc;
-                if (is_triang) {
+                if (is_triangular) {
                     sc[n2k] = 1.0;
                 } else {
                     sc[n3] = 2.0 / 3.0;
@@ -250,9 +249,9 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
             auto shapeB = get_one_shape(children.at(0));
             auto shapeA = get_one_shape(children.at(1));
 
-            bool is_triang = false;
+            bool is_triangular = false;
             if (auto dataA = get_matrix_data(egraph, children.at(1))) {
-                is_triang =
+                is_triangular =
                     dataA->flags.is_lower_triangular || dataA->flags.is_upper_triangular || dataA->flags.is_diagonal;
             }
 
@@ -260,7 +259,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
                 double m = std::get<int>(shapeB.first);
                 double n = std::get<int>(shapeA.first);
 
-                if (is_triang) {
+                if (is_triangular) {
                     return 1.0 * m * n * n;
                 }
                 // LU Factorization (2/3 n^3) + Forward/Back Substitution (2 m n^2)
@@ -275,7 +274,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
                 Monomial mn2 = {{m, n, n}};
 
                 SymbolicCost sc;
-                if (is_triang) {
+                if (is_triangular) {
                     sc[mn2] = 1.0;
                 } else {
                     sc[n3] = 2.0 / 3.0;

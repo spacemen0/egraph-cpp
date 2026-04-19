@@ -30,7 +30,7 @@ PropertyTable &EGraph::get_property_table() noexcept { return property_table; }
 /// @brief  Find an e-class with the given matrix property.
 /// @param prop
 /// @return
-std::optional<Id> EGraph::find_class_with_property(const MatrixProperty &prop) const // probabaly not working correctly
+std::optional<Id> EGraph::find_class_with_property(const MatrixProperty &prop) const // probably not working correctly
 {
     for (const auto &[class_id, eclass_ptr] : classes) {
         // only check root classes
@@ -180,7 +180,7 @@ bool EGraph::union_classes(Id id1, Id id2) {
 
     const auto &class1_ref = classes.at(root1);
 
-    pendings.insert(pendings.end(), class2_ptr->get_parents().begin(), class2_ptr->get_parents().end());
+    pending.insert(pending.end(), class2_ptr->get_parents().begin(), class2_ptr->get_parents().end());
 
     // move the nodes and parents from class2 to class1
     auto &nodes1 = class1_ref->get_nodes();
@@ -196,11 +196,11 @@ bool EGraph::union_classes(Id id1, Id id2) {
 }
 
 void EGraph::rebuild() {
-    while (!pendings.empty()) {
-        std::vector<Id> current_pendings = std::move(pendings);
-        pendings.clear();
+    while (!pending.empty()) {
+        std::vector<Id> current_pending = std::move(pending);
+        pending.clear();
 
-        for (Id pending_id : current_pendings) {
+        for (Id pending_id : current_pending) {
             auto node = nodes[pending_id].get();
             memo.erase(node);
             canonicalize_node(*node);
@@ -351,13 +351,13 @@ PruneResult EGraph::prune_nodes_except(const std::unordered_map<Id, std::unorder
             parents.end());
     }
 
-    pendings.erase(
+    pending.erase(
         std::remove_if(
-            pendings.begin(), pendings.end(),
+            pending.begin(), pending.end(),
             [&](Id pending_id) {
         return !memo.contains(nodes[pending_id].get());
     }),
-        pendings.end());
+        pending.end());
 
     result.nodes_after = memo.size();
     result.nodes_pruned = removed_nodes;
