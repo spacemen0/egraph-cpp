@@ -39,7 +39,7 @@ static const auto qr_leaf =
     const auto &data = g.get_class_analysis_data(a_id);
     if (const auto *prop = std::get_if<MatrixProperty>(&data.property)) {
         // Avoid ambiguous symbolic-shape exceptions.
-        return prop->is_square() || prop->is_tall_matrix() || prop->is_wide_matrix();
+        return !prop->is_vector() && (prop->is_square() || prop->is_tall_matrix() || prop->is_wide_matrix());
     }
     return false;
 });

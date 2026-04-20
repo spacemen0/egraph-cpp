@@ -192,22 +192,19 @@ std::string Expression::to_human_string() const {
     }
     case Det:
         if (!children.empty())
-            return "det(" + children[0].to_human_string() + ")";
+            return "Det(" + children[0].to_human_string() + ")";
         break;
     case Log:
         if (!children.empty())
-            return "log(" + children[0].to_human_string() + ")";
+            return "Log(" + children[0].to_human_string() + ")";
         break;
     case Sol:
         if (children.size() == 2)
-            return "solve(" + children[0].to_human_string() + ", " + children[1].to_human_string() + ")";
-        break;
-        if (children.size() == 2)
-            return "tri_solve(" + children[0].to_human_string() + ", " + children[1].to_human_string() + ")";
+            return "Solve(" + children[0].to_human_string() + ", " + children[1].to_human_string() + ")";
         break;
     case SolR:
         if (children.size() == 2)
-            return "solve_right(" + children[0].to_human_string() + ", " + children[1].to_human_string() + ")";
+            return "Solve_Right(" + children[0].to_human_string() + ", " + children[1].to_human_string() + ")";
         break;
     case QR:
     case LU:
