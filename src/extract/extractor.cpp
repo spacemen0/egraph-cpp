@@ -139,14 +139,12 @@ void Extractor::search_top_numeric_dags(
         search_top_numeric_dags(
             pending, current_choices, size_bindings, next_cost, max_results, best_results, worst_selected_cost);
 
-        // Backtrack (Undo state)
         for (int i = 0; i < added_children_count; ++i) {
             pending.pop_back();
         }
         current_choices.erase(current);
     }
 
-    // Restore pending state for outer stack frames
     pending.push_back(current);
 }
 

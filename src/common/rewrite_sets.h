@@ -194,12 +194,12 @@ static const auto solve_identity =
 static const auto inverse_solve = make_rewrite("inverse_solve", "Inv(Sol(?a, ?b))", "Mul(Inv(?b), ?a)");
 static const auto transpose_solve = make_rewrite("transpose_solve", "Tr(Sol(?a, ?b))", "SolR(Tr(?b), Tr(?a))");
 
+static const auto solver_right = make_rewrite("solver_right", "Mul(?b, Inv(?a))", "SolR(?b, ?a)");
 static const auto solver_right_composition = make_rewrite(
     "solver_right_composition", "SolR(?c, Mul(?a, ?b))", "SolR(SolR(?c, ?b), ?a)",
     [](const EGraph &g, const Substitution &s) {
     return check_is_square(s, g, "a") && check_is_square(s, g, "b");
 });
-static const auto solver_right = make_rewrite("solver_right", "Mul(?b, Inv(?a))", "SolR(?b, ?a)");
 static const auto solve_r_cancel_left = make_rewrite("solve_r_cancel_left", "SolR(Mul(?b, ?a), ?a)", "?b");
 static const auto solve_r_cancel_right = make_rewrite("solve_r_cancel_right", "Mul(SolR(?b, ?a), ?a)", "?b");
 static const auto solve_r_identity =
