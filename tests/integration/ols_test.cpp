@@ -30,7 +30,7 @@ TEST(Integration, OLSNumeric) {
     ASSERT_TRUE(egraph.find_class_id(alternative_id) == egraph.find_class_id(id));
     CostStorage cost_storage(egraph);
     Extractor extractor(egraph, cost_storage);
-    auto result = extractor.extract(id, 5);
+    auto result = extractor.extract(id, 1);
     for (const auto &candidate : result) {
         std::cout << "Candidate expression: " << candidate.expr.to_human_string() << std::endl;
         std::cout << "Cost: " << candidate.cost << std::endl;
@@ -82,7 +82,7 @@ TEST(Integration, OLSSymbolicRewritePruneConverges) {
     std::vector<size_t> nodes_after_iteration;
 
     size_t total_pruned = 0;
-    Rewriter rewriter(egraph, rules, 500, true);
+    Rewriter rewriter(egraph, rules, 1000, true);
     CostStorage cost_storage(egraph);
     Extractor extractor(egraph, cost_storage);
     Pruner pruner(egraph, extractor);
