@@ -19,7 +19,7 @@ TEST(Rewrite, SimpleRewrite) {
 
     EXPECT_NE(id_mul, id0);
     std::vector<Rewrite> rules = {
-        make_rewrite("mul_zero", "Mul(?x, ?z)", "?z", [](const EGraph &g, const Substitution &s) {
+        make_rewrite("mul_zero", "Mul(?x, ?z)", "?z", false, [](const EGraph &g, const Substitution &s) {
         return is_zero(s, g, "z");
     }, nullptr)};
 
@@ -77,8 +77,8 @@ TEST(Rewrite, NewNodes) {
 
     Id id_add = egraph.add_expression(Expression("Mul(Inv(a), a)"));
 
-    std::vector<Rewrite> rules = {
-        make_rewrite("inv-mul-left", "Mul(Inv(?a), ?a)", "?__dynamic__", nullptr, [](EGraph &g, const Substitution &s) {
+    std::vector<Rewrite> rules = {make_rewrite(
+        "inv-mul-left", "Mul(Inv(?a), ?a)", "?__dynamic__", false, nullptr, [](EGraph &g, const Substitution &s) {
         return make_identity_for(g, s, "a");
     })};
 
@@ -147,7 +147,7 @@ TEST(Rewrite, BackoffScheduler) {
     Id id1 = egraph.add_expression(Expression("Inv(Inv(Inv(a)))"));
     Id id2 = egraph.add_expression(Expression("Inv(Inv(Inv(b)))"));
 
-    std::vector<Rewrite> rules = {make_rewrite("inv_inv", "Inv(Inv(?x))", "?x", nullptr, nullptr, 1)};
+    std::vector<Rewrite> rules = {make_rewrite("inv_inv", "Inv(Inv(?x))", "?x", false, nullptr, nullptr, 1)};
 
     Rewriter rewriter(egraph, rules, 1000, true);
 

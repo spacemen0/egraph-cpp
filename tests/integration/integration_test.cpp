@@ -15,7 +15,7 @@ TEST(Integration, MatrixPartialSet) {
     EGraph egraph(get_property_table());
 
     auto id = egraph.add_expression(Expression("Mul(Mul(Mul(Inv(Mul(A, Z)), A), Z), X)"));
-    std::vector<Rewrite> rules = {mul_assoc_right, invert_cancel_left, mul_identity_right};
+    std::vector<Rewrite> rules = {mul_assoc, invert_cancel_left, mul_identity_right};
 
     Rewriter rewriter(egraph, rules, 1000);
     rewriter.apply_rewrites(4);
@@ -38,7 +38,7 @@ TEST(Integration, SimplifyComplexMatrixChain) {
         mul_identity_left,
         mat_transpose_prod,
         invert_cancel_right,
-        mul_assoc_right,
+        mul_assoc,
     };
     Rewriter rewriter(egraph, rules, 1000);
     rewriter.apply_rewrites(8);
@@ -56,7 +56,7 @@ TEST(Integration, MinimalRealisticExplosionRules) {
     EGraph egraph(get_property_table());
     const auto root_id = egraph.add_expression(Expression("Mul(Mul(Inv(A), A), A)"));
     auto mul_assoc_right =
-        make_rewrite("mul-assoc-right", "Mul(Mul(?a, ?b), ?c)", "Mul(?a, Mul(?b, ?c))", nullptr, nullptr, 10);
+        make_rewrite("mul-assoc-right", "Mul(Mul(?a, ?b), ?c)", "Mul(?a, Mul(?b, ?c))", false, nullptr, nullptr, 10);
     std::vector<Rewrite> rules = {
         mul_assoc_right,
         invert_cancel_left,
@@ -99,7 +99,7 @@ TEST(Integration, CyclicTermsThatDoNotExplode) {
 
     auto id = egraph.add_expression(Expression("Mul(A, Mul(Inv(A), A))"));
     std::vector<Rewrite> rules = {
-        mul_assoc_left,
+        mul_assoc,
         invert_cancel_right,
         mul_identity_right,
     };
@@ -126,7 +126,7 @@ TEST(Integration, MatrixChainSymbolicSizes) {
 
     const Expression root_expr("Mul(Mul(Mul(Mul(Mul(Mul(A, B), C), D), E), F), G)");
     const Id root_id = egraph.add_expression(root_expr);
-    Rewriter rewriter(egraph, {mul_assoc_left, mul_assoc_right}, 1000);
+    Rewriter rewriter(egraph, {mul_assoc}, 1000);
     rewriter.apply_rewrites();
 
     egraph.to_img("MatrixChain", "svg");
