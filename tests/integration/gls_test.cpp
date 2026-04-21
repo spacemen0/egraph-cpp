@@ -21,7 +21,7 @@ TEST(Integration, GLSNumeric) {
     Rewriter rewriter(egraph, rules, 1000, true);
     while (rewriter.apply_rewrites(10))
         ;
-    Extractor extractor(egraph, cost_storage);
+    Extractor extractor(egraph, cost_storage, true);
     auto result = extractor.extract(id, 10);
     for (const auto &r : result) {
         std::cout << "Candidate expression: " << r.expr.to_human_string() << std::endl;
@@ -46,7 +46,7 @@ TEST(Integration, GLSSymbolic) {
     Rewriter rewriter(egraph, rules, 3000, true);
     while (rewriter.apply_rewrites(10))
         ;
-    Extractor extractor(egraph, cost_storage);
+    Extractor extractor(egraph, cost_storage, true);
     auto result = extractor.extract(id, {{"A", 100}, {"B", 20}}, 10);
     for (const auto &r : result) {
         std::cout << "Candidate expression: " << r.expr.to_human_string() << std::endl;

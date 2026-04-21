@@ -6,7 +6,8 @@
 #include <limits>
 #include <unordered_set>
 
-Extractor::Extractor(EGraph &egraph, CostStorage &cost_storage) : egraph(egraph), cost_storage(cost_storage) {}
+Extractor::Extractor(EGraph &egraph, CostStorage &cost_storage, bool enable_logging)
+    : egraph(egraph), cost_storage(cost_storage), enable_logging(enable_logging) {}
 
 std::vector<Extractor::NumericSearchResult>
 Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const SizeBindings *size_bindings) const {
@@ -31,8 +32,9 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
     search_top_numeric_dags(
         pending, current_choices, size_bindings, 0.0, max_results, best_results, worst_selected_cost);
 
-    std::cout << "[Extractor] Visited " << nodes_visited << " nodes during numeric extraction." << std::endl;
-
+    if (enable_logging) {
+        std::cout << "[Extractor] Visited " << nodes_visited << " nodes during numeric extraction." << std::endl;
+    }
     if (best_results.empty()) {
         return {};
     }
@@ -61,7 +63,9 @@ std::vector<Extractor::SymbolicSearchResult> Extractor::find_symbolic_dags(Id ro
     nodes_visited = 0;
     search_symbolic_dags(pending, current_choices, initial_cost, results);
 
-    std::cout << "[Extractor] Visited " << nodes_visited << " nodes during symbolic extraction." << std::endl;
+    if (enable_logging) {
+        std::cout << "[Extractor] Visited " << nodes_visited << " nodes during symbolic extraction." << std::endl;
+    }
 
     return results;
 }

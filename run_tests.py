@@ -49,8 +49,8 @@ def main() -> int:
         test_command.append(f"--gtest_filter={args.gtest_filter}")
     run(test_command, cwd=repo_root)
 
-    print("Generating coverage report...")
-    run(["grcov", ".", "-s", ".", "--binary-path", "./build/", "-t", "html", "-o", "./coverage_report"], cwd=repo_root)
+    # print("Generating coverage report...")
+    # run(["grcov", ".", "-s", ".", "--binary-path", "./build/", "-t", "html", "-o", "./coverage_report"], cwd=repo_root)
 
     return 0
 

@@ -129,7 +129,7 @@ TEST(Integration, MatrixChainSymbolicSizes) {
     Rewriter rewriter(egraph, {mul_assoc}, 1000);
     rewriter.apply_rewrites();
 
-    egraph.to_img("MatrixChain", "svg");
+    // egraph.to_img("MatrixChain", "svg");
     CostStorage cost_storage(egraph);
     Extractor extractor(egraph, cost_storage);
 

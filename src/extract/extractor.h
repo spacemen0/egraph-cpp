@@ -14,7 +14,7 @@ struct ExtractionResult {
 
 class Extractor {
   public:
-    explicit Extractor(EGraph &egraph, CostStorage &cost_storage);
+    explicit Extractor(EGraph &egraph, CostStorage &cost_storage, bool enable_logging = false);
 
     ExtractionResult extract(Id class_id) const;
     std::vector<ExtractionResult> extract(Id class_id, size_t max_results) const;
@@ -38,6 +38,7 @@ class Extractor {
 
     EGraph &egraph;
     CostStorage &cost_storage;
+    bool enable_logging = false;
     mutable size_t nodes_visited = 0;
 
     std::vector<NumericSearchResult>

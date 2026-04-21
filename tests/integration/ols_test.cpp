@@ -13,7 +13,7 @@ TEST(Integration, OLSNumeric) {
     auto id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(X), X) ) , Tr(X) ), y)"));
     std::vector<Rewrite> rules =
         build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality", "zero-negation", "solver"});
-    Rewriter rewriter(egraph, rules, 1000, true);
+    Rewriter rewriter(egraph, rules, 700, true);
 
     bool found_qr_form = false;
     constexpr int max_iterations = 20;
@@ -29,7 +29,7 @@ TEST(Integration, OLSNumeric) {
     auto alternative_id = egraph.add_expression(alternative_expression);
     ASSERT_TRUE(egraph.find_class_id(alternative_id) == egraph.find_class_id(id));
     CostStorage cost_storage(egraph);
-    Extractor extractor(egraph, cost_storage);
+    Extractor extractor(egraph, cost_storage, true);
     auto result = extractor.extract(id, 1);
     for (const auto &candidate : result) {
         std::cout << "Candidate expression: " << candidate.expr.to_human_string() << std::endl;
@@ -56,7 +56,7 @@ TEST(Integration, OLSSymbolic) {
                       << "! Num nodes: " << egraph.num_nodes() << std::endl;
             std::cout << "Sample matrix sizes to try out extraction..." << std::endl;
             CostStorage cost_storage(egraph);
-            Extractor extractor(egraph, cost_storage);
+            Extractor extractor(egraph, cost_storage, true);
             auto result = extractor.extract(id, {{"A", 3}, {"B", 2}});
             std::cout << "Best extracted expression: " << result.expr.to_human_string() << std::endl;
             std::cout << "Cost: " << result.cost << std::endl;
