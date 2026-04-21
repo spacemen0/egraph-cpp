@@ -43,7 +43,7 @@ TEST(Integration, GLSSymbolic) {
     std::vector<Rewrite> rules =
         build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality", "solver"});
     CostStorage cost_storage(egraph);
-    Rewriter rewriter(egraph, rules, 1000, true);
+    Rewriter rewriter(egraph, rules, 3000, true);
     while (rewriter.apply_rewrites(10))
         ;
     Extractor extractor(egraph, cost_storage);

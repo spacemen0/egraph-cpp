@@ -38,6 +38,7 @@ class Extractor {
 
     EGraph &egraph;
     CostStorage &cost_storage;
+    mutable size_t nodes_visited = 0;
 
     std::vector<NumericSearchResult>
     find_top_numeric_dags(Id root_class_id, size_t max_results, const SizeBindings *size_bindings = nullptr) const;

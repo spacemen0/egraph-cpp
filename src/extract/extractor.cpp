@@ -2,6 +2,7 @@
 #include "basic_types.h"
 #include <algorithm>
 #include <cassert>
+#include <iostream>
 #include <limits>
 #include <unordered_set>
 
@@ -26,8 +27,11 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
     std::vector<NumericSearchResult> best_results;
     double worst_selected_cost = std::numeric_limits<double>::infinity();
 
+    nodes_visited = 0;
     search_top_numeric_dags(
         pending, current_choices, size_bindings, 0.0, max_results, best_results, worst_selected_cost);
+
+    std::cout << "[Extractor] Visited " << nodes_visited << " nodes during numeric extraction." << std::endl;
 
     if (best_results.empty()) {
         return {};
@@ -54,7 +58,11 @@ std::vector<Extractor::SymbolicSearchResult> Extractor::find_symbolic_dags(Id ro
     std::vector<SymbolicSearchResult> results;
     SymbolicCost initial_cost;
 
+    nodes_visited = 0;
     search_symbolic_dags(pending, current_choices, initial_cost, results);
+
+    std::cout << "[Extractor] Visited " << nodes_visited << " nodes during symbolic extraction." << std::endl;
+
     return results;
 }
 
@@ -62,6 +70,8 @@ void Extractor::search_top_numeric_dags(
     std::vector<Id> &pending, std::unordered_map<Id, const ENode *> &current_choices, const SizeBindings *size_bindings,
     double current_cost, size_t max_results, std::vector<NumericSearchResult> &best_results,
     double &worst_selected_cost) const {
+
+    nodes_visited++;
 
     if (pending.empty()) {
         if (best_results.size() < max_results || current_cost < worst_selected_cost) {
@@ -151,6 +161,8 @@ void Extractor::search_top_numeric_dags(
 void Extractor::search_symbolic_dags(
     std::vector<Id> &pending, std::unordered_map<Id, const ENode *> &current_choices, SymbolicCost current_cost,
     std::vector<SymbolicSearchResult> &results) const {
+
+    nodes_visited++;
 
     if (pending.empty()) {
         results.emplace_back(current_cost, current_choices);
