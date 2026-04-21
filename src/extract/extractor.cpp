@@ -6,6 +6,10 @@
 #include <limits>
 #include <unordered_set>
 
+namespace {
+constexpr size_t kExtractorProgressLogEvery = 1000000;
+}
+
 Extractor::Extractor(EGraph &egraph, CostStorage &cost_storage, bool enable_logging)
     : egraph(egraph), cost_storage(cost_storage), enable_logging(enable_logging) {}
 
@@ -76,6 +80,10 @@ void Extractor::search_top_numeric_dags(
     double &worst_selected_cost) const {
 
     nodes_visited++;
+    if (enable_logging && (nodes_visited % kExtractorProgressLogEvery == 0)) {
+        std::cout << "[Extractor] Progress (numeric): visited=" << nodes_visited << ", pending=" << pending.size()
+                  << ", chosen=" << current_choices.size() << ", best_results=" << best_results.size() << std::endl;
+    }
 
     if (pending.empty()) {
         if (best_results.size() < max_results || current_cost < worst_selected_cost) {
@@ -167,6 +175,10 @@ void Extractor::search_symbolic_dags(
     std::vector<SymbolicSearchResult> &results) const {
 
     nodes_visited++;
+    if (enable_logging && (nodes_visited % kExtractorProgressLogEvery == 0)) {
+        std::cout << "[Extractor] Progress (symbolic): visited=" << nodes_visited << ", pending=" << pending.size()
+                  << ", chosen=" << current_choices.size() << ", results=" << results.size() << std::endl;
+    }
 
     if (pending.empty()) {
         results.emplace_back(current_cost, current_choices);

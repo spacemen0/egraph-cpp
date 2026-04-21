@@ -13,12 +13,14 @@ TEST(Integration, OLSNumeric) {
     auto id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(X), X) ) , Tr(X) ), y)"));
     std::vector<Rewrite> rules =
         build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality", "zero-negation", "solver"});
-    Rewriter rewriter(egraph, rules, 700, true);
+    Rewriter rewriter(egraph, rules, 1000, true);
 
     bool found_qr_form = false;
     constexpr int max_iterations = 20;
     for (int iteration = 0; iteration < max_iterations; ++iteration) {
-        rewriter.apply_one_iteration();
+        if (!rewriter.apply_one_iteration()) {
+            break;
+        }
         // if (egraph.find_class_id(should_be_root_id) == egraph.find_class_id(id)) {
         //     found_qr_form = true;
         //     std::cout << "Found the QR-based solution in iteration " << (iteration + 1)
@@ -29,8 +31,9 @@ TEST(Integration, OLSNumeric) {
     auto alternative_id = egraph.add_expression(alternative_expression);
     ASSERT_TRUE(egraph.find_class_id(alternative_id) == egraph.find_class_id(id));
     CostStorage cost_storage(egraph);
+    std::cout << "Doing extraction, num of nodes: " << egraph.num_nodes() << std::endl;
     Extractor extractor(egraph, cost_storage, true);
-    auto result = extractor.extract(id, 1);
+    auto result = extractor.extract(id, 5);
     for (const auto &candidate : result) {
         std::cout << "Candidate expression: " << candidate.expr.to_human_string() << std::endl;
         std::cout << "Cost: " << candidate.cost << std::endl;
@@ -45,7 +48,7 @@ TEST(Integration, OLSSymbolic) {
     auto id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(M), M) ) , Tr(M) ), n)"));
 
     std::vector<Rewrite> rules = build_rewrite_sets({"complete"});
-    Rewriter rewriter(egraph, rules, 10000, true);
+    Rewriter rewriter(egraph, rules, 3000, true);
     int iteration = 0;
     while (rewriter.apply_one_iteration()) {
         iteration++;
@@ -84,7 +87,7 @@ TEST(Integration, OLSSymbolicRewritePruneConverges) {
     size_t total_pruned = 0;
     Rewriter rewriter(egraph, rules, 1000, true);
     CostStorage cost_storage(egraph);
-    Extractor extractor(egraph, cost_storage);
+    Extractor extractor(egraph, cost_storage, true);
     Pruner pruner(egraph, extractor);
     Id root_id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(M), M) ) , Tr(M) ), n)"));
 
