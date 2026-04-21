@@ -5,6 +5,7 @@ using Match = struct {
     Id class_id;
     size_t rewrite_idx;
     Substitution subst;
+    bool left_to_right;
 };
 
 // Instantiate a pattern into the EGraph
@@ -54,13 +55,23 @@ bool Rewriter::apply_one_iteration(size_t node_match_limit) {
                 continue;
 
             std::set<Substitution> substs = matcher.find_matches_in_eclass(class_id, rewrite.lhs, node_match_limit);
-
+            std::set<Substitution> reverse_substs;
+            if (rewrite.bidirectional) {
+                reverse_substs = matcher.find_matches_in_eclass(class_id, rewrite.rhs, node_match_limit);
+            }
             for (const auto &subst : substs) {
                 if (rewrite.condition && !rewrite.condition(egraph, subst)) {
                     continue;
                 }
                 total_valid_matches++;
-                rewrite_matches.emplace_back(class_id, i, subst);
+                rewrite_matches.emplace_back(class_id, i, subst, true);
+            }
+            for (const auto &subst : reverse_substs) {
+                if (rewrite.condition && !rewrite.condition(egraph, subst)) {
+                    continue;
+                }
+                total_valid_matches++;
+                rewrite_matches.emplace_back(class_id, i, subst, false);
             }
         }
 
@@ -77,27 +88,19 @@ bool Rewriter::apply_one_iteration(size_t node_match_limit) {
             ban_iterations_remaining[i] = ban_duration_next[i];
             ban_duration_next[i] *= 2;
             current_match_limits[i] *= 2;
-
-            // std::cout << "Rewrite '" << rewrite.name << "' exceeded match limit (" << total_valid_matches
-            //           << " matches found, budget " << budget_remaining << "). Applied " << matches_to_apply
-            //           << ". Banning for " << ban_iterations_remaining[i]
-            //           << " iterations. New limit: " << current_match_limits[i] << std::endl;
         }
     }
 
     for (const auto &match : matches) {
         const auto &rewrite = rewrites[match.rewrite_idx];
-
-        Id rhs_id;
         if (rewrite.applier) {
-            rhs_id = rewrite.applier(egraph, match.subst);
+            changed |= egraph.union_classes(match.class_id, rewrite.applier(egraph, match.subst));
+        } else if (match.left_to_right) {
+            changed |= egraph.union_classes(match.class_id, instantiate(egraph, rewrite.rhs, match.subst));
         } else {
-            rhs_id = instantiate(egraph, rewrite.rhs, match.subst);
+            changed |= egraph.union_classes(match.class_id, instantiate(egraph, rewrite.lhs, match.subst));
         }
 
-        if (egraph.union_classes(match.class_id, rhs_id)) {
-            changed = true;
-        }
         if (egraph.num_nodes() > max_nodes) {
             break; // Break the apply loop to enforce limits but guarantee rebuild
         }

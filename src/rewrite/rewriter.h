@@ -11,6 +11,7 @@ struct Rewrite {
     std::string name;
     Pattern lhs;
     Pattern rhs;
+    bool bidirectional = false;
     std::function<bool(const EGraph &, const Substitution &)> condition = nullptr;
     std::function<Id(EGraph &, const Substitution &)> applier = nullptr;
     size_t initial_match_limit = 30;
