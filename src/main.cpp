@@ -104,7 +104,7 @@ bool parse_binding_token(const std::string &token, std::string &key, int &value)
 }
 
 void parse_expression(SessionState &state, const std::string &expr_str) {
-    Expression expr = Expression(expr_str);
+    Expression expr = Expression(std::string_view(expr_str));
     Id id = state.egraph.add_expression(expr);
     std::cout << "Parsed expression with root id " << id << ".\n";
 }
@@ -213,7 +213,7 @@ void print_session_state(const SessionState &state) {
         std::cout << "  <none>\n";
     } else {
         for (size_t i = 0; i < state.expressions.size(); ++i) {
-            auto id = state.egraph.find_expression_id(Expression(state.expressions[i]));
+            auto id = state.egraph.find_expression_id(Expression(std::string_view(state.expressions[i])));
             if (id.has_value()) {
                 std::cout << "  [" << id.value() << "] " << state.expressions[i] << "\n";
             } else {
@@ -372,7 +372,8 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
         if (requested_expression_id.has_value()) {
             expression_id = requested_expression_id.value();
         } else if (state.expressions.size() == 1) {
-            auto expression_id_opt = state.egraph.find_expression_id(Expression(state.expressions[0]));
+            auto expression_id_opt =
+                state.egraph.find_expression_id(Expression(std::string_view(state.expressions[0])));
             if (!expression_id_opt.has_value()) {
                 std::cerr << "Failed to find the expression in the e-graph.\n";
                 return;
