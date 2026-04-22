@@ -127,6 +127,10 @@ void Extractor::search_top_numeric_dags(
         return;
     }
 
+    if (current_choices.size() >= max_depth) {
+        return;
+    }
+
     Id current = pending.back();
     pending.pop_back();
     pending_set.erase(current);
@@ -191,6 +195,10 @@ void Extractor::search_symbolic_dags(
 
     if (pending.empty()) {
         results.emplace_back(current_cost, current_choices);
+        return;
+    }
+
+    if (current_choices.size() >= max_depth) {
         return;
     }
 

@@ -40,6 +40,7 @@ class Extractor {
     CostStorage &cost_storage;
     bool enable_logging = false;
     mutable size_t nodes_visited = 0;
+    size_t max_depth = 40;
 
     std::vector<NumericSearchResult>
     find_top_numeric_dags(Id root_class_id, size_t max_results, const SizeBindings *size_bindings = nullptr) const;

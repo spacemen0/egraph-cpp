@@ -89,7 +89,6 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
             throw std::invalid_argument("Invalid shapes for Mul operation in ENode::compute_local_cost");
         }
         case Tr: {
-            auto shape = get_one_shape(children.at(0));
             return 0.0;
         }
         // LU L-1 then Solve
