@@ -10,7 +10,9 @@ def run(command: list[str], cwd: pathlib.Path) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build and run unit tests with coverage")
+    parser = argparse.ArgumentParser(
+        description="Build and run unit tests with coverage"
+    )
     parser.add_argument("gtest_filter", nargs="?", help="Optional gtest filter pattern")
     args = parser.parse_args()
 
@@ -36,7 +38,7 @@ def main() -> int:
             ".",
             "-B",
             "build",
-            # "-DENABLE_COVERAGE=ON",
+            "-DENABLE_COVERAGE=OFF",
             "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
         ],
         cwd=repo_root,

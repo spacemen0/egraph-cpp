@@ -50,12 +50,13 @@ class Extractor {
         Id current_class, const ENode *candidate, const std::unordered_map<Id, const ENode *> &current_choices) const;
 
     void search_top_numeric_dags(
-        std::vector<Id> &pending, std::unordered_map<Id, const ENode *> &current_choices,
-        const SizeBindings *size_bindings, double current_cost, size_t max_results,
-        std::vector<NumericSearchResult> &best_results, double &worst_selected_cost) const;
+        std::vector<Id> &pending, std::unordered_set<Id> &pending_set,
+        std::unordered_map<Id, const ENode *> &current_choices, const SizeBindings *size_bindings, double current_cost,
+        size_t max_results, std::vector<NumericSearchResult> &best_results, double &worst_selected_cost) const;
 
     void search_symbolic_dags(
-        std::vector<Id> &pending, std::unordered_map<Id, const ENode *> &current_choices, SymbolicCost current_cost,
+        std::vector<Id> &pending, std::unordered_set<Id> &pending_set,
+        std::unordered_map<Id, const ENode *> &current_choices, SymbolicCost current_cost,
         std::vector<SymbolicSearchResult> &results) const;
 
     Expression build_expression(

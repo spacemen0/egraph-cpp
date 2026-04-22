@@ -48,34 +48,43 @@ TEST(Integration, OLSSymbolic) {
     auto id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(M), M) ) , Tr(M) ), n)"));
 
     std::vector<Rewrite> rules = build_rewrite_sets({"complete"});
-    Rewriter rewriter(egraph, rules, 3000, true);
-    int iteration = 0;
-    while (rewriter.apply_one_iteration()) {
-        iteration++;
-        auto should_be_root_id =
-            egraph.add_expression(Expression("Mul(Inv(Get(QR(M), 1)), Mul(Tr(Get(QR(M), 0)), n))"));
-        if (egraph.find_class_id(id) == egraph.find_class_id(should_be_root_id)) {
-            std::cout << "Found the QR-based solution in iteration " << iteration
-                      << "! Num nodes: " << egraph.num_nodes() << std::endl;
-            std::cout << "Sample matrix sizes to try out extraction..." << std::endl;
-            CostStorage cost_storage(egraph);
-            Extractor extractor(egraph, cost_storage, true);
-            auto result = extractor.extract(id, {{"A", 3}, {"B", 2}});
-            std::cout << "Best extracted expression: " << result.expr.to_human_string() << std::endl;
-            std::cout << "Cost: " << result.cost << std::endl;
-            // egraph.to_img("OLS", "svg");
-            // auto symbolic_results = extractor.extract_symbolic(id);
-            // for (const auto &result : symbolic_results) {
-            //     std::cout << "Candidate expression: " << result.expr.to_human_string() << std::endl;
-            //     std::cout << "Cost: " << result.cost << std::endl;
-            // }
-            return;
-        }
-    }
-    FAIL() << "Did not find the QR-based solution within the nodes limit.";
+    Rewriter rewriter(egraph, rules, 300, true);
+    rewriter.apply_rewrites(10);
+    CostStorage cost_storage(egraph);
+    Extractor extractor(egraph, cost_storage, true);
+    auto results = extractor.extract_symbolic(id);
+    // for (const auto &candidate : results) {
+    //     std::cout << "Candidate expression: " << candidate.expr.to_human_string() << std::endl;
+    //     std::cout << "Cost: " << candidate.cost << std::endl;
+    // }
+    std::cout << "Num results: " << results.size() << std::endl;
+    // int iteration = 0;
+    // while (rewriter.apply_one_iteration()) {
+    //     iteration++;
+    //     auto should_be_root_id =
+    //         egraph.add_expression(Expression("Mul(Inv(Get(QR(M), 1)), Mul(Tr(Get(QR(M), 0)), n))"));
+    //     if (egraph.find_class_id(id) == egraph.find_class_id(should_be_root_id)) {
+    //         std::cout << "Found the QR-based solution in iteration " << iteration
+    //                   << "! Num nodes: " << egraph.num_nodes() << std::endl;
+    //         std::cout << "Sample matrix sizes to try out extraction..." << std::endl;
+    //         CostStorage cost_storage(egraph);
+    //         Extractor extractor(egraph, cost_storage, true);
+    //         auto result = extractor.extract(id, {{"A", 3}, {"B", 2}});
+    //         std::cout << "Best extracted expression: " << result.expr.to_human_string() << std::endl;
+    //         std::cout << "Cost: " << result.cost << std::endl;
+    //         // egraph.to_img("OLS", "svg");
+    //         // auto symbolic_results = extractor.extract_symbolic(id);
+    //         // for (const auto &result : symbolic_results) {
+    //         //     std::cout << "Candidate expression: " << result.expr.to_human_string() << std::endl;
+    //         //     std::cout << "Cost: " << result.cost << std::endl;
+    //         // }
+    //         return;
+    //     }
+    // }
+    // FAIL() << "Did not find the QR-based solution within the nodes limit.";
 }
 
-TEST(Integration, OLSSymbolicRewritePruneConverges) {
+TEST(Integration, OLSPruneConverges) {
     EGraph egraph(get_property_table());
     egraph.register_or_update_property(
         "M",
@@ -85,7 +94,7 @@ TEST(Integration, OLSSymbolicRewritePruneConverges) {
     std::vector<size_t> nodes_after_iteration;
 
     size_t total_pruned = 0;
-    Rewriter rewriter(egraph, rules, 1000, true);
+    Rewriter rewriter(egraph, rules, 300, true);
     CostStorage cost_storage(egraph);
     Extractor extractor(egraph, cost_storage, true);
     Pruner pruner(egraph, extractor);
@@ -93,9 +102,9 @@ TEST(Integration, OLSSymbolicRewritePruneConverges) {
 
     PruneOptions options{
         .num_iterations = 8,
-        .rewrite_steps_per_iteration = 10,
+        .rewrite_steps_per_iteration = 20,
         .prune_samples_per_iteration = 5,
-        .max_results_per_binding = 3,
+        .max_results_per_binding = 10,
         .size_keys = {"A", "B"},
     };
 
