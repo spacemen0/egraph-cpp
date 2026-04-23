@@ -40,8 +40,8 @@ TEST_F(EGraphTest, UnionClasses) {
 
 TEST_F(EGraphTest, RebuildParentsBasic) {
 
-    auto id_node1 = egraph.add_expression(Expression("Add(D, D)"));
-    auto id_node2 = egraph.add_expression(Expression("Add(D, W)"));
+    auto id_node1 = egraph.add_expression(Expression("D + D"));
+    auto id_node2 = egraph.add_expression(Expression("D + W"));
 
     EXPECT_NE(egraph.find_class_id(id_node1), egraph.find_class_id(id_node2));
 
@@ -55,16 +55,16 @@ TEST_F(EGraphTest, RebuildParentsBasic) {
 
 TEST_F(EGraphTest, RebuildMultiLevelParents) {
 
-    Id id_add_ab = egraph.add_expression(Expression("Add(A, Z)"));
-    Id id_add_ac = egraph.add_expression(Expression("Add(A, A)"));
+    Id id_add_ab = egraph.add_expression(Expression("A + Z"));
+    Id id_add_ac = egraph.add_expression(Expression("A + A"));
     EXPECT_NE(egraph.find_class_id(id_add_ab), egraph.find_class_id(id_add_ac));
 
-    Id id_mul1 = egraph.add_expression(Expression("Mul(Add(A, Z), Z)"));
-    Id id_mul2 = egraph.add_expression(Expression("Mul(Add(A, A), Z)"));
+    Id id_mul1 = egraph.add_expression(Expression("(A + Z) * Z"));
+    Id id_mul2 = egraph.add_expression(Expression("(A + A) * Z"));
     EXPECT_NE(egraph.find_class_id(id_mul1), egraph.find_class_id(id_mul2));
 
-    Id id_nested1 = egraph.add_expression(Expression("Add(Mul(Add(A, Z), Z), A)"));
-    Id id_nested2 = egraph.add_expression(Expression("Add(Mul(Add(A, A), Z), A)"));
+    Id id_nested1 = egraph.add_expression(Expression("((A + Z) * Z) + A"));
+    Id id_nested2 = egraph.add_expression(Expression("((A + A) * Z) + A"));
     EXPECT_NE(egraph.find_class_id(id_nested1), egraph.find_class_id(id_nested2));
 
     egraph.union_classes(egraph.find_node_id(sym_a).value(), egraph.find_node_id(sym_z).value());
@@ -100,7 +100,7 @@ TEST_F(EGraphTest, RebuildCleanUpEClass) {
 
 TEST_F(EGraphTest, AddExpression) {
 
-    Expression expr("Add(Mul(X, Y), Tr(Z))");
+    Expression expr("(X * Y) + Tr(Z)");
     Id expr_id = egraph.add_expression(expr);
 
     EXPECT_TRUE(egraph.find_node_id(sym_x).has_value());
@@ -117,12 +117,12 @@ TEST_F(EGraphTest, AddExpression) {
     EXPECT_TRUE(egraph.find_node_id(add_expr).has_value());
     EXPECT_EQ(egraph.find_node_id(add_expr).value(), expr_id);
 
-    Expression expr_dup("Add(Mul(X, Y), Tr(Z))");
+    Expression expr_dup("(X * Y) + Tr(Z)");
     Id expr_dup_id = egraph.add_expression(expr_dup);
 
     EXPECT_EQ(expr_id, expr_dup_id);
 
-    Expression expr_diff("Add(Mul(X, Y), Inv(Z))");
+    Expression expr_diff("(X * Y) + Inv(Z)");
     Id expr_diff_id = egraph.add_expression(expr_diff);
 
     EXPECT_NE(expr_id, expr_diff_id);
@@ -144,8 +144,8 @@ TEST_F(EGraphTest, ENodeMatching) {
 
 TEST_F(EGraphTest, MultipleExpressionsShareCommonSubexpression) {
 
-    Id expr1 = egraph.add_expression(Expression("Add(Mul(X, Y), Tr(Z))"));
-    Id expr2 = egraph.add_expression(Expression("Add(Mul(X, Y), Inv(Z))"));
+    Id expr1 = egraph.add_expression(Expression("(X * Y) + Tr(Z)"));
+    Id expr2 = egraph.add_expression(Expression("(X * Y) + Inv(Z)"));
 
     auto id_x = egraph.find_node_id(sym_x);
     auto id_y = egraph.find_node_id(sym_y);

@@ -14,7 +14,7 @@
 TEST(Integration, MatrixPartialSet) {
     EGraph egraph(get_property_table());
 
-    auto id = egraph.add_expression(Expression("Mul(Mul(Mul(Inv(Mul(A, Z)), A), Z), X)"));
+    auto id = egraph.add_expression(Expression("Inv(A * Z) * A * Z * X"));
     std::vector<Rewrite> rules = {mul_assoc, invert_cancel_left, mul_identity_right};
 
     Rewriter rewriter(egraph, rules, 1000);
@@ -30,7 +30,7 @@ TEST(Integration, MatrixPartialSet) {
 TEST(Integration, SimplifyComplexMatrixChain) {
     EGraph egraph(get_property_table());
 
-    Expression root_expr("Mul(Tr(Mul(v, M)), Inv(Tr(v)))");
+    Expression root_expr("Tr(v * M) * Inv(Tr(v))");
     Id root_id = egraph.add_expression(root_expr);
     std::cout << "Initial EGraph size: " << egraph.num_nodes() << " nodes." << std::endl;
 
@@ -54,9 +54,9 @@ TEST(Integration, SimplifyComplexMatrixChain) {
 
 TEST(Integration, MinimalRealisticExplosionRules) {
     EGraph egraph(get_property_table());
-    const auto root_id = egraph.add_expression(Expression("Mul(Mul(Inv(A), A), A)"));
+    const auto root_id = egraph.add_expression(Expression("Inv(A) * A * A"));
     auto mul_assoc_right =
-        make_rewrite("mul-assoc-right", "Mul(Mul(?a, ?b), ?c)", "Mul(?a, Mul(?b, ?c))", false, nullptr, nullptr, 10);
+        make_rewrite("mul-assoc-right", "?a * ?b * ?c", "?a * (?b * ?c)", false, nullptr, nullptr, 10);
     std::vector<Rewrite> rules = {
         mul_assoc_right,
         invert_cancel_left,
@@ -97,7 +97,7 @@ TEST(Integration, MinimalRealisticExplosionRules) {
 TEST(Integration, CyclicTermsThatDoNotExplode) {
     EGraph egraph(get_property_table());
 
-    auto id = egraph.add_expression(Expression("Mul(A, Mul(Inv(A), A))"));
+    auto id = egraph.add_expression(Expression("A * (Inv(A) * A)"));
     std::vector<Rewrite> rules = {
         mul_assoc,
         invert_cancel_right,
@@ -124,7 +124,7 @@ TEST(Integration, CyclicTermsThatDoNotExplode) {
 TEST(Integration, MatrixChainSymbolicSizes) {
     EGraph egraph(get_property_table_with_symbolic_shapes());
 
-    const Expression root_expr("Mul(Mul(Mul(Mul(Mul(Mul(A, B), C), D), E), F), G)");
+    const Expression root_expr("A * B * C * D * E * F * G");
     const Id root_id = egraph.add_expression(root_expr);
     Rewriter rewriter(egraph, {mul_assoc}, 1000);
     rewriter.apply_rewrites();

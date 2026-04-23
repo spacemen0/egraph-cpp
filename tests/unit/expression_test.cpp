@@ -15,7 +15,7 @@ TEST(Expression, ParseOperationWithoutChildren) {
 }
 
 TEST(Expression, ParseOperationWithChildren) {
-    Expression p(" Add ( X, Y) ");
+    Expression p(" X + Y ");
     EXPECT_EQ(std::get<Op>(p.atom), Op::Add);
     ASSERT_EQ(p.children.size(), 2);
     EXPECT_TRUE(std::holds_alternative<std::string>(p.children[0].atom));
@@ -25,7 +25,7 @@ TEST(Expression, ParseOperationWithChildren) {
 }
 
 TEST(Expression, ParseNestedOperations) {
-    Expression p("Mul(Add( Add(X,Y), Y), Tr(Z))");
+    Expression p("((X + Y) + Y) * Tr(Z)");
     EXPECT_EQ(std::get<Op>(p.atom), Op::Mul);
     ASSERT_EQ(p.children.size(), 2);
     const Expression &add_child = p.children[0];
@@ -43,13 +43,13 @@ TEST(Expression, ParseNestedOperations) {
 }
 
 TEST(Expression, ToString) {
-    Expression p("Mul(Add(X, Y), Tr(Z))");
+    Expression p("(X + Y) * Tr(Z)");
     std::string repr = p.to_string();
-    EXPECT_EQ(repr, "Mul(Add(X, Y), Tr(Z))");
+    EXPECT_EQ(repr, "(X + Y) * Tr(Z)");
 }
 
 TEST(Expression, ToHumanString) {
-    Expression p("Mul(Add(X, Y), Tr(Z))");
+    Expression p("(X + Y) * Tr(Z)");
     std::string repr = p.to_human_string();
     EXPECT_EQ(repr, "(X + Y) * Zᵀ");
 }
@@ -62,17 +62,17 @@ TEST(Expression, ToHumanStringFactorizationIndexing) {
 }
 
 TEST(Expression, ToHumanStringMulChainPreservesLeftGrouping) {
-    Expression p("Mul(Mul(A, B), C)");
+    Expression p("(A * B) * C");
     EXPECT_EQ(p.to_human_string(), "(A * B) * C");
 }
 
 TEST(Expression, ToHumanStringMulChainPreservesRightGrouping) {
-    Expression p("Mul(A, Mul(B, C))");
+    Expression p("A * (B * C)");
     EXPECT_EQ(p.to_human_string(), "A * (B * C)");
 }
 
 TEST(Expression, ParseQRNode) {
-    Expression p("Mul(Add(Get(QR(A), 0)), Get(QR(A), 1))");
+    Expression p("Add(Get(QR(A), 0)) * Get(QR(A), 1)");
     EXPECT_EQ(std::get<Op>(p.atom), Op::Mul);
     ASSERT_EQ(p.children.size(), 2);
     const Expression &add_child = p.children[0];
@@ -96,5 +96,5 @@ TEST(Expression, ParseQRNode) {
 
 TEST(Expression, ParsingErrors) {
     EXPECT_THROW(Expression(""), ParseError);
-    EXPECT_THROW(Expression("Add(X, Y"), ParseError);
+    EXPECT_THROW(Expression("(X + Y"), ParseError);
 }

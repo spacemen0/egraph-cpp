@@ -3,6 +3,7 @@
 #include "errors.h"
 #include "rewriter.h"
 #include "types.h"
+#include "parser.h"
 #include <charconv>
 #include <random>
 #include <span>
@@ -61,53 +62,7 @@ constexpr std::string_view trim(std::string_view sv) {
 }
 
 inline ParsedAtom string_to_parsed_atom(std::string_view s) {
-    s = trim(s);
-    if (s.empty())
-        throw ParseError("Empty string");
-
-    auto pos = s.find('(');
-
-    // Leaf node
-    if (pos == std::string_view::npos) {
-        int v;
-        if (auto [ptr, ec] = std::from_chars(s.data(), s.data() + s.size(), v); ec == std::errc()) {
-            if (ptr == s.data() + s.size()) // the entire string was consumed
-                return {v, {}};
-            throw ParseError("Invalid integer: " + std::string(s));
-        }
-        return {std::string(s), {}};
-    }
-
-    std::string_view op_str = trim(s.substr(0, pos));
-    Op op = parse_op(op_str);
-
-    size_t end = s.find_last_of(')');
-    if (end == std::string_view::npos)
-        throw ParseError("Missing closing parenthesis");
-
-    std::string_view args_str = s.substr(pos + 1, end - (pos + 1));
-    std::vector<std::string> children;
-
-    size_t child_start = 0;
-    int paren_count = 0;
-    for (size_t i = 0; i < args_str.size(); ++i) {
-        if (args_str[i] == '(')
-            paren_count++;
-        else if (args_str[i] == ')')
-            paren_count--;
-        else if (args_str[i] == ',' && paren_count == 0) {
-
-            if (auto child = trim(args_str.substr(child_start, i - child_start)); !child.empty())
-                children.emplace_back(child);
-            child_start = i + 1;
-        }
-    }
-    if (child_start < args_str.size()) {
-        auto child = trim(args_str.substr(child_start));
-        if (!child.empty())
-            children.emplace_back(child);
-    }
-    return {op, children};
+    return parser::parse_expression(s);
 }
 
 inline std::string atom_to_string(const Atom &atom) {

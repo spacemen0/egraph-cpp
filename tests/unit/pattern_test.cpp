@@ -3,9 +3,9 @@
 #include <gtest/gtest.h>
 
 TEST_F(EGraphTest, PatternMatchingSimple) {
-    Id expr_id = egraph.add_expression(Expression("Mul(X, Y)"));
+    Id expr_id = egraph.add_expression(Expression("X * Y"));
 
-    Pattern pattern("Mul(?a, ?b)");
+    Pattern pattern("?a * ?b");
 
     std::set<Substitution> substitutions;
     egraph.find_matches_in_eclass(expr_id, pattern, substitutions);
@@ -20,9 +20,9 @@ TEST_F(EGraphTest, PatternMatchingSimple) {
 }
 
 TEST_F(EGraphTest, PatternMatchingNested) {
-    Id expr_id = egraph.add_expression(Expression("Add(Mul(X, Y), Tr(Z))"));
+    Id expr_id = egraph.add_expression(Expression("(X * Y) + Tr(Z)"));
 
-    Pattern pattern("Add(Mul(?a, ?b), Tr(?c))");
+    Pattern pattern("(?a * ?b) + Tr(?c)");
 
     std::set<Substitution> substitutions;
     egraph.find_matches_in_eclass(expr_id, pattern, substitutions);
@@ -39,14 +39,14 @@ TEST_F(EGraphTest, PatternMatchingNested) {
 }
 
 TEST_F(EGraphTest, PatternMatchingMultipleMatchesInClass) {
-    Id id1 = egraph.add_expression(Expression("Mul(X, Y)"));
+    Id id1 = egraph.add_expression(Expression("X * Y"));
 
-    Id id2 = egraph.add_expression(Expression("Mul(A, Z)"));
+    Id id2 = egraph.add_expression(Expression("A * Z"));
 
     egraph.union_classes(id1, id2);
     egraph.rebuild();
 
-    Pattern pattern("Mul(?a, ?b)");
+    Pattern pattern("?a * ?b");
 
     std::set<Substitution> substitutions;
     egraph.find_matches_in_eclass(id1, pattern, substitutions);

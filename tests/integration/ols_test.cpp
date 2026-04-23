@@ -10,7 +10,7 @@
 
 TEST(Integration, OLSNumeric) {
     EGraph egraph(get_property_table());
-    auto id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(X), X) ) , Tr(X) ), y)"));
+    auto id = egraph.add_expression(Expression("(Inv(Tr(X) * X) * Tr(X)) * y"));
     std::vector<Rewrite> rules =
         build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality", "zero-negation", "solver"});
     Rewriter rewriter(egraph, rules, 1000, true);
@@ -27,7 +27,7 @@ TEST(Integration, OLSNumeric) {
         //               << "! Num nodes: " << egraph.num_nodes() << std::endl;
         // }
     }
-    auto alternative_expression = Expression("Sol(Mul(Tr(X), X), Mul(Tr(X), y))");
+    auto alternative_expression = Expression("Sol(Tr(X) * X, Tr(X) * y)");
     auto alternative_id = egraph.add_expression(alternative_expression);
     ASSERT_TRUE(egraph.find_class_id(alternative_id) == egraph.find_class_id(id));
     CostStorage cost_storage(egraph);
@@ -45,7 +45,7 @@ TEST(Integration, OLSSymbolic) {
     egraph.register_or_update_property(
         "M",
         MatrixProperty{.shape = std::make_pair("A", "B"), .flags = {.is_positive_definite = true, .is_tall = true}});
-    auto id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(M), M) ) , Tr(M) ), n)"));
+    auto id = egraph.add_expression(Expression("(Inv(Tr(M) * M) * Tr(M)) * n"));
 
     std::vector<Rewrite> rules = build_rewrite_sets({"complete"});
     Rewriter rewriter(egraph, rules, 300, true);
@@ -98,7 +98,7 @@ TEST(Integration, OLSPruneConverges) {
     CostStorage cost_storage(egraph);
     Extractor extractor(egraph, cost_storage, true);
     Pruner pruner(egraph, extractor);
-    Id root_id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(M), M) ) , Tr(M) ), n)"));
+    Id root_id = egraph.add_expression(Expression("(Inv(Tr(M) * M) * Tr(M)) * n"));
 
     PruneOptions options{
         .num_iterations = 8,
@@ -110,7 +110,7 @@ TEST(Integration, OLSPruneConverges) {
 
     auto callback = [&](int i, const PruneResult &prune_result) {
         auto should_be_root_id =
-            egraph.add_expression(Expression("Mul(Inv(Get(QR(M), 1)), Mul(Tr(Get(QR(M), 0)), n))"));
+            egraph.add_expression(Expression("Inv(Get(QR(M), 1)) * (Tr(Get(QR(M), 0)) * n)"));
         total_pruned += prune_result.nodes_pruned;
         nodes_after_iteration.push_back(egraph.num_nodes());
         std::cout << "Iteration " << (i + 1) << ": nodes after iteration=" << nodes_after_iteration.back()

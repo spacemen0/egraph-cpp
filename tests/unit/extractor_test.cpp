@@ -22,15 +22,15 @@ TEST_F(ExtractorTest, CheaperExtraction) {
 
 TEST_F(ExtractorTest, RewriteAndExtract) {
 
-    Id root_id = egraph.add_expression(Expression("Add(Mul(A, Zero), Z)"));
+    Id root_id = egraph.add_expression(Expression("(A * Zero) + Z"));
 
     // Mul(x, Zero) -> Zero
-    Pattern p1_lhs("Mul(?x, Zero)");
+    Pattern p1_lhs("?x * Zero");
     Pattern p1_rhs("Zero");
     Rewrite r1{"mul_zero", p1_lhs, p1_rhs};
 
     // Add(Zero, x) -> x
-    Pattern p2_lhs("Add(Zero, ?x)");
+    Pattern p2_lhs("Zero + ?x");
     Pattern p2_rhs("?x");
     Rewrite r2{"add_zero", p2_lhs, p2_rhs};
 
@@ -91,12 +91,12 @@ TEST_F(ExtractorTest, ExpensiveSharedWinsWithHighReuse) {
 
 TEST_F(ExtractorTest, ExtractSymbolicSingleDag) {
 
-    Id id_root = egraph.add_expression(Expression("Mul(Tr(M), n)"));
+    Id id_root = egraph.add_expression(Expression("Tr(M) * n"));
 
     auto results = extractor.extract_symbolic(id_root);
 
     ASSERT_EQ(results.size(), 1);
-    EXPECT_EQ(results[0].expr.to_string(), "Mul(Tr(M), n)");
+    EXPECT_EQ(results[0].expr.to_string(), "Tr(M) * n");
     ASSERT_TRUE(std::holds_alternative<SymbolicCost>(results[0].cost));
 
     SymbolicCost expected;
@@ -131,8 +131,8 @@ TEST_F(ExtractorTest, ExtractSymbolicMultipleDags) {
         EXPECT_EQ(std::get<SymbolicCost>(r.cost), expected);
     }
 
-    EXPECT_TRUE(exprs.contains("Mul(Tr(M), n)"));
-    EXPECT_TRUE(exprs.contains("Mul(Tr(P), n)"));
+    EXPECT_TRUE(exprs.contains("Tr(M) * n"));
+    EXPECT_TRUE(exprs.contains("Tr(P) * n"));
 }
 
 TEST_F(ExtractorTest, ExtractTopNumericDags) {
@@ -155,7 +155,7 @@ TEST_F(ExtractorTest, ExtractTopNumericDags) {
         exprs.insert(result.expr.to_string());
     }
     EXPECT_TRUE(exprs.contains("A"));
-    EXPECT_TRUE(exprs.contains("Mul(X, Y)"));
+    EXPECT_TRUE(exprs.contains("X * Y"));
 }
 
 TEST_F(ExtractorTest, ExtractTopDagsWithSizeBindings) {
@@ -178,5 +178,5 @@ TEST_F(ExtractorTest, ExtractTopDagsWithSizeBindings) {
         exprs.insert(result.expr.to_string());
     }
     EXPECT_TRUE(exprs.contains("n"));
-    EXPECT_TRUE(exprs.contains("Mul(M, p)"));
+    EXPECT_TRUE(exprs.contains("M * p"));
 }

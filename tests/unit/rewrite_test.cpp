@@ -10,16 +10,16 @@ TEST(Rewrite, SimpleRewrite) {
     ENode zero_node({}, "Zero");
     Id id0 = egraph.add_node(zero_node);
 
-    Id id_mul = egraph.add_expression(Expression("Mul(A, Zero)"));
+    Id id_mul = egraph.add_expression(Expression("A * Zero"));
     // egraph.print_egraph();
 
     // x * 0 -> 0
-    Pattern lhs("Mul(?x, ?z)");
+    Pattern lhs("?x * ?z");
     Pattern rhs("?z");
 
     EXPECT_NE(id_mul, id0);
     std::vector<Rewrite> rules = {
-        make_rewrite("mul_zero", "Mul(?x, ?z)", "?z", false, [](const EGraph &g, const Substitution &s) {
+        make_rewrite("mul_zero", "?x * ?z", "?z", false, [](const EGraph &g, const Substitution &s) {
         return is_zero(s, g, "z");
     }, nullptr)};
 
@@ -32,21 +32,21 @@ TEST(Rewrite, SimpleRewrite) {
 TEST(Rewrite, Commutativity) {
     EGraph egraph(get_property_table());
 
-    Id id_add = egraph.add_expression(Expression("Add(A, Z)"));
+    Id id_add = egraph.add_expression(Expression("A + Z"));
 
     // x + y -> y + x
-    Pattern lhs("Add(?x, ?y)");
-    Pattern rhs("Add(?y, ?x)");
+    Pattern lhs("?x + ?y");
+    Pattern rhs("?y + ?x");
     Rewrite rule{"commute_add", lhs, rhs};
 
-    EXPECT_NE(id_add, egraph.add_expression(Expression("Add(Z, A)")));
+    EXPECT_NE(id_add, egraph.add_expression(Expression("Z + A")));
 
     std::vector<Rewrite> rules = {{"commute_add", lhs, rhs}};
     Rewriter rewriter(egraph, rules, 100);
     bool changed = rewriter.apply_rewrites();
     EXPECT_TRUE(changed);
 
-    Id id_commuted = egraph.add_expression(Expression("Add(Z, A)"));
+    Id id_commuted = egraph.add_expression(Expression("Z + A"));
 
     EXPECT_EQ(egraph.find_class_id(id_add), egraph.find_class_id(id_commuted));
 }
@@ -57,7 +57,7 @@ TEST(Rewrite, NoMatch) {
     egraph.add_node(sym_a);
 
     // x + 0 -> x
-    Pattern lhs("Add(?x, Zero)");
+    Pattern lhs("?x + Zero");
     Pattern rhs("?x");
 
     std::vector<Rewrite> rules = {{"add_zero", lhs, rhs}};
@@ -75,10 +75,10 @@ TEST(Rewrite, NewNodes) {
     pt.add_or_update_property_entry("a", prop_a);
     EGraph egraph(std::move(pt));
 
-    Id id_add = egraph.add_expression(Expression("Mul(Inv(a), a)"));
+    Id id_add = egraph.add_expression(Expression("Inv(a) * a"));
 
     std::vector<Rewrite> rules = {make_rewrite(
-        "inv-mul-left", "Mul(Inv(?a), ?a)", "?__dynamic__", false, nullptr, [](EGraph &g, const Substitution &s) {
+        "inv-mul-left", "Inv(?a) * ?a", "?__dynamic__", false, nullptr, [](EGraph &g, const Substitution &s) {
         return make_identity_for(g, s, "a");
     })};
 
@@ -105,7 +105,7 @@ TEST(Rewrite, SolveRule) {
 
     EGraph egraph(std::move(pt));
 
-    Id id_expr = egraph.add_expression(Expression("Mul(Inv(a), b)"));
+    Id id_expr = egraph.add_expression(Expression("Inv(a) * b"));
 
     Rewriter rewriter(egraph, {solver_left}, 100);
     bool changed = rewriter.apply_rewrites();
@@ -127,7 +127,7 @@ TEST(Rewrite, LLtRewrite) {
     bool changed = rewriter.apply_rewrites();
     EXPECT_TRUE(changed);
 
-    Id id_llt = egraph.add_expression(Expression("Mul(Tr(Inv(Get(LLt(V), 0))), Inv(Get(LLt(V), 0)))"));
+    Id id_llt = egraph.add_expression(Expression("Tr(Inv(Get(LLt(V), 0))) * Inv(Get(LLt(V), 0))"));
     EXPECT_EQ(egraph.find_class_id(id_expr), egraph.find_class_id(id_llt));
 }
 

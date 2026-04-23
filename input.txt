@@ -1,6 +1,6 @@
 add properties X:Matrix(100x20)[positive_definite][symmetric] y:Matrix(100x1) 
 add rule-set complete
-parse Mul(Mul(Inv(Mul(Tr(X),X)),Tr(X)),y)
+parse Inv(Tr(X) * X) * Tr(X) * y
 rewrite 6
 show state
 extract

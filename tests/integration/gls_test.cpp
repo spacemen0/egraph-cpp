@@ -13,7 +13,7 @@ TEST(Integration, GLSNumeric) {
         "M",
         MatrixProperty{.shape = std::make_pair(3, 3), .flags = {.is_symmetric = true, .is_positive_definite = true}});
     auto id =
-        egraph.add_expression(Expression("Mul( Mul( Inv( Mul( Mul(Tr(X), Inv(M)), X) ) , Mul(Tr(X), Inv(M)) ), y)"));
+        egraph.add_expression(Expression("(Inv(Tr(X) * Inv(M) * X) * (Tr(X) * Inv(M))) * y"));
 
     std::vector<Rewrite> rules =
         build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality", "solver"});
@@ -38,7 +38,7 @@ TEST(Integration, GLSSymbolic) {
     pt.add_or_update_property_entry("y", {.shape = std::make_pair("A", 1)});
     EGraph egraph(pt);
     auto id =
-        egraph.add_expression(Expression("Mul( Mul( Inv( Mul( Mul(Tr(X), Inv(M)), X) ) , Mul(Tr(X), Inv(M)) ), y)"));
+        egraph.add_expression(Expression("(Inv(Tr(X) * Inv(M) * X) * (Tr(X) * Inv(M))) * y"));
 
     std::vector<Rewrite> rules =
         build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality", "solver"});

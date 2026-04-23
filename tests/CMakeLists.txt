@@ -6,6 +6,7 @@ add_executable(unit_tests
     unit/analysis_test.cpp
     unit/e_class_test.cpp
     unit/expression_test.cpp
+    unit/parser_test.cpp
     unit/rewrite_test.cpp
     unit/extractor_test.cpp
     unit/property_test.cpp

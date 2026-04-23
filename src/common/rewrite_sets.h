@@ -30,9 +30,9 @@ static auto leaf_and_not_factorized_and_square = [](const EGraph &g, const Subst
 };
 
 static const auto qr_invert =
-    make_rewrite("qr-invert", "Inv(?a)", "Inv(Mul(Get(QR(?a), 0), Get(QR(?a), 1)))", true, is_not_factorized);
+    make_rewrite("qr-invert", "Inv(?a)", "Inv(Get(QR(?a), 0) * Get(QR(?a), 1))", true, is_not_factorized);
 static const auto qr_leaf = make_rewrite(
-    "qr-leaf", "?a", "Mul(Get(QR(?a), 0), Get(QR(?a), 1))", true, [](const EGraph &g, const Substitution &s) {
+    "qr-leaf", "?a", "Get(QR(?a), 0) * Get(QR(?a), 1)", true, [](const EGraph &g, const Substitution &s) {
     if (!leaf_and_not_factorized(g, s))
         return false;
     Id a_id = s.at("a");
@@ -45,12 +45,12 @@ static const auto qr_leaf = make_rewrite(
 });
 
 static const auto lu_invert =
-    make_rewrite("lu-invert", "Inv(?a)", "Mul(Inv(Get(LU(?a), 1)), Inv(Get(LU(?a), 0)))", true, is_not_factorized);
+    make_rewrite("lu-invert", "Inv(?a)", "Inv(Get(LU(?a), 1)) * Inv(Get(LU(?a), 0))", true, is_not_factorized);
 
 static const auto lu_leaf =
-    make_rewrite("lu-leaf", "?a", "Mul(Get(LU(?a), 0), Get(LU(?a), 1))", true, leaf_and_not_factorized_and_square);
+    make_rewrite("lu-leaf", "?a", "Get(LU(?a), 0) * Get(LU(?a), 1)", true, leaf_and_not_factorized_and_square);
 static const auto llt_invert = make_rewrite(
-    "llt-invert", "Inv(?a)", "Mul(Tr(Inv(Get(LLt(?a), 0))), Inv(Get(LLt(?a), 0)))", true,
+    "llt-invert", "Inv(?a)", "Tr(Inv(Get(LLt(?a), 0))) * Inv(Get(LLt(?a), 0))", true,
     [](const EGraph &g, const Substitution &s) {
     if (!is_not_factorized(g, s))
         return false;
@@ -64,7 +64,7 @@ static const auto llt_invert = make_rewrite(
 });
 
 static const auto llt_leaf = make_rewrite(
-    "llt-leaf", "?a", "Mul(Tr(Get(LLt(?a), 0)), Get(LLt(?a), 0))", true, [](const EGraph &g, const Substitution &s) {
+    "llt-leaf", "?a", "Tr(Get(LLt(?a), 0)) * Get(LLt(?a), 0)", true, [](const EGraph &g, const Substitution &s) {
     if (!leaf_and_not_factorized_and_square(g, s))
         return false;
     Id a_id = s.at("a");
@@ -77,34 +77,34 @@ static const auto llt_leaf = make_rewrite(
 });
 
 static const auto mul_identity_left =
-    make_rewrite("mul-identity-left", "Mul(?a, ?i)", "?a", false, [](const EGraph &g, const Substitution &s) {
+    make_rewrite("mul-identity-left", "?a * ?i", "?a", false, [](const EGraph &g, const Substitution &s) {
     return is_identity(s, g, "i");
 });
 
 static const auto mul_identity_right =
-    make_rewrite("mul-identity-right", "Mul(?i, ?a)", "?a", false, [](const EGraph &g, const Substitution &s) {
+    make_rewrite("mul-identity-right", "?i * ?a", "?a", false, [](const EGraph &g, const Substitution &s) {
     return is_identity(s, g, "i");
 });
 
-static const auto mul_assoc = make_rewrite("mul-assoc-left", "Mul(?a, Mul(?b, ?c))", "Mul(Mul(?a, ?b), ?c)", true);
+static const auto mul_assoc = make_rewrite("mul-assoc-left", "?a * (?b * ?c)", "(?a * ?b) * ?c", true);
 
-static const auto commute_add = make_rewrite("commute-add", "Add(?a, ?b)", "Add(?b, ?a)");
+static const auto commute_add = make_rewrite("commute-add", "?a + ?b", "?b + ?a");
 
 static const auto mat_transpose_prod =
-    make_rewrite("mat-transpose-prod", "Tr(Mul(?a, ?b))", "Mul(Tr(?b), Tr(?a))", true);
+    make_rewrite("mat-transpose-prod", "Tr(?a * ?b)", "Tr(?b) * Tr(?a)", true);
 
 static const auto invert_cancel_left = make_rewrite(
-    "invert-cancel-left", "Mul(Inv(?a), ?a)", "?__dynamic__", false, nullptr, [](EGraph &g, const Substitution &s) {
+    "invert-cancel-left", "Inv(?a) * ?a", "?__dynamic__", false, nullptr, [](EGraph &g, const Substitution &s) {
     return make_identity_for(g, s, "a");
 });
 
 static const auto invert_cancel_right = make_rewrite(
-    "invert-cancel-right", "Mul(?a, Inv(?a))", "?__dynamic__", false, nullptr, [](EGraph &g, const Substitution &s) {
+    "invert-cancel-right", "?a * Inv(?a)", "?__dynamic__", false, nullptr, [](EGraph &g, const Substitution &s) {
     return make_identity_for(g, s, "a");
 });
 
 static const auto invert_mat_prod = make_rewrite(
-    "invert-mat-prod", "Inv(Mul(?a, ?b))", "Mul(Inv(?b), Inv(?a))", true, [](const EGraph &g, const Substitution &s) {
+    "invert-mat-prod", "Inv(?a * ?b)", "Inv(?b) * Inv(?a)", true, [](const EGraph &g, const Substitution &s) {
     Id a_id = s.at("a");
     Id b_id = s.at("b");
     const auto &data_a = g.get_class_analysis_data(a_id);
@@ -119,7 +119,7 @@ static const auto invert_mat_prod = make_rewrite(
 });
 
 static const auto orthogonal_transpose = make_rewrite(
-    "orthogonal-transpose", "Mul(Tr(?a), ?a)", "Identity", false, [](const EGraph &g, const Substitution &s) {
+    "orthogonal-transpose", "Tr(?a) * ?a", "Identity", false, [](const EGraph &g, const Substitution &s) {
     Id a_id = s.at("a");
     const auto &data = g.get_class_analysis_data(a_id);
     if (auto *prop = std::get_if<MatrixProperty>(&data.property)) {
@@ -131,7 +131,7 @@ static const auto orthogonal_transpose = make_rewrite(
 });
 
 static const auto orthonormal_transpose = make_rewrite(
-    "orthonormal-transpose", "Mul(Tr(?a), ?a)", "Identity", false, [](const EGraph &g, const Substitution &s) {
+    "orthonormal-transpose", "Tr(?a) * ?a", "Identity", false, [](const EGraph &g, const Substitution &s) {
     Id a_id = s.at("a");
     const auto &data = g.get_class_analysis_data(a_id);
     if (auto *prop = std::get_if<MatrixProperty>(&data.property)) {
@@ -143,17 +143,17 @@ static const auto orthonormal_transpose = make_rewrite(
 });
 
 static const auto minus_cancel = make_rewrite(
-    "minus-cancel", "Minus(?a, ?a)", "?__dynamic__", false, nullptr, [](EGraph &g, const Substitution &s) {
+    "minus-cancel", "?a - ?a", "?__dynamic__", false, nullptr, [](EGraph &g, const Substitution &s) {
     return make_zero_for(g, s, "a");
 });
 
 static const auto add_comm_zero =
-    make_rewrite("add-comm-zero", "Add(?a, ?z)", "?a", false, [](const EGraph &g, const Substitution &s) {
+    make_rewrite("add-comm-zero", "?a + ?z", "?a", false, [](const EGraph &g, const Substitution &s) {
     return is_zero(s, g, "z");
 });
 
 static const auto mul_zero_left =
-    make_rewrite("mul-zero-left", "Mul(?z, ?a)", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
+    make_rewrite("mul-zero-left", "?z * ?a", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
     return is_zero(s, g, "z");
 }, [](EGraph &g, const Substitution &s) {
     const auto *z_prop = get_matrix_data(g, s.at("z"));
@@ -162,7 +162,7 @@ static const auto mul_zero_left =
 });
 
 static const auto mul_zero_right =
-    make_rewrite("mul-zero-right", "Mul(?a, ?z)", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
+    make_rewrite("mul-zero-right", "?a * ?z", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
     return is_zero(s, g, "z");
 }, [](EGraph &g, const Substitution &s) {
     const auto *a_prop = get_matrix_data(g, s.at("a"));
@@ -170,14 +170,14 @@ static const auto mul_zero_right =
     return make_zero_of_shape(g, {a_prop->shape.first, z_prop->shape.second});
 });
 
-static const auto solver_left = make_rewrite("solver_left", "Mul(Inv(?a), ?b)", "Sol(?a, ?b)");
+static const auto solver_left = make_rewrite("solver_left", "Inv(?a) * ?b", "Sol(?a, ?b)");
 static const auto solve_composition = make_rewrite(
-    "solve_composition", "Sol(Mul(?a, ?b), ?c)", "Sol(?b, Sol(?a, ?c))", true,
+    "solve_composition", "Sol(?a * ?b, ?c)", "Sol(?b, Sol(?a, ?c))", true,
     [](const EGraph &g, const Substitution &s) {
     return check_is_square(s, g, "a") && check_is_square(s, g, "b");
 });
-static const auto solve_cancel_left = make_rewrite("solve_cancel_left", "Sol(?a, Mul(?a, ?b))", "?b");
-static const auto solve_cancel_right = make_rewrite("solve_cancel_right", "Mul(?a, Sol(?a, ?b))", "?b");
+static const auto solve_cancel_left = make_rewrite("solve_cancel_left", "Sol(?a, ?a * ?b)", "?b");
+static const auto solve_cancel_right = make_rewrite("solve_cancel_right", "?a * Sol(?a, ?b)", "?b");
 static const auto solve_by_id =
     make_rewrite("solve_by_id", "Sol(?b, ?a)", "?a", false, [](const EGraph &g, const Substitution &s) {
     return is_identity(s, g, "b");
@@ -192,14 +192,14 @@ static const auto inverse_solve =
 });
 static const auto transpose_solve = make_rewrite("transpose_solve", "Tr(Sol(?a, ?b))", "SolR(Tr(?b), Tr(?a))", true);
 
-static const auto solver_right = make_rewrite("solver_right", "Mul(?b, Inv(?a))", "SolR(?b, ?a)");
+static const auto solver_right = make_rewrite("solver_right", "?b * Inv(?a)", "SolR(?b, ?a)");
 static const auto solver_right_composition = make_rewrite(
-    "solver_right_composition", "SolR(?c, Mul(?a, ?b))", "SolR(SolR(?c, ?b), ?a)", true,
+    "solver_right_composition", "SolR(?c, ?a * ?b)", "SolR(SolR(?c, ?b), ?a)", true,
     [](const EGraph &g, const Substitution &s) {
     return check_is_square(s, g, "a") && check_is_square(s, g, "b");
 });
-static const auto solve_r_cancel_left = make_rewrite("solve_r_cancel_left", "SolR(Mul(?b, ?a), ?a)", "?b");
-static const auto solve_r_cancel_right = make_rewrite("solve_r_cancel_right", "Mul(SolR(?b, ?a), ?a)", "?b");
+static const auto solve_r_cancel_left = make_rewrite("solve_r_cancel_left", "SolR(?b * ?a, ?a)", "?b");
+static const auto solve_r_cancel_right = make_rewrite("solve_r_cancel_right", "SolR(?b, ?a) * ?a", "?b");
 static const auto solve_r_identity =
     make_rewrite("solve_r_identity", "SolR(?a, ?a)", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s) {
     return make_identity_for(g, s, "a");
