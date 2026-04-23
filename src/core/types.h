@@ -15,13 +15,10 @@ struct ParsedAtom {
 
 struct Monomial {
     std::vector<std::string> symbols;
+    Monomial(std::vector<std::string> s) : symbols(std::move(s)) { normalize(); }
     void normalize() { std::sort(symbols.begin(), symbols.end()); }
     bool operator==(const Monomial &other) const {
-        Monomial a = *this;
-        Monomial b = other;
-        a.normalize();
-        b.normalize();
-        return a.symbols == b.symbols;
+        return symbols == other.symbols;
     }
 };
 
@@ -29,9 +26,7 @@ namespace std {
 template <> struct hash<Monomial> {
     size_t operator()(const Monomial &m) const {
         size_t seed = 0;
-        Monomial normalized = m;
-        normalized.normalize();
-        for (const auto &symbol : normalized.symbols) {
+        for (const auto &symbol : m.symbols) {
             seed ^= hash<std::string>()(symbol) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         }
         return seed;
