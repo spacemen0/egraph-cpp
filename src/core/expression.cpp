@@ -1,31 +1,29 @@
 #include "expression.h"
 #include "basic_types.h"
-#include "expression_parser.h"
 #include "utils.h"
 #include <algorithm>
 #include <sstream>
 
 namespace {
 int precedence(const Expression &expr) {
-    if (!expr.children.empty()) {
-        if (std::holds_alternative<Op>(expr.atom)) {
-            switch (std::get<Op>(expr.atom)) {
-                using enum Op;
-            case Add:
-                return 10;
-            case Mul:
-                return 20;
-            case Neg:
-                return 30;
-            case Tr:
-            case Inv:
-                return 40;
-            default:
-                return 90;
-            }
-        }
+    if (!std::holds_alternative<Op>(expr.atom)) {
+        return 100;
     }
-    return 100;
+
+    switch (std::get<Op>(expr.atom)) {
+        using enum Op;
+    case Add:
+        return 10;
+    case Mul:
+        return 20;
+    case Neg:
+        return 30;
+    case Tr:
+    case Inv:
+        return 40;
+    default:
+        return 90;
+    }
 }
 
 std::string parenthesize(const Expression &expr, int parent_precedence) {
@@ -90,25 +88,13 @@ std::string format_indexed_factorization(const Expression &base, const Expressio
 } // namespace
 
 /// @brief parse a expression from a string with the format: Op(child1, child2,
-/// ...) or infix notation like inv(trans(X)*inv(M)*X)*trans(X)*inv(M)*y
+/// ...)
 /// @param string
 Expression::Expression(std::string_view string) {
-    if (string.empty()) {
-        throw ParseError("Empty expression string");
-    }
-
-    if (string.find('(') != std::string_view::npos || string.find('+') != std::string_view::npos ||
-        string.find('*') != std::string_view::npos || string.find('-') != std::string_view::npos ||
-        string.find('/') != std::string_view::npos) {
-
-        *this = parse_infix(string);
-        return;
-    }
-
     auto parsed = string_to_parsed_atom(string);
     atom = parsed.atom;
     std::ranges::transform(parsed.children_strings, std::back_inserter(children), [](const std::string &str) {
-        return Expression(std::string_view(str));
+        return Expression(str);
     });
 }
 
@@ -180,13 +166,19 @@ std::string Expression::to_human_string() const {
     }
     case Tr: {
         if (children.empty())
-            return "trans(?)";
-        return children[0].to_human_string() + "ᵀ";
+            return "(?)ᵀ";
+        const Expression &arg = children[0];
+        const std::string arg_str =
+            precedence(arg) < precedence(*this) ? "(" + arg.to_human_string() + ")" : arg.to_human_string();
+        return arg_str + "ᵀ";
     }
     case Inv: {
         if (children.empty())
-            return "inv(?)";
-        return children[0].to_human_string() + "⁻¹";
+            return "(?)⁻¹";
+        const Expression &arg = children[0];
+        const std::string arg_str =
+            precedence(arg) < precedence(*this) ? "(" + arg.to_human_string() + ")" : arg.to_human_string();
+        return arg_str + "⁻¹";
     }
     case Get: {
         if (children.size() >= 2) {

@@ -48,7 +48,7 @@ TEST(Integration, OLSSymbolic) {
     auto id = egraph.add_expression(Expression("Mul ( Mul( Inv( Mul(Tr(M), M) ) , Tr(M) ), n)"));
 
     std::vector<Rewrite> rules = build_rewrite_sets({"complete"});
-    Rewriter rewriter(egraph, rules, 300, true);
+    Rewriter rewriter(egraph, rules, 400, true);
     rewriter.apply_rewrites(10);
     CostStorage cost_storage(egraph);
     Extractor extractor(egraph, cost_storage, true);
