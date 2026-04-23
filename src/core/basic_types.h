@@ -8,9 +8,9 @@
 enum class Op {
     Add,
     Mul,
+    Minus,
     Tr,
     Inv,
-    Neg,
     QR,   // output: [Q, R]
     LU,   // output: [L, U, P]
     LLt,  // output: [L] where A = LLt

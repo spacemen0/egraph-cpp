@@ -142,10 +142,8 @@ static const auto orthonormal_transpose = make_rewrite(
     return make_identity_for(g, s, "a", false);
 });
 
-static const auto negate_involutive = make_rewrite("negate-involutive", "Neg(Neg(?a))", "?a");
-
-static const auto add_negate_cancel_left = make_rewrite(
-    "add-negate-cancel-left", "Add(?a, Neg(?a))", "?__dynamic__", false, nullptr, [](EGraph &g, const Substitution &s) {
+static const auto minus_cancel = make_rewrite(
+    "minus-cancel", "Minus(?a, ?a)", "?__dynamic__", false, nullptr, [](EGraph &g, const Substitution &s) {
     return make_zero_for(g, s, "a");
 });
 
@@ -235,7 +233,7 @@ static const std::vector<Rewrite> orthogonality_set = {
 };
 
 static const std::vector<Rewrite> zero_negation_set = {
-    negate_involutive, add_negate_cancel_left, add_comm_zero, mul_zero_left, mul_zero_right,
+    minus_cancel, add_comm_zero, mul_zero_left, mul_zero_right,
 };
 
 static const std::vector<Rewrite> solver_set = {

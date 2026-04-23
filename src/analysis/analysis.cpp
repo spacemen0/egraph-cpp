@@ -164,16 +164,24 @@ static AnalysisData analyze_invert(const EGraph &egraph, const std::vector<Id> &
     throw AnalysisError("Inv expects a Matrix input");
 }
 
-static AnalysisData analyze_negate(const EGraph &egraph, const std::vector<Id> &children) {
-    check_arity(children, 1, "Neg");
-    if (auto data = get_matrix_data(egraph, children.at(0))) {
-        MatrixProperty prop = *data;
-        prop.flags.is_identity = false;
-        prop.flags.is_permutation = false;
-        prop.flags.is_positive_definite = false;
-        return matrix_property_data(prop);
+static AnalysisData analyze_minus(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 2, "Minus");
+    if (auto data1 = get_matrix_data(egraph, children.at(0))) {
+        if (auto data2 = get_matrix_data(egraph, children.at(1))) {
+            if (data1->shape != data2->shape)
+                throw ShapeMismatchError("Minus size mismatch");
+
+            MatrixProperty prop;
+            prop.shape = data1->shape;
+            prop.flags.is_symmetric = data1->flags.is_symmetric && data2->flags.is_symmetric;
+            prop.flags.is_upper_triangular = data1->flags.is_upper_triangular && data2->flags.is_upper_triangular;
+            prop.flags.is_lower_triangular = data1->flags.is_lower_triangular && data2->flags.is_lower_triangular;
+            prop.flags.is_diagonal = data1->flags.is_diagonal && data2->flags.is_diagonal;
+            prop.flags.is_zero = data1->flags.is_zero && data2->flags.is_zero;
+            return matrix_property_data(prop);
+        }
     }
-    throw AnalysisError("Neg expects a Matrix input");
+    throw AnalysisError("Minus expects Matrix inputs");
 }
 
 static AnalysisData analyze_qr(const EGraph &egraph, const std::vector<Id> &children) {
@@ -333,8 +341,8 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
         return analyze_transpose(egraph, children);
     case Inv:
         return analyze_invert(egraph, children);
-    case Neg:
-        return analyze_negate(egraph, children);
+    case Minus:
+        return analyze_minus(egraph, children);
     case QR:
         return analyze_qr(egraph, children);
     case LU:

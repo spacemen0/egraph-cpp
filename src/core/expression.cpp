@@ -13,11 +13,10 @@ int precedence(const Expression &expr) {
     switch (std::get<Op>(expr.atom)) {
         using enum Op;
     case Add:
+    case Minus:
         return 10;
     case Mul:
         return 20;
-    case Neg:
-        return 30;
     case Tr:
     case Inv:
         return 40;
@@ -159,10 +158,10 @@ std::string Expression::to_human_string() const {
         }
         return ss.str();
     }
-    case Neg: {
-        if (children.empty())
-            return "-?";
-        return "-" + parenthesize(children[0], precedence(*this));
+    case Minus: {
+        if (children.size() < 2)
+            return "? - ?";
+        return parenthesize(children[0], precedence(*this)) + " - " + parenthesize(children[1], precedence(*this));
     }
     case Tr: {
         if (children.empty())

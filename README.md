@@ -87,7 +87,7 @@ Mul(A, B)            # matrix multiply A × B
 Tr(A)                # transpose
 Inv(A)               # inverse
 Add(A, B)            # addition
-Neg(A)               # negation
+Minus(A, B)          # subtraction (A - B)
 Get(QR(A), 0)        # extract component from a factorization
 ```
 
@@ -113,7 +113,7 @@ Available flags: `tall`, `square`, `symmetric`, `positive-definite`, `orthogonal
 | `inverse` | Inverse cancellation, inverse of a product |
 | `orthogonality` | `Tr(A) × A = I` for orthogonal / orthonormal matrices |
 | `factorization` | QR, LU, and Cholesky (LLt) decomposition-based inversion rules |
-| `zero-negation` | Double negation, zero absorption |
+| `zero-subtraction` | Subtraction of identical terms, zero absorption |
 
 Multiple rule sets can be enabled in a single `add rule-set` command.
 

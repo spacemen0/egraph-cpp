@@ -18,7 +18,7 @@ TEST_F(EGraphTest, AddAndLookUpNode) {
 
 TEST_F(EGraphTest, BreakWithInvalidChildId) {
     Id fake_id = 999999;
-    ENode dangerous_node = make_op(Op::Neg, Children{fake_id});
+    ENode dangerous_node = make_op(Op::Minus, Children{fake_id, fake_id});
     EXPECT_ANY_THROW(egraph.add_node(dangerous_node));
 }
 
@@ -82,10 +82,10 @@ TEST_F(EGraphTest, RebuildCleanUpEClass) {
     Id x = egraph.add_node(sym_a);
     Id y = egraph.add_node(sym_z);
 
-    ENode node_x = make_op(Op::Neg, {x});
+    ENode node_x = make_op(Op::Minus, {x, x});
     Id neg_x = egraph.add_node(node_x);
 
-    ENode node_y = make_op(Op::Neg, {y});
+    ENode node_y = make_op(Op::Minus, {y, y});
     Id neg_y = egraph.add_node(node_y);
 
     EXPECT_NE(egraph.find_class_id(neg_x), egraph.find_class_id(neg_y));
@@ -132,13 +132,13 @@ TEST_F(EGraphTest, ENodeMatching) {
 
     Id id1 = egraph.add_node(sym_x);
 
-    auto node = make_op(Op::Neg, Children{id1});
+    auto node = make_op(Op::Minus, Children{id1, id1});
     Id id2 = egraph.add_node(node);
 
     EXPECT_TRUE(egraph.find_node_id(node).has_value());
     EXPECT_EQ(egraph.find_node_id(node).value(), id2);
 
-    auto node_diff = make_op(Op::Neg, Children{id1 + 1});
+    auto node_diff = make_op(Op::Minus, Children{id1 + 1, id1 + 1});
     EXPECT_FALSE(egraph.find_node_id(node_diff).has_value());
 }
 

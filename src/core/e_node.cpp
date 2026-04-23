@@ -122,7 +122,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
             }
             throw std::invalid_argument("Invalid shape for Inv operation in ENode::compute_local_cost");
         };
-        case Neg: {
+        case Minus: {
             auto shape = get_one_shape(children.at(0));
             if (is_numeric(shape)) {
                 int rows = std::get<int>(shape.first);
@@ -135,7 +135,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
                 sc[m] = 1.0;
                 return sc;
             }
-            throw std::invalid_argument("Invalid shape for Neg operation in ENode::compute_local_cost");
+            throw std::invalid_argument("Invalid shape for Minus operation in ENode::compute_local_cost");
         };
         case QR: {
             auto shape = get_one_shape(children.at(0));
@@ -312,8 +312,8 @@ std::string ENode::to_string() const {
             return "Tr";
         case Inv:
             return "Inv";
-        case Neg:
-            return "Neg";
+        case Minus:
+            return "Minus";
         case QR:
             return "QR";
         case LU:

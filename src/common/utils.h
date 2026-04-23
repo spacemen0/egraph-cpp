@@ -22,8 +22,8 @@ inline Op parse_op(std::string_view s) {
         return Tr;
     if (s == "Inv")
         return Inv;
-    if (s == "Neg")
-        return Neg;
+    if (s == "Minus")
+        return Minus;
     if (s == "QR")
         return QR;
     if (s == "LU")
@@ -122,8 +122,8 @@ inline std::string atom_to_string(const Atom &atom) {
             return "Tr";
         case Inv:
             return "Inv";
-        case Neg:
-            return "Neg";
+        case Minus:
+            return "Minus";
         case QR:
             return "QR";
         case LU:
