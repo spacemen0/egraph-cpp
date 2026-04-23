@@ -72,13 +72,10 @@ TEST(Expression, ToHumanStringMulChainPreservesRightGrouping) {
 }
 
 TEST(Expression, ParseQRNode) {
-    Expression p("Add(Get(QR(A), 0)) * Get(QR(A), 1)");
+    Expression p("Get(QR(A), 0) * Get(QR(A), 1)");
     EXPECT_EQ(std::get<Op>(p.atom), Op::Mul);
     ASSERT_EQ(p.children.size(), 2);
-    const Expression &add_child = p.children[0];
-    EXPECT_EQ(std::get<Op>(add_child.atom), Op::Add);
-    ASSERT_EQ(add_child.children.size(), 1);
-    const Expression &get_q = add_child.children[0];
+    const Expression &get_q = p.children[0];
     EXPECT_EQ(std::get<Op>(get_q.atom), Op::Get);
     ASSERT_EQ(get_q.children.size(), 2);
     EXPECT_TRUE(std::holds_alternative<Op>(get_q.children[0].atom));

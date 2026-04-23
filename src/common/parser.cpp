@@ -80,12 +80,58 @@ class Lexer {
     }
 };
 
+namespace {
+int op_precedence(Op op) {
+    switch (op) {
+    case Op::Add:
+    case Op::Minus:
+        return 10;
+    case Op::Mul:
+        return 20;
+    default:
+        return 100;
+    }
+}
+} // namespace
+
 struct ASTNode {
     Atom atom;
     std::vector<std::unique_ptr<ASTNode>> children;
 
+    int precedence() const {
+        if (std::holds_alternative<Op>(atom)) {
+            return op_precedence(std::get<Op>(atom));
+        }
+        return 100;
+    }
+
     std::string to_string() const {
         if (std::holds_alternative<Op>(atom)) {
+            Op op = std::get<Op>(atom);
+            if (op == Op::Add || op == Op::Mul || op == Op::Minus) {
+                std::string sym;
+                if (op == Op::Add)
+                    sym = " + ";
+                else if (op == Op::Mul)
+                    sym = " * ";
+                else
+                    sym = " - ";
+
+                if (children.size() == 2) {
+                    int my_prec = op_precedence(op);
+                    auto format_child = [&](const ASTNode &child) {
+                        std::string s = child.to_string();
+                        if (child.precedence() < my_prec) {
+                            return "(" + s + ")";
+                        }
+                        return s;
+                    };
+                    return format_child(*children[0]) + sym + format_child(*children[1]);
+                } else if (op == Op::Minus && children.size() == 1) {
+                    return "-" + children[0]->to_string();
+                }
+            }
+
             std::string res = atom_to_string(atom) + "(";
             for (size_t i = 0; i < children.size(); ++i) {
                 if (i > 0)
@@ -175,9 +221,14 @@ class Parser {
 
             // Check for function call
             if (curr.type == TokenType::LParen) {
+                Op op = parse_op(name);
+                if (op == Op::Add || op == Op::Mul || op == Op::Minus) {
+                    throw ParseError("Prefix syntax for " + std::string(name) + " is no longer supported. Use infix +, *, or - instead.");
+                }
+
                 advance();
                 auto node = std::make_unique<ASTNode>();
-                node->atom = parse_op(name);
+                node->atom = op;
 
                 if (curr.type != TokenType::RParen) {
                     while (true) {
@@ -189,8 +240,7 @@ class Parser {
                         }
                     }
                 }
-                if (curr.type != TokenType::RParen)
-                    throw ParseError("Expected closing parenthesis after arguments");
+                if (curr.type != TokenType::RParen) throw ParseError("Expected closing parenthesis after arguments");
                 advance();
                 return node;
             } else {
@@ -199,6 +249,7 @@ class Parser {
                 return node;
             }
         }
+
 
         throw ParseError("Unexpected token in expression: " + std::string(curr.text));
     }

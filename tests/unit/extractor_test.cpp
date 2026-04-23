@@ -24,12 +24,9 @@ TEST_F(ExtractorTest, RewriteAndExtract) {
 
     Id root_id = egraph.add_expression(Expression("(A * Zero) + Z"));
 
-    // Mul(x, Zero) -> Zero
     Pattern p1_lhs("?x * Zero");
     Pattern p1_rhs("Zero");
     Rewrite r1{"mul_zero", p1_lhs, p1_rhs};
-
-    // Add(Zero, x) -> x
     Pattern p2_lhs("Zero + ?x");
     Pattern p2_rhs("?x");
     Rewrite r2{"add_zero", p2_lhs, p2_rhs};
@@ -80,7 +77,6 @@ TEST_F(ExtractorTest, ExpensiveSharedWinsWithHighReuse) {
     Id mul_inv_d = egraph.add_node(make_op(Op::Mul, {inv_d, id_d})); // 2x2, cost 8
     egraph.union_classes(id_mul_yx, inv_d);
 
-    // Root expression: Add(Mul(Y, X), Mul(Inv(D), D))
     Id id_root = egraph.add_node(make_op(Op::Add, {id_mul_yx, mul_inv_d})); // 2x2
     egraph.to_img("extractor_test_initial", "svg");
 
@@ -100,7 +96,7 @@ TEST_F(ExtractorTest, ExtractSymbolicSingleDag) {
     ASSERT_TRUE(std::holds_alternative<SymbolicCost>(results[0].cost));
 
     SymbolicCost expected;
-    expected[Monomial{{"A", "B", "1"}}] = 2.0; // Mul(Tr(M), n), with Tr local cost = 0
+    expected[Monomial{{"A", "B", "1"}}] = 2.0;
     EXPECT_EQ(std::get<SymbolicCost>(results[0].cost), expected);
 }
 

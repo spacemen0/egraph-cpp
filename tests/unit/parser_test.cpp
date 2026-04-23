@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "errors.h"
 #include <gtest/gtest.h>
 
 TEST(ParserTest, InfixBasic) {
@@ -16,8 +17,8 @@ TEST(ParserTest, InfixPrecedence) {
     EXPECT_EQ(std::get<Op>(parsed.atom), Op::Add);
     ASSERT_EQ(parsed.children_strings.size(), 2);
     EXPECT_EQ(parsed.children_strings[0], "A");
-    // The second child should be B * C, serialized to prefix Mul(B, C)
-    EXPECT_EQ(parsed.children_strings[1], "Mul(B, C)");
+    // The second child should be B * C
+    EXPECT_EQ(parsed.children_strings[1], "B * C");
 }
 
 TEST(ParserTest, InfixParentheses) {
@@ -25,8 +26,8 @@ TEST(ParserTest, InfixParentheses) {
     EXPECT_TRUE(std::holds_alternative<Op>(parsed.atom));
     EXPECT_EQ(std::get<Op>(parsed.atom), Op::Mul);
     ASSERT_EQ(parsed.children_strings.size(), 2);
-    // The first child should be A + B, serialized to prefix Add(A, B)
-    EXPECT_EQ(parsed.children_strings[0], "Add(A, B)");
+    // The first child should be A + B
+    EXPECT_EQ(parsed.children_strings[0], "A + B");
     EXPECT_EQ(parsed.children_strings[1], "C");
 }
 
@@ -59,16 +60,13 @@ TEST(ParserTest, FunctionCallWithInfix) {
     EXPECT_TRUE(std::holds_alternative<Op>(parsed.atom));
     EXPECT_EQ(std::get<Op>(parsed.atom), Op::Tr);
     ASSERT_EQ(parsed.children_strings.size(), 1);
-    EXPECT_EQ(parsed.children_strings[0], "Mul(A, B)");
+    EXPECT_EQ(parsed.children_strings[0], "A * B");
 }
 
-TEST(ParserTest, OldPrefixSyntax) {
-    auto parsed = parser::parse_expression("Add(Mul(A, B), C)");
-    EXPECT_TRUE(std::holds_alternative<Op>(parsed.atom));
-    EXPECT_EQ(std::get<Op>(parsed.atom), Op::Add);
-    ASSERT_EQ(parsed.children_strings.size(), 2);
-    EXPECT_EQ(parsed.children_strings[0], "Mul(A, B)");
-    EXPECT_EQ(parsed.children_strings[1], "C");
+TEST(ParserTest, DisallowOldPrefixSyntax) {
+    EXPECT_THROW(parser::parse_expression("Add(A, B)"), ParseError);
+    EXPECT_THROW(parser::parse_expression("Mul(A, B)"), ParseError);
+    EXPECT_THROW(parser::parse_expression("Minus(A, B)"), ParseError);
 }
 
 TEST(ParserTest, ComplexMixed) {
@@ -76,6 +74,6 @@ TEST(ParserTest, ComplexMixed) {
     EXPECT_TRUE(std::holds_alternative<Op>(parsed.atom));
     EXPECT_EQ(std::get<Op>(parsed.atom), Op::Mul);
     ASSERT_EQ(parsed.children_strings.size(), 2);
-    EXPECT_EQ(parsed.children_strings[0], "Inv(Add(A, B))");
+    EXPECT_EQ(parsed.children_strings[0], "Inv(A + B)");
     EXPECT_EQ(parsed.children_strings[1], "Tr(C)");
 }

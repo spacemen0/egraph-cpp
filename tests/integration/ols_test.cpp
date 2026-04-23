@@ -62,7 +62,7 @@ TEST(Integration, OLSSymbolic) {
     // while (rewriter.apply_one_iteration()) {
     //     iteration++;
     //     auto should_be_root_id =
-    //         egraph.add_expression(Expression("Mul(Inv(Get(QR(M), 1)), Mul(Tr(Get(QR(M), 0)), n))"));
+    //         egraph.add_expression(Expression("Inv(Get(QR(M), 1)) * (Tr(Get(QR(M), 0)) * n)"));
     //     if (egraph.find_class_id(id) == egraph.find_class_id(should_be_root_id)) {
     //         std::cout << "Found the QR-based solution in iteration " << iteration
     //                   << "! Num nodes: " << egraph.num_nodes() << std::endl;
