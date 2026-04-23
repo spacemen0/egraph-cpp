@@ -1,10 +1,9 @@
 #pragma once
 
 #include "errors.h"
+#include "parser.h"
 #include "rewriter.h"
 #include "types.h"
-#include "parser.h"
-#include <charconv>
 #include <random>
 #include <span>
 #include <stdexcept>
@@ -61,9 +60,7 @@ constexpr std::string_view trim(std::string_view sv) {
     return sv;
 }
 
-inline ParsedAtom string_to_parsed_atom(std::string_view s) {
-    return parser::parse_expression(s);
-}
+inline ParsedAtom string_to_parsed_atom(std::string_view s) { return parser::parse_expression(s); }
 
 inline std::string atom_to_string(const Atom &atom) {
     if (std::holds_alternative<Op>(atom)) {

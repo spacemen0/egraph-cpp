@@ -1,5 +1,4 @@
 #include "parser.h"
-#include "utils.h"
 #include <gtest/gtest.h>
 
 TEST(ParserTest, InfixBasic) {
