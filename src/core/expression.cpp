@@ -25,19 +25,19 @@ int precedence(const Expression &expr) {
     }
 }
 
-std::string render(const Expression &expr, bool human_readable, int parent_precedence = 0);
+std::string render(const Expression &expr, int parent_precedence = 0);
 
-std::string parenthesize(const Expression &expr, bool human_readable, int parent_precedence) {
-    std::string rendered = render(expr, human_readable, parent_precedence);
+std::string parenthesize(const Expression &expr, int parent_precedence) {
+    std::string rendered = render(expr, parent_precedence);
     if (precedence(expr) < parent_precedence) {
         return "(" + rendered + ")";
     }
     return rendered;
 }
 
-std::string parenthesize_mul_chain(const Expression &expr, bool human_readable) {
+std::string parenthesize_mul_chain(const Expression &expr) {
     constexpr int MulPrecedence = 20;
-    std::string rendered = render(expr, human_readable, MulPrecedence);
+    std::string rendered = render(expr, MulPrecedence);
     if (std::holds_alternative<Op>(expr.atom) && std::get<Op>(expr.atom) == Op::Mul) {
         return "(" + rendered + ")";
     }
@@ -47,47 +47,7 @@ std::string parenthesize_mul_chain(const Expression &expr, bool human_readable) 
     return rendered;
 }
 
-std::string format_indexed_factorization(const Expression &base, const Expression &index_expr) {
-    if (!std::holds_alternative<int>(index_expr.atom)) {
-        return {};
-    }
-
-    const int index = std::get<int>(index_expr.atom);
-    if (!std::holds_alternative<Op>(base.atom)) {
-        return {};
-    }
-
-    const auto *inner = base.children.empty() ? nullptr : &base.children[0];
-    const std::string inner_str = inner ? render(*inner, true) : "?";
-
-    switch (std::get<Op>(base.atom)) {
-        using enum Op;
-    case QR:
-        if (index == 0)
-            return "Q(" + inner_str + ")";
-        if (index == 1)
-            return "R(" + inner_str + ")";
-        break;
-    case LU:
-        if (index == 0)
-            return "L(" + inner_str + ")";
-        if (index == 1)
-            return "U(" + inner_str + ")";
-        if (index == 2)
-            return "P(" + inner_str + ")";
-        break;
-    case LLt:
-        if (index == 0)
-            return "Chol(" + inner_str + ")";
-        break;
-    default:
-        break;
-    }
-
-    return {};
-}
-
-std::string render(const Expression &expr, bool human_readable, int parent_precedence) {
+std::string render(const Expression &expr, int parent_precedence) {
     if (!std::holds_alternative<Op>(expr.atom)) {
         return atom_to_string(expr.atom);
     }
@@ -102,7 +62,7 @@ std::string render(const Expression &expr, bool human_readable, int parent_prece
         for (size_t i = 0; i < expr.children.size(); ++i) {
             if (i > 0)
                 ss << " + ";
-            ss << parenthesize(expr.children[i], human_readable, precedence(expr));
+            ss << parenthesize(expr.children[i], precedence(expr));
         }
         return ss.str();
     }
@@ -113,96 +73,27 @@ std::string render(const Expression &expr, bool human_readable, int parent_prece
         for (size_t i = 0; i < expr.children.size(); ++i) {
             if (i > 0)
                 ss << " * ";
-            ss << parenthesize_mul_chain(expr.children[i], human_readable);
+            ss << parenthesize_mul_chain(expr.children[i]);
         }
         return ss.str();
     }
     case Minus: {
         if (expr.children.size() < 2)
             return "? - ?";
-        return parenthesize(expr.children[0], human_readable, precedence(expr)) + " - " +
-               parenthesize(expr.children[1], human_readable, precedence(expr));
+        return parenthesize(expr.children[0], precedence(expr)) + " - " +
+               parenthesize(expr.children[1], precedence(expr));
     }
-    case Tr: {
-        if (expr.children.empty())
-            return human_readable ? "(?)ᵀ" : "Tr(?)";
-        const Expression &arg = expr.children[0];
-        if (human_readable) {
-            const std::string arg_str =
-                precedence(arg) < precedence(expr) ? "(" + render(arg, true) + ")" : render(arg, true);
-            return arg_str + "ᵀ";
-        } else {
-            return "Tr(" + render(arg, false) + ")";
-        }
-    }
-    case Inv: {
-        if (expr.children.empty())
-            return human_readable ? "(?)⁻¹" : "Inv(?)";
-        const Expression &arg = expr.children[0];
-        if (human_readable) {
-            const std::string arg_str =
-                precedence(arg) < precedence(expr) ? "(" + render(arg, true) + ")" : render(arg, true);
-            return arg_str + "⁻¹";
-        } else {
-            return "Inv(" + render(arg, false) + ")";
-        }
-    }
-    case Get: {
-        if (expr.children.size() >= 2) {
-            if (human_readable) {
-                const std::string decomposition_view = format_indexed_factorization(expr.children[0], expr.children[1]);
-                if (!decomposition_view.empty()) {
-                    return decomposition_view;
-                }
-            }
-            return render(expr.children[0], human_readable) + "[" + render(expr.children[1], human_readable) + "]";
-        }
+    default:
         break;
-    }
-    case Det:
-        if (!expr.children.empty())
-            return "Det(" + render(expr.children[0], human_readable) + ")";
-        break;
-    case Log:
-        if (!expr.children.empty())
-            return "Log(" + render(expr.children[0], human_readable) + ")";
-        break;
-    case Sol:
-        if (expr.children.size() == 2) {
-            std::string name = human_readable ? "Solve" : "Sol";
-            return name + "(" + render(expr.children[0], human_readable) + ", " +
-                   render(expr.children[1], human_readable) + ")";
-        }
-        break;
-    case SolR:
-        if (expr.children.size() == 2) {
-            std::string name = human_readable ? "Solve_Right" : "SolR";
-            return name + "(" + render(expr.children[0], human_readable) + ", " +
-                   render(expr.children[1], human_readable) + ")";
-        }
-        break;
-    case QR:
-    case LU:
-    case LLt: {
-        std::stringstream ss;
-        ss << atom_to_string(expr.atom) << "(";
-        for (size_t i = 0; i < expr.children.size(); ++i) {
-            if (i > 0)
-                ss << ", ";
-            ss << render(expr.children[i], human_readable);
-        }
-        ss << ")";
-        return ss.str();
-    }
     }
 
-    // Fallback
+    // Fallback for all other operations (functional notation)
     std::stringstream ss;
     ss << atom_to_string(expr.atom) << "(";
     for (size_t i = 0; i < expr.children.size(); ++i) {
         if (i > 0)
             ss << ", ";
-        ss << render(expr.children[i], human_readable);
+        ss << render(expr.children[i]);
     }
     ss << ")";
     return ss.str();
@@ -233,11 +124,7 @@ Expression::Expression(const ENode &node, const EGraph &egraph) : atom(node.get_
 }
 
 std::string Expression::to_string() const {
-    return render(*this, false);
-}
-
-std::string Expression::to_human_string() const {
-    return render(*this, true);
+    return render(*this);
 }
 
 bool Expression::operator==(const Expression &other) const {

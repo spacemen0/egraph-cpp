@@ -13,6 +13,5 @@ struct Expression {
     Atom atom;
     std::vector<Expression> children;
     std::string to_string() const;
-    std::string to_human_string() const;
     bool operator==(const Expression &other) const;
 };

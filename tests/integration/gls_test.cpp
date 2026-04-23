@@ -24,7 +24,7 @@ TEST(Integration, GLSNumeric) {
     Extractor extractor(egraph, cost_storage, true);
     auto result = extractor.extract(id, 10);
     for (const auto &r : result) {
-        std::cout << "Candidate expression: " << r.expr.to_human_string() << std::endl;
+        std::cout << "Candidate expression: " << r.expr.to_string() << std::endl;
         std::cout << "Cost: " << r.cost << std::endl;
     }
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
@@ -49,7 +49,7 @@ TEST(Integration, GLSSymbolic) {
     Extractor extractor(egraph, cost_storage, true);
     auto result = extractor.extract(id, {{"A", 100}, {"B", 20}}, 10);
     for (const auto &r : result) {
-        std::cout << "Candidate expression: " << r.expr.to_human_string() << std::endl;
+        std::cout << "Candidate expression: " << r.expr.to_string() << std::endl;
         std::cout << "Cost: " << r.cost << std::endl;
     }
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;

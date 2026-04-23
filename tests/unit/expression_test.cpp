@@ -48,27 +48,21 @@ TEST(Expression, ToString) {
     EXPECT_EQ(repr, "(X + Y) * Tr(Z)");
 }
 
-TEST(Expression, ToHumanString) {
-    Expression p("(X + Y) * Tr(Z)");
-    std::string repr = p.to_human_string();
-    EXPECT_EQ(repr, "(X + Y) * Zᵀ");
-}
-
-TEST(Expression, ToHumanStringFactorizationIndexing) {
+TEST(Expression, ToStringFactorizationIndexing) {
     Expression q("Get(QR(A), 0)");
     Expression r("Get(QR(A), 1)");
-    EXPECT_EQ(q.to_human_string(), "Q(A)");
-    EXPECT_EQ(r.to_human_string(), "R(A)");
+    EXPECT_EQ(q.to_string(), "Get(QR(A), 0)");
+    EXPECT_EQ(r.to_string(), "Get(QR(A), 1)");
 }
 
-TEST(Expression, ToHumanStringMulChainPreservesLeftGrouping) {
+TEST(Expression, ToStringMulChainPreservesLeftGrouping) {
     Expression p("(A * B) * C");
-    EXPECT_EQ(p.to_human_string(), "(A * B) * C");
+    EXPECT_EQ(p.to_string(), "(A * B) * C");
 }
 
-TEST(Expression, ToHumanStringMulChainPreservesRightGrouping) {
+TEST(Expression, ToStringMulChainPreservesRightGrouping) {
     Expression p("A * (B * C)");
-    EXPECT_EQ(p.to_human_string(), "A * (B * C)");
+    EXPECT_EQ(p.to_string(), "A * (B * C)");
 }
 
 TEST(Expression, ParseQRNode) {

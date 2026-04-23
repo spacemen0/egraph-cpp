@@ -250,7 +250,7 @@ static AnalysisData analyze_solve(const EGraph &egraph, const std::vector<Id> &c
         if (!data1->is_square())
             throw InvalidOperationError(
                 "Sol operation on non-square matrix " +
-                Expression(egraph.find_node(children.at(0)).value(), egraph).to_human_string());
+                Expression(egraph.find_node(children.at(0)).value(), egraph).to_string());
         if (auto data2 = get_matrix_data(egraph, children.at(1))) {
             if (data1->shape.second != data2->shape.first) {
                 throw ShapeMismatchError("Sol operation with incompatible sizes");

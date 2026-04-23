@@ -165,7 +165,7 @@ void extract_expression(SessionState &state, size_t expression_id) {
     CostStorage cost_storage(state.egraph);
     Extractor extractor(state.egraph, cost_storage);
     auto result = extractor.extract(expression_id);
-    std::cout << "Best extracted expression: " << result.expr.to_human_string() << "\n";
+    std::cout << "Best extracted expression: " << result.expr.to_string() << "\n";
     std::cout << "Cost: " << result.cost << "\n";
 }
 
@@ -180,7 +180,7 @@ void extract_expression_with_bindings(SessionState &state, size_t expression_id,
     CostStorage cost_storage(state.egraph);
     Extractor extractor(state.egraph, cost_storage);
     auto result = extractor.extract(expression_id, bindings);
-    std::cout << "Best extracted expression (with bindings): " << result.expr.to_human_string() << "\n";
+    std::cout << "Best extracted expression (with bindings): " << result.expr.to_string() << "\n";
     std::cout << "Cost: " << result.cost << "\n";
 }
 
@@ -202,7 +202,7 @@ void extract_symbolic_expressions(SessionState &state, size_t expression_id) {
 
     std::cout << "Symbolic extraction candidates: " << results.size() << "\n";
     for (size_t i = 0; i < results.size(); ++i) {
-        std::cout << "  [" << i << "] " << results[i].expr.to_human_string() << "\n";
+        std::cout << "  [" << i << "] " << results[i].expr.to_string() << "\n";
         std::cout << "      Cost: " << results[i].cost << "\n";
     }
 }

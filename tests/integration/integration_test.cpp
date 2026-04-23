@@ -47,7 +47,7 @@ TEST(Integration, SimplifyComplexMatrixChain) {
     Extractor extractor(egraph, cost_storage);
     auto results = extractor.extract_symbolic(root_id);
     for (const auto &result : results) {
-        std::cout << "Extracted expression: " << result.expr.to_human_string() << std::endl;
+        std::cout << "Extracted expression: " << result.expr.to_string() << std::endl;
         std::cout << "Cost: " << result.cost << std::endl;
     }
 }
@@ -86,7 +86,7 @@ TEST(Integration, MinimalRealisticExplosionRules) {
 
     auto result = extractor.extract(root_id);
     std::cout << "Num nodes after iterative rewriting/pruning: " << egraph.num_nodes() << std::endl;
-    std::cout << "Final extracted expression: " << result.expr.to_human_string() << std::endl;
+    std::cout << "Final extracted expression: " << result.expr.to_string() << std::endl;
     std::cout << "Final extracted cost: " << result.cost << std::endl;
 
     EXPECT_EQ(result.cost, Cost(0.0));
@@ -141,7 +141,7 @@ TEST(Integration, MatrixChainSymbolicSizes) {
     ASSERT_FALSE(candidate_expressions.empty());
 
     // for (auto expression : candidate_expressions) {
-    //     std::cout << "Candidate expression: " << expression.to_human_string() << std::endl;
+    //     std::cout << "Candidate expression: " << expression.to_string() << std::endl;
     // }
 
     std::vector<bool> expression_seen(candidate_expressions.size(), false);
@@ -156,7 +156,7 @@ TEST(Integration, MatrixChainSymbolicSizes) {
             // if (!expression_seen[index]) {
             //     std::cout << "Expression " << index << " Matched at Sample " << (i + 1) << std::endl;
             //     std::cout << "Symbolic Cost: " << symbolic_results[index].cost << std::endl;
-            //     std::cout << "Extracted Expression: " << extracted_expr.to_human_string() << std::endl;
+            //     std::cout << "Extracted Expression: " << extracted_expr.to_string() << std::endl;
             // }
             expression_seen[index] = true;
         }

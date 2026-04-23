@@ -35,7 +35,7 @@ TEST(Integration, OLSNumeric) {
     Extractor extractor(egraph, cost_storage, true);
     auto result = extractor.extract(id, 5);
     for (const auto &candidate : result) {
-        std::cout << "Candidate expression: " << candidate.expr.to_human_string() << std::endl;
+        std::cout << "Candidate expression: " << candidate.expr.to_string() << std::endl;
         std::cout << "Cost: " << candidate.cost << std::endl;
     }
 }
@@ -54,7 +54,7 @@ TEST(Integration, OLSSymbolic) {
     Extractor extractor(egraph, cost_storage, true);
     auto results = extractor.extract_symbolic(id);
     // for (const auto &candidate : results) {
-    //     std::cout << "Candidate expression: " << candidate.expr.to_human_string() << std::endl;
+    //     std::cout << "Candidate expression: " << candidate.expr.to_string() << std::endl;
     //     std::cout << "Cost: " << candidate.cost << std::endl;
     // }
     std::cout << "Num results: " << results.size() << std::endl;
@@ -70,12 +70,12 @@ TEST(Integration, OLSSymbolic) {
     //         CostStorage cost_storage(egraph);
     //         Extractor extractor(egraph, cost_storage, true);
     //         auto result = extractor.extract(id, {{"A", 3}, {"B", 2}});
-    //         std::cout << "Best extracted expression: " << result.expr.to_human_string() << std::endl;
+    //         std::cout << "Best extracted expression: " << result.expr.to_string() << std::endl;
     //         std::cout << "Cost: " << result.cost << std::endl;
     //         // egraph.to_img("OLS", "svg");
     //         // auto symbolic_results = extractor.extract_symbolic(id);
     //         // for (const auto &result : symbolic_results) {
-    //         //     std::cout << "Candidate expression: " << result.expr.to_human_string() << std::endl;
+    //         //     std::cout << "Candidate expression: " << result.expr.to_string() << std::endl;
     //         //     std::cout << "Cost: " << result.cost << std::endl;
     //         // }
     //         return;
@@ -121,7 +121,7 @@ TEST(Integration, OLSPruneConverges) {
 
     auto result = extractor.extract_symbolic(root_id);
     for (const auto &candidate : result) {
-        std::cout << "Candidate expression: " << candidate.expr.to_human_string() << std::endl;
+        std::cout << "Candidate expression: " << candidate.expr.to_string() << std::endl;
         std::cout << "Cost: " << candidate.cost << std::endl;
     }
 }
