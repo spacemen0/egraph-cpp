@@ -42,11 +42,28 @@ def main() -> int:
         cwd=repo_root,
     )
 
+    import os
+
+    exe_name = "egraph_cli.exe" if os.name == "nt" else "egraph_cli"
+
     print("Building CLI...")
-    run(["cmake", "--build", "build", "--target", "egraph_cli"], cwd=repo_root)
+    run(
+        ["cmake", "--build", "build", "--target", "egraph_cli", "--config", "Debug"],
+        cwd=repo_root,
+    )
 
     print(f"Running CLI with {input_file}...")
-    cli_path = repo_root / "build" / "src" / "egraph_cli"
+    cli_base = repo_root / "build" / "src"
+    candidates = [
+        cli_base / exe_name,
+        cli_base / "Debug" / exe_name,
+        cli_base / "Release" / exe_name,
+    ]
+    cli_path = next((p for p in candidates if p.exists()), None)
+    if not cli_path:
+        print(f"Error: Could not find {exe_name} in {cli_base}", file=sys.stderr)
+        return 1
+
     with input_path.open("rb") as stdin_stream:
         subprocess.run([str(cli_path)], cwd=repo_root, check=True, stdin=stdin_stream)
 

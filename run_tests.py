@@ -3,6 +3,7 @@ import argparse
 import pathlib
 import shutil
 import subprocess
+import sys
 
 
 def run(command: list[str], cwd: pathlib.Path) -> None:
@@ -43,10 +44,27 @@ def main() -> int:
         ],
         cwd=repo_root,
     )
-    run(["cmake", "--build", "build", "--target", "unit_tests"], cwd=repo_root)
+    run(
+        ["cmake", "--build", "build", "--target", "unit_tests", "--config", "Debug"],
+        cwd=repo_root,
+    )
 
     print("Running tests...")
-    test_command = [str(repo_root / "build" / "tests" / "unit_tests")]
+    import os
+
+    exe_name = "unit_tests.exe" if os.name == "nt" else "unit_tests"
+    tests_base = repo_root / "build" / "tests"
+    candidates = [
+        tests_base / exe_name,
+        tests_base / "Debug" / exe_name,
+        tests_base / "Release" / exe_name,
+    ]
+    test_path = next((p for p in candidates if p.exists()), None)
+    if not test_path:
+        print(f"Error: Could not find {exe_name} in {tests_base}", file=sys.stderr)
+        return 1
+
+    test_command = [str(test_path)]
     if args.gtest_filter:
         test_command.append(f"--gtest_filter={args.gtest_filter}")
     run(test_command, cwd=repo_root)
