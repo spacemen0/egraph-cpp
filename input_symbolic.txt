@@ -2,7 +2,9 @@ mode symbolic
 add properties M:Matrix(AxB)[positive_definite][tall] n:Matrix(Ax1)
 add rule-set complete
 parse Inv(Tr(M) * M) * Tr(M) * n
+parse Tr(M) * M
+parse Tr(M) * M * Inv(Tr(M) * M) * Tr(M) * n
 rewrite 6
 show state
-extract A=100 B=20
+extract 2 A=100 B=20
 quit

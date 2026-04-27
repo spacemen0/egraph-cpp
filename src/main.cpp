@@ -103,10 +103,10 @@ bool parse_binding_token(const std::string &token, std::string &key, int &value)
     return true;
 }
 
-void parse_expression(SessionState &state, const std::string &expr_str) {
+void parse_expression(SessionState &state, const std::string &expr_str, size_t index) {
     Expression expr = Expression(expr_str);
     Id id = state.egraph.add_expression(expr);
-    std::cout << "Parsed expression with root id " << id << ".\n";
+    std::cout << "Parsed expression #" << index << " with root id " << id << ".\n";
 }
 
 void add_properties_to_state(SessionState &state, const std::vector<std::string> &property_strings) {
@@ -165,7 +165,7 @@ void extract_expression(SessionState &state, size_t expression_id) {
     CostStorage cost_storage(state.egraph);
     Extractor extractor(state.egraph, cost_storage);
     auto result = extractor.extract(expression_id);
-    std::cout << "Best extracted expression: " << result.expr.to_string() << "\n";
+    std::cout << "Best extracted expression: " << result.expr.to_string(true) << "\n";
     std::cout << "Cost: " << result.cost << "\n";
 }
 
@@ -180,7 +180,7 @@ void extract_expression_with_bindings(SessionState &state, size_t expression_id,
     CostStorage cost_storage(state.egraph);
     Extractor extractor(state.egraph, cost_storage);
     auto result = extractor.extract(expression_id, bindings);
-    std::cout << "Best extracted expression (with bindings): " << result.expr.to_string() << "\n";
+    std::cout << "Best extracted expression (with bindings): " << result.expr.to_string(true) << "\n";
     std::cout << "Cost: " << result.cost << "\n";
 }
 
@@ -202,7 +202,7 @@ void extract_symbolic_expressions(SessionState &state, size_t expression_id) {
 
     std::cout << "Symbolic extraction candidates: " << results.size() << "\n";
     for (size_t i = 0; i < results.size(); ++i) {
-        std::cout << "  [" << i << "] " << results[i].expr.to_string() << "\n";
+        std::cout << "  [" << i << "] " << results[i].expr.to_string(true) << "\n";
         std::cout << "      Cost: " << results[i].cost << "\n";
     }
 }
@@ -215,9 +215,9 @@ void print_session_state(const SessionState &state) {
         for (size_t i = 0; i < state.expressions.size(); ++i) {
             auto id = state.egraph.find_expression_id(Expression(state.expressions[i]));
             if (id.has_value()) {
-                std::cout << "  [" << id.value() << "] " << state.expressions[i] << "\n";
+                std::cout << "  #" << i << " [id: " << id.value() << "] " << state.expressions[i] << "\n";
             } else {
-                std::cout << "  [unresolved] " << state.expressions[i] << "\n";
+                std::cout << "  #" << i << " [id: unresolved] " << state.expressions[i] << "\n";
             }
         }
     }
@@ -241,7 +241,7 @@ void print_repl_help() {
               << "  add [properties|rule-set] <item...>  Add one or more properties or rule-set names\n"
               << "  mode [numeric|symbolic]              Show or set session mode\n"
               << "  rewrite [num-iterations]             Rewrite for N iterations or no args for saturation\n"
-              << "  extract [expr-id] [A=10 B=20 ...]    Extract in current mode (bindings optional in symbolic mode)\n"
+              << "  extract [index] [A=10 B=20 ...]      Extract in current mode (bindings optional in symbolic mode)\n"
               << "  show [state|available-rule-sets]     Display session state or available rule-sets\n"
               << "  reset                                Clear session state\n"
               << "  help                                 Show this message\n"
@@ -315,7 +315,7 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
         }
         const std::string expression_text = join_tokens(tokens, 1);
         try {
-            parse_expression(state, expression_text);
+            parse_expression(state, expression_text, state.expressions.size());
             state.expressions.push_back(expression_text);
         } catch (const ParseError &e) {
             std::cerr << e.what() << "\n";
@@ -357,20 +357,33 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
         }
 
         size_t arg_start = 1;
-        std::optional<size_t> requested_expression_id;
+        std::optional<size_t> requested_val;
         if (tokens.size() > 1 && tokens[1].find('=') == std::string::npos) {
             try {
-                requested_expression_id = std::stoul(tokens[1]);
+                requested_val = std::stoul(tokens[1]);
             } catch (const std::exception &) {
-                std::cerr << "extract: invalid expression id '" << tokens[1] << "'\n";
+                std::cerr << "extract: invalid expression index or id '" << tokens[1] << "'\n";
                 return;
             }
             arg_start = 2;
         }
 
         size_t expression_id = 0;
-        if (requested_expression_id.has_value()) {
-            expression_id = requested_expression_id.value();
+        if (requested_val.has_value()) {
+            size_t val = requested_val.value();
+            if (val < state.expressions.size()) {
+                auto id_opt = state.egraph.find_expression_id(Expression(state.expressions[val]));
+                if (id_opt.has_value()) {
+                    expression_id = id_opt.value();
+                } else {
+                    std::cerr << "Failed to find expression #" << val << " in the e-graph.\n";
+                    return;
+                }
+            } else {
+                std::cerr << "extract: invalid expression index " << val << ". "
+                          << "Available indices: 0 to " << (state.expressions.size() - 1) << ".\n";
+                return;
+            }
         } else if (state.expressions.size() == 1) {
             auto expression_id_opt = state.egraph.find_expression_id(Expression(state.expressions[0]));
             if (!expression_id_opt.has_value()) {
@@ -379,7 +392,7 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
             }
             expression_id = expression_id_opt.value();
         } else {
-            std::cerr << "usage: extract <expr-id> [A=10 B=20 ...] when you have more than one expression loaded\n";
+            std::cerr << "usage: extract [index] [A=10 B=20 ...] when you have more than one expression loaded\n";
             return;
         }
 
