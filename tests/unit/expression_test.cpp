@@ -51,8 +51,10 @@ TEST(Expression, ToString) {
 TEST(Expression, ToStringFactorizationIndexing) {
     Expression q("Get(QR(A), 0)");
     Expression r("Get(QR(A), 1)");
-    EXPECT_EQ(q.to_string(), "Q(A)");
-    EXPECT_EQ(r.to_string(), "R(A)");
+    EXPECT_EQ(q.to_string(), "Get(QR(A), 0)");
+    EXPECT_EQ(r.to_string(), "Get(QR(A), 1)");
+    EXPECT_EQ(q.to_string(true), "Q(A)");
+    EXPECT_EQ(r.to_string(true), "R(A)");
 }
 
 TEST(Expression, ToStringMulChainPreservesLeftGrouping) {
@@ -88,4 +90,41 @@ TEST(Expression, ParseQRNode) {
 TEST(Expression, ParsingErrors) {
     EXPECT_THROW(Expression(""), ParseError);
     EXPECT_THROW(Expression("(X + Y"), ParseError);
+}
+
+TEST(Expression, ToStringReadable) {
+    Expression q("Get(QR(A), 0)");
+    Expression r("Get(QR(A), 1)");
+    Expression l("Get(LU(A), 0)");
+    Expression u("Get(LU(A), 1)");
+    Expression p_mat("Get(LU(A), 2)");
+    Expression llt("Get(LLt(A), 0)");
+
+    EXPECT_EQ(q.to_string(), "Get(QR(A), 0)");
+    EXPECT_EQ(r.to_string(), "Get(QR(A), 1)");
+    EXPECT_EQ(l.to_string(), "Get(LU(A), 0)");
+    EXPECT_EQ(u.to_string(), "Get(LU(A), 1)");
+    EXPECT_EQ(p_mat.to_string(), "Get(LU(A), 2)");
+    EXPECT_EQ(llt.to_string(), "Get(LLt(A), 0)");
+
+    EXPECT_EQ(q.to_string(true), "Q(A)");
+    EXPECT_EQ(r.to_string(true), "R(A)");
+    EXPECT_EQ(l.to_string(true), "L(A)");
+    EXPECT_EQ(u.to_string(true), "U(A)");
+    EXPECT_EQ(p_mat.to_string(true), "P(A)");
+    EXPECT_EQ(llt.to_string(true), "LLt(A)");
+}
+
+TEST(Expression, ToStringTransposeInverseReadable) {
+    Expression tr("Tr(A)");
+    Expression inv("Inv(A)");
+    Expression nested("Tr(Inv(A))");
+
+    EXPECT_EQ(tr.to_string(), "Tr(A)");
+    EXPECT_EQ(inv.to_string(), "Inv(A)");
+    EXPECT_EQ(nested.to_string(), "Tr(Inv(A))");
+
+    EXPECT_EQ(tr.to_string(true), "(A)ᵀ");
+    EXPECT_EQ(inv.to_string(true), "(A)⁻¹");
+    EXPECT_EQ(nested.to_string(true), "((A)⁻¹)ᵀ");
 }

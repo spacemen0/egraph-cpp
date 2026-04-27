@@ -12,6 +12,6 @@ struct Expression {
     explicit Expression(const ENode &node, const EGraph &egraph);
     Atom atom;
     std::vector<Expression> children;
-    std::string to_string() const;
+    std::string to_string(bool readable = false) const;
     bool operator==(const Expression &other) const;
 };

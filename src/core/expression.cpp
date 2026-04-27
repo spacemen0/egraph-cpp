@@ -25,19 +25,19 @@ int precedence(const Expression &expr) {
     }
 }
 
-std::string render(const Expression &expr, int parent_precedence = 0);
+std::string render(const Expression &expr, bool readable, int parent_precedence = 0);
 
-std::string parenthesize(const Expression &expr, int parent_precedence) {
-    std::string rendered = render(expr, parent_precedence);
+std::string parenthesize(const Expression &expr, bool readable, int parent_precedence) {
+    std::string rendered = render(expr, readable, parent_precedence);
     if (precedence(expr) < parent_precedence) {
         return "(" + rendered + ")";
     }
     return rendered;
 }
 
-std::string parenthesize_mul_chain(const Expression &expr) {
+std::string parenthesize_mul_chain(const Expression &expr, bool readable) {
     constexpr int MulPrecedence = 20;
-    std::string rendered = render(expr, MulPrecedence);
+    std::string rendered = render(expr, readable, MulPrecedence);
     if (std::holds_alternative<Op>(expr.atom) && std::get<Op>(expr.atom) == Op::Mul) {
         return "(" + rendered + ")";
     }
@@ -47,12 +47,22 @@ std::string parenthesize_mul_chain(const Expression &expr) {
     return rendered;
 }
 
-std::string render(const Expression &expr, int parent_precedence) {
+std::string render(const Expression &expr, bool readable, int parent_precedence) {
     if (!std::holds_alternative<Op>(expr.atom)) {
         return atom_to_string(expr.atom);
     }
 
     const Op op = std::get<Op>(expr.atom);
+
+    if (readable) {
+        if (op == Op::Tr) {
+            return "(" + render(expr.children[0], readable) + ")ᵀ";
+        }
+        if (op == Op::Inv) {
+            return "(" + render(expr.children[0], readable) + ")⁻¹";
+        }
+    }
+
     switch (op) {
         using enum Op;
     case Add: {
@@ -62,7 +72,7 @@ std::string render(const Expression &expr, int parent_precedence) {
         for (size_t i = 0; i < expr.children.size(); ++i) {
             if (i > 0)
                 ss << " + ";
-            ss << parenthesize(expr.children[i], precedence(expr));
+            ss << parenthesize(expr.children[i], readable, precedence(expr));
         }
         return ss.str();
     }
@@ -73,18 +83,18 @@ std::string render(const Expression &expr, int parent_precedence) {
         for (size_t i = 0; i < expr.children.size(); ++i) {
             if (i > 0)
                 ss << " * ";
-            ss << parenthesize_mul_chain(expr.children[i]);
+            ss << parenthesize_mul_chain(expr.children[i], readable);
         }
         return ss.str();
     }
     case Minus: {
         if (expr.children.size() < 2)
             return "? - ?";
-        return parenthesize(expr.children[0], precedence(expr)) + " - " +
-               parenthesize(expr.children[1], precedence(expr));
+        return parenthesize(expr.children[0], readable, precedence(expr)) + " - " +
+               parenthesize(expr.children[1], readable, precedence(expr));
     }
     case Get: {
-        if (expr.children.size() == 2 && std::holds_alternative<int>(expr.children[1].atom)) {
+        if (readable && expr.children.size() == 2 && std::holds_alternative<int>(expr.children[1].atom)) {
             int index = std::get<int>(expr.children[1].atom);
             const Expression &tuple_expr = expr.children[0];
             if (std::holds_alternative<Op>(tuple_expr.atom)) {
@@ -106,7 +116,7 @@ std::string render(const Expression &expr, int parent_precedence) {
                     ss << factor_name << "(";
                     for (size_t i = 0; i < tuple_expr.children.size(); ++i) {
                         if (i > 0) ss << ", ";
-                        ss << render(tuple_expr.children[i]);
+                        ss << render(tuple_expr.children[i], readable);
                     }
                     ss << ")";
                     return ss.str();
@@ -125,7 +135,7 @@ std::string render(const Expression &expr, int parent_precedence) {
     for (size_t i = 0; i < expr.children.size(); ++i) {
         if (i > 0)
             ss << ", ";
-        ss << render(expr.children[i]);
+        ss << render(expr.children[i], readable);
     }
     ss << ")";
     return ss.str();
@@ -155,8 +165,8 @@ Expression::Expression(const ENode &node, const EGraph &egraph) : atom(node.get_
     }
 }
 
-std::string Expression::to_string() const {
-    return render(*this);
+std::string Expression::to_string(bool readable) const {
+    return render(*this, readable);
 }
 
 bool Expression::operator==(const Expression &other) const {

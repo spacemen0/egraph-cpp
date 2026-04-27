@@ -35,7 +35,7 @@ TEST(Integration, OLSNumeric) {
     Extractor extractor(egraph, cost_storage, true);
     auto result = extractor.extract(id, 5);
     for (const auto &candidate : result) {
-        std::cout << "Candidate expression: " << candidate.expr.to_string() << std::endl;
+        std::cout << "Candidate expression: " << candidate.expr.to_string(true) << std::endl;
         std::cout << "Cost: " << candidate.cost << std::endl;
     }
 }
@@ -109,8 +109,7 @@ TEST(Integration, OLSPruneConverges) {
     };
 
     auto callback = [&](int i, const PruneResult &prune_result) {
-        auto should_be_root_id =
-            egraph.add_expression(Expression("Inv(Get(QR(M), 1)) * (Tr(Get(QR(M), 0)) * n)"));
+        auto should_be_root_id = egraph.add_expression(Expression("Inv(Get(QR(M), 1)) * (Tr(Get(QR(M), 0)) * n)"));
         total_pruned += prune_result.nodes_pruned;
         nodes_after_iteration.push_back(egraph.num_nodes());
         std::cout << "Iteration " << (i + 1) << ": nodes after iteration=" << nodes_after_iteration.back()
@@ -121,7 +120,7 @@ TEST(Integration, OLSPruneConverges) {
 
     auto result = extractor.extract_symbolic(root_id);
     for (const auto &candidate : result) {
-        std::cout << "Candidate expression: " << candidate.expr.to_string() << std::endl;
+        std::cout << "Candidate expression: " << candidate.expr.to_string(true) << std::endl;
         std::cout << "Cost: " << candidate.cost << std::endl;
     }
 }

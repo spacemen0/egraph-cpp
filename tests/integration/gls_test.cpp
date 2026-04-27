@@ -12,8 +12,7 @@ TEST(Integration, GLSNumeric) {
     egraph.register_or_update_property(
         "M",
         MatrixProperty{.shape = std::make_pair(3, 3), .flags = {.is_symmetric = true, .is_positive_definite = true}});
-    auto id =
-        egraph.add_expression(Expression("(Inv(Tr(X) * Inv(M) * X) * (Tr(X) * Inv(M))) * y"));
+    auto id = egraph.add_expression(Expression("(Inv(Tr(X) * Inv(M) * X) * (Tr(X) * Inv(M))) * y"));
 
     std::vector<Rewrite> rules =
         build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality", "solver"});
@@ -24,7 +23,7 @@ TEST(Integration, GLSNumeric) {
     Extractor extractor(egraph, cost_storage, true);
     auto result = extractor.extract(id, 10);
     for (const auto &r : result) {
-        std::cout << "Candidate expression: " << r.expr.to_string() << std::endl;
+        std::cout << "Candidate expression: " << r.expr.to_string(true) << std::endl;
         std::cout << "Cost: " << r.cost << std::endl;
     }
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
@@ -37,8 +36,7 @@ TEST(Integration, GLSSymbolic) {
         "M", {.shape = std::make_pair("A", "A"), .flags = {.is_symmetric = true, .is_positive_definite = true}});
     pt.add_or_update_property_entry("y", {.shape = std::make_pair("A", 1)});
     EGraph egraph(pt);
-    auto id =
-        egraph.add_expression(Expression("(Inv(Tr(X) * Inv(M) * X) * (Tr(X) * Inv(M))) * y"));
+    auto id = egraph.add_expression(Expression("(Inv(Tr(X) * Inv(M) * X) * (Tr(X) * Inv(M))) * y"));
 
     std::vector<Rewrite> rules =
         build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality", "solver"});
@@ -49,7 +47,7 @@ TEST(Integration, GLSSymbolic) {
     Extractor extractor(egraph, cost_storage, true);
     auto result = extractor.extract(id, {{"A", 100}, {"B", 20}}, 10);
     for (const auto &r : result) {
-        std::cout << "Candidate expression: " << r.expr.to_string() << std::endl;
+        std::cout << "Candidate expression: " << r.expr.to_string(true) << std::endl;
         std::cout << "Cost: " << r.cost << std::endl;
     }
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
