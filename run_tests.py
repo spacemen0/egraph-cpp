@@ -35,6 +35,8 @@ def main() -> int:
     run(
         [
             "cmake",
+            "-G",
+            "Ninja",
             "-S",
             ".",
             "-B",
