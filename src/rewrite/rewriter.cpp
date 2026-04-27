@@ -35,6 +35,7 @@ bool Rewriter::apply_one_iteration(size_t node_match_limit) {
     std::vector<Match> matches;
 
     std::vector<Id> class_ids = egraph.get_all_class_ids();
+    std::ranges::sort(class_ids);
 
     for (size_t i = 0; i < rewrites.size(); ++i) {
         if (ban_iterations_remaining[i] > 0 && enable_backoff) {

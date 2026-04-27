@@ -147,7 +147,7 @@ TEST(Rewrite, BackoffScheduler) {
     Id id1 = egraph.add_expression(Expression("Inv(Inv(Inv(a)))"));
     Id id2 = egraph.add_expression(Expression("Inv(Inv(Inv(b)))"));
 
-    std::vector<Rewrite> rules = {make_rewrite("inv_inv", "Inv(Inv(?x))", "?x", false, nullptr, nullptr, 1)};
+    std::vector<Rewrite> rules = {make_rewrite("inv_inv", "Inv(Inv(?x))", "?x", false, nullptr, nullptr, 2)};
 
     Rewriter rewriter(egraph, rules, 1000, true);
 
