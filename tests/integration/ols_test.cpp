@@ -48,11 +48,11 @@ TEST(Integration, OLSSymbolic) {
     auto id = egraph.add_expression(Expression("(Inv(Tr(M) * M) * Tr(M)) * n"));
 
     std::vector<Rewrite> rules = build_rewrite_sets({"complete"});
-    Rewriter rewriter(egraph, rules, 300, true);
+    Rewriter rewriter(egraph, rules, 500, true);
     rewriter.apply_rewrites(10);
     CostStorage cost_storage(egraph);
     Extractor extractor(egraph, cost_storage, true);
-    auto results = extractor.extract_symbolic(id);
+    auto results = extractor.extract_symbolic(id, false);
     // for (const auto &candidate : results) {
     //     std::cout << "Candidate expression: " << candidate.expr.to_string() << std::endl;
     //     std::cout << "Cost: " << candidate.cost << std::endl;

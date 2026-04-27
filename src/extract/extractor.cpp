@@ -348,12 +348,16 @@ bool Extractor::creates_cycle(
     return false;
 }
 
-std::vector<ExtractionResult> Extractor::extract_symbolic(Id class_id) const {
+std::vector<ExtractionResult> Extractor::extract_symbolic(Id class_id, bool build_expressions) const {
     auto symbolic_dags = find_symbolic_dags(class_id);
     std::vector<ExtractionResult> results;
     for (const auto &dag : symbolic_dags) {
         std::unordered_set<Id> visiting;
-        results.emplace_back(dag.cost, build_expression(class_id, dag.choices, visiting));
+        if (build_expressions) {
+            results.emplace_back(dag.cost, build_expression(class_id, dag.choices, visiting));
+        } else {
+            results.emplace_back(dag.cost, Expression());
+        }
     }
     return results;
 }

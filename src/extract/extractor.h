@@ -20,7 +20,7 @@ class Extractor {
     std::vector<ExtractionResult> extract(Id class_id, size_t max_results) const;
     ExtractionResult extract(Id class_id, const SizeBindings &size_bindings) const;
     std::vector<ExtractionResult> extract(Id class_id, const SizeBindings &size_bindings, size_t max_results) const;
-    std::vector<ExtractionResult> extract_symbolic(Id class_id) const;
+    std::vector<ExtractionResult> extract_symbolic(Id class_id, bool build_expressions = true) const;
     bool collect_selected_nodes_for_binding(
         const std::vector<Id> &roots, const SizeBindings &size_bindings, size_t max_results,
         std::unordered_map<Id, std::unordered_set<const ENode *>> &selected_choices) const;
