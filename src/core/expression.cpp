@@ -83,6 +83,38 @@ std::string render(const Expression &expr, int parent_precedence) {
         return parenthesize(expr.children[0], precedence(expr)) + " - " +
                parenthesize(expr.children[1], precedence(expr));
     }
+    case Get: {
+        if (expr.children.size() == 2 && std::holds_alternative<int>(expr.children[1].atom)) {
+            int index = std::get<int>(expr.children[1].atom);
+            const Expression &tuple_expr = expr.children[0];
+            if (std::holds_alternative<Op>(tuple_expr.atom)) {
+                Op tuple_op = std::get<Op>(tuple_expr.atom);
+                std::string factor_name;
+                if (tuple_op == Op::QR) {
+                    if (index == 0) factor_name = "Q";
+                    else if (index == 1) factor_name = "R";
+                } else if (tuple_op == Op::LU) {
+                    if (index == 0) factor_name = "L";
+                    else if (index == 1) factor_name = "U";
+                    else if (index == 2) factor_name = "P";
+                } else if (tuple_op == Op::LLt) {
+                    if (index == 0) factor_name = "LLt";
+                }
+                
+                if (!factor_name.empty()) {
+                    std::stringstream ss;
+                    ss << factor_name << "(";
+                    for (size_t i = 0; i < tuple_expr.children.size(); ++i) {
+                        if (i > 0) ss << ", ";
+                        ss << render(tuple_expr.children[i]);
+                    }
+                    ss << ")";
+                    return ss.str();
+                }
+            }
+        }
+        break;
+    }
     default:
         break;
     }

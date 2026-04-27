@@ -51,8 +51,8 @@ TEST(Expression, ToString) {
 TEST(Expression, ToStringFactorizationIndexing) {
     Expression q("Get(QR(A), 0)");
     Expression r("Get(QR(A), 1)");
-    EXPECT_EQ(q.to_string(), "Get(QR(A), 0)");
-    EXPECT_EQ(r.to_string(), "Get(QR(A), 1)");
+    EXPECT_EQ(q.to_string(), "Q(A)");
+    EXPECT_EQ(r.to_string(), "R(A)");
 }
 
 TEST(Expression, ToStringMulChainPreservesLeftGrouping) {
