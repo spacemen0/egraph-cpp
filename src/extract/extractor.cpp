@@ -135,37 +135,26 @@ void Extractor::search_top_numeric_dags(
     pending.pop_back();
     pending_set.erase(current);
 
-    struct Candidate {
-        const ENode *node;
-        double local_cost;
-    };
-    std::vector<Candidate> candidates;
-    const auto &class_nodes = egraph.get_class_nodes(current);
-    candidates.reserve(class_nodes.size());
-    for (const ENode *node : class_nodes) {
-        Cost cost = node->compute_local_cost(egraph, size_bindings);
-        if (std::holds_alternative<double>(cost)) {
-            candidates.push_back({node, std::get<double>(cost)});
-        }
-    }
-    std::sort(candidates.begin(), candidates.end(), [](const Candidate &a, const Candidate &b) {
-        return a.local_cost < b.local_cost;
-    });
-    for (const Candidate &candidate : candidates) {
+    for (const ENode *candidate : egraph.get_class_nodes(current)) {
+        Cost local_cost = candidate->compute_local_cost(egraph, size_bindings);
 
-        double next_cost = current_cost + candidate.local_cost;
+        if (!std::holds_alternative<double>(local_cost)) {
+            continue;
+        }
+
+        double next_cost = current_cost + std::get<double>(local_cost);
         if (best_results.size() == max_results && next_cost >= worst_selected_cost) {
             continue;
         }
 
-        if (creates_cycle(current, candidate.node, current_choices)) {
+        if (creates_cycle(current, candidate, current_choices)) {
             continue;
         }
 
-        current_choices[current] = candidate.node;
+        current_choices[current] = candidate;
 
         int added_children_count = 0;
-        for (Id child : candidate.node->get_children()) {
+        for (Id child : candidate->get_children()) {
             Id child_root = egraph.find_class_id(child);
             if (!current_choices.contains(child_root)) {
                 // Ensure we don't add the same pending node twice from different paths

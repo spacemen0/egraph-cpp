@@ -13,7 +13,7 @@ TEST(Integration, OLSNumeric) {
     auto id = egraph.add_expression(Expression("(Inv(Tr(X) * X) * Tr(X)) * y"));
     std::vector<Rewrite> rules =
         build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality", "zero-negation", "solver"});
-    Rewriter rewriter(egraph, rules, 2000, true);
+    Rewriter rewriter(egraph, rules, 1000, true);
 
     bool found_qr_form = false;
     constexpr int max_iterations = 20;
@@ -48,7 +48,7 @@ TEST(Integration, OLSSymbolic) {
     auto id = egraph.add_expression(Expression("(Inv(Tr(M) * M) * Tr(M)) * n"));
 
     std::vector<Rewrite> rules = build_rewrite_sets({"complete"});
-    Rewriter rewriter(egraph, rules, 600, true);
+    Rewriter rewriter(egraph, rules, 500, true);
     rewriter.apply_rewrites(10);
     CostStorage cost_storage(egraph);
     Extractor extractor(egraph, cost_storage, true);
