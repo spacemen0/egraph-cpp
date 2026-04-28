@@ -166,7 +166,7 @@ TEST_F(ExtractorTest, ExtractTopDagsWithSizeBindings) {
     egraph.rebuild();
 
     const SizeBindings size_bindings = {{"A", 64}, {"B", 32}};
-    auto results = extractor.extract(id_n, size_bindings, 2);
+    auto results = extractor.extract(id_n, 2, size_bindings);
     ASSERT_EQ(results.size(), 2);
 
     std::set<std::string> exprs;
@@ -175,4 +175,19 @@ TEST_F(ExtractorTest, ExtractTopDagsWithSizeBindings) {
     }
     EXPECT_TRUE(exprs.contains("n"));
     EXPECT_TRUE(exprs.contains("M * p"));
+}
+
+TEST_F(ExtractorTest, GreedyExtract) {
+    Id id_a = egraph.add_node(make_symbol("A"));
+    Id id_x = egraph.add_node(make_symbol("X"));
+    Id id_y = egraph.add_node(make_symbol("Y"));
+    Id id_mul = egraph.add_node(make_op(Op::Mul, {id_x, id_y}));
+
+    egraph.union_classes(id_a, id_mul);
+    egraph.rebuild();
+
+    auto result = extractor.greedy_extract(id_a);
+    // 'A' has local cost 0, 'X * Y' has local cost > 0.
+    EXPECT_EQ(result.cost, Cost(0.0));
+    EXPECT_EQ(result.expr.to_string(), "A");
 }

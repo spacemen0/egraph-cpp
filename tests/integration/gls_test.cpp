@@ -45,7 +45,7 @@ TEST(Integration, GLSSymbolic) {
     while (rewriter.apply_rewrites(10))
         ;
     Extractor extractor(egraph, cost_storage, true);
-    auto result = extractor.extract(id, {{"A", 100}, {"B", 20}}, 10);
+    auto result = extractor.extract(id, 10, {{"A", 100}, {"B", 20}});
     for (const auto &r : result) {
         std::cout << "Candidate expression: " << r.expr.to_string(true) << std::endl;
         std::cout << "Cost: " << r.cost << std::endl;

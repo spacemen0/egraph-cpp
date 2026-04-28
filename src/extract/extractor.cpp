@@ -26,6 +26,8 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
         }
     }
 
+    compute_greedy_costs(size_bindings);
+
     // Pass the pending queue as a simple stack of IDs
     std::vector<Id> pending = {root};
     std::unordered_set<Id> pending_set = {root};
@@ -44,7 +46,7 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
         return {};
     }
 
-    // The heap guarantees the largest elements are at the front. We sort at the end to guarantee ascending order.
+    // We sort at the end to guarantee ascending order.
     std::sort(
         best_results.begin(), best_results.end(), [](const NumericSearchResult &lhs, const NumericSearchResult &rhs) {
         return lhs.cost < rhs.cost;
@@ -55,6 +57,108 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
     }
 
     return best_results;
+}
+
+void Extractor::compute_greedy_costs(const SizeBindings *size_bindings) const {
+    greedy_costs.clear();
+    greedy_choices.clear();
+
+    auto all_class_ids = egraph.get_all_class_ids();
+    for (Id id : all_class_ids) {
+        greedy_costs[id] = std::numeric_limits<double>::infinity();
+    }
+
+    bool changed = true;
+    while (changed) {
+        changed = false;
+        for (Id class_id : all_class_ids) {
+            for (const ENode *node : egraph.get_class_nodes(class_id)) {
+                Cost local_cost_v = node->compute_local_cost(egraph, size_bindings);
+                if (!std::holds_alternative<double>(local_cost_v)) {
+                    continue;
+                }
+                double current_node_cost = std::get<double>(local_cost_v);
+
+                bool all_children_have_costs = true;
+                for (Id child : node->get_children()) {
+                    Id child_root = egraph.find_class_id(child);
+                    if (greedy_costs[child_root] == std::numeric_limits<double>::infinity()) {
+                        all_children_have_costs = false;
+                        break;
+                    }
+                    current_node_cost += greedy_costs[child_root];
+                }
+
+                if (all_children_have_costs && current_node_cost < greedy_costs[class_id]) {
+                    greedy_costs[class_id] = current_node_cost;
+                    greedy_choices[class_id] = node;
+                    changed = true;
+                }
+            }
+        }
+    }
+}
+
+ExtractionResult Extractor::greedy_extract(Id class_id, const SizeBindings &size_bindings) const {
+    auto results = greedy_extract(class_id, 1, size_bindings);
+    if (!results.empty()) {
+        return results.front();
+    }
+    throw std::runtime_error("No numeric DAG found during greedy extraction");
+}
+
+std::vector<ExtractionResult>
+Extractor::greedy_extract(Id class_id, size_t max_results, const SizeBindings &size_bindings) const {
+    if (max_results == 0) {
+        return {};
+    }
+
+    compute_greedy_costs(size_bindings.empty() ? nullptr : &size_bindings);
+    Id root = egraph.find_class_id(class_id);
+    if (greedy_costs.at(root) == std::numeric_limits<double>::infinity()) {
+        return {};
+    }
+
+    std::vector<ExtractionResult> results;
+
+    // Sort nodes in the root class by their computed costs
+    std::vector<const ENode *> candidates;
+    for (const ENode *node : egraph.get_class_nodes(root)) {
+        candidates.push_back(node);
+    }
+
+    std::sort(candidates.begin(), candidates.end(), [this, &size_bindings](const ENode *a, const ENode *b) {
+        auto get_cost = [this, &size_bindings](const ENode *node) {
+            Cost local = node->compute_local_cost(egraph, size_bindings.empty() ? nullptr : &size_bindings);
+            double total = std::holds_alternative<double>(local) ? std::get<double>(local)
+                                                                 : std::numeric_limits<double>::infinity();
+            for (Id child : node->get_children()) {
+                Id child_root = egraph.find_class_id(child);
+                total += greedy_costs.at(child_root);
+            }
+            return total;
+        };
+        return get_cost(a) < get_cost(b);
+    });
+
+    for (size_t i = 0; i < std::min(max_results, candidates.size()); ++i) {
+        const ENode *node = candidates[i];
+
+        // Temporarily override greedy_choices for the root to build this specific candidate's expression
+        auto original_choice = greedy_choices[root];
+        greedy_choices[root] = node;
+
+        std::unordered_set<Id> visiting;
+        try {
+            results.emplace_back(greedy_costs.at(root), build_expression(root, greedy_choices, visiting));
+        } catch (const std::runtime_error &e) {
+            // Skip if cycle detected or other build error
+        }
+
+        greedy_choices[root] = original_choice;
+    }
+
+    return results;
 }
 
 std::vector<Extractor::SymbolicSearchResult> Extractor::find_symbolic_dags(Id root_class_id) const {
@@ -135,26 +239,44 @@ void Extractor::search_top_numeric_dags(
     pending.pop_back();
     pending_set.erase(current);
 
-    for (const ENode *candidate : egraph.get_class_nodes(current)) {
-        Cost local_cost = candidate->compute_local_cost(egraph, size_bindings);
-
-        if (!std::holds_alternative<double>(local_cost)) {
-            continue;
+    struct Candidate {
+        const ENode *node;
+        double local_cost;
+        double global_cost_estimate;
+    };
+    std::vector<Candidate> candidates;
+    const auto &class_nodes = egraph.get_class_nodes(current);
+    candidates.reserve(class_nodes.size());
+    for (const ENode *node : class_nodes) {
+        Cost cost = node->compute_local_cost(egraph, size_bindings);
+        if (std::holds_alternative<double>(cost)) {
+            double local = std::get<double>(cost);
+            double estimate = local;
+            for (Id child : node->get_children()) {
+                Id child_root = egraph.find_class_id(child);
+                estimate += greedy_costs.at(child_root);
+            }
+            candidates.push_back({node, local, estimate});
         }
+    }
+    std::sort(candidates.begin(), candidates.end(), [](const Candidate &a, const Candidate &b) {
+        return a.global_cost_estimate < b.global_cost_estimate;
+    });
+    for (const Candidate &candidate : candidates) {
 
-        double next_cost = current_cost + std::get<double>(local_cost);
+        double next_cost = current_cost + candidate.local_cost;
         if (best_results.size() == max_results && next_cost >= worst_selected_cost) {
             continue;
         }
 
-        if (creates_cycle(current, candidate, current_choices)) {
+        if (creates_cycle(current, candidate.node, current_choices)) {
             continue;
         }
 
-        current_choices[current] = candidate;
+        current_choices[current] = candidate.node;
 
         int added_children_count = 0;
-        for (Id child : candidate->get_children()) {
+        for (Id child : candidate.node->get_children()) {
             Id child_root = egraph.find_class_id(child);
             if (!current_choices.contains(child_root)) {
                 // Ensure we don't add the same pending node twice from different paths
@@ -272,40 +394,24 @@ Expression Extractor::build_expression(
     return Expression(it->second->get_atom(), children);
 }
 
-ExtractionResult Extractor::extract(Id class_id) const {
-    auto results = extract(class_id, 1);
-    if (!results.empty()) {
-        return results.front();
-    }
-
-    throw std::runtime_error("Runtime error: no numeric DAG found for root class");
-}
-
-std::vector<ExtractionResult> Extractor::extract(Id class_id, size_t max_results) const {
-    auto top_dags = find_top_numeric_dags(class_id, max_results);
-    std::vector<ExtractionResult> results;
-    results.reserve(top_dags.size());
-    for (const auto &dag : top_dags) {
-        std::unordered_set<Id> visiting;
-        results.emplace_back(dag.cost, build_expression(class_id, dag.choices, visiting));
-    }
-    return results;
-}
-
 ExtractionResult Extractor::extract(Id class_id, const SizeBindings &size_bindings) const {
-    auto results = extract(class_id, size_bindings, 1);
+    auto results = extract(class_id, 1, size_bindings);
     if (!results.empty()) {
         return results.front();
     }
 
-    throw std::runtime_error(
-        "Runtime error: no numeric DAG found for root class "
-        "under supplied size bindings");
+    if (size_bindings.empty()) {
+        throw std::runtime_error("Runtime error: no numeric DAG found for root class");
+    } else {
+        throw std::runtime_error(
+            "Runtime error: no numeric DAG found for root class "
+            "under supplied size bindings");
+    }
 }
 
 std::vector<ExtractionResult>
-Extractor::extract(Id class_id, const SizeBindings &size_bindings, size_t max_results) const {
-    auto top_dags = find_top_numeric_dags(class_id, max_results, &size_bindings);
+Extractor::extract(Id class_id, size_t max_results, const SizeBindings &size_bindings) const {
+    auto top_dags = find_top_numeric_dags(class_id, max_results, size_bindings.empty() ? nullptr : &size_bindings);
     std::vector<ExtractionResult> results;
     results.reserve(top_dags.size());
     for (const auto &dag : top_dags) {
