@@ -100,65 +100,14 @@ void Extractor::compute_greedy_costs(const SizeBindings *size_bindings) const {
 }
 
 ExtractionResult Extractor::greedy_extract(Id class_id, const SizeBindings &size_bindings) const {
-    auto results = greedy_extract(class_id, 1, size_bindings);
-    if (!results.empty()) {
-        return results.front();
-    }
-    throw std::runtime_error("No numeric DAG found during greedy extraction");
-}
-
-std::vector<ExtractionResult>
-Extractor::greedy_extract(Id class_id, size_t max_results, const SizeBindings &size_bindings) const {
-    if (max_results == 0) {
-        return {};
-    }
-
     compute_greedy_costs(size_bindings.empty() ? nullptr : &size_bindings);
     Id root = egraph.find_class_id(class_id);
     if (greedy_costs.at(root) == std::numeric_limits<double>::infinity()) {
-        return {};
+        throw std::runtime_error("Runtime error: no numeric DAG found for root class under supplied size bindings");
     }
 
-    std::vector<ExtractionResult> results;
-
-    // Sort nodes in the root class by their computed costs
-    std::vector<const ENode *> candidates;
-    for (const ENode *node : egraph.get_class_nodes(root)) {
-        candidates.push_back(node);
-    }
-
-    std::sort(candidates.begin(), candidates.end(), [this, &size_bindings](const ENode *a, const ENode *b) {
-        auto get_cost = [this, &size_bindings](const ENode *node) {
-            Cost local = node->compute_local_cost(egraph, size_bindings.empty() ? nullptr : &size_bindings);
-            double total = std::holds_alternative<double>(local) ? std::get<double>(local)
-                                                                 : std::numeric_limits<double>::infinity();
-            for (Id child : node->get_children()) {
-                Id child_root = egraph.find_class_id(child);
-                total += greedy_costs.at(child_root);
-            }
-            return total;
-        };
-        return get_cost(a) < get_cost(b);
-    });
-
-    for (size_t i = 0; i < std::min(max_results, candidates.size()); ++i) {
-        const ENode *node = candidates[i];
-
-        // Temporarily override greedy_choices for the root to build this specific candidate's expression
-        auto original_choice = greedy_choices[root];
-        greedy_choices[root] = node;
-
-        std::unordered_set<Id> visiting;
-        try {
-            results.emplace_back(greedy_costs.at(root), build_expression(root, greedy_choices, visiting));
-        } catch (const std::runtime_error &e) {
-            // Skip if cycle detected or other build error
-        }
-
-        greedy_choices[root] = original_choice;
-    }
-
-    return results;
+    std::unordered_set<Id> visiting;
+    return ExtractionResult{greedy_costs.at(root), build_expression(root, greedy_choices, visiting)};
 }
 
 std::vector<Extractor::SymbolicSearchResult> Extractor::find_symbolic_dags(Id root_class_id) const {

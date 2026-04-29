@@ -21,8 +21,6 @@ class Extractor {
     extract(Id class_id, size_t max_results, const SizeBindings &size_bindings = {}) const;
 
     ExtractionResult greedy_extract(Id class_id, const SizeBindings &size_bindings = {}) const;
-    std::vector<ExtractionResult>
-    greedy_extract(Id class_id, size_t max_results, const SizeBindings &size_bindings = {}) const;
 
     std::vector<ExtractionResult> extract_symbolic(Id class_id, bool build_expressions = true) const;
     bool collect_selected_nodes_for_binding(
