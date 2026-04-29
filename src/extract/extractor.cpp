@@ -28,16 +28,26 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
 
     compute_greedy_costs(size_bindings);
 
-    // Pass the pending queue as a simple stack of IDs
+    Id max_id = 0;
+    for (Id id : egraph.get_all_class_ids()) {
+        max_id = std::max(max_id, id);
+    }
+
     std::vector<Id> pending = {root};
-    std::unordered_set<Id> pending_set = {root};
-    std::unordered_map<Id, const ENode *> current_choices;
+    std::vector<size_t> pending_set(max_id + 1, 0);
+    pending_set[root] = 1;
+    std::vector<const ENode *> current_choices(max_id + 1, nullptr);
     std::vector<NumericSearchResult> best_results;
     double worst_selected_cost = std::numeric_limits<double>::infinity();
 
+    std::vector<size_t> visited_buffer(max_id + 1, 0);
+    std::vector<Id> stack_buffer;
+    stack_buffer.reserve(max_id + 1);
+
     nodes_visited = 0;
     search_top_numeric_dags(
-        pending, pending_set, current_choices, size_bindings, 0.0, max_results, best_results, worst_selected_cost);
+        root, pending, pending_set, current_choices, 0, size_bindings, 0.0, max_results, best_results,
+        worst_selected_cost, visited_buffer, stack_buffer);
 
     if (enable_logging) {
         std::cout << "[Extractor] Visited " << nodes_visited << " nodes during numeric extraction." << std::endl;
@@ -46,7 +56,7 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
         return {};
     }
 
-    // We sort at the end to guarantee ascending order.
+    // Sort at the end to guarantee ascending order.
     std::sort(
         best_results.begin(), best_results.end(), [](const NumericSearchResult &lhs, const NumericSearchResult &rhs) {
         return lhs.cost < rhs.cost;
@@ -57,6 +67,29 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
     }
 
     return best_results;
+}
+
+std::unordered_map<Id, const ENode *>
+Extractor::convert_to_map(const std::vector<const ENode *> &choices, const std::vector<Id> &roots) const {
+    std::unordered_map<Id, const ENode *> result;
+    std::vector<Id> stack = roots;
+    while (!stack.empty()) {
+        Id current = stack.back();
+        stack.pop_back();
+
+        if (result.contains(current)) {
+            continue;
+        }
+
+        const ENode *node = choices[current];
+        if (node) {
+            result[current] = node;
+            for (Id child : node->get_children()) {
+                stack.push_back(egraph.find_class_id(child));
+            }
+        }
+    }
+    return result;
 }
 
 void Extractor::compute_greedy_costs(const SizeBindings *size_bindings) const {
@@ -113,14 +146,33 @@ ExtractionResult Extractor::greedy_extract(Id class_id, const SizeBindings &size
 std::vector<Extractor::SymbolicSearchResult> Extractor::find_symbolic_dags(Id root_class_id) const {
     Id root = egraph.find_class_id(root_class_id);
 
+    Id max_id = 0;
+    for (Id id : egraph.get_all_class_ids()) {
+        max_id = std::max(max_id, id);
+    }
+
     std::vector<Id> pending = {root};
-    std::unordered_set<Id> pending_set = {root};
-    std::unordered_map<Id, const ENode *> current_choices;
+    std::vector<size_t> pending_set(max_id + 1, 0);
+    pending_set[root] = 1;
+    std::vector<const ENode *> current_choices(max_id + 1, nullptr);
     std::vector<SymbolicSearchResult> results;
     SymbolicCost initial_cost;
 
+    std::unordered_map<const ENode *, Cost> node_costs;
+    for (Id class_id : egraph.get_all_class_ids()) {
+        for (const ENode *node : egraph.get_class_nodes(class_id)) {
+            node_costs[node] = node->compute_local_cost(egraph);
+        }
+    }
+
+    std::vector<size_t> visited_buffer(max_id + 1, 0);
+    std::vector<Id> stack_buffer;
+    stack_buffer.reserve(max_id + 1);
+
     nodes_visited = 0;
-    search_symbolic_dags(pending, pending_set, current_choices, initial_cost, results);
+    search_symbolic_dags(
+        root, pending, pending_set, current_choices, 0, initial_cost, results, visited_buffer, stack_buffer,
+        node_costs);
 
     if (enable_logging) {
         std::cout << "[Extractor] Visited " << nodes_visited << " nodes during symbolic extraction." << std::endl;
@@ -130,14 +182,15 @@ std::vector<Extractor::SymbolicSearchResult> Extractor::find_symbolic_dags(Id ro
 }
 
 void Extractor::search_top_numeric_dags(
-    std::vector<Id> &pending, std::unordered_set<Id> &pending_set,
-    std::unordered_map<Id, const ENode *> &current_choices, const SizeBindings *size_bindings, double current_cost,
-    size_t max_results, std::vector<NumericSearchResult> &best_results, double &worst_selected_cost) const {
+    Id root, std::vector<Id> &pending, std::vector<size_t> &pending_set, std::vector<const ENode *> &current_choices,
+    size_t chosen_count, const SizeBindings *size_bindings, double current_cost, size_t max_results,
+    std::vector<NumericSearchResult> &best_results, double &worst_selected_cost, std::vector<size_t> &visited_buffer,
+    std::vector<Id> &stack_buffer) const {
 
     nodes_visited++;
     if (enable_logging && (nodes_visited % kExtractorProgressLogEvery == 0)) {
         std::cout << "[Extractor] Progress (numeric): visited=" << nodes_visited << ", pending=" << pending.size()
-                  << ", chosen=" << current_choices.size() << ", best_results=" << best_results.size() << std::endl;
+                  << ", chosen=" << chosen_count << ", best_results=" << best_results.size() << std::endl;
     }
 
     if (pending.empty()) {
@@ -150,7 +203,7 @@ void Extractor::search_top_numeric_dags(
                 }
             }
             if (has_unique_cost) {
-                best_results.push_back(NumericSearchResult{current_cost, current_choices});
+                best_results.push_back(NumericSearchResult{current_cost, convert_to_map(current_choices, {root})});
 
                 // Push into Max-Heap based on cost (worst cost bubbles to the front)
                 std::push_heap(
@@ -180,13 +233,13 @@ void Extractor::search_top_numeric_dags(
         return;
     }
 
-    if (current_choices.size() >= max_depth) {
+    if (chosen_count >= max_depth) {
         return;
     }
 
     Id current = pending.back();
     pending.pop_back();
-    pending_set.erase(current);
+    pending_set[current] = 0;
 
     struct Candidate {
         const ENode *node;
@@ -196,6 +249,8 @@ void Extractor::search_top_numeric_dags(
     std::vector<Candidate> candidates;
     const auto &class_nodes = egraph.get_class_nodes(current);
     candidates.reserve(class_nodes.size());
+
+    // Estimate global cost for each candidate using local cost + greedy costs of children
     for (const ENode *node : class_nodes) {
         Cost cost = node->compute_local_cost(egraph, size_bindings);
         if (std::holds_alternative<double>(cost)) {
@@ -208,9 +263,12 @@ void Extractor::search_top_numeric_dags(
             candidates.push_back({node, local, estimate});
         }
     }
+
+    // Iterate candidates in order of estimated global cost (best first)
     std::sort(candidates.begin(), candidates.end(), [](const Candidate &a, const Candidate &b) {
         return a.global_cost_estimate < b.global_cost_estimate;
     });
+
     for (const Candidate &candidate : candidates) {
 
         double next_cost = current_cost + candidate.local_cost;
@@ -218,7 +276,7 @@ void Extractor::search_top_numeric_dags(
             continue;
         }
 
-        if (creates_cycle(current, candidate.node, current_choices)) {
+        if (creates_cycle(current, candidate.node, current_choices, visited_buffer, stack_buffer)) {
             continue;
         }
 
@@ -227,67 +285,67 @@ void Extractor::search_top_numeric_dags(
         int added_children_count = 0;
         for (Id child : candidate.node->get_children()) {
             Id child_root = egraph.find_class_id(child);
-            if (!current_choices.contains(child_root)) {
+            if (current_choices[child_root] == nullptr) {
                 // Ensure we don't add the same pending node twice from different paths
-                if (!pending_set.contains(child_root)) {
+                if (!pending_set[child_root]) {
                     pending.push_back(child_root);
-                    pending_set.insert(child_root);
+                    pending_set[child_root] = 1;
                     added_children_count++;
                 }
             }
         }
 
         search_top_numeric_dags(
-            pending, pending_set, current_choices, size_bindings, next_cost, max_results, best_results,
-            worst_selected_cost);
+            root, pending, pending_set, current_choices, chosen_count + 1, size_bindings, next_cost, max_results,
+            best_results, worst_selected_cost, visited_buffer, stack_buffer);
 
         for (int i = 0; i < added_children_count; ++i) {
             Id child_id = pending.back();
             pending.pop_back();
-            pending_set.erase(child_id);
+            pending_set[child_id] = 0;
         }
-        current_choices.erase(current);
+        current_choices[current] = nullptr;
     }
 
     pending.push_back(current);
-    pending_set.insert(current);
+    pending_set[current] = 1;
 }
 
 void Extractor::search_symbolic_dags(
-    std::vector<Id> &pending, std::unordered_set<Id> &pending_set,
-    std::unordered_map<Id, const ENode *> &current_choices, SymbolicCost current_cost,
-    std::vector<SymbolicSearchResult> &results) const {
+    Id root, std::vector<Id> &pending, std::vector<size_t> &pending_set, std::vector<const ENode *> &current_choices,
+    size_t chosen_count, const SymbolicCost &current_cost, std::vector<SymbolicSearchResult> &results,
+    std::vector<size_t> &visited_buffer, std::vector<Id> &stack_buffer,
+    const std::unordered_map<const ENode *, Cost> &node_costs) const {
 
     nodes_visited++;
     if (enable_logging && (nodes_visited % kExtractorProgressLogEvery == 0)) {
         std::cout << "[Extractor] Progress (symbolic): visited=" << nodes_visited << ", pending=" << pending.size()
-                  << ", chosen=" << current_choices.size() << ", results=" << results.size() << std::endl;
+                  << ", chosen=" << chosen_count << ", results=" << results.size() << std::endl;
     }
 
     if (pending.empty()) {
-        results.emplace_back(current_cost, current_choices);
+        results.emplace_back(current_cost, convert_to_map(current_choices, {root}));
         return;
     }
 
-    if (current_choices.size() >= max_depth) {
+    if (chosen_count >= max_depth) {
         return;
     }
 
     Id current = pending.back();
     pending.pop_back();
-    pending_set.erase(current);
+    pending_set[current] = 0;
 
     for (const ENode *candidate : egraph.get_class_nodes(current)) {
-        Cost local_cost = candidate->compute_local_cost(egraph);
+        const Cost &local_cost = node_costs.at(candidate);
 
-        SymbolicCost next_cost = current_cost;
-        if (std::holds_alternative<SymbolicCost>(local_cost)) {
-            next_cost = next_cost + std::get<SymbolicCost>(local_cost);
-        } else if (std::holds_alternative<double>(local_cost) && std::get<double>(local_cost) != 0.0) {
+        bool is_symbolic = std::holds_alternative<SymbolicCost>(local_cost);
+        if (!is_symbolic && std::get<double>(local_cost) != 0.0) {
             continue;
         }
 
-        if (creates_cycle(current, candidate, current_choices)) {
+        if (!candidate->get_children().empty() &&
+            creates_cycle(current, candidate, current_choices, visited_buffer, stack_buffer)) {
             continue;
         }
 
@@ -296,29 +354,42 @@ void Extractor::search_symbolic_dags(
         int added_children_count = 0;
         for (Id child : candidate->get_children()) {
             Id child_root = egraph.find_class_id(child);
-            if (!current_choices.contains(child_root)) {
-                if (!pending_set.contains(child_root)) {
+            if (current_choices[child_root] == nullptr) {
+                if (!pending_set[child_root]) {
                     pending.push_back(child_root);
-                    pending_set.insert(child_root);
+                    pending_set[child_root] = 1;
                     added_children_count++;
                 }
             }
         }
 
-        search_symbolic_dags(pending, pending_set, current_choices, next_cost, results);
+        if (is_symbolic) {
+            SymbolicCost next_cost = current_cost;
+            const auto &sc = std::get<SymbolicCost>(local_cost);
+            for (const auto &[m, c] : sc) {
+                next_cost[m] += c;
+            }
+            search_symbolic_dags(
+                root, pending, pending_set, current_choices, chosen_count + 1, next_cost, results, visited_buffer,
+                stack_buffer, node_costs);
+        } else {
+            search_symbolic_dags(
+                root, pending, pending_set, current_choices, chosen_count + 1, current_cost, results, visited_buffer,
+                stack_buffer, node_costs);
+        }
 
         // Backtrack
         for (int i = 0; i < added_children_count; ++i) {
             Id child_id = pending.back();
             pending.pop_back();
-            pending_set.erase(child_id);
+            pending_set[child_id] = 0;
         }
-        current_choices.erase(current);
+        current_choices[current] = nullptr;
     }
 
     // Restore pending state
     pending.push_back(current);
-    pending_set.insert(current);
+    pending_set[current] = 1;
 }
 
 Expression Extractor::build_expression(
@@ -371,17 +442,23 @@ Extractor::extract(Id class_id, size_t max_results, const SizeBindings &size_bin
 }
 
 bool Extractor::creates_cycle(
-    Id current_class, const ENode *candidate, const std::unordered_map<Id, const ENode *> &current_choices) const {
-    std::vector<Id> stack;
-    for (Id child : candidate->get_children()) {
-        stack.push_back(egraph.find_class_id(child));
+    Id current_class, const ENode *candidate_node, const std::vector<const ENode *> &current_choices,
+    std::vector<size_t> &visited_buffer, std::vector<Id> &stack_buffer) const {
+    stack_buffer.clear();
+    for (Id child : candidate_node->get_children()) {
+        stack_buffer.push_back(egraph.find_class_id(child));
     }
 
-    std::unordered_set<Id> visited;
+    // Use a unique marker for each call to avoid clearing the whole buffer
+    static thread_local size_t marker = 0;
+    if (++marker == 0) {
+        std::fill(visited_buffer.begin(), visited_buffer.end(), 0);
+        marker = 1;
+    }
 
-    while (!stack.empty()) {
-        Id node = stack.back();
-        stack.pop_back();
+    while (!stack_buffer.empty()) {
+        Id node = stack_buffer.back();
+        stack_buffer.pop_back();
 
         // If we loop back to the class we are currently trying to assign, it's a cycle.
         if (node == current_class) {
@@ -389,12 +466,13 @@ bool Extractor::creates_cycle(
         }
 
         // Only explore nodes we haven't checked yet
-        if (visited.insert(node).second) {
-            auto it = current_choices.find(node);
-            if (it != current_choices.end()) {
+        if (visited_buffer[node] != marker) {
+            visited_buffer[node] = marker;
+            const ENode *chosen = current_choices[node];
+            if (chosen) {
                 // This child already has a chosen path, follow it downward
-                for (Id next_child : it->second->get_children()) {
-                    stack.push_back(egraph.find_class_id(next_child));
+                for (Id next_child : chosen->get_children()) {
+                    stack_buffer.push_back(egraph.find_class_id(next_child));
                 }
             }
         }

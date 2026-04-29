@@ -55,17 +55,23 @@ class Extractor {
     std::vector<SymbolicSearchResult> find_symbolic_dags(Id root_class_id) const;
 
     bool creates_cycle(
-        Id current_class, const ENode *candidate, const std::unordered_map<Id, const ENode *> &current_choices) const;
+        Id current_class, const ENode *candidate, const std::vector<const ENode *> &current_choices,
+        std::vector<size_t> &visited_buffer, std::vector<Id> &stack_buffer) const;
 
     void search_top_numeric_dags(
-        std::vector<Id> &pending, std::unordered_set<Id> &pending_set,
-        std::unordered_map<Id, const ENode *> &current_choices, const SizeBindings *size_bindings, double current_cost,
-        size_t max_results, std::vector<NumericSearchResult> &best_results, double &worst_selected_cost) const;
+        Id root, std::vector<Id> &pending, std::vector<size_t> &pending_set,
+        std::vector<const ENode *> &current_choices, size_t chosen_count, const SizeBindings *size_bindings,
+        double current_cost, size_t max_results, std::vector<NumericSearchResult> &best_results,
+        double &worst_selected_cost, std::vector<size_t> &visited_buffer, std::vector<Id> &stack_buffer) const;
 
     void search_symbolic_dags(
-        std::vector<Id> &pending, std::unordered_set<Id> &pending_set,
-        std::unordered_map<Id, const ENode *> &current_choices, SymbolicCost current_cost,
-        std::vector<SymbolicSearchResult> &results) const;
+        Id root, std::vector<Id> &pending, std::vector<size_t> &pending_set,
+        std::vector<const ENode *> &current_choices, size_t chosen_count, const SymbolicCost &current_cost,
+        std::vector<SymbolicSearchResult> &results, std::vector<size_t> &visited_buffer, std::vector<Id> &stack_buffer,
+        const std::unordered_map<const ENode *, Cost> &node_costs) const;
+
+    std::unordered_map<Id, const ENode *>
+    convert_to_map(const std::vector<const ENode *> &choices, const std::vector<Id> &roots) const;
 
     Expression build_expression(
         Id class_id, const std::unordered_map<Id, const ENode *> &choices, std::unordered_set<Id> &visiting) const;
