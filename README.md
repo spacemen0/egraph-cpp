@@ -1,172 +1,94 @@
 # egraph-cpp
 
-A C++ implementation of an [e-graph](https://egraphs-good.github.io/) (equality graph) data structure, focused on optimizing **matrix expressions** using equality saturation.
+A C++ implementation of an [e-graph](https://egraphs-good.github.io/) (equality graph) data structure, specialized for optimizing **linear algebra and matrix expressions** via equality saturation.
 
 ## Overview
 
-E-graphs compactly represent many equivalent expressions at once. This project uses e-graphs to discover algebraically simpler or computationally cheaper forms of linear-algebra expressions (e.g. eliminating redundant inverses, exploiting orthogonality, or choosing a cheaper matrix factorization).
+E-graphs compactly represent a large set of equivalent expressions. This project leverages e-graphs to discover algebraically simpler or computationally cheaper forms of matrix expressions by:
+- Eliminating redundant inverses.
+- Exploiting matrix properties (orthogonality, symmetry, etc.).
+- Selecting optimal matrix factorizations (QR, LU, Cholesky).
+- Converting matrix inversions into optimized solver calls (`Sol(A, B)`).
 
-The project ships:
-
-- A **core e-graph library** (e-nodes, e-classes, union-find, pattern matching, rewriting, extraction).
-- An **interactive CLI** (`egraph_cli`) that accepts commands through a simple REPL.
-
-## Requirements
-
-| Tool | Minimum version |
-|------|----------------|
-| CMake | 3.15 |
-| C++ compiler | C++20 (GCC 10+, Clang 12+) |
-| GoogleTest | fetched automatically via CMake `FetchContent` |
-
-## Building
+### Running the CLI
 
 ```bash
-# Configure (Release mode)
-cmake -S . -B build
+# Builds and runs the CLI with input.txt
+python3 run_cli.py
 
-# Build the CLI
-cmake --build build --target egraph_cli
-
-# Build everything including tests
-cmake --build build
+# Runs the CLI with input_symbolic.txt
+python3 run_cli.py 1
 ```
 
-For a **Debug** build with AddressSanitizer:
+### Running Tests
 
 ```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build
+# Builds and runs all unit and integration tests
+python3 run_tests.py
+
+# Run tests matching a specific pattern (gtest_filter)
+python3 run_tests.py "Integration.*"
 ```
 
-For a build with **coverage instrumentation**:
+## Expression Syntax
+
+- **Infix Operators**: `A * B` (multiply), `A + B` (add), `A - B` (subtract).
+- **Functions**:
+  - `Tr(A)`: Transpose
+  - `Inv(A)`: Inverse
+  - `Sol(A, B)`: Solve $AX = B$
+  - `SolR(B, A)`: Solve $XA = B$
+  - `QR(A)`, `LU(A)`, `LLt(A)`: Factorizations
+  - `Get(tuple, index)`: Extract component from factorization (e.g., `Get(QR(A), 0)` for $Q$)
+  - `Det(A)`, `Log(A)`: Determinant and Logarithm
+
+## Matrix Properties
+
+Properties enable condition-guarded rewrites (e.g., $(A^T A)^{-1}$ only exists if $A$ is tall and full rank):
 
 ```bash
-cmake -S . -B build -DENABLE_COVERAGE=ON
-cmake --build build
+add properties X:Matrix(100x20)[tall][positive_definite] y:Matrix(100x1)
 ```
 
-## Running the CLI
+**Available Flags**: `tall`, `wide`, `square`, `symmetric`, `positive_definite`, `orthogonal`, `orthonormal`, `singular`, `identity`, `zero`, `permutation`, `lower_triangular`, `upper_triangular`, `diagonal`.
+
+## Rewrite Rule Sets
+
+| Name | Description |
+|------|-------------|
+| `algebraic` | Associativity, identity elimination, transpose of products. |
+| `inverse` | Inverse cancellation ($A A^{-1} = I$), inverse of products. |
+| `orthogonality` | Exploits $Q^T Q = I$ for orthogonal matrices. |
+| `factorization` | Inversion rules based on QR, LU, and Cholesky decompositions. |
+| `solver` | Converts `Inv(A) * B` into `Sol(A, B)` and optimizes solver chains. |
+| `zero-negation` | Zero absorption and subtraction simplification. |
+| `complete` | Includes all of the above rule sets. |
+
+## Example Session: Ordinary Least Squares (OLS)
+
+Optimizing the estimator $(X^T X)^{-1} X^T y$:
 
 ```bash
-./build/src/egraph_cli
+# 1. Define properties
+add properties X:Matrix(100x20)[tall][positive_definite] y:Matrix(100x1)
+
+# 2. Enable rules
+add rule-set complete
+
+# 3. Parse expression
+parse Inv(Tr(X) * X) * Tr(X) * y
+
+# 4. Rewrite for 10 iterations
+rewrite 10
+
+# 5. Extract (index 0 is the OLS expression)
+extract 0
 ```
 
-You can also pipe a script file into the CLI:
+## Project Structure
 
-```bash
-./build/src/egraph_cli < input.txt
-```
-
-A convenience wrapper is provided:
-
-```bash
-./run_cli.sh   # builds the project and runs it with input.txt
-```
-
-### REPL commands
-
-| Command | Description |
-|---------|-------------|
-| `parse <expr>` | Parse and store an expression |
-| `add properties <prop...>` | Attach matrix properties to variables |
-| `add rule-set <name...>` | Enable one or more rewrite rule sets |
-| `rewrite <N\|null>` | Apply rewrites for N iterations, or until saturation (`null`) |
-| `extract <id>` | Extract the lowest-cost equivalent expression for the given id |
-| `show [state\|available-rule-sets]` | Print session state or list available rule sets |
-| `reset` | Clear the session |
-| `help` | Print command reference |
-| `quit` / `exit` | Exit the REPL |
-
-## Expression syntax
-
-Expressions are written in **prefix S-expression** notation:
-
-```
-Mul(A, B)            # matrix multiply A × B
-Tr(A)                # transpose
-Inv(A)               # inverse
-Add(A, B)            # addition
-Minus(A, B)          # subtraction (A - B)
-Get(QR(A), 0)        # extract component from a factorization
-```
-
-Leaf nodes are plain identifiers (variable names or literal symbols such as `Identity`).
-
-## Matrix properties
-
-Properties are attached before rewriting so that condition-guarded rules can fire:
-
-```
-add properties X:Matrix(100x20)[tall]  y:Matrix(100x1)
-```
-
-Property format: `<name>:Matrix(<rows>x<cols>)[flag1][flag2]...`
-
-Available flags: `tall`, `square`, `symmetric`, `positive-definite`, `orthogonal`, `orthonormal`, `singular`.
-
-## Available rule sets
-
-| Name | What it contains |
-|------|-----------------|
-| `algebraic` | Associativity of `Mul`, transpose of a product, identity elimination |
-| `inverse` | Inverse cancellation, inverse of a product |
-| `orthogonality` | `Tr(A) × A = I` for orthogonal / orthonormal matrices |
-| `factorization` | QR, LU, and Cholesky (LLt) decomposition-based inversion rules |
-| `zero-subtraction` | Subtraction of identical terms, zero absorption |
-
-Multiple rule sets can be enabled in a single `add rule-set` command.
-
-## Example session
-
-The following session (also in `input.txt`) simplifies the ordinary least-squares estimator
-`(X^T X)^{-1} X^T y`:
-
-```
-add properties X:Matrix(100x20)[tall] y:Matrix(100x1)
-add rule-set factorization algebraic inverse orthogonality
-parse Mul(Mul(Inv(Mul(Tr(X),X)),Tr(X)),y)
-parse Mul(Tr(X),y)
-rewrite 5
-show state
-extract 6
-```
-
-Run it with:
-
-```bash
-./run_cli.sh
-```
-
-## Running tests
-
-```bash
-# Run all unit tests (no coverage)
-cmake -S . -B build
-cmake --build build --target unit_tests
-./build/tests/unit_tests
-
-# Or use the helper script (also collects coverage with grcov)
-./run_tests.sh
-
-# Run a specific test filter
-./run_tests.sh "EGraphTest.*"
-```
-
-## Project structure
-
-```
-src/
-  core/        # EGraph, ENode, EClass, UnionFind, Expression
-  rewrite/     # Pattern matching, Rewriter
-  extract/     # Cost model, Extractor
-  prune/       # Pruner
-  analysis/    # PropertyTable, Analysis
-  io/          # DOT / image visualization
-  common/      # Shared utilities, built-in rewrite sets
-  main.cpp     # Interactive CLI entry point
-tests/
-  unit/        # Unit tests (GoogleTest)
-  integration/ # Integration tests
-  support/     # Test helpers
-```
+- `src/core/`: E-graph implementation and expression types.
+- `src/rewrite/`: Pattern matching and equality saturation engine.
+- `src/extract/`: Cost-based extraction logic.
+- `src/common/`: Parsers and built-in rewrite sets.
+- `tests/`: Extensive unit and integration test suite.
