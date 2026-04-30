@@ -6,8 +6,15 @@ import subprocess
 import sys
 
 
-def run(command: list[str], cwd: pathlib.Path) -> None:
-    subprocess.run(command, cwd=cwd, check=True)
+def run(command: list[str], cwd: pathlib.Path, timeout: int | None = None) -> None:
+    try:
+        subprocess.run(command, cwd=cwd, check=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        print(
+            f"Error: Command '{' '.join(command)}' timed out after {timeout} seconds.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
 
 def main() -> int:
@@ -15,6 +22,9 @@ def main() -> int:
         description="Build and run unit tests with coverage"
     )
     parser.add_argument("gtest_filter", nargs="?", help="Optional gtest filter pattern")
+    parser.add_argument(
+        "--timeout", type=int, help="Optional timeout in seconds for test execution"
+    )
     args = parser.parse_args()
 
     repo_root = pathlib.Path(__file__).resolve().parent
@@ -69,7 +79,7 @@ def main() -> int:
     test_command = [str(test_path)]
     if args.gtest_filter:
         test_command.append(f"--gtest_filter={args.gtest_filter}")
-    run(test_command, cwd=repo_root)
+    run(test_command, cwd=repo_root, timeout=args.timeout)
 
     # print("Generating coverage report...")
     # run(["grcov", ".", "-s", ".", "--binary-path", "./build/", "-t", "html", "-o", "./coverage_report"], cwd=repo_root)
