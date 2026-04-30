@@ -11,8 +11,7 @@
 TEST(Integration, OLSNumeric) {
     EGraph egraph(get_property_table());
     auto id = egraph.add_expression(Expression("(Inv(Tr(X) * X) * Tr(X)) * y"));
-    std::vector<Rewrite> rules =
-        build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality", "zero-negation", "solver"});
+    std::vector<Rewrite> rules = build_rewrite_sets({"complete"});
     Rewriter rewriter(egraph, rules, 2000, true);
 
     bool found_qr_form = false;
@@ -31,6 +30,7 @@ TEST(Integration, OLSNumeric) {
     auto alternative_id = egraph.add_expression(alternative_expression);
     ASSERT_TRUE(egraph.find_class_id(alternative_id) == egraph.find_class_id(id));
     CostStorage cost_storage(egraph);
+    egraph.to_img("OLS_numeric", "svg");
     std::cout << "Doing extraction, num of nodes: " << egraph.num_nodes() << std::endl;
     Extractor extractor(egraph, cost_storage, true);
     auto result = extractor.extract(id, 5);
