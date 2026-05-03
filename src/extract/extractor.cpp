@@ -28,6 +28,10 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
 
     compute_greedy_costs(size_bindings);
 
+    if (greedy_costs[root] == std::numeric_limits<double>::infinity()) {
+        return {};
+    }
+
     Id max_id = 0;
     for (Id id : egraph.get_all_class_ids()) {
         max_id = std::max(max_id, id);
@@ -45,9 +49,27 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
     stack_buffer.reserve(max_id + 1);
 
     nodes_visited = 0;
+
+    // --- Heuristic: Initialize with greedy result ---
+    if (greedy_costs[root] != std::numeric_limits<double>::infinity()) {
+        std::vector<const ENode*> greedy_vec(max_id + 1, nullptr);
+        for (const auto& [id, node] : greedy_choices) {
+            greedy_vec[id] = node;
+        }
+        best_results.push_back(NumericSearchResult{greedy_costs[root], convert_to_map(greedy_vec, {root})});
+        
+        if (best_results.size() >= max_results) {
+            worst_selected_cost = greedy_costs[root];
+        } else {
+            // Heuristic bound: if we have a greedy solution, anything 10x worse is likely garbage.
+            worst_selected_cost = greedy_costs[root] * 10.0;
+        }
+    }
+
     search_top_numeric_dags(
-        root, pending, pending_set, current_choices, 0, size_bindings, 0.0, max_results, best_results,
-        worst_selected_cost, visited_buffer, stack_buffer);
+        root, pending, pending_set, current_choices, 0, size_bindings, 0.0, 
+        dag_cost_lb[root], dag_size_lb[root],
+        max_results, best_results, worst_selected_cost, visited_buffer, stack_buffer);
 
     if (enable_logging) {
         std::cout << "[Extractor] Visited " << nodes_visited << " nodes during numeric extraction." << std::endl;
@@ -94,11 +116,15 @@ Extractor::convert_to_map(const std::vector<const ENode *> &choices, const std::
 
 void Extractor::compute_greedy_costs(const SizeBindings *size_bindings) const {
     greedy_costs.clear();
+    dag_cost_lb.clear();
+    dag_size_lb.clear();
     greedy_choices.clear();
 
     auto all_class_ids = egraph.get_all_class_ids();
     for (Id id : all_class_ids) {
         greedy_costs[id] = std::numeric_limits<double>::infinity();
+        dag_cost_lb[id] = std::numeric_limits<double>::infinity();
+        dag_size_lb[id] = std::numeric_limits<double>::infinity();
     }
 
     bool changed = true;
@@ -110,22 +136,50 @@ void Extractor::compute_greedy_costs(const SizeBindings *size_bindings) const {
                 if (!std::holds_alternative<double>(local_cost_v)) {
                     continue;
                 }
-                double current_node_cost = std::get<double>(local_cost_v);
+                double local = std::get<double>(local_cost_v);
+                
+                // --- Safe DAG Lower Bounds (Max-Path) ---
+                double max_child_lb_cost = 0;
+                double max_child_lb_size = 0;
+                bool children_incomplete_for_lb = false;
+                
+                // --- Greedy Tree Costs (Heuristic Upper Bounds) ---
+                double current_node_greedy_cost = local;
+                bool children_incomplete_for_greedy = false;
 
-                bool all_children_have_costs = true;
                 for (Id child : node->get_children()) {
                     Id child_root = egraph.find_class_id(child);
-                    if (greedy_costs[child_root] == std::numeric_limits<double>::infinity()) {
-                        all_children_have_costs = false;
-                        break;
+                    
+                    if (dag_cost_lb[child_root] == std::numeric_limits<double>::infinity()) {
+                        children_incomplete_for_lb = true;
+                    } else {
+                        max_child_lb_cost = std::max(max_child_lb_cost, dag_cost_lb[child_root]);
+                        max_child_lb_size = std::max(max_child_lb_size, dag_size_lb[child_root]);
                     }
-                    current_node_cost += greedy_costs[child_root];
+
+                    if (greedy_costs[child_root] == std::numeric_limits<double>::infinity()) {
+                        children_incomplete_for_greedy = true;
+                    } else {
+                        current_node_greedy_cost += greedy_costs[child_root];
+                    }
                 }
 
-                if (all_children_have_costs && current_node_cost < greedy_costs[class_id]) {
-                    greedy_costs[class_id] = current_node_cost;
-                    greedy_choices[class_id] = node;
-                    changed = true;
+                if (!children_incomplete_for_lb) {
+                    double node_lb_cost = local + max_child_lb_cost;
+                    double node_lb_size = (node->is_leaf() ? 0.0 : 1.0) + max_child_lb_size;
+                    if (node_lb_cost < dag_cost_lb[class_id]) {
+                        dag_cost_lb[class_id] = node_lb_cost;
+                        dag_size_lb[class_id] = node_lb_size;
+                        changed = true;
+                    }
+                }
+
+                if (!children_incomplete_for_greedy) {
+                    if (current_node_greedy_cost < greedy_costs[class_id]) {
+                        greedy_costs[class_id] = current_node_greedy_cost;
+                        greedy_choices[class_id] = node;
+                        changed = true;
+                    }
                 }
             }
         }
@@ -183,9 +237,10 @@ std::vector<Extractor::SymbolicSearchResult> Extractor::find_symbolic_dags(Id ro
 
 void Extractor::search_top_numeric_dags(
     Id root, std::vector<Id> &pending, std::vector<size_t> &pending_set, std::vector<const ENode *> &current_choices,
-    size_t chosen_count, const SizeBindings *size_bindings, double current_cost, size_t max_results,
-    std::vector<NumericSearchResult> &best_results, double &worst_selected_cost, std::vector<size_t> &visited_buffer,
-    std::vector<Id> &stack_buffer) const {
+    size_t chosen_count, const SizeBindings *size_bindings, double current_cost, 
+    double current_pending_lb_cost, double current_pending_lb_size,
+    size_t max_results, std::vector<NumericSearchResult> &best_results,
+    double &worst_selected_cost, std::vector<size_t> &visited_buffer, std::vector<Id> &stack_buffer) const {
 
     nodes_visited++;
     if (enable_logging && (nodes_visited % kExtractorProgressLogEvery == 0)) {
@@ -233,46 +288,94 @@ void Extractor::search_top_numeric_dags(
         return;
     }
 
-    if (chosen_count >= max_depth) {
+    // Safety: check if remaining nodes will exceed max_depth using a safe lower bound
+    if (chosen_count + current_pending_lb_size > max_depth) {
         return;
     }
 
-    Id current = pending.back();
+    // Node limit to avoid hanging indefinitely
+    if (nodes_visited > 20000000) { 
+        return;
+    }
+
+    // Cost pruning using safe max-path bound
+    if (best_results.size() == max_results && current_cost + current_pending_lb_cost >= worst_selected_cost) {
+        return;
+    }
+
+    // Heuristic: Pick the e-class with the largest lower bound cost first.
+    auto it = std::max_element(pending.begin(), pending.end(), [&](Id a, Id b) {
+        return dag_cost_lb.at(a) < dag_cost_lb.at(b);
+    });
+    Id current = *it;
+    size_t original_index = std::distance(pending.begin(), it);
+    size_t last_index = pending.size() - 1;
+    
+    std::swap(pending[original_index], pending[last_index]);
     pending.pop_back();
     pending_set[current] = 0;
+
+    // Recalculate the max LB of the *remaining* pending set (excluding 'current')
+    double next_pending_lb_cost = 0;
+    double next_pending_lb_size = 0;
+    for (Id p : pending) {
+        next_pending_lb_cost = std::max(next_pending_lb_cost, dag_cost_lb.at(p));
+        next_pending_lb_size = std::max(next_pending_lb_size, dag_size_lb.at(p));
+    }
 
     struct Candidate {
         const ENode *node;
         double local_cost;
-        double global_cost_estimate;
+        double tree_cost_heuristic;
+        double node_lb_cost;
+        double node_lb_size;
     };
     std::vector<Candidate> candidates;
     const auto &class_nodes = egraph.get_class_nodes(current);
     candidates.reserve(class_nodes.size());
 
-    // Estimate global cost for each candidate using local cost + greedy costs of children
     for (const ENode *node : class_nodes) {
         Cost cost = node->compute_local_cost(egraph, size_bindings);
         if (std::holds_alternative<double>(cost)) {
             double local = std::get<double>(cost);
-            double estimate = local;
+            double tree_est = local;
+            double max_child_cost = 0;
+            double max_child_size = 0;
+            bool any_child_infinite = false;
             for (Id child : node->get_children()) {
                 Id child_root = egraph.find_class_id(child);
-                estimate += greedy_costs.at(child_root);
+                double child_greedy = greedy_costs.at(child_root);
+                if (child_greedy == std::numeric_limits<double>::infinity()) {
+                    any_child_infinite = true;
+                    break;
+                }
+                tree_est += child_greedy;
+                max_child_cost = std::max(max_child_cost, dag_cost_lb.at(child_root));
+                max_child_size = std::max(max_child_size, dag_size_lb.at(child_root));
             }
-            candidates.push_back({node, local, estimate});
+            if (!any_child_infinite) {
+                candidates.push_back({
+                    node, local, tree_est, 
+                    local + max_child_cost, 
+                    (node->is_leaf() ? 0.0 : 1.0) + max_child_size
+                });
+            }
         }
     }
 
-    // Iterate candidates in order of estimated global cost (best first)
     std::sort(candidates.begin(), candidates.end(), [](const Candidate &a, const Candidate &b) {
-        return a.global_cost_estimate < b.global_cost_estimate;
+        return a.tree_cost_heuristic < b.tree_cost_heuristic;
     });
 
     for (const Candidate &candidate : candidates) {
-
         double next_cost = current_cost + candidate.local_cost;
-        if (best_results.size() == max_results && next_cost >= worst_selected_cost) {
+        double combined_lb_cost = std::max(next_pending_lb_cost, candidate.node_lb_cost);
+        double combined_lb_size = std::max(next_pending_lb_size, candidate.node_lb_size);
+
+        if (best_results.size() == max_results && current_cost + combined_lb_cost >= worst_selected_cost) {
+            continue;
+        }
+        if (chosen_count + combined_lb_size > max_depth) {
             continue;
         }
 
@@ -286,7 +389,6 @@ void Extractor::search_top_numeric_dags(
         for (Id child : candidate.node->get_children()) {
             Id child_root = egraph.find_class_id(child);
             if (current_choices[child_root] == nullptr) {
-                // Ensure we don't add the same pending node twice from different paths
                 if (!pending_set[child_root]) {
                     pending.push_back(child_root);
                     pending_set[child_root] = 1;
@@ -295,9 +397,17 @@ void Extractor::search_top_numeric_dags(
             }
         }
 
+        double next_step_lb_cost = 0;
+        double next_step_lb_size = 0;
+        for (Id p : pending) {
+            next_step_lb_cost = std::max(next_step_lb_cost, dag_cost_lb.at(p));
+            next_step_lb_size = std::max(next_step_lb_size, dag_size_lb.at(p));
+        }
+
         search_top_numeric_dags(
-            root, pending, pending_set, current_choices, chosen_count + 1, size_bindings, next_cost, max_results,
-            best_results, worst_selected_cost, visited_buffer, stack_buffer);
+            root, pending, pending_set, current_choices, chosen_count + 1, size_bindings, next_cost,
+            next_step_lb_cost, next_step_lb_size,
+            max_results, best_results, worst_selected_cost, visited_buffer, stack_buffer);
 
         for (int i = 0; i < added_children_count; ++i) {
             Id child_id = pending.back();
@@ -308,6 +418,7 @@ void Extractor::search_top_numeric_dags(
     }
 
     pending.push_back(current);
+    std::swap(pending[original_index], pending[last_index]);
     pending_set[current] = 1;
 }
 
@@ -378,7 +489,6 @@ void Extractor::search_symbolic_dags(
                 stack_buffer, node_costs);
         }
 
-        // Backtrack
         for (int i = 0; i < added_children_count; ++i) {
             Id child_id = pending.back();
             pending.pop_back();
@@ -387,7 +497,6 @@ void Extractor::search_symbolic_dags(
         current_choices[current] = nullptr;
     }
 
-    // Restore pending state
     pending.push_back(current);
     pending_set[current] = 1;
 }
@@ -449,7 +558,6 @@ bool Extractor::creates_cycle(
         stack_buffer.push_back(egraph.find_class_id(child));
     }
 
-    // Use a unique marker for each call to avoid clearing the whole buffer
     static thread_local size_t marker = 0;
     if (++marker == 0) {
         std::fill(visited_buffer.begin(), visited_buffer.end(), 0);
@@ -460,17 +568,14 @@ bool Extractor::creates_cycle(
         Id node = stack_buffer.back();
         stack_buffer.pop_back();
 
-        // If we loop back to the class we are currently trying to assign, it's a cycle.
         if (node == current_class) {
             return true;
         }
 
-        // Only explore nodes we haven't checked yet
         if (visited_buffer[node] != marker) {
             visited_buffer[node] = marker;
             const ENode *chosen = current_choices[node];
             if (chosen) {
-                // This child already has a chosen path, follow it downward
                 for (Id next_child : chosen->get_children()) {
                     stack_buffer.push_back(egraph.find_class_id(next_child));
                 }

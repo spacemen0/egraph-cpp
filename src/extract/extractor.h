@@ -44,7 +44,9 @@ class Extractor {
     mutable size_t nodes_visited = 0;
     size_t max_depth = 40;
 
-    mutable std::unordered_map<Id, double> greedy_costs;
+    mutable std::unordered_map<Id, double> greedy_costs;   // Tree cost (Heuristic)
+    mutable std::unordered_map<Id, double> dag_cost_lb;    // Max-path cost (Safe LB)
+    mutable std::unordered_map<Id, double> dag_size_lb;    // Max-path size (Safe LB)
     mutable std::unordered_map<Id, const ENode *> greedy_choices;
 
     void compute_greedy_costs(const SizeBindings *size_bindings) const;
@@ -61,7 +63,8 @@ class Extractor {
     void search_top_numeric_dags(
         Id root, std::vector<Id> &pending, std::vector<size_t> &pending_set,
         std::vector<const ENode *> &current_choices, size_t chosen_count, const SizeBindings *size_bindings,
-        double current_cost, size_t max_results, std::vector<NumericSearchResult> &best_results,
+        double current_cost, double current_pending_lb_cost, double current_pending_lb_size,
+        size_t max_results, std::vector<NumericSearchResult> &best_results,
         double &worst_selected_cost, std::vector<size_t> &visited_buffer, std::vector<Id> &stack_buffer) const;
 
     void search_symbolic_dags(
