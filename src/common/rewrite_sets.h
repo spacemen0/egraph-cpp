@@ -86,6 +86,12 @@ static const auto mul_identity_right =
     return is_identity(s, g, "i");
 });
 
+static const auto mul_distribute_left =
+    make_rewrite("mul-distribute-over-add-left", "?a * (?b + ?c)", "?a * ?b + ?a * ?c", true);
+
+static const auto mul_distribute_right =
+    make_rewrite("mul-distribute-over-add-right", "(?a + ?b) * ?c", "?a * ?c + ?b * ?c", true);
+
 static const auto mul_assoc = make_rewrite("mul-assoc-left", "?a * (?b * ?c)", "(?a * ?b) * ?c", true);
 
 static const auto commute_add = make_rewrite("commute-add", "?a + ?b", "?b + ?a");
@@ -218,7 +224,8 @@ static const auto transpose_solve_r =
 static const std::vector<Rewrite> factorization_set = {qr_invert, lu_invert, llt_invert, qr_leaf, lu_leaf, llt_leaf};
 
 static const std::vector<Rewrite> algebraic_set = {
-    mul_identity_left, mul_identity_right, mul_assoc, commute_add, mat_transpose_prod,
+    mul_identity_left,   mul_identity_right,   mul_assoc,          commute_add,         mat_transpose_prod,
+    mul_distribute_left, mul_distribute_right, invert_cancel_left, invert_cancel_right, invert_mat_prod,
 };
 
 static const std::vector<Rewrite> inverse_set = {

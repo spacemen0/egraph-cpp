@@ -1,6 +1,7 @@
 #include "cost_storage.h"
 #include "e_graph.h"
 #include "extractor.h"
+#include "property_table.h"
 #include "pruner.h"
 #include "rewrite_sets.h"
 #include "rewriter.h"
@@ -166,4 +167,19 @@ TEST(Integration, MatrixChainSymbolicSizes) {
     std::cout << "Matched " << matched_count << " out of " << candidate_expressions.size() << " possible expressions."
               << std::endl;
     SUCCEED();
+}
+
+TEST(Integration, SimpleDiagram) {
+    PropertyTable pt;
+    pt.add_or_update_property_entry("A", {.shape = std::make_pair(3, 3)});
+    pt.add_or_update_property_entry("B", {.shape = std::make_pair(3, 3)});
+    pt.add_or_update_property_entry("C", {.shape = std::make_pair(3, 3)});
+    pt.add_or_update_property_entry("D", {.shape = std::make_pair(3, 3)});
+    EGraph egraph(pt);
+    auto id = egraph.add_expression(Expression("(A + B) * (C + D)"));
+
+    std::vector<Rewrite> rules = {mul_assoc, commute_add, mul_distribute_left, mul_distribute_right};
+    Rewriter rewriter(egraph, rules, 500, true);
+    rewriter.apply_rewrites(10);
+    egraph.to_img("simple_diagram", "svg");
 }
