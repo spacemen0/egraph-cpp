@@ -32,16 +32,20 @@ Pruner::run(const std::vector<Id> &roots, const std::vector<SizeBindings> &bindi
 
 void Pruner::rewrite_and_run(
     const std::vector<Id> &roots, Rewriter &rewriter, const PruneOptions &options,
-    std::function<void(int iteration, const PruneResult &)> callback) const {
+    std::function<void(int iteration)> onIterationStart,
+    std::function<void(int iteration, const PruneResult &)> onIterationFinish) const {
     for (int i = 0; i < options.num_iterations; ++i) {
+        if (onIterationStart) {
+            onIterationStart(i);
+        }
         rewriter.reset();
         rewriter.apply_rewrites(options.rewrite_steps_per_iteration);
 
         const auto bindings = sample_size_bindings(options.prune_samples_per_iteration, 1, 1000, options.size_keys);
         const auto prune_result = run(roots, bindings, options.max_results_per_binding);
 
-        if (callback) {
-            callback(i, prune_result);
+        if (onIterationFinish) {
+            onIterationFinish(i, prune_result);
         }
     }
 }

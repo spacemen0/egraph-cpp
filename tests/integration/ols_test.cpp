@@ -116,7 +116,7 @@ TEST(Integration, OLSPruneConverges) {
                   << ", pruned=" << prune_result.nodes_pruned << std::endl;
     };
 
-    pruner.rewrite_and_run({root_id}, rewriter, options, callback);
+    pruner.rewrite_and_run({root_id}, rewriter, options, nullptr, callback);
 
     auto result = extractor.extract_symbolic(root_id);
     for (const auto &candidate : result) {
