@@ -20,7 +20,7 @@ class Extractor {
     std::vector<ExtractionResult>
     extract(Id class_id, size_t max_results, const SizeBindings &size_bindings = {}) const;
 
-    ExtractionResult greedy_extract(Id class_id, const SizeBindings &size_bindings = {}) const;
+    ExtractionResult tree_extract(Id class_id, const SizeBindings &size_bindings = {}) const;
 
     std::vector<ExtractionResult> extract_symbolic(Id class_id, bool build_expressions = true) const;
     bool collect_selected_nodes_for_binding(
@@ -44,12 +44,12 @@ class Extractor {
     mutable size_t nodes_visited = 0;
     size_t max_depth = 40;
 
-    mutable std::unordered_map<Id, double> greedy_costs;           // Tree cost (Heuristic)
+    mutable std::unordered_map<Id, double> tree_cost;              // Tree cost (Heuristic)
     mutable std::unordered_map<Id, double> minimal_possible_costs; // Max-path cost (Safe LB)
     mutable std::unordered_map<Id, double> minimal_possible_sizes; // Max-path size (Safe LB)
     mutable std::unordered_map<Id, const ENode *> greedy_choices;
 
-    void compute_greedy_costs(const SizeBindings *size_bindings) const;
+    void initial_tree_search_pass(const SizeBindings *size_bindings) const;
 
     std::vector<NumericSearchResult>
     find_top_numeric_dags(Id root_class_id, size_t max_results, const SizeBindings *size_bindings = nullptr) const;

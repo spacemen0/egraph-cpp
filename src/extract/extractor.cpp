@@ -26,9 +26,9 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
         }
     }
 
-    compute_greedy_costs(size_bindings);
+    initial_tree_search_pass(size_bindings);
 
-    if (greedy_costs[root] == std::numeric_limits<double>::infinity()) {
+    if (tree_cost[root] == std::numeric_limits<double>::infinity()) {
         return {};
     }
 
@@ -53,18 +53,18 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
     nodes_visited = 0;
 
     // Heuristic
-    if (greedy_costs[root] != std::numeric_limits<double>::infinity()) {
+    if (tree_cost[root] != std::numeric_limits<double>::infinity()) {
         std::vector<const ENode *> greedy_vec(max_id + 1, nullptr);
         for (const auto &[id, node] : greedy_choices) {
             greedy_vec[id] = node;
         }
-        best_results.push_back(NumericSearchResult{greedy_costs[root], convert_to_map(greedy_vec, {root})});
+        best_results.push_back(NumericSearchResult{tree_cost[root], convert_to_map(greedy_vec, {root})});
 
         if (best_results.size() == max_results) {
-            worst_selected_cost = greedy_costs[root];
+            worst_selected_cost = tree_cost[root];
         } else {
             // Heuristic
-            worst_selected_cost = greedy_costs[root] * 10.0;
+            worst_selected_cost = tree_cost[root] * 10.0;
         }
     }
 
@@ -119,15 +119,15 @@ Extractor::convert_to_map(const std::vector<const ENode *> &choices, const std::
     return result;
 }
 
-void Extractor::compute_greedy_costs(const SizeBindings *size_bindings) const {
-    greedy_costs.clear();
+void Extractor::initial_tree_search_pass(const SizeBindings *size_bindings) const {
+    tree_cost.clear();
     minimal_possible_costs.clear();
     minimal_possible_sizes.clear();
     greedy_choices.clear();
 
     auto all_class_ids = egraph.get_all_class_ids();
     for (Id id : all_class_ids) {
-        greedy_costs[id] = std::numeric_limits<double>::infinity();
+        tree_cost[id] = std::numeric_limits<double>::infinity();
         minimal_possible_costs[id] = std::numeric_limits<double>::infinity();
         minimal_possible_sizes[id] = std::numeric_limits<double>::infinity();
     }
@@ -165,10 +165,10 @@ void Extractor::compute_greedy_costs(const SizeBindings *size_bindings) const {
                         max_child_size = std::max(max_child_size, minimal_possible_sizes[child_root]);
                     }
 
-                    if (greedy_costs[child_root] == std::numeric_limits<double>::infinity()) {
+                    if (tree_cost[child_root] == std::numeric_limits<double>::infinity()) {
                         children_incomplete_for_greedy = true;
                     } else {
-                        current_node_greedy_cost += greedy_costs[child_root];
+                        current_node_greedy_cost += tree_cost[child_root];
                     }
                 }
 
@@ -183,8 +183,8 @@ void Extractor::compute_greedy_costs(const SizeBindings *size_bindings) const {
                 }
 
                 if (!children_incomplete_for_greedy) {
-                    if (current_node_greedy_cost < greedy_costs[class_id]) {
-                        greedy_costs[class_id] = current_node_greedy_cost;
+                    if (current_node_greedy_cost < tree_cost[class_id]) {
+                        tree_cost[class_id] = current_node_greedy_cost;
                         greedy_choices[class_id] = node;
                         changed = true;
                     }
@@ -194,15 +194,15 @@ void Extractor::compute_greedy_costs(const SizeBindings *size_bindings) const {
     }
 }
 
-ExtractionResult Extractor::greedy_extract(Id class_id, const SizeBindings &size_bindings) const {
-    compute_greedy_costs(size_bindings.empty() ? nullptr : &size_bindings);
+ExtractionResult Extractor::tree_extract(Id class_id, const SizeBindings &size_bindings) const {
+    initial_tree_search_pass(size_bindings.empty() ? nullptr : &size_bindings);
     Id root = egraph.find_class_id(class_id);
-    if (greedy_costs.at(root) == std::numeric_limits<double>::infinity()) {
+    if (tree_cost.at(root) == std::numeric_limits<double>::infinity()) {
         throw std::runtime_error("Runtime error: no numeric DAG found for root class under supplied size bindings");
     }
 
     std::unordered_set<Id> visiting;
-    return ExtractionResult{greedy_costs.at(root), build_expression(root, greedy_choices, visiting)};
+    return ExtractionResult{tree_cost.at(root), build_expression(root, greedy_choices, visiting)};
 }
 
 std::vector<Extractor::SymbolicSearchResult> Extractor::find_symbolic_dags(Id root_class_id) const {
@@ -313,7 +313,7 @@ Extractor::evaluate_node_candidates(Id eclass_id, const SizeBindings *size_bindi
 
             for (Id child : node->get_children()) {
                 Id child_root = egraph.find_class_id(child);
-                double child_greedy = greedy_costs.at(child_root);
+                double child_greedy = tree_cost.at(child_root);
 
                 if (child_greedy == std::numeric_limits<double>::infinity()) {
                     any_child_infinite = true;

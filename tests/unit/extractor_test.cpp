@@ -186,7 +186,7 @@ TEST_F(ExtractorTest, GreedyExtract) {
     egraph.union_classes(id_a, id_mul);
     egraph.rebuild();
 
-    auto result = extractor.greedy_extract(id_a);
+    auto result = extractor.tree_extract(id_a);
     // 'A' has local cost 0, 'X * Y' has local cost > 0.
     EXPECT_EQ(result.cost, Cost(0.0));
     EXPECT_EQ(result.expr.to_string(), "A");
