@@ -68,9 +68,13 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
         }
     }
 
-    search_top_numeric_dags(
-        root, pending, pending_set, current_choices, 0, size_bindings, 0.0, minimal_possible_costs[root],
-        minimal_possible_sizes[root], max_results, best_results, worst_selected_cost, visited_buffer, stack_buffer);
+    if (!should_prune_numeric_search(
+            0, 0.0, minimal_possible_costs[root], minimal_possible_sizes[root], max_results, best_results.size(),
+            worst_selected_cost)) {
+        search_top_numeric_dags(
+            root, pending, pending_set, current_choices, 0, size_bindings, 0.0, minimal_possible_costs[root],
+            minimal_possible_sizes[root], max_results, best_results, worst_selected_cost, visited_buffer, stack_buffer);
+    }
 
     if (enable_logging) {
         std::cout << "[Extractor] Visited " << nodes_visited << " nodes during numeric extraction." << std::endl;
@@ -351,12 +355,6 @@ void Extractor::search_top_numeric_dags(
         return;
     }
 
-    if (should_prune_numeric_search(
-            chosen_count, current_cost, current_pending_lb_cost, current_pending_lb_size, max_results,
-            best_results.size(), worst_selected_cost)) {
-        return;
-    }
-
     // Heuristic: Select the pending e-class with the highest lower bound on cost, because we want to make decisions on
     // the most expensive parts of the DAG first.
     auto it = std::max_element(pending.begin(), pending.end(), [&](Id a, Id b) {
@@ -384,10 +382,12 @@ void Extractor::search_top_numeric_dags(
     for (const Candidate &candidate : candidates) {
         double next_cost = current_cost + candidate.local_cost;
 
-        // Calculate combined lower bounds for the entire DAG including this candidate's subtrees
+        // Calculate combined lower bounds for the entire DAG (use max instead of sum because lower bounds are not
+        // additive)
         double combined_lb_cost = std::max(remaining_work_cost_lower_bound, candidate.minimal_possible_cost);
         double combined_lb_size = std::max(remaining_work_size_lower_bound, candidate.minimal_possible_size);
 
+        // Here we use sum becase no sharing between chosen nodes and pending nodes (otherwise there will be cycles)
         if (best_results.size() == max_results && current_cost + combined_lb_cost >= worst_selected_cost) {
             continue;
         }
@@ -404,26 +404,27 @@ void Extractor::search_top_numeric_dags(
 
         // Add children to pending list if they haven't been chosen yet
         int added_children_count = 0;
+        double next_step_lb_cost = remaining_work_cost_lower_bound;
+        double next_step_lb_size = remaining_work_size_lower_bound;
         for (Id child : candidate.node->get_children()) {
             Id child_root = egraph.find_class_id(child);
             if (current_choices[child_root] == nullptr && !pending_set[child_root]) {
                 pending.push_back(child_root);
                 pending_set[child_root] = 1;
                 added_children_count++;
+                next_step_lb_cost = std::max(next_step_lb_cost, minimal_possible_costs.at(child_root));
+                next_step_lb_size = std::max(next_step_lb_size, minimal_possible_sizes.at(child_root));
             }
         }
 
-        // Update the lower bounds for the next recursion step based on the newly added children
-        double next_step_lb_cost = 0;
-        double next_step_lb_size = 0;
-        for (Id p : pending) {
-            next_step_lb_cost = std::max(next_step_lb_cost, minimal_possible_costs.at(p));
-            next_step_lb_size = std::max(next_step_lb_size, minimal_possible_sizes.at(p));
+        if (!should_prune_numeric_search(
+                chosen_count + 1, next_cost, next_step_lb_cost, next_step_lb_size, max_results, best_results.size(),
+                worst_selected_cost)) {
+            search_top_numeric_dags(
+                root, pending, pending_set, current_choices, chosen_count + 1, size_bindings, next_cost,
+                next_step_lb_cost, next_step_lb_size, max_results, best_results, worst_selected_cost, visited_buffer,
+                stack_buffer);
         }
-
-        search_top_numeric_dags(
-            root, pending, pending_set, current_choices, chosen_count + 1, size_bindings, next_cost, next_step_lb_cost,
-            next_step_lb_size, max_results, best_results, worst_selected_cost, visited_buffer, stack_buffer);
 
         // Backtrack
         for (int i = 0; i < added_children_count; ++i) {
