@@ -85,6 +85,19 @@ rewrite 10
 extract 0
 ```
 
+## Extraction Heuristics
+
+To navigate the massive search space of matrix optimizations, the engine relies on several heuristics that prioritize practical performance over exhaustive optimality.
+
+Finding the globally optimal expression with shared sub-expressions is NP-hard. Our extractor uses a bounded search guided by the following heuristics:
+
+- **Greedy Initialization**: The search is seeded with an initial tree search pass to cauculate the minimal possible cost and minimal possible size. This pass ignores sub-expression sharing but provides a fast upper bound .
+- **Search Prioritization**: The engine makes decisions on the most expensive sub-expressions first (based on their minimal possible cost). 
+- **Local Best-First**: Within each e-class, nodes are explored in ascending order of their estimated tree cost.
+- **Pruning Strategy**: If the current partial solution cannot outperform the worst solution in the top-$K$ results even with the calculated minimal possible DAG cost, the search branch is pruned immediately.
+- **Max Depth** : A maximum search depth prevents search from going too deep into the DAG, and pruning is applied earlier when current depth + minimal possible depth exceeds the maximum.
+
+
 ## Project Structure
 
 - `src/core/`: E-graph implementation and expression types.
