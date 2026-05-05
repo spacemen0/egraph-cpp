@@ -8,6 +8,7 @@ style: |
   section {
     font-size: 28px;
   }
+math: mathjax
 ---
 
 # A Non-Destructive, Shape-Agnostic Optimizer for Linear Algebra
