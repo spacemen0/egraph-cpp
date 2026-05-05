@@ -21,7 +21,7 @@ TEST(Integration, OLSPruneConverges) {
     size_t total_pruned = 0;
     Rewriter rewriter(egraph, rules, 1000, true);
     CostStorage cost_storage(egraph);
-    Extractor extractor(egraph, cost_storage, false, 20);
+    Extractor extractor(egraph, cost_storage, true, 20);
     Pruner pruner(egraph, extractor);
     Id root_id = egraph.add_expression(Expression("(Inv(Tr(M) * M) * Tr(M)) * n"));
 
@@ -44,9 +44,6 @@ TEST(Integration, OLSPruneConverges) {
         nodes_after_iteration.push_back(egraph.num_nodes());
         std::cout << "Iteration " << (i + 1) << ": nodes after iteration=" << nodes_after_iteration.back()
                   << ", pruned=" << prune_result.nodes_pruned << ", time=" << duration.count() << "s" << std::endl;
-        
-        // Heavy work done OUTSIDE of the timing window
-        auto should_be_root_id = egraph.add_expression(Expression("Inv(Get(QR(M), 1)) * (Tr(Get(QR(M), 0)) * n)"));
     };
 
     pruner.rewrite_and_run({root_id}, rewriter, options, pre_iteration, post_iteration);

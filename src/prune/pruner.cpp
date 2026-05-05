@@ -8,6 +8,7 @@ Pruner::run(const std::vector<Id> &roots, const std::vector<SizeBindings> &bindi
     std::unordered_map<Id, std::unordered_set<const ENode *>> keep_choices;
 
     for (const auto &binding : bindings) {
+        extractor.reset();
         extractor.collect_selected_nodes_for_binding(roots, binding, max_results, keep_choices);
     };
     // Keep all root classes (if multiple roots were passed but only part of them were extractable)

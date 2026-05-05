@@ -10,9 +10,18 @@ namespace {
 constexpr size_t kExtractorProgressLogEvery = 1000000;
 }
 
-Extractor::Extractor(EGraph &egraph, CostStorage &cost_storage, bool enable_logging, size_t max_depth)
-    : egraph(egraph), cost_storage(cost_storage), enable_logging(enable_logging), max_depth(max_depth) {}
+Extractor::Extractor(
+    EGraph &egraph, CostStorage &cost_storage, bool enable_logging, size_t max_depth, size_t node_visit_limit)
+    : egraph(egraph), cost_storage(cost_storage), enable_logging(enable_logging), max_depth(max_depth),
+      node_visit_limit(node_visit_limit) {}
 
+void Extractor::reset() const {
+    tree_cost.clear();
+    minimal_possible_costs.clear();
+    minimal_possible_sizes.clear();
+    greedy_choices.clear();
+    nodes_visited = 0;
+}
 std::vector<Extractor::NumericSearchResult>
 Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const SizeBindings *size_bindings) const {
     if (max_results == 0) {
@@ -355,6 +364,13 @@ void Extractor::search_top_numeric_dags(
         return;
     }
 
+    if (nodes_visited >= node_visit_limit) {
+        if (enable_logging) {
+            std::cout << "[Extractor] Node visit limit reached, stopping search." << std::endl;
+        }
+        return;
+    }
+
     // Heuristic: Select the pending e-class with the highest lower bound on cost, because we want to make decisions on
     // the most expensive parts of the DAG first.
     auto it = std::max_element(pending.begin(), pending.end(), [&](Id a, Id b) {
@@ -462,6 +478,13 @@ void Extractor::search_symbolic_dags(
 
     if (pending.empty()) {
         record_symbolic_result(root, current_choices, current_cost, results);
+        return;
+    }
+
+    if (nodes_visited >= node_visit_limit) {
+        if (enable_logging) {
+            std::cout << "[Extractor] Node visit limit reached, stopping search." << std::endl;
+        }
         return;
     }
 
