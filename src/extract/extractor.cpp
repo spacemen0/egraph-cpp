@@ -10,8 +10,8 @@ namespace {
 constexpr size_t kExtractorProgressLogEvery = 1000000;
 }
 
-Extractor::Extractor(EGraph &egraph, CostStorage &cost_storage, bool enable_logging)
-    : egraph(egraph), cost_storage(cost_storage), enable_logging(enable_logging) {}
+Extractor::Extractor(EGraph &egraph, CostStorage &cost_storage, bool enable_logging, size_t max_depth)
+    : egraph(egraph), cost_storage(cost_storage), enable_logging(enable_logging), max_depth(max_depth) {}
 
 std::vector<Extractor::NumericSearchResult>
 Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const SizeBindings *size_bindings) const {

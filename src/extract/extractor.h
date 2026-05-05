@@ -14,7 +14,7 @@ struct ExtractionResult {
 
 class Extractor {
   public:
-    explicit Extractor(EGraph &egraph, CostStorage &cost_storage, bool enable_logging = false);
+    explicit Extractor(EGraph &egraph, CostStorage &cost_storage, bool enable_logging = false, size_t max_depth = 40);
 
     ExtractionResult extract(Id class_id, const SizeBindings &size_bindings = {}) const;
     std::vector<ExtractionResult>
@@ -42,7 +42,7 @@ class Extractor {
     CostStorage &cost_storage;
     bool enable_logging = false;
     mutable size_t nodes_visited = 0;
-    size_t max_depth = 40;
+    size_t max_depth = 20;
 
     mutable std::unordered_map<Id, double> tree_cost;              // Tree cost (Heuristic)
     mutable std::unordered_map<Id, double> minimal_possible_costs; // Max-path cost (Safe LB)

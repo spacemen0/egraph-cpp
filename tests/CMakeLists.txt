@@ -13,6 +13,7 @@ add_executable(unit_tests
     integration/integration_test.cpp
     integration/ols_test.cpp
     integration/gls_test.cpp
+    integration/pruner_test.cpp
 )
 
 target_include_directories(unit_tests PRIVATE
