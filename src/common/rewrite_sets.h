@@ -289,6 +289,7 @@ inline std::vector<Rewrite> get_rewrite_set_by_name(const std::string &name) {
     throw std::invalid_argument("Unknown rewrite set name: " + name);
 }
 
+/// Available sets: "complete", "factorization", "algebraic", "inverse", "orthogonality", "zero-negation", "solver"
 inline std::vector<Rewrite> build_rewrite_sets(std::initializer_list<std::string_view> set_names) {
     std::vector<Rewrite> rules;
     for (std::string_view set_name : set_names) {

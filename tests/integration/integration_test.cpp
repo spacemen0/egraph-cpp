@@ -177,9 +177,20 @@ TEST(Integration, SimpleDiagram) {
     pt.add_or_update_property_entry("D", {.shape = std::make_pair(3, 3)});
     EGraph egraph(pt);
     auto id = egraph.add_expression(Expression("(A + B) * (C + D)"));
-
-    std::vector<Rewrite> rules = {mul_assoc, commute_add, mul_distribute_left, mul_distribute_right};
+    egraph.to_img("initial_diagram", "svg");
+    std::vector<Rewrite> rules = {commute_add};
     Rewriter rewriter(egraph, rules, 500, true);
-    rewriter.apply_rewrites(10);
+    rewriter.apply_rewrites(1);
     egraph.to_img("simple_diagram", "svg");
+    Rewriter rewriter2(egraph, build_rewrite_sets({"algebraic"}), 500, true);
+    rewriter2.apply_rewrites(3);
+    egraph.to_img("simple_diagram_after_algebraic", "svg");
+}
+
+TEST(Integration, OLSDiagram) {
+    EGraph egraph(get_property_table());
+    egraph.add_expression(Expression("Inv(Tr(X) * X) * Tr(X) * y"));
+    Rewriter rewriter(egraph, build_rewrite_sets({"algebraic"}), 1000, true);
+    rewriter.apply_rewrites(1);
+    egraph.to_img("ols", "svg");
 }

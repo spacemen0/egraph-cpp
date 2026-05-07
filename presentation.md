@@ -12,7 +12,8 @@ math: mathjax
 ---
 
 # A Non-Destructive, Shape-Agnostic Optimizer for Linear Algebra
-### A Successor to the Linnea Framework
+
+
 
 **By**: Chang Guo
 **Main Advisor**: Paolo Bientinesi
@@ -20,25 +21,31 @@ math: mathjax
 
 ---
 
-## The Dilemma of Linear Algebra Languages and Tools
+## The Landscape of Computational Linear Algebra
 
-#### The Performance vs. Productivity Gap
+* **The Gold Standard:** BLAS and LAPACK becomes the standard low-level computation kernels for their near-optimal performance. 
+  - Written in Fortran
+  - Language bindings exist
+  - Constructing call chains is tedious and error-prone.
 
-* **The Gold Standard:** BLAS and LAPACK provide near-optimal efficiency for various architectures, but direct implementation in **C or Fortran** is tedious, time-consuming, and error-prone.
-* **The Shift to Abstraction:** High-level tools like **Matlab, Julia, Eigen, and Armadillo** have gained popularity by allowing mathematical expressions to be written naturally.
-* **The Cost of Abstraction:** While these abstractions boost human productivity, the internal mapping to low-level building blocks often results in **suboptimal execution code**.
+* **The Abstraction:** High-level tools like **Matlab, Julia, Eigen, and Armadillo** have gained popularity by allowing mathematical expressions to be written naturally.
 
----
-
-## The Predecessor: Linnea
-
-**Linnea (2019)** was a tool which utilized property-based kernel mapping and cost-driven best-first-search to find an optimal "execution plan."
-- **The Limitation:** It requires **fixed matrix sizes** at the start of the search.
-- **The Result:** If your data size is dynamic, you either re-run the heavy optimizer at runtime or settle for sub-optimal code.
+* **The Cost of Abstraction:** The internal mapping algorithm often results in suboptimal execution code.
+  - One reason being that they rarely exploit the **properties** of the matrices (e.g., symmetry, positive definiteness).
 
 ---
 
-## Our Approach: The E-Graph Successor
+## The Problem Defined and the Approach
+
+**Given:** A mathematical expression (e.g., `Inv(Tr(X) * X) * Tr(X) * y`), and the properties of the matrices involved.
+
+**Goal:** Generate efficient BLAS/LAPACK call sequences.
+
+**Solution:** We build an E-Graph to store the vast space of mathematically valid variations of the input expression. We map the symbolic mathematical operators to BLAS/LAPACK calls. When the actual matrix sizes are known, we can extract the best-performing plan based on the cost model.
+
+---
+
+<!-- ## The Approach: The E-Graph Successor
 
 Instead of searching for *one* best plan, we store **every possible plan** in an **E-Graph**.
 
@@ -47,28 +54,21 @@ Instead of searching for *one* best plan, we store **every possible plan** in an
 3. **Symbolic Costing:** We cost every path using monomials (e.g., $2N^2M$).
 4. **Instant Extraction:** When sizes are finally known, we "extract" the best plan in milliseconds.
 
----
+--- -->
 
-## What is an E-Graph?
+## E-Graph 101
 
-An **Equivalence Graph (E-Graph)** is a data structure for compactly representing many ways to write the same expression.
+An **Equivalence Graph (E-Graph)** is a data structure to compactly represent many ways to write the same expression.
 
-- **E-Nodes:** Functional operators or atoms.
+- **E-Nodes:** Represent one way to write the expression.
 - **E-Classes:** Sets of E-Nodes that are mathematically equivalent.
 
-**Non-Destructive:** We never replace $A(BC)$ with $(AB)C$. We store **both** in the same e-class. The graph only grows; it never loses a potentially better path.
+**Non-Destructive:** We never replace $A(BC)$ with $(AB)C$. We store **both** in the same e-class. The graph only grows; it never loses a potentially better path. Unless we manually prune it.
 
-## Workflow: Then vs. Now
+---
 
-### Linnea (Static)
-`Input Sizes` $\rightarrow$ `Search (Slow)` $\rightarrow$ `Fixed Code`
-
-### This Project (Late-Binding)
-`Math Expression` $\rightarrow$ `Search/Saturation (Once)` $\rightarrow$ **The E-Graph**
-
-*Then, at runtime:*
-`Real Sizes` $\rightarrow$ `Extraction (Fast)` $\rightarrow$ `Execution`
-
+## Example of E-Graphs:
+![alt text](image.png)
 ---
 
 ## Case Study: Ordinary Least Squares (OLS)
