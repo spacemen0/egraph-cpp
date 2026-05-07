@@ -2,6 +2,7 @@
 #include "basic_types.h"
 #include <algorithm>
 #include <cassert>
+#include <cstddef>
 #include <iostream>
 #include <limits>
 #include <unordered_set>
@@ -154,7 +155,7 @@ void Extractor::initial_tree_search_pass(const SizeBindings *size_bindings) cons
 
                 // Lower bounds for dag cost and size
                 double max_child_cost = 0;
-                double max_child_size = 0;
+                size_t max_child_size = 0;
                 bool children_incomplete_for_lb = false;
 
                 // Tree cost
@@ -183,7 +184,7 @@ void Extractor::initial_tree_search_pass(const SizeBindings *size_bindings) cons
 
                 if (!children_incomplete_for_lb) {
                     double node_lb_cost = local + max_child_cost;
-                    double node_lb_size = 1.0 + max_child_size;
+                    size_t node_lb_size = 1 + max_child_size;
                     if (node_lb_cost < minimal_possible_costs[class_id]) {
                         minimal_possible_costs[class_id] = node_lb_cost;
                         minimal_possible_sizes[class_id] = node_lb_size;
@@ -289,10 +290,10 @@ void Extractor::record_numeric_result(
 }
 
 bool Extractor::should_prune_numeric_search(
-    size_t chosen_count, double current_cost, double pending_lb_cost, double pending_lb_size, size_t max_results,
+    size_t chosen_count, double current_cost, double pending_lb_cost, size_t pending_lb_size, size_t max_results,
     size_t best_results_count, double worst_selected_cost) const {
 
-    if (chosen_count + pending_lb_size > max_depth) {
+    if (std::max(chosen_count, pending_lb_size) > max_depth) {
         return true;
     }
 
@@ -317,7 +318,7 @@ Extractor::evaluate_node_candidates(Id eclass_id, const SizeBindings *size_bindi
             double local = std::get<double>(cost);
             double tree_est = local;
             double max_child_cost = 0;
-            double max_child_size = 0;
+            size_t max_child_size = 0;
             bool any_child_infinite = false;
 
             for (Id child : node->get_children()) {
@@ -335,7 +336,7 @@ Extractor::evaluate_node_candidates(Id eclass_id, const SizeBindings *size_bindi
             }
 
             if (!any_child_infinite) {
-                candidates.push_back({node, local, tree_est, local + max_child_cost, 1.0 + max_child_size});
+                candidates.push_back({node, local, tree_est, local + max_child_cost, 1 + max_child_size});
             }
         }
     }
@@ -387,7 +388,7 @@ void Extractor::search_top_numeric_dags(
 
     // Pre-calculate lower bounds for the remaining e-classes to pass down to children
     double remaining_work_cost_lower_bound = 0;
-    double remaining_work_size_lower_bound = 0;
+    size_t remaining_work_size_lower_bound = 0;
     for (Id p : pending) {
         remaining_work_cost_lower_bound = std::max(remaining_work_cost_lower_bound, minimal_possible_costs.at(p));
         remaining_work_size_lower_bound = std::max(remaining_work_size_lower_bound, minimal_possible_sizes.at(p));
@@ -401,17 +402,16 @@ void Extractor::search_top_numeric_dags(
         // Calculate combined lower bounds for the entire DAG (use max instead of sum because lower bounds are not
         // additive)
         double combined_lb_cost = std::max(remaining_work_cost_lower_bound, candidate.minimal_possible_cost);
-        double combined_lb_size = std::max(remaining_work_size_lower_bound, candidate.minimal_possible_size);
+        size_t combined_lb_size = std::max(remaining_work_size_lower_bound, candidate.minimal_possible_size);
 
         if (creates_cycle(current, candidate.node, current_choices, visited_buffer, stack_buffer)) {
             continue;
         }
-        // Important!
-        if (best_results.size() == max_results && current_cost + combined_lb_cost >= worst_selected_cost) {
+        if (best_results.size() == max_results && std::max(current_cost, combined_lb_cost) >= worst_selected_cost) {
             continue;
         }
         // Early depth pruning
-        if (chosen_count + combined_lb_size > max_depth) {
+        if (std::max(chosen_count, combined_lb_size) > max_depth) {
             continue;
         }
 
@@ -420,7 +420,7 @@ void Extractor::search_top_numeric_dags(
         // Add children to pending list if they haven't been chosen yet
         int added_children_count = 0;
         double next_step_lb_cost = remaining_work_cost_lower_bound;
-        double next_step_lb_size = remaining_work_size_lower_bound;
+        size_t next_step_lb_size = remaining_work_size_lower_bound;
         for (Id child : candidate.node->get_children()) {
             Id child_root = egraph.find_class_id(child);
 

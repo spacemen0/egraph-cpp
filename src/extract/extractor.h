@@ -50,7 +50,7 @@ class Extractor {
 
     mutable std::unordered_map<Id, double> tree_cost;              // Tree cost (Heuristic)
     mutable std::unordered_map<Id, double> minimal_possible_costs; // Max-path cost (Safe LB)
-    mutable std::unordered_map<Id, double> minimal_possible_sizes; // Max-path size (Safe LB)
+    mutable std::unordered_map<Id, size_t> minimal_possible_sizes; // Max-path size (Safe LB)
     mutable std::unordered_map<Id, const ENode *> greedy_choices;
 
     void initial_tree_search_pass(const SizeBindings *size_bindings) const;
@@ -76,7 +76,7 @@ class Extractor {
         std::vector<NumericSearchResult> &best_results, double &worst_selected_cost) const;
 
     bool should_prune_numeric_search(
-        size_t chosen_count, double current_cost, double pending_lb_cost, double pending_lb_size, size_t max_results,
+        size_t chosen_count, double current_cost, double pending_lb_cost, size_t pending_lb_size, size_t max_results,
         size_t best_results_count, double worst_selected_cost) const;
 
     struct Candidate {
@@ -84,7 +84,7 @@ class Extractor {
         double local_cost;
         double tree_cost_heuristic;
         double minimal_possible_cost;
-        double minimal_possible_size;
+        size_t minimal_possible_size;
     };
 
     std::vector<Candidate> evaluate_node_candidates(Id eclass_id, const SizeBindings *size_bindings) const;
