@@ -44,8 +44,15 @@ static const auto qr_leaf =
     return false;
 });
 
-static const auto lu_invert =
-    make_rewrite("lu-invert", "Inv(?a)", "Inv(Get(LU(?a), 1)) * Inv(Get(LU(?a), 0))", true, is_not_factorized);
+static const auto lu_invert = make_rewrite(
+    "lu-invert", "Inv(?a)", "Inv(Get(LU(?a), 1)) * Inv(Get(LU(?a), 0))", true,
+    [](const EGraph &g, const Substitution &s) {
+    if (!is_not_factorized(g, s))
+        return false;
+    if (check_is_square(s, g, "a"))
+        return true;
+    return false;
+});
 
 static const auto lu_leaf =
     make_rewrite("lu-leaf", "?a", "Get(LU(?a), 0) * Get(LU(?a), 1)", true, leaf_and_not_factorized_and_square);
@@ -280,7 +287,7 @@ inline std::vector<Rewrite> get_rewrite_set_by_name(const std::string &name) {
     if (name == "orthogonality") {
         return orthogonality_set;
     }
-    if (name == "zero-negation") {
+    if (name == "zero_negation") {
         return zero_negation_set;
     }
     if (name == "solver") {
@@ -289,7 +296,7 @@ inline std::vector<Rewrite> get_rewrite_set_by_name(const std::string &name) {
     throw std::invalid_argument("Unknown rewrite set name: " + name);
 }
 
-/// Available sets: "complete", "factorization", "algebraic", "inverse", "orthogonality", "zero-negation", "solver"
+/// Available sets: "complete", "factorization", "algebraic", "inverse", "orthogonality", "zero_negation", "solver"
 inline std::vector<Rewrite> build_rewrite_sets(std::initializer_list<std::string_view> set_names) {
     std::vector<Rewrite> rules;
     for (std::string_view set_name : set_names) {

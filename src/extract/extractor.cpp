@@ -296,7 +296,7 @@ bool Extractor::should_prune_numeric_search(
         return true;
     }
 
-    if (best_results_count == max_results && current_cost + pending_lb_cost >= worst_selected_cost) {
+    if (best_results_count == max_results && std::max(current_cost, pending_lb_cost) >= worst_selected_cost) {
         return true;
     }
 
@@ -403,16 +403,15 @@ void Extractor::search_top_numeric_dags(
         double combined_lb_cost = std::max(remaining_work_cost_lower_bound, candidate.minimal_possible_cost);
         double combined_lb_size = std::max(remaining_work_size_lower_bound, candidate.minimal_possible_size);
 
-        // Here we use sum becase no sharing between chosen nodes and pending nodes (otherwise there will be cycles)
+        if (creates_cycle(current, candidate.node, current_choices, visited_buffer, stack_buffer)) {
+            continue;
+        }
+        // Important!
         if (best_results.size() == max_results && current_cost + combined_lb_cost >= worst_selected_cost) {
             continue;
         }
         // Early depth pruning
         if (chosen_count + combined_lb_size > max_depth) {
-            continue;
-        }
-
-        if (creates_cycle(current, candidate.node, current_choices, visited_buffer, stack_buffer)) {
             continue;
         }
 
@@ -424,6 +423,8 @@ void Extractor::search_top_numeric_dags(
         double next_step_lb_size = remaining_work_size_lower_bound;
         for (Id child : candidate.node->get_children()) {
             Id child_root = egraph.find_class_id(child);
+
+            // This accounts for Common Subexpression Elimination
             if (current_choices[child_root] == nullptr && !pending_set[child_root]) {
                 pending.push_back(child_root);
                 pending_set[child_root] = 1;
