@@ -105,7 +105,12 @@ void to_img(const EGraph &egraph, const std::string &filename, const std::string
     std::string dot_filename = filename + ".dot";
     to_dot_file(egraph, dot_filename);
     std::string command = "dot -T" + format + " " + dot_filename + " -o " + filename + "." + format;
-    int result = system((command + " > /dev/null 2>&1").c_str());
+#ifdef _WIN32
+    std::string null_device = "nul";
+#else
+    std::string null_device = "/dev/null";
+#endif
+    int result = system((command + " > " + null_device + " 2>&1").c_str());
     if (result != 0) {
         std::cerr << "Error: Failed to execute command: " << command << std::endl;
     }
