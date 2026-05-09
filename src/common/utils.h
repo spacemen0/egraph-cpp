@@ -14,15 +14,15 @@
 
 inline Op parse_op(std::string_view s) {
     using enum Op;
-    if (s == "Add")
+    if (s == "Add" || s == "+")
         return Add;
-    if (s == "Mul")
+    if (s == "Mul" || s == "*")
         return Mul;
     if (s == "Tr")
         return Tr;
     if (s == "Inv")
         return Inv;
-    if (s == "Minus")
+    if (s == "Minus" || s == "-")
         return Minus;
     if (s == "QR")
         return QR;
@@ -67,15 +67,15 @@ inline std::string atom_to_string(const Atom &atom) {
         switch (std::get<Op>(atom)) {
             using enum Op;
         case Add:
-            return "Add";
+            return "+";
         case Mul:
-            return "Mul";
+            return "*";
         case Tr:
             return "Tr";
         case Inv:
             return "Inv";
         case Minus:
-            return "Minus";
+            return "-";
         case QR:
             return "QR";
         case LU:

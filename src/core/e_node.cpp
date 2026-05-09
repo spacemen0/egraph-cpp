@@ -305,15 +305,15 @@ std::string ENode::to_string() const {
         switch (op) {
             using enum Op;
         case Add:
-            return "Add";
+            return "+";
         case Mul:
-            return "Mul";
+            return "*";
         case Tr:
             return "Tr";
         case Inv:
             return "Inv";
         case Minus:
-            return "Minus";
+            return "-";
         case QR:
             return "QR";
         case LU:

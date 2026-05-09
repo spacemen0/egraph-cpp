@@ -91,11 +91,11 @@ static AnalysisData matrix_property_data(MatrixProperty prop) {
 }
 
 static AnalysisData analyze_add(const EGraph &egraph, const std::vector<Id> &children) {
-    check_arity(children, 2, "Add");
+    check_arity(children, 2, "+");
     if (auto data1 = get_matrix_data(egraph, children.at(0))) {
         if (auto data2 = get_matrix_data(egraph, children.at(1))) {
             if (data1->shape != data2->shape)
-                throw ShapeMismatchError("Add size mismatch");
+                throw ShapeMismatchError("+ size mismatch");
 
             MatrixProperty prop;
             prop.shape = data1->shape;
@@ -107,15 +107,15 @@ static AnalysisData analyze_add(const EGraph &egraph, const std::vector<Id> &chi
             return matrix_property_data(prop);
         }
     }
-    throw AnalysisError("Add expects Matrix inputs");
+    throw AnalysisError("+ expects Matrix inputs");
 }
 
 static AnalysisData analyze_mul(const EGraph &egraph, const std::vector<Id> &children) {
-    check_arity(children, 2, "Mul");
+    check_arity(children, 2, "*");
     if (auto data1 = get_matrix_data(egraph, children.at(0))) {
         if (auto data2 = get_matrix_data(egraph, children.at(1))) {
             if (data1->shape.second != data2->shape.first) {
-                throw ShapeMismatchError("Mul operation with incompatible sizes");
+                throw ShapeMismatchError("* operation with incompatible sizes");
             }
 
             MatrixProperty prop;
@@ -131,7 +131,7 @@ static AnalysisData analyze_mul(const EGraph &egraph, const std::vector<Id> &chi
             return matrix_property_data(prop);
         }
     }
-    throw AnalysisError("Mul expects Matrix inputs");
+    throw AnalysisError("* expects Matrix inputs");
 }
 
 static AnalysisData analyze_transpose(const EGraph &egraph, const std::vector<Id> &children) {
@@ -165,11 +165,11 @@ static AnalysisData analyze_invert(const EGraph &egraph, const std::vector<Id> &
 }
 
 static AnalysisData analyze_minus(const EGraph &egraph, const std::vector<Id> &children) {
-    check_arity(children, 2, "Minus");
+    check_arity(children, 2, "-");
     if (auto data1 = get_matrix_data(egraph, children.at(0))) {
         if (auto data2 = get_matrix_data(egraph, children.at(1))) {
             if (data1->shape != data2->shape)
-                throw ShapeMismatchError("Minus size mismatch");
+                throw ShapeMismatchError("- size mismatch");
 
             MatrixProperty prop;
             prop.shape = data1->shape;
@@ -181,7 +181,7 @@ static AnalysisData analyze_minus(const EGraph &egraph, const std::vector<Id> &c
             return matrix_property_data(prop);
         }
     }
-    throw AnalysisError("Minus expects Matrix inputs");
+    throw AnalysisError("- expects Matrix inputs");
 }
 
 static AnalysisData analyze_qr(const EGraph &egraph, const std::vector<Id> &children) {
