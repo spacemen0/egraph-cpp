@@ -194,3 +194,14 @@ TEST(Integration, OLSDiagram) {
     rewriter.apply_rewrites(1);
     egraph.to_img("ols", "svg");
 }
+TEST(Integration, VerySimpleDiagram) {
+    PropertyTable pt;
+    pt.add_or_update_property_entry("a", {.shape = std::make_pair(3, 3)});
+    pt.add_or_update_property_entry("b", {.shape = std::make_pair(3, 3)});
+    pt.add_or_update_property_entry("c", {.shape = std::make_pair(3, 3)});
+    pt.add_or_update_property_entry("d", {.shape = std::make_pair(3, 3)});
+    EGraph egraph(pt);
+    egraph.add_expression(Expression("a * b + c"));
+    egraph.add_expression(Expression("a * b * d"));
+    egraph.to_img("very_simple_diagram", "svg");
+}

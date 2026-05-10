@@ -1,8 +1,10 @@
 #include "e_graph.h"
+#include "expression.h"
 #include "extractor.h"
 #include "rewrite_sets.h"
 #include "rewriter.h"
 #include "test_helpers.h"
+#include <chrono>
 #include <gtest/gtest.h>
 #include <iostream>
 
@@ -33,14 +35,46 @@ TEST(Integration, OLSNumeric) {
 }
 
 TEST(Integration, OLSSymbolic) {
+    auto start_total = std::chrono::high_resolution_clock::now();
+
     EGraph egraph(get_property_table());
-    auto id = egraph.add_expression(Expression("Inv(Tr(M) * M) * Tr(M) * n"));
+    Expression root_expr("Inv(Tr(M) * M) * Tr(M) * n");
+
+    auto start_add = std::chrono::high_resolution_clock::now();
+    auto id = egraph.add_expression(root_expr);
+    auto end_add = std::chrono::high_resolution_clock::now();
+
+    auto start_rules = std::chrono::high_resolution_clock::now();
     std::vector<Rewrite> rules = build_rewrite_sets({"complete"});
-    Rewriter rewriter(egraph, rules, 500, true);
+    auto end_rules = std::chrono::high_resolution_clock::now();
+
+    Rewriter rewriter(egraph, rules, 1000, true);
+    auto start_rewrite = std::chrono::high_resolution_clock::now();
     rewriter.apply_rewrites(10);
+    auto end_rewrite = std::chrono::high_resolution_clock::now();
+
     CostStorage cost_storage(egraph);
     Extractor extractor(egraph, cost_storage, true, 20);
-    auto results = extractor.extract(id, 5, {{"A", 300}, {"B", 10}});
+
+    auto start_extract = std::chrono::high_resolution_clock::now();
+    auto results = extractor.extract(id, 5, {{"A", 30}, {"B", 10}});
+    auto end_extract = std::chrono::high_resolution_clock::now();
+
+    auto end_total = std::chrono::high_resolution_clock::now();
+
+    std::cout << "\n--- OLSSymbolic Runtime Statistics ---" << std::endl;
+    std::cout << "Add Expression: " << std::chrono::duration<double, std::milli>(end_add - start_add).count() << " ms"
+              << std::endl;
+    std::cout << "Build Rules:    " << std::chrono::duration<double, std::milli>(end_rules - start_rules).count()
+              << " ms" << std::endl;
+    std::cout << "Apply Rewrites: " << std::chrono::duration<double, std::milli>(end_rewrite - start_rewrite).count()
+              << " ms" << std::endl;
+    std::cout << "Extraction:     " << std::chrono::duration<double, std::milli>(end_extract - start_extract).count()
+              << " ms" << std::endl;
+    std::cout << "Total Time:     " << std::chrono::duration<double, std::milli>(end_total - start_total).count()
+              << " ms" << std::endl;
+    std::cout << "--------------------------------------\n" << std::endl;
+
     for (const auto &candidate : results) {
         std::cout << "Candidate expression: " << candidate.expr.to_string(true) << std::endl;
         std::cout << "Cost: " << candidate.cost << std::endl;

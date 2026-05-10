@@ -56,10 +56,10 @@ std::string render(const Expression &expr, bool readable, int parent_precedence)
 
     if (readable) {
         if (op == Op::Tr) {
-            return "(" + render(expr.children[0], readable) + ")ᵀ";
+            return render(expr.children[0], readable) + "ᵀ";
         }
         if (op == Op::Inv) {
-            return "(" + render(expr.children[0], readable) + ")⁻¹";
+            return render(expr.children[0], readable) + "⁻¹";
         }
     }
 
@@ -101,21 +101,28 @@ std::string render(const Expression &expr, bool readable, int parent_precedence)
                 Op tuple_op = std::get<Op>(tuple_expr.atom);
                 std::string factor_name;
                 if (tuple_op == Op::QR) {
-                    if (index == 0) factor_name = "Q";
-                    else if (index == 1) factor_name = "R";
+                    if (index == 0)
+                        factor_name = "Q";
+                    else if (index == 1)
+                        factor_name = "R";
                 } else if (tuple_op == Op::LU) {
-                    if (index == 0) factor_name = "L";
-                    else if (index == 1) factor_name = "U";
-                    else if (index == 2) factor_name = "P";
+                    if (index == 0)
+                        factor_name = "L";
+                    else if (index == 1)
+                        factor_name = "U";
+                    else if (index == 2)
+                        factor_name = "P";
                 } else if (tuple_op == Op::LLt) {
-                    if (index == 0) factor_name = "LLt";
+                    if (index == 0)
+                        factor_name = "LLt";
                 }
-                
+
                 if (!factor_name.empty()) {
                     std::stringstream ss;
                     ss << factor_name << "(";
                     for (size_t i = 0; i < tuple_expr.children.size(); ++i) {
-                        if (i > 0) ss << ", ";
+                        if (i > 0)
+                            ss << ", ";
                         ss << render(tuple_expr.children[i], readable);
                     }
                     ss << ")";
@@ -165,9 +172,7 @@ Expression::Expression(const ENode &node, const EGraph &egraph) : atom(node.get_
     }
 }
 
-std::string Expression::to_string(bool readable) const {
-    return render(*this, readable);
-}
+std::string Expression::to_string(bool readable) const { return render(*this, readable); }
 
 bool Expression::operator==(const Expression &other) const {
     if (atom != other.atom)
