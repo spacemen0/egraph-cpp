@@ -32,6 +32,7 @@ TEST(Integration, OLSNumeric) {
         std::cout << "Candidate expression: " << candidate.expr.to_string(true) << std::endl;
         std::cout << "Cost: " << candidate.cost << std::endl;
     }
+    ASSERT_TRUE(result[0].expr.to_string(true) == "Sol(R(X), Q(X)ᵀ * y)");
 }
 
 TEST(Integration, OLSSymbolic) {
@@ -79,4 +80,5 @@ TEST(Integration, OLSSymbolic) {
         std::cout << "Candidate expression: " << candidate.expr.to_string(true) << std::endl;
         std::cout << "Cost: " << candidate.cost << std::endl;
     }
+    ASSERT_TRUE(results[0].expr.to_string(true) == "Sol(R(M), Q(M)ᵀ * n)");
 }

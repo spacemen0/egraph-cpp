@@ -124,7 +124,7 @@ TEST(Expression, ToStringTransposeInverseReadable) {
     EXPECT_EQ(inv.to_string(), "Inv(A)");
     EXPECT_EQ(nested.to_string(), "Tr(Inv(A))");
 
-    EXPECT_EQ(tr.to_string(true), "(A)ᵀ");
-    EXPECT_EQ(inv.to_string(true), "(A)⁻¹");
-    EXPECT_EQ(nested.to_string(true), "((A)⁻¹)ᵀ");
+    EXPECT_EQ(tr.to_string(true), "Aᵀ");
+    EXPECT_EQ(inv.to_string(true), "A⁻¹");
+    EXPECT_EQ(nested.to_string(true), "A⁻¹ᵀ");
 }

@@ -5,6 +5,7 @@
 #include "rewrite_sets.h"
 #include "rewriter.h"
 #include "test_helpers.h"
+#include <algorithm>
 #include <chrono>
 #include <gtest/gtest.h>
 #include <iostream>
@@ -19,7 +20,7 @@ TEST(Integration, OLSPruneConverges) {
     std::vector<size_t> nodes_after_iteration;
 
     size_t total_pruned = 0;
-    Rewriter rewriter(egraph, rules, 1000, true);
+    Rewriter rewriter(egraph, rules, 500, true);
     CostStorage cost_storage(egraph);
     Extractor extractor(egraph, cost_storage, true, 20);
     Pruner pruner(egraph, extractor);
@@ -53,4 +54,7 @@ TEST(Integration, OLSPruneConverges) {
         std::cout << "Candidate expression: " << candidate.expr.to_string(true) << std::endl;
         std::cout << "Cost: " << candidate.cost << std::endl;
     }
+    ASSERT_TRUE(std::any_of(result.begin(), result.end(), [](const auto &c) {
+        return c.expr.to_string(true) == "Sol(R(M), Q(M)ᵀ * n)";
+    }));
 }
