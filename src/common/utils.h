@@ -1,5 +1,6 @@
 #pragma once
 
+#include "basic_types.h"
 #include "errors.h"
 #include "parser.h"
 #include "rewriter.h"
@@ -38,6 +39,8 @@ inline Op parse_op(std::string_view s) {
         return Det;
     if (s == "Log")
         return Log;
+    if (s == "Scale")
+        return Scale;
     if (s == "SolR")
         return SolR;
     if (s == "Gemm")
@@ -98,6 +101,8 @@ inline std::string atom_to_string(const Atom &atom) {
             return "Sol";
         case Det:
             return "Det";
+        case Scale:
+            return "Scale";
         case Log:
             return "Log";
         case SolR:

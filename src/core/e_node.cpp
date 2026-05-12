@@ -1,4 +1,5 @@
 #include "e_node.h"
+#include "basic_types.h"
 #include "e_graph.h"
 #include "types.h"
 #include "utils.h"
@@ -283,6 +284,8 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
             }
             throw std::invalid_argument("Invalid or mixed shapes for SolR operation in ENode::compute_local_cost");
         }
+        case Scale:
+            return 0.0;
         case Det:
             return 5.0;
         case Log:
@@ -313,7 +316,8 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
                 return n * k * k;
             }
             if (!is_numeric(shapeA)) {
-                Monomial m = {{size_to_symbol(shapeA.first), size_to_symbol(shapeA.second), size_to_symbol(shapeA.second)}};
+                Monomial m = {
+                    {size_to_symbol(shapeA.first), size_to_symbol(shapeA.second), size_to_symbol(shapeA.second)}};
                 SymbolicCost sc;
                 sc[m] = 1.0;
                 return sc;
@@ -329,7 +333,8 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
                 return m * n * n;
             }
             if (!is_numeric(shapeA) && !is_numeric(shapeB)) {
-                Monomial m = {{size_to_symbol(shapeB.first), size_to_symbol(shapeB.second), size_to_symbol(shapeB.second)}};
+                Monomial m = {
+                    {size_to_symbol(shapeB.first), size_to_symbol(shapeB.second), size_to_symbol(shapeB.second)}};
                 SymbolicCost sc;
                 sc[m] = 1.0;
                 return sc;
@@ -343,7 +348,8 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
                 return (1.0 / 3.0) * n * n * n;
             }
             if (!is_numeric(shapeA)) {
-                Monomial m = {{size_to_symbol(shapeA.first), size_to_symbol(shapeA.first), size_to_symbol(shapeA.first)}};
+                Monomial m = {
+                    {size_to_symbol(shapeA.first), size_to_symbol(shapeA.first), size_to_symbol(shapeA.first)}};
                 SymbolicCost sc;
                 sc[m] = 1.0 / 3.0;
                 return sc;
