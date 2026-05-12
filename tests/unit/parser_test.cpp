@@ -77,3 +77,34 @@ TEST(ParserTest, ComplexMixed) {
     EXPECT_EQ(parsed.children_strings[0], "Inv(A + B)");
     EXPECT_EQ(parsed.children_strings[1], "Tr(C)");
 }
+
+TEST(ParserTest, BlasLapackKernels) {
+    auto gemm = parser::parse_expression("Gemm(1, 0, 0, 0, A, B, C)");
+    EXPECT_EQ(std::get<Op>(gemm.atom), Op::Gemm);
+    ASSERT_EQ(gemm.children_strings.size(), 7);
+    EXPECT_EQ(gemm.children_strings[4], "A");
+    EXPECT_EQ(gemm.children_strings[5], "B");
+    EXPECT_EQ(gemm.children_strings[6], "C");
+
+    auto potrf = parser::parse_expression("Potrf(0, A)");
+    EXPECT_EQ(std::get<Op>(potrf.atom), Op::Potrf);
+    ASSERT_EQ(potrf.children_strings.size(), 2);
+    EXPECT_EQ(potrf.children_strings[1], "A");
+
+    auto gemv = parser::parse_expression("Gemv(1, 0, 0, A, x, y)");
+    EXPECT_EQ(std::get<Op>(gemv.atom), Op::Gemv);
+    ASSERT_EQ(gemv.children_strings.size(), 6);
+    EXPECT_EQ(gemv.children_strings[3], "A");
+
+    auto syrk = parser::parse_expression("Syrk(1, 0, 0, 0, A, C)");
+    EXPECT_EQ(std::get<Op>(syrk.atom), Op::Syrk);
+    ASSERT_EQ(syrk.children_strings.size(), 6);
+    EXPECT_EQ(syrk.children_strings[4], "A");
+    EXPECT_EQ(syrk.children_strings[5], "C");
+
+    auto trsm = parser::parse_expression("Trsm(1, 0, 0, 0, 0, A, B)");
+    EXPECT_EQ(std::get<Op>(trsm.atom), Op::Trsm);
+    ASSERT_EQ(trsm.children_strings.size(), 7);
+    EXPECT_EQ(trsm.children_strings[5], "A");
+    EXPECT_EQ(trsm.children_strings[6], "B");
+}

@@ -359,6 +359,44 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
         return AnalysisData{};
     case SolR:
         return analyze_solve_right(egraph, children);
+    case Gemm: {
+        check_arity(children, 7, "Gemm");
+        if (auto dataC = get_matrix_data(egraph, children.at(6))) {
+            return matrix_property_data(*dataC);
+        }
+        throw AnalysisError("Gemm expects Matrix inputs");
+    }
+    case Syrk: {
+        check_arity(children, 6, "Syrk");
+        if (auto dataC = get_matrix_data(egraph, children.at(5))) {
+            return matrix_property_data(*dataC);
+        }
+        throw AnalysisError("Syrk expects Matrix inputs");
+    }
+    case Trsm: {
+        check_arity(children, 7, "Trsm");
+        if (auto dataB = get_matrix_data(egraph, children.at(6))) {
+            return matrix_property_data(*dataB);
+        }
+        throw AnalysisError("Trsm expects Matrix inputs");
+    }
+    case Potrf: {
+        check_arity(children, 2, "Potrf");
+        if (auto dataA = get_matrix_data(egraph, children.at(1))) {
+            MatrixProperty L;
+            L.shape = dataA->shape;
+            L.flags.is_lower_triangular = true; // Simplified, depends on uplo
+            return matrix_property_data(L);
+        }
+        throw AnalysisError("Potrf expects Matrix input");
+    }
+    case Gemv: {
+        check_arity(children, 6, "Gemv");
+        if (auto dataY = get_matrix_data(egraph, children.at(5))) {
+            return matrix_property_data(*dataY);
+        }
+        throw AnalysisError("Gemv expects Matrix inputs");
+    }
     default:
         throw AnalysisError("Unknown operation in analysis");
     }

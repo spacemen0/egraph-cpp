@@ -40,6 +40,16 @@ inline Op parse_op(std::string_view s) {
         return Log;
     if (s == "SolR")
         return SolR;
+    if (s == "Gemm")
+        return Gemm;
+    if (s == "Syrk")
+        return Syrk;
+    if (s == "Trsm")
+        return Trsm;
+    if (s == "Potrf")
+        return Potrf;
+    if (s == "Gemv")
+        return Gemv;
     throw InvalidOperationError("Unknown operation: " + std::string(s));
 }
 
@@ -92,6 +102,16 @@ inline std::string atom_to_string(const Atom &atom) {
             return "Log";
         case SolR:
             return "SolR";
+        case Gemm:
+            return "Gemm";
+        case Syrk:
+            return "Syrk";
+        case Trsm:
+            return "Trsm";
+        case Potrf:
+            return "Potrf";
+        case Gemv:
+            return "Gemv";
         }
         return "UnknownOp";
     } else if (std::holds_alternative<std::string>(atom)) {
