@@ -24,7 +24,7 @@ std::string to_dot(const EGraph &egraph) {
 
         int i = 0;
         for (const auto &node : egraph.get_class_nodes(class_id)) {
-            oss << "    node_" << class_id << "_" << i << " [label=\"" << node->to_string() << "\"];\n";
+            oss << "    node_" << class_id << "_" << i << " [label=\"" << node->to_string() << "\", fontsize=20];\n";
             i++;
         }
         oss << "  }\n";
