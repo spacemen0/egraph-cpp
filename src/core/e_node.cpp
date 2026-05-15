@@ -291,85 +291,22 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
         case Log:
             return 1.0;
         case Gemm: {
-            auto shapeA = get_one_shape(children.at(4)); // A
-            auto shapeB = get_one_shape(children.at(5)); // B
-            if (is_numeric(shapeA) && is_numeric(shapeB)) {
-                double m = std::get<int>(shapeA.first);
-                double k = std::get<int>(shapeA.second);
-                double n = std::get<int>(shapeB.second);
-                return 2.0 * m * n * k;
-            }
-            if (!is_numeric(shapeA) && !is_numeric(shapeB)) {
-                Monomial m = {
-                    {size_to_symbol(shapeA.first), size_to_symbol(shapeA.second), size_to_symbol(shapeB.second)}};
-                SymbolicCost sc;
-                sc[m] = 2.0;
-                return sc;
-            }
-            throw std::invalid_argument("Invalid or mixed shapes for Gemm");
+            return 1.0;
         }
         case Syrk: {
-            auto shapeA = get_one_shape(children.at(4)); // A
-            if (is_numeric(shapeA)) {
-                double n = std::get<int>(shapeA.first);
-                double k = std::get<int>(shapeA.second);
-                return n * k * k;
-            }
-            if (!is_numeric(shapeA)) {
-                Monomial m = {
-                    {size_to_symbol(shapeA.first), size_to_symbol(shapeA.second), size_to_symbol(shapeA.second)}};
-                SymbolicCost sc;
-                sc[m] = 1.0;
-                return sc;
-            }
-            throw std::invalid_argument("Invalid or mixed shapes for Syrk");
+            return 1.0;
         }
         case Trsm: {
-            auto shapeA = get_one_shape(children.at(5)); // A
-            auto shapeB = get_one_shape(children.at(6)); // B
-            if (is_numeric(shapeA) && is_numeric(shapeB)) {
-                double m = std::get<int>(shapeB.first);
-                double n = std::get<int>(shapeB.second);
-                return m * n * n;
-            }
-            if (!is_numeric(shapeA) && !is_numeric(shapeB)) {
-                Monomial m = {
-                    {size_to_symbol(shapeB.first), size_to_symbol(shapeB.second), size_to_symbol(shapeB.second)}};
-                SymbolicCost sc;
-                sc[m] = 1.0;
-                return sc;
-            }
-            throw std::invalid_argument("Invalid or mixed shapes for Trsm");
+            return 1.0;
         }
         case Potrf: {
-            auto shapeA = get_one_shape(children.at(1)); // A
-            if (is_numeric(shapeA)) {
-                double n = std::get<int>(shapeA.first);
-                return (1.0 / 3.0) * n * n * n;
-            }
-            if (!is_numeric(shapeA)) {
-                Monomial m = {
-                    {size_to_symbol(shapeA.first), size_to_symbol(shapeA.first), size_to_symbol(shapeA.first)}};
-                SymbolicCost sc;
-                sc[m] = 1.0 / 3.0;
-                return sc;
-            }
-            throw std::invalid_argument("Invalid or mixed shapes for Potrf");
+            return 1.0;
+        }
+        case Geqrf: {
+            return 1.0;
         }
         case Gemv: {
-            auto shapeA = get_one_shape(children.at(3)); // A
-            if (is_numeric(shapeA)) {
-                double m = std::get<int>(shapeA.first);
-                double n = std::get<int>(shapeA.second);
-                return 2.0 * m * n;
-            }
-            if (!is_numeric(shapeA)) {
-                Monomial m = {{size_to_symbol(shapeA.first), size_to_symbol(shapeA.second)}};
-                SymbolicCost sc;
-                sc[m] = 2.0;
-                return sc;
-            }
-            throw std::invalid_argument("Invalid or mixed shapes for Gemv");
+            return 1.0;
         }
         default:
             throw std::invalid_argument("Unknown Op in ENode::compute_local_cost");

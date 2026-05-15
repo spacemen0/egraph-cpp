@@ -380,6 +380,10 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
         check_arity(children, 1, "Potrf");
         throw AnalysisError("Potrf expects Matrix input");
     }
+    case Geqrf: {
+        check_arity(children, 1, "Geqrf");
+        throw AnalysisError("Geqrf expects Matrix input");
+    }
     case Gemv: {
         check_arity(children, 3, "Gemv");
         throw AnalysisError("Gemv expects Matrix inputs");

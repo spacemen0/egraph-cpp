@@ -202,6 +202,6 @@ TEST(Integration, VerySimpleDiagram) {
     pt.add_or_update_property_entry("d", {.shape = std::make_pair(3, 3)});
     EGraph egraph(pt);
     egraph.add_expression(Expression("a * b + c"));
-    egraph.add_expression(Expression("a * b * d"));
+    egraph.add_expression(Expression("a * b + d"));
     egraph.to_img("very_simple_diagram", "svg");
 }

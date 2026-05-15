@@ -399,19 +399,18 @@ void Extractor::search_top_numeric_dags(
     for (const Candidate &candidate : candidates) {
         double next_cost = current_cost + candidate.local_cost;
 
-        // Calculate combined lower bounds for the entire DAG (use max instead of sum because lower bounds are not
-        // additive)
-        double combined_lb_cost = std::max(remaining_work_cost_lower_bound, candidate.minimal_possible_cost);
-        size_t combined_lb_size = std::max(remaining_work_size_lower_bound, candidate.minimal_possible_size);
-
         if (creates_cycle(current, candidate.node, current_choices, visited_buffer, stack_buffer)) {
             continue;
         }
-        if (best_results.size() == max_results && std::max(current_cost, combined_lb_cost) >= worst_selected_cost) {
+
+        // Early cost pruning
+        if (best_results.size() == max_results &&
+            std::max({current_cost, remaining_work_cost_lower_bound, candidate.minimal_possible_cost}) >=
+                worst_selected_cost) {
             continue;
         }
         // Early depth pruning
-        if (std::max(chosen_count, combined_lb_size) > max_depth) {
+        if (std::max({chosen_count, remaining_work_size_lower_bound, candidate.minimal_possible_size}) > max_depth) {
             continue;
         }
 
