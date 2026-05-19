@@ -12,7 +12,8 @@ std::string to_dot(const EGraph &egraph) {
     std::ostringstream oss;
     oss << "digraph egraph {\n";
     oss << "  compound=true;\n";
-    oss << "  clusterrank=local;\n\n";
+    oss << "  clusterrank=local;\n";
+    oss << "  bgcolor=\"transparent\";\n\n";
     oss << " graph [ranksep = 1.0, nodesep = 0.5, fontsize = 10];\n\n";
 
     for (const auto class_id : egraph.get_all_class_ids()) {
