@@ -204,7 +204,7 @@ static const auto inverse_solve =
     return check_is_square(s, g, "a") && check_is_square(s, g, "b");
 });
 
-// TODO: We will add rewritten transpose_solve and related rules here
+static const auto solver_right = make_rewrite("solver_right", "?b * Inv(?a)", "Tr(Sol(Tr(?a), Tr(?b)))");
 
 static const std::vector<Rewrite> factorization_set = {qr_invert, lu_invert, llt_invert, qr_leaf, lu_leaf, llt_leaf};
 
@@ -232,8 +232,8 @@ static const std::vector<Rewrite> zero_negation_set = {
 };
 
 static const std::vector<Rewrite> solver_set = {
-    solver_left, solve_composition, solve_cancel_left, solve_cancel_right, solve_by_id, solve_identity, inverse_solve,
-    // TODO: We will add rewritten transpose_solve and related rules here
+    solver_left, solve_composition, solve_cancel_left, solve_cancel_right,
+    solve_by_id, solve_identity,    inverse_solve,     solver_right,
 };
 
 static std::vector<Rewrite> build_complete_rewrite_set() {
