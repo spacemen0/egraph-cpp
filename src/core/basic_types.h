@@ -16,7 +16,6 @@ enum class Op {
     LLt,   // output: [L] where A = LLt
     Get,   // [tuple, index]
     Sol,   // [A, B] solving AX = B, output X
-    SolR,  // [B, A] solving XA = B, output X
     Det,   // [A] computing det(A)
     Log,   //
     Scale, // [A, int] representing scalar * A

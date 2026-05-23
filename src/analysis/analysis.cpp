@@ -263,24 +263,6 @@ static AnalysisData analyze_solve(const EGraph &egraph, const std::vector<Id> &c
     throw AnalysisError("Sol expects Matrix inputs");
 }
 
-static AnalysisData analyze_solve_right(const EGraph &egraph, const std::vector<Id> &children) {
-    check_arity(children, 2, "SolR");
-    if (auto data1 = get_matrix_data(egraph, children.at(0))) {
-        if (auto data2 = get_matrix_data(egraph, children.at(1))) {
-            if (data1->shape.second != data2->shape.second) {
-                throw ShapeMismatchError("SolR operation with incompatible sizes");
-            }
-            if (!data2->is_square())
-                throw InvalidOperationError("SolR operation on non-square matrix");
-
-            MatrixProperty prop;
-            prop.shape = {data1->shape.first, data2->shape.second};
-            return matrix_property_data(prop);
-        }
-    }
-    throw AnalysisError("SolR expects Matrix inputs");
-}
-
 static AnalysisData analyze_lu(const EGraph &egraph, const std::vector<Id> &children) {
     check_arity(children, 1, "LU");
     if (auto data = get_matrix_data(egraph, children.at(0))) {
@@ -364,6 +346,25 @@ static AnalysisData analyze_syrk(const EGraph &egraph, const std::vector<Id> &ch
     throw AnalysisError("Syrk expects Matrix inputs");
 }
 
+static AnalysisData analyze_trsm(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 2, "Trsm");
+    if (auto dataA = get_matrix_data(egraph, children.at(0))) {
+        if (auto dataB = get_matrix_data(egraph, children.at(1))) {
+            if (!dataA->flags.is_lower_triangular && !dataA->flags.is_upper_triangular) {
+                throw InvalidOperationError("Trsm operation on non-triangular matrix A");
+            }
+            if (dataA->shape.second != dataB->shape.first) {
+                throw ShapeMismatchError("Trsm operation with incompatible sizes");
+            }
+
+            MatrixProperty prop;
+            prop.shape = std::make_pair(dataA->shape.first, dataB->shape.second);
+            return matrix_property_data(prop);
+        }
+    }
+    throw AnalysisError("Trsm expects Matrix inputs");
+}
+
 AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode &node, Op op) {
     const auto &children = node.get_children();
 
@@ -395,8 +396,6 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
         return AnalysisData{};
     case Scale:
         return matrix_property_data(*get_matrix_data(egraph, children.at(0)));
-    case SolR:
-        return analyze_solve_right(egraph, children);
     case Gemm: {
         check_arity(children, 3, "Gemm");
         return analyze_gemm(egraph, children);
@@ -405,11 +404,7 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
         return analyze_syrk(egraph, children);
     }
     case Trsm: {
-        check_arity(children, 2, "Trsm");
-        if (auto dataB = get_matrix_data(egraph, children.at(6))) {
-            return matrix_property_data(*dataB);
-        }
-        throw AnalysisError("Trsm expects Matrix inputs");
+        return analyze_trsm(egraph, children);
     }
     case Potrf: {
         check_arity(children, 1, "Potrf");

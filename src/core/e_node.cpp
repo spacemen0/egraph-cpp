@@ -100,9 +100,8 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
                 int rows = std::get<int>(shape.first);
                 int cols = std::get<int>(shape.second);
                 if (rows != cols) {
-                    throw std::invalid_argument(
-                        "Non-square matrix for Inv operation in "
-                        "ENode::compute_local_cost");
+                    throw std::invalid_argument("Non-square matrix for Inv operation in "
+                                                "ENode::compute_local_cost");
                 }
                 if (data &&
                     (data->flags.is_upper_triangular || data->flags.is_lower_triangular || data->flags.is_diagonal)) {
@@ -244,46 +243,6 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
             }
             throw std::invalid_argument("Invalid or mixed shapes for Sol operation in ENode::compute_local_cost");
         }
-
-        case SolR: {
-            auto shapeB = get_one_shape(children.at(0));
-            auto shapeA = get_one_shape(children.at(1));
-
-            bool is_triangular = false;
-            if (auto dataA = get_matrix_data(egraph, children.at(1))) {
-                is_triangular =
-                    dataA->flags.is_lower_triangular || dataA->flags.is_upper_triangular || dataA->flags.is_diagonal;
-            }
-
-            if (is_numeric(shapeB) && is_numeric(shapeA)) {
-                double m = std::get<int>(shapeB.first);
-                double n = std::get<int>(shapeA.first);
-
-                if (is_triangular) {
-                    return 1.0 * m * n * n;
-                }
-                // LU Factorization (2/3 n^3) + Forward/Back Substitution (2 m n^2)
-                return (2.0 / 3.0) * n * n * n + 2.0 * m * n * n;
-            }
-
-            if (!is_numeric(shapeB) && !is_numeric(shapeA)) {
-                std::string m = size_to_symbol(shapeB.first);
-                std::string n = size_to_symbol(shapeA.first);
-
-                Monomial n3 = {{n, n, n}};
-                Monomial mn2 = {{m, n, n}};
-
-                SymbolicCost sc;
-                if (is_triangular) {
-                    sc[mn2] = 1.0;
-                } else {
-                    sc[n3] = 2.0 / 3.0;
-                    sc[mn2] = 2.0;
-                }
-                return sc;
-            }
-            throw std::invalid_argument("Invalid or mixed shapes for SolR operation in ENode::compute_local_cost");
-        }
         case Scale:
             return 0.0;
         case Det:
@@ -345,8 +304,6 @@ std::string ENode::to_string() const {
             return "Get";
         case Sol:
             return "Sol";
-        case SolR:
-            return "SolR";
         case Gemm:
             return "Gemm";
         case Syrk:

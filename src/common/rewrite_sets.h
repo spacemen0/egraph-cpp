@@ -203,30 +203,8 @@ static const auto inverse_solve =
     make_rewrite("inverse_solve", "Inv(Sol(?a, ?b))", "Sol(?b, ?a)", false, [](const EGraph &g, const Substitution &s) {
     return check_is_square(s, g, "a") && check_is_square(s, g, "b");
 });
-static const auto transpose_solve = make_rewrite("transpose_solve", "Tr(Sol(?a, ?b))", "SolR(Tr(?b), Tr(?a))", true);
 
-static const auto solver_right = make_rewrite("solver_right", "?b * Inv(?a)", "SolR(?b, ?a)");
-static const auto solver_right_composition = make_rewrite(
-    "solver_right_composition", "SolR(?c, ?a * ?b)", "SolR(SolR(?c, ?b), ?a)", true,
-    [](const EGraph &g, const Substitution &s) {
-    return check_is_square(s, g, "a") && check_is_square(s, g, "b");
-});
-static const auto solve_r_cancel_left = make_rewrite("solve_r_cancel_left", "SolR(?b * ?a, ?a)", "?b");
-static const auto solve_r_cancel_right = make_rewrite("solve_r_cancel_right", "SolR(?b, ?a) * ?a", "?b");
-static const auto solve_r_identity =
-    make_rewrite("solve_r_identity", "SolR(?a, ?a)", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s) {
-    return make_identity_for(g, s, "a");
-});
-static const auto solve_r_by_id =
-    make_rewrite("solve_r_by_id", "SolR(?a, ?b)", "?a", false, [](const EGraph &g, const Substitution &s) {
-    return is_identity(s, g, "b");
-}, nullptr);
-static const auto inverse_solve_r = make_rewrite(
-    "inverse_solve_r", "Inv(SolR(?b, ?a))", "SolR(?a, ?b)", false, [](const EGraph &g, const Substitution &s) {
-    return check_is_square(s, g, "a") && check_is_square(s, g, "b");
-});
-static const auto transpose_solve_r =
-    make_rewrite("transpose_solve_r", "Tr(SolR(?b, ?a))", "Sol(Tr(?a), Tr(?b))", true);
+// TODO: We will add rewritten transpose_solve and related rules here
 
 static const std::vector<Rewrite> factorization_set = {qr_invert, lu_invert, llt_invert, qr_leaf, lu_leaf, llt_leaf};
 
@@ -254,10 +232,8 @@ static const std::vector<Rewrite> zero_negation_set = {
 };
 
 static const std::vector<Rewrite> solver_set = {
-    solver_left,   solve_composition,        solve_cancel_left,   solve_cancel_right,
-    solve_by_id,   solve_identity,           inverse_solve,       transpose_solve,
-    solver_right,  solver_right_composition, solve_r_cancel_left, solve_r_cancel_right,
-    solve_r_by_id, solve_r_identity,         inverse_solve_r,     transpose_solve_r,
+    solver_left, solve_composition, solve_cancel_left, solve_cancel_right, solve_by_id, solve_identity, inverse_solve,
+    // TODO: We will add rewritten transpose_solve and related rules here
 };
 
 static std::vector<Rewrite> build_complete_rewrite_set() {

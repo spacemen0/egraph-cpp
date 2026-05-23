@@ -41,8 +41,6 @@ inline Op parse_op(std::string_view s) {
         return Log;
     if (s == "Scale")
         return Scale;
-    if (s == "SolR")
-        return SolR;
     if (s == "Geqrf")
         return Geqrf;
     if (s == "Gemm")
@@ -107,8 +105,6 @@ inline std::string atom_to_string(const Atom &atom) {
             return "Scale";
         case Log:
             return "Log";
-        case SolR:
-            return "SolR";
         case Gemm:
             return "Gemm";
         case Syrk:

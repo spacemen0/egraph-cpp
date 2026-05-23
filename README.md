@@ -37,7 +37,6 @@ python3 run_tests.py "Integration.*"
   - `Tr(A)`: Transpose
   - `Inv(A)`: Inverse
   - `Sol(A, B)`: Solve $AX = B$
-  - `SolR(B, A)`: Solve $XA = B$
   - `QR(A)`, `LU(A)`, `LLt(A)`: Factorizations
   - `Get(tuple, index)`: Extract component from factorization (e.g., `Get(QR(A), 0)` for $Q$)
   - `Det(A)`, `Log(A)`: Determinant and Logarithm
@@ -91,7 +90,7 @@ To navigate the massive search space of matrix optimizations, the engine relies 
 
 Finding the globally optimal expression with shared sub-expressions is NP-hard. Our extractor uses a bounded search guided by the following heuristics:
 
-- **Greedy Initialization**: The search is seeded with an initial tree search pass to cauculate the minimal possible cost and minimal possible size. This pass ignores sub-expression sharing but provides a fast upper bound .
+- **Greedy Initialization**: The search is seeded with an initial tree search pass to calculate the minimal possible cost and minimal possible size. This pass ignores sub-expression sharing but provides a fast upper bound .
 - **Search Prioritization**: The engine makes decisions on the most expensive sub-expressions first (based on their minimal possible cost). 
 - **Local Best-First**: Within each e-class, nodes are explored in ascending order of their estimated tree cost.
 - **Pruning Strategy**: If the current partial solution cannot outperform the worst solution in the top-$K$ results even with the calculated minimal possible DAG cost, the search branch is pruned immediately.
