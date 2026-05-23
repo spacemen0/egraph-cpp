@@ -20,12 +20,12 @@ enum class Op {
     Det,   // [A] computing det(A)
     Log,   //
     Scale, // [A, int] representing scalar * A
-    Gemm,  // General Matrix Multiply
-    Syrk,  // Symmetric Rank-K update
-    Trsm,  // Triangular Solve Matrix
+    Gemm,  // Gemm(A, B, C) - General Matrix Multiply
+    Syrk,  // Syrk(A, C) - Symmetric Rank-K update (always assume A*A'+ C)
+    Trsm,  // Trsm(A, B) - Triangular Solve Matrix
     Potrf, // Cholesky factorization
     Geqrf, // QR factorization
-    Gemv,  // General Matrix-Vector Multiply
+    Gemv,  // Gemv(A, x, y) - General Matrix-Vector Multiply
 };
 using Id = size_t;
 using Children = std::vector<Id>;

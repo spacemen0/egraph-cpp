@@ -40,9 +40,8 @@ void MatrixAnalysis::merge(AnalysisData &data1, const AnalysisData &data2) {
     if (auto *p1 = std::get_if<MatrixProperty>(&data1.property)) {
         const auto *p2 = std::get_if<MatrixProperty>(&data2.property);
         if (!p2) {
-            throw AnalysisError(
-                "Cannot merge MatrixProperty with non-MatrixProperty "
-                "(likely TupleProperty)");
+            throw AnalysisError("Cannot merge MatrixProperty with non-MatrixProperty "
+                                "(likely TupleProperty)");
         }
         merge_matrix_props(*p1, *p2);
     } else if (auto *t1 = std::get_if<TupleProperty>(&data1.property)) {
@@ -328,6 +327,43 @@ static AnalysisData analyze_llt(const EGraph &egraph, const std::vector<Id> &chi
     throw AnalysisError("LLt expects a Matrix input");
 }
 
+static AnalysisData analyze_gemm(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 3, "Gemm");
+    if (auto data = get_matrix_data(egraph, children.at(0))) {
+        if (auto data2 = get_matrix_data(egraph, children.at(1))) {
+            if (auto data3 = get_matrix_data(egraph, children.at(2))) {
+                if (data->shape.second != data2->shape.first || data2->shape.second != data3->shape.second ||
+                    data->shape.first != data3->shape.first) {
+                    throw ShapeMismatchError("Gemm operation with incompatible sizes");
+                }
+
+                MatrixProperty prop;
+                prop.shape = std::make_pair(data->shape.first, data3->shape.second);
+                return matrix_property_data(prop);
+            }
+        }
+    }
+    throw AnalysisError("Gemm expects Matrix inputs");
+}
+
+static AnalysisData analyze_syrk(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 2, "Syrk");
+    if (auto data = get_matrix_data(egraph, children.at(0))) {
+        if (auto data2 = get_matrix_data(egraph, children.at(1))) {
+
+            if (data->shape.first != data2->shape.first || data->shape.first != data2->shape.second) {
+                throw ShapeMismatchError("Syrk operation with incompatible sizes");
+            }
+
+            MatrixProperty prop;
+            prop.shape = std::make_pair(data->shape.first, data->shape.first);
+            prop.flags.is_symmetric = true;
+            return matrix_property_data(prop);
+        }
+    }
+    throw AnalysisError("Syrk expects Matrix inputs");
+}
+
 AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode &node, Op op) {
     const auto &children = node.get_children();
 
@@ -363,11 +399,10 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
         return analyze_solve_right(egraph, children);
     case Gemm: {
         check_arity(children, 3, "Gemm");
-        throw AnalysisError("Gemm expects Matrix inputs");
+        return analyze_gemm(egraph, children);
     }
     case Syrk: {
-        check_arity(children, 2, "Syrk");
-        throw AnalysisError("Syrk expects Matrix inputs");
+        return analyze_syrk(egraph, children);
     }
     case Trsm: {
         check_arity(children, 2, "Trsm");
