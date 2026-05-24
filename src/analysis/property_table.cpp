@@ -74,8 +74,8 @@ MatrixProperty MatrixProperty::from_string(std::string_view text) {
     return prop;
 }
 
-PropertyTable::PropertyTable(std::vector<std::string> propertiy_strings) {
-    for (const auto &string : propertiy_strings) {
+PropertyTable::PropertyTable(std::vector<std::string> property_strings) {
+    for (const auto &string : property_strings) {
         auto name_end = string.find(':');
         if (name_end == std::string::npos) {
             throw ParseError("PropertyTable::PropertyTable: expected ':' separating name and property");

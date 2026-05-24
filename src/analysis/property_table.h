@@ -26,7 +26,7 @@ struct MatrixProperty {
 
         bool is_full_rank = false;
         bool is_invertible = false;
-        bool is_singular = false;
+        bool is_singular = false; // meaningful only when is_square() is true
 
         bool is_orthogonal = false;
         bool has_orthonormal_columns = false;
@@ -164,7 +164,7 @@ struct AnalysisData {
 class PropertyTable {
   public:
     PropertyTable() = default;
-    explicit PropertyTable(std::vector<std::string> propertiy_strings);
+    explicit PropertyTable(std::vector<std::string> property_strings);
     bool add_or_update_property_entry(const std::string &name, MatrixProperty property);
     bool add_or_update_property_entry_by_string(const std::string &string_value);
 

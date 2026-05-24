@@ -59,26 +59,48 @@ void MatrixAnalysis::merge(AnalysisData &data1, const AnalysisData &data2) {
 }
 
 void MatrixAnalysis::enforce_hierarchy(MatrixProperty &p) {
+    if (p.flags.is_orthogonal) {
+        p.flags.has_orthonormal_columns = true;
+        p.flags.is_invertible = true;
+        p.flags.is_full_rank = true;
+    }
+
+    if (p.is_square() && p.flags.has_orthonormal_columns) {
+        p.flags.is_orthogonal = true;
+        p.flags.is_invertible = true;
+    }
+
+    if (p.flags.has_orthonormal_columns) {
+        p.flags.is_full_rank = true;
+    }
+
     if (p.flags.is_upper_triangular && p.flags.is_lower_triangular) {
         p.flags.is_diagonal = true;
     }
+
     if (p.flags.is_symmetric && (p.flags.is_upper_triangular || p.flags.is_lower_triangular)) {
         p.flags.is_diagonal = true;
     }
 
     if (p.flags.is_zero) {
         p.flags.is_diagonal = true;
-        p.flags.is_identity = false;
         p.flags.is_singular = true;
     }
+
     if (p.flags.is_identity) {
         p.flags.is_diagonal = true;
         p.flags.is_orthogonal = true;
-        p.flags.is_singular = false;
         p.flags.is_positive_definite = true;
+        p.flags.is_positive_semi_definite = true;
+        p.flags.is_invertible = true;
+        p.flags.is_full_rank = true;
     }
-    if (p.flags.is_orthogonal) {
-        p.flags.is_singular = false;
+
+    if (p.flags.is_positive_definite) {
+        p.flags.is_positive_semi_definite = true;
+        p.flags.is_symmetric = true;
+        p.flags.is_invertible = true;
+        p.flags.is_full_rank = true;
     }
 
     if (p.flags.is_diagonal) {
