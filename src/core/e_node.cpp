@@ -250,22 +250,105 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
         case Log:
             return 1.0;
         case Gemm: {
-            return 1.0;
+            auto shapes = get_two_shapes(children.at(0), children.at(1));
+            // A bit cheaper than Mul + Add to ensure it's picked
+            if (is_numeric(shapes.first) && is_numeric(shapes.second)) {
+                int rows1 = std::get<int>(shapes.first.first);
+                int cols1 = std::get<int>(shapes.first.second);
+                int cols2 = std::get<int>(shapes.second.second);
+                return 2.0 * rows1 * cols1 * cols2;
+            } else {
+                Monomial m = {
+                    {size_to_symbol(shapes.first.first), size_to_symbol(shapes.first.second),
+                     size_to_symbol(shapes.second.second)}};
+                SymbolicCost sc;
+                sc[m] = 2.0;
+                return sc;
+            }
         }
         case Syrk: {
-            return 1.0;
+            // A * A^T + C
+            auto shape = get_one_shape(children.at(0));
+            if (is_numeric(shape)) {
+                int rows = std::get<int>(shape.first);
+                int cols = std::get<int>(shape.second);
+                return 1.0 * rows * (rows + 1.0) * cols;
+            } else {
+                Monomial n2k = {
+                    {size_to_symbol(shape.first), size_to_symbol(shape.first), size_to_symbol(shape.second)}};
+                Monomial nk = {{size_to_symbol(shape.first), size_to_symbol(shape.second)}};
+                SymbolicCost sc;
+                sc[n2k] = 1.0;
+                sc[nk] = 1.0;
+                return sc;
+            }
         }
         case Trsm: {
-            return 1.0;
+            // AX = B
+            auto shapeA = get_one_shape(children.at(0));
+            auto shapeB = get_one_shape(children.at(1));
+            if (is_numeric(shapeA) && is_numeric(shapeB)) {
+                int rowsA = std::get<int>(shapeA.first);
+                int colsB = std::get<int>(shapeB.second);
+                return 1.0 * rowsA * rowsA * colsB;
+            } else {
+                Monomial m = {
+                    {size_to_symbol(shapeA.first), size_to_symbol(shapeA.second), size_to_symbol(shapeB.second)}};
+                SymbolicCost sc;
+                sc[m] = 1.0;
+                return sc;
+            }
         }
         case Potrf: {
-            return 1.0;
+            auto shape = get_one_shape(children.at(0));
+            if (is_numeric(shape)) {
+                double rows = std::get<int>(shape.first);
+                return (1.0 / 3.0) * rows * rows * rows;
+            } else {
+                std::string n = size_to_symbol(shape.first);
+                Monomial n3 = {{n, n, n}};
+                SymbolicCost sc;
+                sc[n3] = 1.0 / 3.0;
+                return sc;
+            }
         }
         case Geqrf: {
-            return 1.0;
+            auto shape = get_one_shape(children.at(0));
+            if (is_numeric(shape)) {
+                double rows = std::get<int>(shape.first);
+                double cols = std::get<int>(shape.second);
+                auto min_dim = std::min(rows, cols);
+                auto max_dim = std::max(rows, cols);
+                return 2.0 * min_dim * min_dim * max_dim - (2.0 / 3.0) * min_dim * min_dim * min_dim;
+            } else {
+                std::string r = size_to_symbol(shape.first);
+                std::string c = size_to_symbol(shape.second);
+                if (auto data = get_matrix_data(egraph, children.at(0))) {
+                    if (data->is_wide_matrix()) {
+                        std::swap(r, c);
+                    }
+                }
+                Monomial mn2 = {{r, c, c}};
+                Monomial n3 = {{c, c, c}};
+
+                SymbolicCost sc;
+                sc[mn2] = 2.0;
+                sc[n3] = -2.0 / 3.0;
+                return sc;
+            }
         }
         case Gemv: {
-            return 1.0;
+            auto shapes = get_two_shapes(children.at(0), children.at(1));
+            if (is_numeric(shapes.first)) {
+                int rows = std::get<int>(shapes.first.first);
+                int cols = std::get<int>(shapes.first.second);
+                return 2.0 * rows * cols;
+            } else {
+                Monomial m = {{size_to_symbol(shapes.first.first), size_to_symbol(shapes.first.second)}};
+                SymbolicCost sc;
+                sc[m] = 2.0;
+                return sc;
+            }
         }
         default:
             throw std::invalid_argument("Unknown Op in ENode::compute_local_cost");

@@ -31,6 +31,54 @@ Pruner::run(const std::vector<Id> &roots, const std::vector<SizeBindings> &bindi
     return result;
 }
 
+PruneResult Pruner::prune_symbolic_when_kernel_available() const {
+    std::unordered_map<Id, std::unordered_set<const ENode *>> keep_choices;
+
+    for (Id class_id : egraph.get_all_class_ids()) {
+        const auto &nodes = egraph.get_class_nodes(class_id);
+        bool has_kernel = false;
+        for (const ENode *node : nodes) {
+            auto atom = node->get_atom();
+            if (std::holds_alternative<Op>(atom)) {
+                auto op = std::get<Op>(atom);
+                if (op == Op::Gemm || op == Op::Syrk || op == Op::Trsm || op == Op::Potrf || op == Op::Geqrf ||
+                    op == Op::Gemv) {
+                    has_kernel = true;
+                    break;
+                }
+            }
+        }
+
+        if (has_kernel) {
+            for (const ENode *node : nodes) {
+                // Keep the node if it's NOT an Op, or if it IS a kernel op / Get
+                auto atom = node->get_atom();
+                if (std::holds_alternative<Op>(atom)) {
+                    auto op = std::get<Op>(atom);
+                    if (op == Op::Gemm || op == Op::Syrk || op == Op::Trsm || op == Op::Potrf || op == Op::Geqrf ||
+                        op == Op::Gemv || op == Op::Get) {
+                        keep_choices[class_id].insert(node);
+                    }
+                } else {
+                    // String / Int atoms (variables/indices) are kept
+                    keep_choices[class_id].insert(node);
+                }
+            }
+        } else {
+            // No kernel in this e-class, keep all nodes
+            for (const ENode *node : nodes) {
+                keep_choices[class_id].insert(node);
+            }
+        }
+    }
+
+    auto result = egraph.prune_nodes_except(keep_choices);
+    if (result.changed) {
+        egraph.rebuild();
+    }
+    return result;
+}
+
 void Pruner::rewrite_and_run(
     const std::vector<Id> &roots, Rewriter &rewriter, const PruneOptions &options,
     std::function<void(int iteration)> onIterationStart,

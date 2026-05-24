@@ -20,6 +20,7 @@ class Pruner {
     Pruner(EGraph &egraph, Extractor &extractor) : egraph(egraph), extractor(extractor) {}
 
     PruneResult run(const std::vector<Id> &roots, const std::vector<SizeBindings> &bindings, int max_results) const;
+    PruneResult prune_symbolic_when_kernel_available() const;
 
     void rewrite_and_run(
         const std::vector<Id> &roots, Rewriter &rewriter, const PruneOptions &options,
