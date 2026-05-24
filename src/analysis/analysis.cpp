@@ -365,6 +365,41 @@ static AnalysisData analyze_trsm(const EGraph &egraph, const std::vector<Id> &ch
     throw AnalysisError("Trsm expects Matrix inputs");
 }
 
+static AnalysisData analyze_potrf(const EGraph &egraph, const std::vector<Id> &children) {
+    return analyze_llt(egraph, children);
+}
+
+static AnalysisData analyze_geqrf(const EGraph &egraph, const std::vector<Id> &children) {
+    return analyze_qr(egraph, children);
+}
+
+static AnalysisData analyze_gemv(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 3, "Gemv");
+
+    if (auto dataA = get_matrix_data(egraph, children.at(0))) {
+        if (auto dataX = get_matrix_data(egraph, children.at(1))) {
+            if (auto dataY = get_matrix_data(egraph, children.at(2))) {
+
+                if (!dataX->is_vector() || !dataY->is_vector()) {
+                    throw InvalidOperationError("Gemv operation requires vector inputs for x and y");
+                }
+
+                if (dataA->shape.second != dataX->shape.first) {
+                    throw ShapeMismatchError("Gemv operation with incompatible sizes between A and x");
+                }
+
+                if (dataA->shape.first != dataY->shape.first) {
+                    throw ShapeMismatchError("Gemv operation with incompatible sizes between A and y");
+                }
+
+                MatrixProperty prop;
+                prop.shape = std::make_pair(dataA->shape.first, 1); // Result is m x 1
+                return matrix_property_data(prop);
+            }
+        }
+    }
+    throw AnalysisError("Gemv expects Matrix inputs");
+}
 AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode &node, Op op) {
     const auto &children = node.get_children();
 
@@ -397,7 +432,6 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
     case Scale:
         return matrix_property_data(*get_matrix_data(egraph, children.at(0)));
     case Gemm: {
-        check_arity(children, 3, "Gemm");
         return analyze_gemm(egraph, children);
     }
     case Syrk: {
@@ -407,16 +441,13 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
         return analyze_trsm(egraph, children);
     }
     case Potrf: {
-        check_arity(children, 1, "Potrf");
-        throw AnalysisError("Potrf expects Matrix input");
+        return analyze_potrf(egraph, children);
     }
     case Geqrf: {
-        check_arity(children, 1, "Geqrf");
-        throw AnalysisError("Geqrf expects Matrix input");
+        return analyze_geqrf(egraph, children);
     }
     case Gemv: {
-        check_arity(children, 3, "Gemv");
-        throw AnalysisError("Gemv expects Matrix inputs");
+        return analyze_gemv(egraph, children);
     }
     default:
         throw AnalysisError("Unknown operation in analysis");

@@ -96,7 +96,7 @@ Finding the globally optimal expression with shared sub-expressions is NP-hard. 
 - **Pruning Strategy**: If the current partial solution cannot outperform the worst solution in the top-$K$ results even with the calculated minimal possible DAG cost, the search branch is pruned immediately.
 - **Max Depth** : A maximum search depth prevents search from going too deep into the DAG, and pruning is applied earlier when current depth + minimal possible depth exceeds the maximum.
 
-## To be implemented:
+## To be implemented (Note to self):
 
 - **Deduce Properties**: For instance A*A' is symmetric and positive definite if A is full rank.
 

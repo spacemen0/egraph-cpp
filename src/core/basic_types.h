@@ -17,15 +17,16 @@ enum class Op {
     Get,   // [tuple, index]
     Sol,   // [A, B] solving AX = B, output X
     Det,   // [A] computing det(A)
-    Log,   //
+    Log,   // [A] computing log(A)
     Scale, // [A, int] representing scalar * A
     Gemm,  // Gemm(A, B, C) - General Matrix Multiply
-    Syrk,  // Syrk(A, C) - Symmetric Rank-K update (always assume A*A'+ C)
-    Trsm,  // Trsm(A, B) - Triangular Solve Matrix
+    Syrk,  // Syrk(A, C) - Symmetric Rank-K update (always assume AA'+ C)
+    Trsm,  // Trsm(A, B) - Triangular Solve Matrix (always assume AX = B)
     Potrf, // Cholesky factorization
     Geqrf, // QR factorization
     Gemv,  // Gemv(A, x, y) - General Matrix-Vector Multiply
 };
+
 using Id = size_t;
 using Children = std::vector<Id>;
 using Atom = std::variant<Op, std::string, int>; // int for indexes in Get operations
