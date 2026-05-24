@@ -279,51 +279,7 @@ Children &ENode::get_children_mut() { return children; }
 
 Atom ENode::get_atom() const { return atom; }
 
-std::string ENode::to_string() const {
-    if (std::holds_alternative<Op>(atom)) {
-        Op op = std::get<Op>(atom);
-        switch (op) {
-            using enum Op;
-        case Add:
-            return "+";
-        case Mul:
-            return "*";
-        case Tr:
-            return "Tr";
-        case Inv:
-            return "Inv";
-        case Minus:
-            return "-";
-        case QR:
-            return "QR";
-        case LU:
-            return "LU";
-        case LLt:
-            return "LLt";
-        case Get:
-            return "Get";
-        case Sol:
-            return "Sol";
-        case Gemm:
-            return "Gemm";
-        case Syrk:
-            return "Syrk";
-        case Trsm:
-            return "Trsm";
-        case Potrf:
-            return "Potrf";
-        case Gemv:
-            return "Gemv";
-        default:
-            throw std::invalid_argument("Unknown Op in ENode::to_string");
-        }
-    } else if (std::holds_alternative<std::string>(atom)) {
-        return std::get<std::string>(atom);
-    } else if (std::holds_alternative<int>(atom)) {
-        return std::to_string(std::get<int>(atom));
-    }
-    throw std::invalid_argument("Unknown atom type in ENode::to_string");
-}
+std::string ENode::to_string() const { return atom_to_string(atom); }
 
 std::string ENode::format() const {
     if (is_leaf()) {

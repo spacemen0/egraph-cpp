@@ -1,4 +1,5 @@
 #include "e_graph.h"
+#include "expression.h"
 #include "rewriter.h"
 #include "utils.h"
 #include <vector>
@@ -206,11 +207,95 @@ static const auto inverse_solve =
 
 static const auto solver_right = make_rewrite("solver_right", "?b * Inv(?a)", "Tr(Sol(Tr(?a), Tr(?b)))");
 
-static const std::vector<Rewrite> factorization_set = {qr_invert, lu_invert, llt_invert, qr_leaf, lu_leaf, llt_leaf};
+static const auto gemm_without_c =
+    make_rewrite("gemm_without_c", "?a * ?b", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s) {
+    Id a_id = s.at("a");
+    Id b_id = s.at("b");
+    const auto *a_prop = get_matrix_data(g, a_id);
+    const auto *b_prop = get_matrix_data(g, b_id);
+    auto zero = make_zero_of_shape(g, {a_prop->shape.first, b_prop->shape.second});
+    auto gemm_node = ENode{{a_id, b_id, zero}, Op::Gemm};
+    return g.add_node(gemm_node);
+});
+
+static const auto gemm_with_c = make_rewrite("gemm_with_c", "?a * ?b + ?c", "Gemm(?a, ?b, ?c)", false);
+
+static const auto syrk_without_c_left =
+    make_rewrite("syrk_without_c_left", "?a * Tr(?a)", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s) {
+    Id a_id = s.at("a");
+    const auto *a_prop = get_matrix_data(g, a_id);
+    auto zero = make_zero_of_shape(g, {a_prop->shape.first, a_prop->shape.first});
+    auto syrk_node = ENode{{a_id, zero}, Op::Syrk};
+    return g.add_node(syrk_node);
+});
+
+static const auto syrk_without_c_right = make_rewrite(
+    "syrk_without_c_right", "Tr(?a) * ?a", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s) {
+    Id a_id = s.at("a");
+    const auto *a_prop = get_matrix_data(g, a_id);
+    auto zero = make_zero_of_shape(g, {a_prop->shape.second, a_prop->shape.second});
+    auto transpose_a = g.add_expression(Expression("Tr(?a)"), s);
+    auto syrk_node = ENode{{transpose_a, zero}, Op::Syrk};
+    return g.add_node(syrk_node);
+});
+
+static const auto syrk_with_c_left = make_rewrite("syrk_with_c_left", "?a * Tr(?a) + ?c", "Syrk(?a, ?c)", false);
+static const auto syrk_with_c_right = make_rewrite("syrk_with_c_right", "Tr(?a) * ?a + ?c", "Syrk(Tr(?a), ?c)", false);
+
+static const auto trsm =
+    make_rewrite("trsm", "Sol(?a, ?b)", "Trsm(?a, ?b)", false, [](const EGraph &g, const Substitution &s) {
+    Id a_id = s.at("a");
+    const auto *a_prop = get_matrix_data(g, a_id);
+    return a_prop->is_square() && (a_prop->flags.is_upper_triangular || a_prop->flags.is_lower_triangular);
+});
+
+static const auto sub_to_add_scale = make_rewrite("sub_to_add_scale", "?a - ?b", "?a + Scale(?b, -1)");
+
+static const auto potrf = make_rewrite("potrf", "LLt(?a)", "Potrf(?a)", false);
+static const auto geqrf = make_rewrite("geqrf", "QR(?a)", "Geqrf(?a)", false);
+
+static const auto gemv_without_c =
+    make_rewrite("gemv_without_c", "?a * ?b", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
+    Id a_id = s.at("a");
+    Id b_id = s.at("b");
+    const auto *a_prop = get_matrix_data(g, a_id);
+    const auto *b_prop = get_matrix_data(g, b_id);
+    if (!a_prop || !b_prop)
+        return false;
+    return (!a_prop->is_vector() && !a_prop->is_scalar()) && b_prop->is_vector();
+}, [](EGraph &g, const Substitution &s) {
+    Id a_id = s.at("a");
+    Id b_id = s.at("b");
+    const auto *a_prop = get_matrix_data(g, a_id);
+    const auto *b_prop = get_matrix_data(g, b_id);
+    auto zero = make_zero_of_shape(g, {a_prop->shape.first, b_prop->shape.second});
+    auto gemv_node = ENode{{a_id, b_id, zero}, Op::Gemv};
+    return g.add_node(gemv_node);
+});
+
+static const auto gemv_with_c =
+    make_rewrite("gemv_with_c", "?a * ?b + ?c", "Gemv(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
+    Id a_id = s.at("a");
+    Id b_id = s.at("b");
+    Id c_id = s.at("c");
+    const auto *a_prop = get_matrix_data(g, a_id);
+    const auto *b_prop = get_matrix_data(g, b_id);
+    const auto *c_prop = get_matrix_data(g, c_id);
+    if (!a_prop || !b_prop || !c_prop)
+        return false;
+    return (!a_prop->is_vector() && !a_prop->is_scalar()) && b_prop->is_vector() && c_prop->is_vector();
+});
+
+static const std::vector<Rewrite> kernel_set = {
+    gemm_without_c,    gemm_with_c, syrk_without_c_left, syrk_without_c_right, syrk_with_c_left,
+    syrk_with_c_right, trsm,        gemv_without_c,      gemv_with_c};
+static const std::vector<Rewrite> factorization_set = {qr_invert, lu_invert, llt_invert, qr_leaf,
+                                                       lu_leaf,   llt_leaf,  potrf,      geqrf};
 
 static const std::vector<Rewrite> algebraic_set = {
     mul_identity_left,   mul_identity_right,   mul_assoc,          commute_add,         mat_transpose_prod,
     mul_distribute_left, mul_distribute_right, invert_cancel_left, invert_cancel_right, invert_mat_prod,
+    sub_to_add_scale,
 };
 
 static const std::vector<Rewrite> inverse_set = {
@@ -268,6 +353,9 @@ inline std::vector<Rewrite> get_rewrite_set_by_name(const std::string &name) {
     }
     if (name == "solver") {
         return solver_set;
+    }
+    if (name == "kernel") {
+        return kernel_set;
     }
     throw std::invalid_argument("Unknown rewrite set name: " + name);
 }

@@ -48,7 +48,8 @@ TEST(Integration, OLSPruneConverges) {
     };
 
     pruner.rewrite_and_run({root_id}, rewriter, options, pre_iteration, post_iteration);
-
+    Rewriter kernel_rewriter(egraph, build_rewrite_sets({"kernel"}), 500);
+    kernel_rewriter.apply_rewrites(5);
     auto result = extractor.extract_symbolic(root_id);
     for (const auto &candidate : result) {
         std::cout << "Candidate expression: " << candidate.expr.to_string(true) << std::endl;
