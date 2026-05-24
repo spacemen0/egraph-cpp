@@ -148,14 +148,15 @@ make_identity_for(EGraph &egraph, const Substitution &s, const std::string &var_
     MatrixProperty prop;
     prop.shape = use_first_dim ? std::make_pair(shape.first, shape.first) : std::make_pair(shape.second, shape.second);
     prop.flags = {
-        .is_symmetric = true,
-        .is_orthogonal = true,
-        .is_identity = true,
-        .is_zero = false,
+        .is_diagonal = true,
         .is_upper_triangular = true,
         .is_lower_triangular = true,
-        .is_diagonal = true,
-        .is_singular = false};
+        .is_symmetric = true,
+        .is_zero = false,
+        .is_identity = true,
+        .is_singular = false,
+        .has_orthonormal_columns = true,
+    };
 
     if (egraph.find_class_with_property(prop).has_value()) {
         return egraph.find_class_with_property(prop).value();
@@ -184,12 +185,12 @@ inline Id make_zero_of_shape(EGraph &g, const Shape &shape) {
     prop.shape = shape;
     bool is_sq = shape.first == shape.second;
     prop.flags = {
-        .is_symmetric = is_sq,
-        .is_identity = false,
-        .is_zero = true,
+        .is_diagonal = is_sq,
         .is_upper_triangular = is_sq,
         .is_lower_triangular = is_sq,
-        .is_diagonal = is_sq,
+        .is_symmetric = is_sq,
+        .is_zero = true,
+        .is_identity = false,
         .is_singular = true,
     };
 

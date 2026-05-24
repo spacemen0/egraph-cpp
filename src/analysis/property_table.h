@@ -12,17 +12,25 @@
 struct MatrixProperty {
     Shape shape; // (rows, cols)
     struct MatrixFlags {
-        bool is_symmetric = false;
-        bool is_orthogonal = false;
-        bool is_orthonormal = false;
-        bool is_identity = false;
-        bool is_zero = false;
+        bool is_diagonal = false;
         bool is_upper_triangular = false;
         bool is_lower_triangular = false;
-        bool is_diagonal = false;
-        bool is_positive_definite = false;
-        bool is_singular = false;
+        bool is_symmetric = false;
         bool is_permutation = false;
+
+        bool is_zero = false;
+        bool is_identity = false;
+
+        bool is_positive_definite = false;
+        bool is_positive_semi_definite = false;
+
+        bool is_full_rank = false;
+        bool is_invertible = false;
+        bool is_singular = false;
+
+        bool is_orthogonal = false;
+        bool has_orthonormal_columns = false;
+
         bool is_tall = false;
         bool is_wide = false;
     };
@@ -36,7 +44,7 @@ struct MatrixProperty {
     static constexpr std::array<FlagDescriptor, 13> flag_descriptors = {{
         {&MatrixFlags::is_symmetric, "symmetric"},
         {&MatrixFlags::is_orthogonal, "orthogonal"},
-        {&MatrixFlags::is_orthonormal, "orthonormal"},
+        {&MatrixFlags::has_orthonormal_columns, "orthonormal"},
         {&MatrixFlags::is_identity, "identity"},
         {&MatrixFlags::is_zero, "zero"},
         {&MatrixFlags::is_upper_triangular, "upper_triangular"},

@@ -59,6 +59,13 @@ void MatrixAnalysis::merge(AnalysisData &data1, const AnalysisData &data2) {
 }
 
 void MatrixAnalysis::enforce_hierarchy(MatrixProperty &p) {
+    if (p.flags.is_upper_triangular && p.flags.is_lower_triangular) {
+        p.flags.is_diagonal = true;
+    }
+    if (p.flags.is_symmetric && (p.flags.is_upper_triangular || p.flags.is_lower_triangular)) {
+        p.flags.is_diagonal = true;
+    }
+
     if (p.flags.is_zero) {
         p.flags.is_diagonal = true;
         p.flags.is_identity = false;
@@ -68,7 +75,12 @@ void MatrixAnalysis::enforce_hierarchy(MatrixProperty &p) {
         p.flags.is_diagonal = true;
         p.flags.is_orthogonal = true;
         p.flags.is_singular = false;
+        p.flags.is_positive_definite = true;
     }
+    if (p.flags.is_orthogonal) {
+        p.flags.is_singular = false;
+    }
+
     if (p.flags.is_diagonal) {
         p.flags.is_upper_triangular = true;
         p.flags.is_lower_triangular = true;
@@ -189,7 +201,7 @@ static AnalysisData analyze_qr(const EGraph &egraph, const std::vector<Id> &chil
         MatrixProperty Q;
         MatrixProperty R;
 
-        Q.flags.is_orthonormal = true;
+        Q.flags.has_orthonormal_columns = true;
         R.flags.is_upper_triangular = true;
 
         if (data->is_square()) {
@@ -353,7 +365,7 @@ static AnalysisData analyze_trsm(const EGraph &egraph, const std::vector<Id> &ch
             if (!dataA->flags.is_lower_triangular && !dataA->flags.is_upper_triangular) {
                 throw InvalidOperationError("Trsm operation on non-triangular matrix A");
             }
-            if (dataA->shape.second != dataB->shape.first) {
+            if (dataA->shape.second != dataB->shape.first || dataA->flags.is_singular) {
                 throw ShapeMismatchError("Trsm operation with incompatible sizes");
             }
 

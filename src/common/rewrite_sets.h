@@ -17,7 +17,7 @@ static auto is_not_factorized = [](const EGraph &g, const Substitution &s) {
     if (const auto *prop = std::get_if<MatrixProperty>(&data.property)) {
         return !(
             prop->flags.is_upper_triangular || prop->flags.is_lower_triangular || prop->flags.is_diagonal ||
-            prop->flags.is_identity || prop->flags.is_orthogonal || prop->flags.is_orthonormal);
+            prop->flags.is_identity || prop->flags.is_orthogonal || prop->flags.has_orthonormal_columns);
     }
     return true;
 };
@@ -147,7 +147,7 @@ static const auto orthonormal_transpose =
     Id a_id = s.at("a");
     const auto &data = g.get_class_analysis_data(a_id);
     if (auto *prop = std::get_if<MatrixProperty>(&data.property)) {
-        return prop->flags.is_orthonormal;
+        return prop->flags.has_orthonormal_columns;
     }
     return false;
 }, [](EGraph &g, const Substitution &s) {

@@ -19,9 +19,10 @@ enum class Op {
     Det,   // [A] computing det(A)
     Log,   // [A] computing log(A)
     Scale, // [A, int] representing scalar * A
-    Gemm,  // Gemm(A, B, C) - General Matrix Multiply
-    Syrk,  // Syrk(A, C) - Symmetric Rank-K update (always assume AA'+ C)
-    Trsm,  // Trsm(A, B) - Triangular Solve Matrix (always assume AX = B)
+    Gemm,  // Gemm(A, B, C) - General Matrix Multiply (can pass Trans(A), Scale(A, 2), etc. as inputs)
+    Syrk,  // Syrk(A, C) - Symmetric Rank-K update (always assume AA'+ C, can pass Trans(A) as input)
+    Trsm,  // Trsm(A, B) - Triangular Solve Matrix (always assume AX = B, have rewrite rules to convert XA = B to this
+           // with transpose)
     Potrf, // Cholesky factorization
     Geqrf, // QR factorization
     Gemv,  // Gemv(A, x, y) - General Matrix-Vector Multiply
