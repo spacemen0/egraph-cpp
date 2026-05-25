@@ -60,6 +60,10 @@ void MatrixAnalysis::merge(AnalysisData &data1, const AnalysisData &data2) {
 }
 
 void MatrixAnalysis::enforce_hierarchy(MatrixProperty &p) {
+    if (p.flags.is_permutation) {
+        p.flags.is_orthogonal = true;
+    }
+
     if (p.flags.is_orthogonal) {
         p.flags.has_orthonormal_columns = true;
         p.flags.is_non_singular = true;
@@ -112,6 +116,10 @@ void MatrixAnalysis::enforce_hierarchy(MatrixProperty &p) {
 
     if (p.is_square() && p.flags.is_full_rank) {
         p.flags.is_non_singular = true;
+    }
+
+    if (p.flags.is_non_singular) {
+        p.flags.is_full_rank = true;
     }
 }
 
@@ -257,6 +265,9 @@ static AnalysisData analyze_qr(const EGraph &egraph, const std::vector<Id> &chil
             R.shape = data->shape;
             R.flags.is_wide = true;
             R.flags.is_upper_triangular = false; // is_upper_trapezoidal
+            if (data->flags.is_full_rank) {
+                R.flags.is_full_rank = true;
+            }
         } else {
             throw InvalidOperationError("QR operation on symbolic matrix with ambiguous shape");
         }
@@ -310,6 +321,8 @@ static AnalysisData analyze_solve(const EGraph &egraph, const std::vector<Id> &c
 
             MatrixProperty prop;
             prop.shape = {data1->shape.first, data2->shape.second};
+            prop.flags.is_full_rank = data2->flags.is_full_rank;
+            prop.flags.is_non_singular = data2->flags.is_non_singular;
             return matrix_property_data(prop);
         }
     }
@@ -418,6 +431,8 @@ static AnalysisData analyze_trsm(const EGraph &egraph, const std::vector<Id> &ch
 
             MatrixProperty prop;
             prop.shape = std::make_pair(dataA->shape.first, dataB->shape.second);
+            prop.flags.is_full_rank = dataB->flags.is_full_rank;
+            prop.flags.is_non_singular = dataB->flags.is_non_singular;
             return matrix_property_data(prop);
         }
     }
@@ -449,6 +464,8 @@ static AnalysisData analyze_trtri(const EGraph &egraph, const std::vector<Id> &c
         prop.shape = data->shape;
         prop.flags.is_upper_triangular = data->flags.is_upper_triangular;
         prop.flags.is_lower_triangular = data->flags.is_lower_triangular;
+        prop.flags.is_non_singular = true;
+        prop.flags.is_full_rank = true;
         return matrix_property_data(prop);
     }
     throw AnalysisError("Trtri expects a Matrix input");

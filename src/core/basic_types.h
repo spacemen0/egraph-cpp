@@ -11,7 +11,7 @@ enum class Op {
     Minus,
     Tr,
     Inv,
-    QR,    // output: [Q, R]
+    QR,    // output: [Q, R] reduced QR
     LU,    // output: [L, U, P]
     LLt,   // output: [L] where A = LLt
     Get,   // [tuple, index]
