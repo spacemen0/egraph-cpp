@@ -100,7 +100,7 @@ std::string render(const Expression &expr, bool readable, int parent_precedence)
             if (std::holds_alternative<Op>(tuple_expr.atom)) {
                 Op tuple_op = std::get<Op>(tuple_expr.atom);
                 std::string factor_name;
-                if (tuple_op == Op::QR || tuple_op == Op::Geqrf) {
+                if (tuple_op == Op::QR) {
                     if (index == 0)
                         factor_name = "Q";
                     else if (index == 1)
@@ -112,7 +112,7 @@ std::string render(const Expression &expr, bool readable, int parent_precedence)
                         factor_name = "U";
                     else if (index == 2)
                         factor_name = "P";
-                } else if (tuple_op == Op::LLt || tuple_op == Op::Potrf) {
+                } else if (tuple_op == Op::LLt) {
                     if (index == 0)
                         factor_name = "LLt";
                 }

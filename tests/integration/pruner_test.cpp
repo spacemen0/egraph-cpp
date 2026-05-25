@@ -5,7 +5,6 @@
 #include "rewrite_sets.h"
 #include "rewriter.h"
 #include "test_helpers.h"
-#include <algorithm>
 #include <chrono>
 #include <gtest/gtest.h>
 #include <iostream>
@@ -47,7 +46,7 @@ TEST(Integration, OLSPruneConverges) {
                   << ", pruned=" << prune_result.nodes_pruned << ", time=" << duration.count() << "s" << std::endl;
     };
 
-    pruner.rewrite_and_run({root_id}, rewriter, options, pre_iteration, post_iteration);
+    pruner.rewrite_and_prune({root_id}, rewriter, options, pre_iteration, post_iteration);
     Rewriter kernel_rewriter(egraph, build_rewrite_sets({"kernel"}), 500);
     kernel_rewriter.apply_rewrites(1);
     pruner.prune_symbolic_when_kernel_available();

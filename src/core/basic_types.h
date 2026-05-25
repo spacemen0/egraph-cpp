@@ -25,6 +25,7 @@ enum class Op {
            // with transpose)
     Potrf, // Cholesky factorization
     Geqrf, // QR factorization
+    Trtri, // Inverse of a triangular matrix
     Gemv,  // Gemv(A, x, y) - General Matrix-Vector Multiply
 };
 
@@ -34,3 +35,8 @@ using Atom = std::variant<Op, std::string, int>; // int for indexes in Get opera
 using Size = std::variant<int, std::string>;
 using Shape = std::pair<Size, Size>;
 using SizeBindings = std::unordered_map<std::string, int>;
+
+static inline bool is_kernel_op(Op op) {
+    using enum Op;
+    return op == Gemm || op == Syrk || op == Trsm || op == Potrf || op == Geqrf || op == Gemv || op == Trtri;
+}

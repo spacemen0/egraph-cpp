@@ -2,7 +2,7 @@
 #include "utils.h"
 
 PruneResult
-Pruner::run(const std::vector<Id> &roots, const std::vector<SizeBindings> &bindings, int max_results) const {
+Pruner::prune(const std::vector<Id> &roots, const std::vector<SizeBindings> &bindings, int max_results) const {
     PruneResult result;
 
     std::unordered_map<Id, std::unordered_set<const ENode *>> keep_choices;
@@ -41,8 +41,7 @@ PruneResult Pruner::prune_symbolic_when_kernel_available() const {
             auto atom = node->get_atom();
             if (std::holds_alternative<Op>(atom)) {
                 auto op = std::get<Op>(atom);
-                if (op == Op::Gemm || op == Op::Syrk || op == Op::Trsm || op == Op::Potrf || op == Op::Geqrf ||
-                    op == Op::Gemv) {
+                if (is_kernel_op(op)) {
                     has_kernel = true;
                     break;
                 }
@@ -51,21 +50,18 @@ PruneResult Pruner::prune_symbolic_when_kernel_available() const {
 
         if (has_kernel) {
             for (const ENode *node : nodes) {
-                // Keep the node if it's NOT an Op, or if it IS a kernel op / Get
                 auto atom = node->get_atom();
                 if (std::holds_alternative<Op>(atom)) {
                     auto op = std::get<Op>(atom);
-                    if (op == Op::Gemm || op == Op::Syrk || op == Op::Trsm || op == Op::Potrf || op == Op::Geqrf ||
-                        op == Op::Gemv || op == Op::Get) {
+                    if (is_kernel_op(op) || op == Op::Get) {
                         keep_choices[class_id].insert(node);
                     }
                 } else {
-                    // String / Int atoms (variables/indices) are kept
+                    // Constants
                     keep_choices[class_id].insert(node);
                 }
             }
         } else {
-            // No kernel in this e-class, keep all nodes
             for (const ENode *node : nodes) {
                 keep_choices[class_id].insert(node);
             }
@@ -79,7 +75,7 @@ PruneResult Pruner::prune_symbolic_when_kernel_available() const {
     return result;
 }
 
-void Pruner::rewrite_and_run(
+void Pruner::rewrite_and_prune(
     const std::vector<Id> &roots, Rewriter &rewriter, const PruneOptions &options,
     std::function<void(int iteration)> onIterationStart,
     std::function<void(int iteration, const PruneResult &)> onIterationFinish) const {
@@ -91,7 +87,7 @@ void Pruner::rewrite_and_run(
         rewriter.apply_rewrites(options.rewrite_steps_per_iteration);
 
         const auto bindings = sample_size_bindings(options.prune_samples_per_iteration, 1, 1000, options.size_keys);
-        const auto prune_result = run(roots, bindings, options.max_results_per_binding);
+        const auto prune_result = prune(roots, bindings, options.max_results_per_binding);
 
         if (onIterationFinish) {
             onIterationFinish(i, prune_result);

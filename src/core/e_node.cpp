@@ -100,8 +100,9 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
                 int rows = std::get<int>(shape.first);
                 int cols = std::get<int>(shape.second);
                 if (rows != cols) {
-                    throw std::invalid_argument("Non-square matrix for Inv operation in "
-                                                "ENode::compute_local_cost");
+                    throw std::invalid_argument(
+                        "Non-square matrix for Inv operation in "
+                        "ENode::compute_local_cost");
                 }
                 if (data &&
                     (data->flags.is_upper_triangular || data->flags.is_lower_triangular || data->flags.is_diagonal)) {
@@ -334,6 +335,19 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
                 SymbolicCost sc;
                 sc[mn2] = 2.0;
                 sc[n3] = -2.0 / 3.0;
+                return sc;
+            }
+        }
+        case Trtri: {
+            auto shape = get_one_shape(children.at(0));
+            if (is_numeric(shape)) {
+                double rows = std::get<int>(shape.first);
+                return (1.0 / 3.0) * rows * rows * rows;
+            } else {
+                std::string n = size_to_symbol(shape.first);
+                Monomial n3 = {{n, n, n}};
+                SymbolicCost sc;
+                sc[n3] = 1.0 / 3.0;
                 return sc;
             }
         }

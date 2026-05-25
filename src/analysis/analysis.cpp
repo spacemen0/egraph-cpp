@@ -40,8 +40,9 @@ void MatrixAnalysis::merge(AnalysisData &data1, const AnalysisData &data2) {
     if (auto *p1 = std::get_if<MatrixProperty>(&data1.property)) {
         const auto *p2 = std::get_if<MatrixProperty>(&data2.property);
         if (!p2) {
-            throw AnalysisError("Cannot merge MatrixProperty with non-MatrixProperty "
-                                "(likely TupleProperty)");
+            throw AnalysisError(
+                "Cannot merge MatrixProperty with non-MatrixProperty "
+                "(likely TupleProperty)");
         }
         merge_matrix_props(*p1, *p2);
     } else if (auto *t1 = std::get_if<TupleProperty>(&data1.property)) {
@@ -407,6 +408,28 @@ static AnalysisData analyze_geqrf(const EGraph &egraph, const std::vector<Id> &c
     return analyze_qr(egraph, children);
 }
 
+static AnalysisData analyze_trtri(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 1, "Trtri");
+    if (auto data = get_matrix_data(egraph, children.at(0))) {
+        if (data->shape.first != data->shape.second) {
+            throw InvalidOperationError("Trtri operation on non-square matrix");
+        }
+        if (!data->flags.is_upper_triangular && !data->flags.is_lower_triangular) {
+            throw InvalidOperationError("Trtri operation on non-triangular matrix");
+        }
+        if (data->flags.is_singular) {
+            throw InvalidOperationError("Trtri operation on singular matrix");
+        }
+
+        MatrixProperty prop;
+        prop.shape = data->shape;
+        prop.flags.is_upper_triangular = data->flags.is_upper_triangular;
+        prop.flags.is_lower_triangular = data->flags.is_lower_triangular;
+        return matrix_property_data(prop);
+    }
+    throw AnalysisError("Trtri expects a Matrix input");
+}
+
 static AnalysisData analyze_gemv(const EGraph &egraph, const std::vector<Id> &children) {
     check_arity(children, 3, "Gemv");
 
@@ -479,6 +502,9 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
     }
     case Geqrf: {
         return analyze_geqrf(egraph, children);
+    }
+    case Trtri: {
+        return analyze_trtri(egraph, children);
     }
     case Gemv: {
         return analyze_gemv(egraph, children);

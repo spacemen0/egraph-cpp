@@ -51,6 +51,8 @@ inline Op parse_op(std::string_view s) {
         return Trsm;
     if (s == "Potrf")
         return Potrf;
+    if (s == "Trtri")
+        return Trtri;
     if (s == "Gemv")
         return Gemv;
     throw InvalidOperationError("Unknown operation: " + std::string(s));
@@ -115,6 +117,8 @@ inline std::string atom_to_string(const Atom &atom) {
             return "Potrf";
         case Geqrf:
             return "Geqrf";
+        case Trtri:
+            return "Trtri";
         case Gemv:
             return "Gemv";
         }

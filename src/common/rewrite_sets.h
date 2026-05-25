@@ -253,7 +253,12 @@ static const auto sub_to_add_scale = make_rewrite("sub_to_add_scale", "?a - ?b",
 
 static const auto potrf = make_rewrite("potrf", "LLt(?a)", "Potrf(?a)", false);
 static const auto geqrf = make_rewrite("geqrf", "QR(?a)", "Geqrf(?a)", false);
-
+static const auto trtri =
+    make_rewrite("trtri", "Inv(?a)", "Trtri(?a)", false, [](const EGraph &g, const Substitution &s) {
+    Id a_id = s.at("a");
+    const auto *a_prop = get_matrix_data(g, a_id);
+    return a_prop->flags.is_upper_triangular || a_prop->flags.is_lower_triangular;
+});
 static const auto gemv_without_c =
     make_rewrite("gemv_without_c", "?a * ?b", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
     Id a_id = s.at("a");
@@ -288,7 +293,7 @@ static const auto gemv_with_c =
 
 static const std::vector<Rewrite> kernel_set = {
     gemm_without_c,    gemm_with_c, syrk_without_c_left, syrk_without_c_right, syrk_with_c_left,
-    syrk_with_c_right, trsm,        gemv_without_c,      gemv_with_c};
+    syrk_with_c_right, trsm,        gemv_without_c,      gemv_with_c,          trtri};
 static const std::vector<Rewrite> factorization_set = {qr_invert, lu_invert, llt_invert, qr_leaf,
                                                        lu_leaf,   llt_leaf,  potrf,      geqrf};
 
