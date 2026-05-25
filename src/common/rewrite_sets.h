@@ -2,6 +2,8 @@
 #include "expression.h"
 #include "rewriter.h"
 #include "utils.h"
+#include <string>
+#include <string_view>
 #include <vector>
 
 static auto is_leaf_condition = [](const EGraph &g, const Substitution &s) {
@@ -10,6 +12,17 @@ static auto is_leaf_condition = [](const EGraph &g, const Substitution &s) {
     if (node.get_children().size() != 0)
         return false;
     return true;
+};
+
+static auto is_not_vector = [](std::string_view var) {
+    return [var](const EGraph &g, const Substitution &s) {
+        Id a_id = s.at(std::string(var));
+        const auto &data = g.get_class_analysis_data(a_id);
+        if (const auto *prop = std::get_if<MatrixProperty>(&data.property)) {
+            return !prop->is_vector();
+        }
+        return true;
+    };
 };
 
 static auto is_not_factorized = [](const EGraph &g, const Substitution &s) {
@@ -207,8 +220,8 @@ static const auto inverse_solve =
 
 static const auto solver_right = make_rewrite("solver_right", "?b * Inv(?a)", "Tr(Sol(Tr(?a), Tr(?b)))");
 
-static const auto gemm_without_c =
-    make_rewrite("gemm_without_c", "?a * ?b", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s) {
+static const auto gemm_without_c = make_rewrite(
+    "gemm_without_c", "?a * ?b", "Dynamic", false, is_not_vector("b"), [](EGraph &g, const Substitution &s) {
     Id a_id = s.at("a");
     Id b_id = s.at("b");
     const auto *a_prop = get_matrix_data(g, a_id);
@@ -218,7 +231,8 @@ static const auto gemm_without_c =
     return g.add_node(gemm_node);
 });
 
-static const auto gemm_with_c = make_rewrite("gemm_with_c", "?a * ?b + ?c", "Gemm(?a, ?b, ?c)", false);
+static const auto gemm_with_c =
+    make_rewrite("gemm_with_c", "?a * ?b + ?c", "Gemm(?a, ?b, ?c)", false, is_not_vector("b"));
 
 static const auto syrk_without_c_left =
     make_rewrite("syrk_without_c_left", "?a * Tr(?a)", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s) {

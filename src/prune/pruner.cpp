@@ -31,7 +31,7 @@ Pruner::prune(const std::vector<Id> &roots, const std::vector<SizeBindings> &bin
     return result;
 }
 
-PruneResult Pruner::prune_symbolic_when_kernel_available() const {
+PruneResult Pruner::prune_symbolic_when_kernel_available(EGraph &egraph) {
     std::unordered_map<Id, std::unordered_set<const ENode *>> keep_choices;
 
     for (Id class_id : egraph.get_all_class_ids()) {

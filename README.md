@@ -99,6 +99,9 @@ Finding the globally optimal expression with shared sub-expressions is NP-hard. 
 ## To be implemented (Note to self):
 
 - **Deduce Properties**: For instance A*A' is symmetric and positive definite if A is full rank.
+- **More Kernel Operations**: lauum,sygst, etc.
+- **Document and Validate Rewrites and Cost Models**: Ensure all rewrites and cost models are mathematically sound and well-documented.
+- **More Built-in Rewrites**: Add more algebraic identities, especially for special matrix types (e.g., symmetric, orthogonal).
 
 ## Project Structure
 

@@ -205,3 +205,12 @@ TEST(Integration, VerySimpleDiagram) {
     egraph.add_expression(Expression("a * b + d"));
     egraph.to_img("very_simple_diagram", "svg");
 }
+
+TEST(Integration, ExpressionMapToManyKernalSequences) {
+    EGraph egraph(get_property_table());
+    egraph.add_expression(Expression("Sol(Get(QR(X),1), Tr(Get(QR(X),0)) * y)"));
+    Rewriter rewriter(egraph, build_rewrite_sets({"kernel"}), 1000, true);
+    rewriter.apply_rewrites();
+    Pruner::prune_symbolic_when_kernel_available(egraph);
+    egraph.to_img("many_kernels", "svg");
+}
