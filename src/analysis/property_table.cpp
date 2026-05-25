@@ -1,5 +1,6 @@
 #include "property_table.h"
 
+#include "analysis.h"
 #include "errors.h"
 #include "utils.h"
 #include <charconv>
@@ -74,6 +75,12 @@ MatrixProperty MatrixProperty::from_string(std::string_view text) {
     return prop;
 }
 
+bool PropertyTable::insert_property(const std::string &name, MatrixProperty property) {
+    MatrixAnalysis::enforce_hierarchy(property);
+    auto result = properties.insert_or_assign(name, std::move(property));
+    return result.second;
+}
+
 PropertyTable::PropertyTable(std::vector<std::string> property_strings) {
     for (const auto &string : property_strings) {
         auto name_end = string.find(':');
@@ -82,7 +89,7 @@ PropertyTable::PropertyTable(std::vector<std::string> property_strings) {
         }
         auto name = std::string(trim(string.substr(0, name_end)));
         MatrixProperty property = MatrixProperty::from_string(trim(string.substr(name_end + 1)));
-        properties.insert_or_assign(name, property);
+        insert_property(name, property);
     }
 }
 
@@ -117,6 +124,5 @@ void PropertyTable::print_all_properties() const {
 bool PropertyTable::has_property(const std::string &name) const { return properties.contains(name); }
 
 bool PropertyTable::add_or_update_property_entry(const std::string &name, MatrixProperty property) {
-    auto result = properties.insert_or_assign(name, std::move(property));
-    return result.second;
+    return insert_property(name, property);
 }

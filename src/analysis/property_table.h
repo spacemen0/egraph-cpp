@@ -25,7 +25,7 @@ struct MatrixProperty {
         bool is_positive_semi_definite = false;
 
         bool is_full_rank = false;
-        bool is_non_singular = true; // meaningful only when is_square() is true
+        bool is_non_singular = false; // meaningful only when is_square() is true
 
         bool is_orthogonal = false;
         bool has_orthonormal_columns = false;
@@ -173,5 +173,6 @@ class PropertyTable {
     bool has_property(const std::string &name) const;
 
   private:
+    bool insert_property(const std::string &name, MatrixProperty property);
     std::unordered_map<std::string, MatrixProperty> properties;
 };

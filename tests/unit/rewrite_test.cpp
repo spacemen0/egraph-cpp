@@ -72,6 +72,7 @@ TEST(Rewrite, NewNodes) {
 
     MatrixProperty prop_a;
     prop_a.shape = {10, 10};
+    prop_a.flags.is_non_singular = true;
     pt.add_or_update_property_entry("a", prop_a);
     EGraph egraph(std::move(pt));
 
@@ -97,10 +98,12 @@ TEST(Rewrite, SolveRule) {
 
     MatrixProperty prop_a;
     prop_a.shape = {3, 3};
+    prop_a.flags.is_non_singular = true;
     pt.add_or_update_property_entry("a", prop_a);
 
     MatrixProperty prop_b;
     prop_b.shape = {3, 2};
+    prop_b.flags.is_non_singular = true;
     pt.add_or_update_property_entry("b", prop_b);
 
     EGraph egraph(std::move(pt));
@@ -136,10 +139,12 @@ TEST(Rewrite, BackoffScheduler) {
 
     MatrixProperty prop_3x3;
     prop_3x3.shape = {3, 3};
+    prop_3x3.flags.is_non_singular = true;
     pt.add_or_update_property_entry("a", prop_3x3);
 
     MatrixProperty prop_4x4;
     prop_4x4.shape = {4, 4};
+    prop_4x4.flags.is_non_singular = true;
     pt.add_or_update_property_entry("b", prop_4x4);
 
     EGraph egraph(std::move(pt));

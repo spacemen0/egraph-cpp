@@ -109,6 +109,10 @@ void MatrixAnalysis::enforce_hierarchy(MatrixProperty &p) {
         p.flags.is_lower_triangular = true;
         p.flags.is_symmetric = true;
     }
+
+    if (p.is_square() && p.flags.is_full_rank) {
+        p.flags.is_non_singular = true;
+    }
 }
 
 static void check_arity(const std::vector<Id> &children, size_t expected, const char *op_name) {
@@ -122,6 +126,13 @@ static void check_arity(const std::vector<Id> &children, size_t expected, const 
 static AnalysisData matrix_property_data(MatrixProperty prop) {
     MatrixAnalysis::enforce_hierarchy(prop);
     return AnalysisData{prop};
+}
+
+static AnalysisData tuple_property_data(std::vector<MatrixProperty> &props) {
+    for (auto &prop : props) {
+        MatrixAnalysis::enforce_hierarchy(prop);
+    }
+    return AnalysisData{TupleProperty(props)};
 }
 
 static AnalysisData analyze_add(const EGraph &egraph, const std::vector<Id> &children) {
@@ -157,6 +168,7 @@ static AnalysisData analyze_mul(const EGraph &egraph, const std::vector<Id> &chi
             prop.flags.is_identity = data1->flags.is_identity && data2->flags.is_identity;
             prop.flags.is_permutation = data1->flags.is_permutation && data2->flags.is_permutation;
             prop.flags.is_non_singular = data1->flags.is_non_singular && data2->flags.is_non_singular;
+            prop.flags.is_full_rank = data1->flags.is_full_rank && data2->flags.is_full_rank;
             prop.flags.is_zero = data1->flags.is_zero || data2->flags.is_zero;
             prop.flags.is_lower_triangular = data1->flags.is_lower_triangular && data2->flags.is_lower_triangular;
             prop.flags.is_upper_triangular = data1->flags.is_upper_triangular && data2->flags.is_upper_triangular;
@@ -231,15 +243,20 @@ static AnalysisData analyze_qr(const EGraph &egraph, const std::vector<Id> &chil
             Q.shape = data->shape;
             R.shape = data->shape;
             Q.flags.is_orthogonal = true;
-        } else if (data->is_tall_matrix()) {
+            if (data->flags.is_non_singular) {
+                R.flags.is_non_singular = true;
+            }
+        } else if (data->is_tall_matrix() && data->flags.is_full_rank) {
             Q.shape = data->shape;
             Q.flags.is_tall = true;
             R.shape = std::make_pair(data->shape.second, data->shape.second);
+            R.flags.is_non_singular = true;
         } else if (data->is_wide_matrix()) {
             Q.shape = std::make_pair(data->shape.first, data->shape.first);
             Q.flags.is_orthogonal = true;
             R.shape = data->shape;
             R.flags.is_wide = true;
+            R.flags.is_upper_triangular = false; // is_upper_trapezoidal
         } else {
             throw InvalidOperationError("QR operation on symbolic matrix with ambiguous shape");
         }
@@ -252,7 +269,8 @@ static AnalysisData analyze_qr(const EGraph &egraph, const std::vector<Id> &chil
             R.flags.is_zero = true;
         }
 
-        return AnalysisData{TupleProperty{Q, R}};
+        auto props = std::vector{Q, R};
+        return tuple_property_data(props);
     }
     throw AnalysisError("QR expects a Matrix input");
 }
@@ -311,14 +329,19 @@ static AnalysisData analyze_lu(const EGraph &egraph, const std::vector<Id> &chil
 
         L.shape = data->shape;
         L.flags.is_lower_triangular = true;
+        L.flags.is_non_singular = true;
 
         U.shape = data->shape;
         U.flags.is_upper_triangular = true;
+        if (data->flags.is_non_singular) {
+            U.flags.is_non_singular = true;
+        }
 
         P.shape = data->shape;
         P.flags.is_permutation = true;
+        auto props = std::vector{L, U, P};
 
-        return AnalysisData{TupleProperty{L, U, P}};
+        return tuple_property_data(props);
     }
     throw AnalysisError("LU expects a Matrix input");
 }
@@ -338,8 +361,9 @@ static AnalysisData analyze_llt(const EGraph &egraph, const std::vector<Id> &chi
         MatrixProperty L;
         L.shape = data->shape;
         L.flags.is_lower_triangular = true;
-
-        return AnalysisData{TupleProperty{L}};
+        L.flags.is_non_singular = true;
+        auto props = std::vector{L};
+        return tuple_property_data(props);
     }
     throw AnalysisError("LLt expects a Matrix input");
 }
