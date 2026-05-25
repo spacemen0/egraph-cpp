@@ -62,13 +62,13 @@ void MatrixAnalysis::merge(AnalysisData &data1, const AnalysisData &data2) {
 void MatrixAnalysis::enforce_hierarchy(MatrixProperty &p) {
     if (p.flags.is_orthogonal) {
         p.flags.has_orthonormal_columns = true;
-        p.flags.is_invertible = true;
+        p.flags.is_non_singular = true;
         p.flags.is_full_rank = true;
     }
 
     if (p.is_square() && p.flags.has_orthonormal_columns) {
         p.flags.is_orthogonal = true;
-        p.flags.is_invertible = true;
+        p.flags.is_non_singular = true;
     }
 
     if (p.flags.has_orthonormal_columns) {
@@ -85,7 +85,7 @@ void MatrixAnalysis::enforce_hierarchy(MatrixProperty &p) {
 
     if (p.flags.is_zero) {
         p.flags.is_diagonal = true;
-        p.flags.is_singular = true;
+        p.flags.is_non_singular = false;
     }
 
     if (p.flags.is_identity) {
@@ -93,14 +93,14 @@ void MatrixAnalysis::enforce_hierarchy(MatrixProperty &p) {
         p.flags.is_orthogonal = true;
         p.flags.is_positive_definite = true;
         p.flags.is_positive_semi_definite = true;
-        p.flags.is_invertible = true;
+        p.flags.is_non_singular = true;
         p.flags.is_full_rank = true;
     }
 
     if (p.flags.is_positive_definite) {
         p.flags.is_positive_semi_definite = true;
         p.flags.is_symmetric = true;
-        p.flags.is_invertible = true;
+        p.flags.is_non_singular = true;
         p.flags.is_full_rank = true;
     }
 
@@ -156,7 +156,7 @@ static AnalysisData analyze_mul(const EGraph &egraph, const std::vector<Id> &chi
             prop.shape = std::make_pair(data1->shape.first, data2->shape.second);
             prop.flags.is_identity = data1->flags.is_identity && data2->flags.is_identity;
             prop.flags.is_permutation = data1->flags.is_permutation && data2->flags.is_permutation;
-            prop.flags.is_singular = data1->flags.is_singular || data2->flags.is_singular;
+            prop.flags.is_non_singular = data1->flags.is_non_singular && data2->flags.is_non_singular;
             prop.flags.is_zero = data1->flags.is_zero || data2->flags.is_zero;
             prop.flags.is_lower_triangular = data1->flags.is_lower_triangular && data2->flags.is_lower_triangular;
             prop.flags.is_upper_triangular = data1->flags.is_upper_triangular && data2->flags.is_upper_triangular;
@@ -188,7 +188,7 @@ static AnalysisData analyze_invert(const EGraph &egraph, const std::vector<Id> &
         if (data->shape.first != data->shape.second) {
             throw InvalidOperationError("Inv operation on non-square matrix");
         }
-        if (data->flags.is_singular) {
+        if (!data->flags.is_non_singular) {
             throw InvalidOperationError("Inv operation on singular matrix");
         }
 
@@ -388,7 +388,7 @@ static AnalysisData analyze_trsm(const EGraph &egraph, const std::vector<Id> &ch
             if (!dataA->flags.is_lower_triangular && !dataA->flags.is_upper_triangular) {
                 throw InvalidOperationError("Trsm operation on non-triangular matrix A");
             }
-            if (dataA->shape.second != dataB->shape.first || dataA->flags.is_singular) {
+            if (dataA->shape.second != dataB->shape.first || !dataA->flags.is_non_singular) {
                 throw ShapeMismatchError("Trsm operation with incompatible sizes");
             }
 
@@ -417,7 +417,7 @@ static AnalysisData analyze_trtri(const EGraph &egraph, const std::vector<Id> &c
         if (!data->flags.is_upper_triangular && !data->flags.is_lower_triangular) {
             throw InvalidOperationError("Trtri operation on non-triangular matrix");
         }
-        if (data->flags.is_singular) {
+        if (!data->flags.is_non_singular) {
             throw InvalidOperationError("Trtri operation on singular matrix");
         }
 

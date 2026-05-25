@@ -68,10 +68,10 @@ static auto is_symmetric = [](std::string_view var) {
     };
 };
 
-static auto is_invertible = [](std::string_view var) {
+static auto is_non_singular_cond = [](std::string_view var) {
     return [var = std::string(var)](const EGraph &g, const Substitution &s) {
         const auto *prop = get_matrix_data(g, s.at(var));
-        return prop && prop->is_square() && !prop->flags.is_singular;
+        return prop && prop->is_square() && prop->flags.is_non_singular;
     };
 };
 
@@ -186,7 +186,7 @@ static const auto invert_cancel_right = make_rewrite(
 
 static const auto invert_mat_prod = make_rewrite(
     "invert-mat-prod", "Inv(?a * ?b)", "Inv(?b) * Inv(?a)", true, [](const EGraph &g, const Substitution &s) {
-    return is_invertible("a")(g, s) && is_invertible("b")(g, s);
+    return is_non_singular_cond("a")(g, s) && is_non_singular_cond("b")(g, s);
 });
 
 static const auto orthogonal_transpose =

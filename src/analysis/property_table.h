@@ -25,8 +25,7 @@ struct MatrixProperty {
         bool is_positive_semi_definite = false;
 
         bool is_full_rank = false;
-        bool is_invertible = false;
-        bool is_singular = false; // meaningful only when is_square() is true
+        bool is_non_singular = true; // meaningful only when is_square() is true
 
         bool is_orthogonal = false;
         bool has_orthonormal_columns = false;
@@ -51,7 +50,7 @@ struct MatrixProperty {
         {&MatrixFlags::is_lower_triangular, "lower_triangular"},
         {&MatrixFlags::is_diagonal, "diagonal"},
         {&MatrixFlags::is_positive_definite, "positive_definite"},
-        {&MatrixFlags::is_singular, "singular"},
+        {&MatrixFlags::is_non_singular, "non_singular"},
         {&MatrixFlags::is_permutation, "permutation"},
         {&MatrixFlags::is_tall, "tall"},
         {&MatrixFlags::is_wide, "wide"},

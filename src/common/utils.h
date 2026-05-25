@@ -158,7 +158,7 @@ make_identity_for(EGraph &egraph, const Substitution &s, const std::string &var_
         .is_symmetric = true,
         .is_zero = false,
         .is_identity = true,
-        .is_singular = false,
+        .is_non_singular = true,
         .has_orthonormal_columns = true,
     };
 
@@ -195,7 +195,7 @@ inline Id make_zero_of_shape(EGraph &g, const Shape &shape) {
         .is_symmetric = is_sq,
         .is_zero = true,
         .is_identity = false,
-        .is_singular = true,
+        .is_non_singular = false,
     };
 
     if (g.find_class_with_property(prop).has_value()) {
