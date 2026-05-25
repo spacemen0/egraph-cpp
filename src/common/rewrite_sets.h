@@ -6,17 +6,16 @@
 #include <string_view>
 #include <vector>
 
-static auto is_leaf_condition = [](const EGraph &g, const Substitution &s) {
-    Id a_id = s.at("a");
-    const auto &node = g.at(a_id);
-    if (node.get_children().size() != 0)
-        return false;
-    return true;
+static auto is_leaf = [](std::string_view var) {
+    return [var = std::string(var)](const EGraph &g, const Substitution &s) {
+        Id id = s.at(var);
+        return g.at(id).get_children().empty();
+    };
 };
 
 static auto is_not_vector = [](std::string_view var) {
-    return [var](const EGraph &g, const Substitution &s) {
-        Id a_id = s.at(std::string(var));
+    return [var = std::string(var)](const EGraph &g, const Substitution &s) {
+        Id a_id = s.at(var);
         const auto &data = g.get_class_analysis_data(a_id);
         if (const auto *prop = std::get_if<MatrixProperty>(&data.property)) {
             return !prop->is_vector();
@@ -25,33 +24,112 @@ static auto is_not_vector = [](std::string_view var) {
     };
 };
 
-static auto is_not_factorized = [](const EGraph &g, const Substitution &s) {
-    Id a_id = s.at("a");
-    const auto &data = g.get_class_analysis_data(a_id);
-    if (const auto *prop = std::get_if<MatrixProperty>(&data.property)) {
-        return !(
-            prop->flags.is_upper_triangular || prop->flags.is_lower_triangular || prop->flags.is_diagonal ||
-            prop->flags.is_identity || prop->flags.is_orthogonal || prop->flags.has_orthonormal_columns);
-    }
-    return true;
+static auto is_not_factorized = [](std::string_view var) {
+    return [var = std::string(var)](const EGraph &g, const Substitution &s) {
+        Id id = s.at(var);
+        const auto &data = g.get_class_analysis_data(id);
+        if (const auto *prop = std::get_if<MatrixProperty>(&data.property)) {
+            return !(
+                prop->flags.is_upper_triangular || prop->flags.is_lower_triangular || prop->flags.is_diagonal ||
+                prop->flags.is_identity || prop->flags.is_orthogonal || prop->flags.has_orthonormal_columns);
+        }
+        return true;
+    };
 };
-static auto leaf_and_not_factorized = [](const EGraph &g, const Substitution &s) {
-    return is_leaf_condition(g, s) && is_not_factorized(g, s);
+static auto is_square = [](std::string_view var) {
+    return [var = std::string(var)](const EGraph &g, const Substitution &s) {
+        return check_is_square(s, g, var);
+    };
 };
 
-static auto leaf_and_not_factorized_and_square = [](const EGraph &g, const Substitution &s) {
-    return is_leaf_condition(g, s) && is_not_factorized(g, s) && check_is_square(s, g, "a");
+static auto is_identity_cond = [](std::string_view var) {
+    return [var = std::string(var)](const EGraph &g, const Substitution &s) {
+        return is_identity(s, g, var);
+    };
+};
+
+static auto is_zero_cond = [](std::string_view var) {
+    return [var = std::string(var)](const EGraph &g, const Substitution &s) {
+        return is_zero(s, g, var);
+    };
+};
+
+static auto is_pos_def = [](std::string_view var) {
+    return [var = std::string(var)](const EGraph &g, const Substitution &s) {
+        const auto *prop = get_matrix_data(g, s.at(var));
+        return prop && prop->flags.is_positive_definite;
+    };
+};
+
+static auto is_symmetric = [](std::string_view var) {
+    return [var = std::string(var)](const EGraph &g, const Substitution &s) {
+        const auto *prop = get_matrix_data(g, s.at(var));
+        return prop && prop->flags.is_symmetric;
+    };
+};
+
+static auto is_invertible = [](std::string_view var) {
+    return [var = std::string(var)](const EGraph &g, const Substitution &s) {
+        const auto *prop = get_matrix_data(g, s.at(var));
+        return prop && prop->is_square() && !prop->flags.is_singular;
+    };
+};
+
+static auto is_orthogonal_cond = [](std::string_view var) {
+    return [var = std::string(var)](const EGraph &g, const Substitution &s) {
+        const auto *prop = get_matrix_data(g, s.at(var));
+        return prop && prop->flags.is_orthogonal;
+    };
+};
+
+static auto is_orthonormal_cond = [](std::string_view var) {
+    return [var = std::string(var)](const EGraph &g, const Substitution &s) {
+        const auto *prop = get_matrix_data(g, s.at(var));
+        return prop && prop->flags.has_orthonormal_columns;
+    };
+};
+
+static auto is_triangular = [](std::string_view var) {
+    return [var = std::string(var)](const EGraph &g, const Substitution &s) {
+        const auto *prop = get_matrix_data(g, s.at(var));
+        return prop && (prop->flags.is_upper_triangular || prop->flags.is_lower_triangular);
+    };
+};
+
+static auto is_matrix = [](std::string_view var) {
+    return [var = std::string(var)](const EGraph &g, const Substitution &s) {
+        const auto *prop = get_matrix_data(g, s.at(var));
+        return prop && !prop->is_vector() && !prop->is_scalar();
+    };
+};
+
+static auto is_vector = [](std::string_view var) {
+    return [var = std::string(var)](const EGraph &g, const Substitution &s) {
+        const auto *prop = get_matrix_data(g, s.at(var));
+        return prop && prop->is_vector();
+    };
+};
+
+static auto leaf_and_not_factorized = [](std::string_view var) {
+    return [var = std::string(var)](const EGraph &g, const Substitution &s) {
+        return is_leaf(var)(g, s) && is_not_factorized(var)(g, s);
+    };
+};
+
+static auto leaf_and_not_factorized_and_square = [](std::string_view var) {
+    return [var = std::string(var)](const EGraph &g, const Substitution &s) {
+        return is_leaf(var)(g, s) && is_not_factorized(var)(g, s) && is_square(var)(g, s);
+    };
 };
 
 static const auto qr_invert =
-    make_rewrite("qr-invert", "Inv(?a)", "Inv(Get(QR(?a), 0) * Get(QR(?a), 1))", true, is_not_factorized);
+    make_rewrite("qr-invert", "Inv(?a)", "Inv(Get(QR(?a), 0) * Get(QR(?a), 1))", true, is_not_factorized("a"));
 static const auto qr_leaf =
     make_rewrite("qr-leaf", "?a", "Get(QR(?a), 0) * Get(QR(?a), 1)", true, [](const EGraph &g, const Substitution &s) {
-    if (!leaf_and_not_factorized(g, s))
+    if (!leaf_and_not_factorized("a")(g, s))
         return false;
-    Id a_id = s.at("a");
-    const auto &data = g.get_class_analysis_data(a_id);
-    if (const auto *prop = std::get_if<MatrixProperty>(&data.property)) {
+    const auto *prop = get_matrix_data(g, s.at("a"));
+    if (prop) {
         // Avoid ambiguous symbolic-shape exceptions.
         return !prop->is_vector() && (prop->is_square() || prop->is_tall_matrix() || prop->is_wide_matrix());
     }
@@ -61,51 +139,28 @@ static const auto qr_leaf =
 static const auto lu_invert = make_rewrite(
     "lu-invert", "Inv(?a)", "Inv(Get(LU(?a), 1)) * Inv(Get(LU(?a), 0))", true,
     [](const EGraph &g, const Substitution &s) {
-    if (!is_not_factorized(g, s))
-        return false;
-    if (check_is_square(s, g, "a"))
-        return true;
-    return false;
+    return is_not_factorized("a")(g, s) && is_square("a")(g, s);
 });
 
 static const auto lu_leaf =
-    make_rewrite("lu-leaf", "?a", "Get(LU(?a), 0) * Get(LU(?a), 1)", true, leaf_and_not_factorized_and_square);
+    make_rewrite("lu-leaf", "?a", "Get(LU(?a), 0) * Get(LU(?a), 1)", true, leaf_and_not_factorized_and_square("a"));
+
 static const auto llt_invert = make_rewrite(
     "llt-invert", "Inv(?a)", "Tr(Inv(Get(LLt(?a), 0))) * Inv(Get(LLt(?a), 0))", true,
     [](const EGraph &g, const Substitution &s) {
-    if (!is_not_factorized(g, s))
-        return false;
-    Id a_id = s.at("a");
-    const auto &data = g.get_class_analysis_data(a_id);
-
-    if (auto *prop = std::get_if<MatrixProperty>(&data.property)) {
-        return prop->flags.is_positive_definite && prop->flags.is_symmetric;
-    }
-    return false;
+    return is_not_factorized("a")(g, s) && is_pos_def("a")(g, s) && is_symmetric("a")(g, s);
 });
 
 static const auto llt_leaf = make_rewrite(
     "llt-leaf", "?a", "Tr(Get(LLt(?a), 0)) * Get(LLt(?a), 0)", false, [](const EGraph &g, const Substitution &s) {
-    if (!leaf_and_not_factorized_and_square(g, s))
-        return false;
-    Id a_id = s.at("a");
-    const auto &data = g.get_class_analysis_data(a_id);
-
-    if (auto *prop = std::get_if<MatrixProperty>(&data.property)) {
-        return prop->flags.is_positive_definite && prop->flags.is_symmetric;
-    }
-    return false;
+    return leaf_and_not_factorized_and_square("a")(g, s) && is_pos_def("a")(g, s) && is_symmetric("a")(g, s);
 });
 
 static const auto mul_identity_left =
-    make_rewrite("mul-identity-left", "?a * ?i", "?a", false, [](const EGraph &g, const Substitution &s) {
-    return is_identity(s, g, "i");
-});
+    make_rewrite("mul-identity-left", "?a * ?i", "?a", false, is_identity_cond("i"));
 
 static const auto mul_identity_right =
-    make_rewrite("mul-identity-right", "?i * ?a", "?a", false, [](const EGraph &g, const Substitution &s) {
-    return is_identity(s, g, "i");
-});
+    make_rewrite("mul-identity-right", "?i * ?a", "?a", false, is_identity_cond("i"));
 
 static const auto mul_distribute_left =
     make_rewrite("mul-distribute-over-add-left", "?a * (?b + ?c)", "?a * ?b + ?a * ?c", true);
@@ -131,40 +186,16 @@ static const auto invert_cancel_right = make_rewrite(
 
 static const auto invert_mat_prod = make_rewrite(
     "invert-mat-prod", "Inv(?a * ?b)", "Inv(?b) * Inv(?a)", true, [](const EGraph &g, const Substitution &s) {
-    Id a_id = s.at("a");
-    Id b_id = s.at("b");
-    const auto &data_a = g.get_class_analysis_data(a_id);
-    const auto &data_b = g.get_class_analysis_data(b_id);
-    if (auto *prop_a = std::get_if<MatrixProperty>(&data_a.property)) {
-        if (auto *prop_b = std::get_if<MatrixProperty>(&data_b.property)) {
-            return prop_a->is_square() && !prop_a->flags.is_singular && prop_b->is_square() &&
-                   !prop_b->flags.is_singular;
-        }
-    }
-    return false;
+    return is_invertible("a")(g, s) && is_invertible("b")(g, s);
 });
 
 static const auto orthogonal_transpose =
-    make_rewrite("orthogonal-transpose", "Tr(?a) * ?a", "Identity", false, [](const EGraph &g, const Substitution &s) {
-    Id a_id = s.at("a");
-    const auto &data = g.get_class_analysis_data(a_id);
-    if (auto *prop = std::get_if<MatrixProperty>(&data.property)) {
-        return prop->flags.is_orthogonal;
-    }
-    return false;
-}, [](EGraph &g, const Substitution &s) {
+    make_rewrite("orthogonal-transpose", "Tr(?a) * ?a", "Identity", false, is_orthogonal_cond("a"), [](EGraph &g, const Substitution &s) {
     return make_identity_for(g, s, "a");
 });
 
 static const auto orthonormal_transpose =
-    make_rewrite("orthonormal-transpose", "Tr(?a) * ?a", "Identity", false, [](const EGraph &g, const Substitution &s) {
-    Id a_id = s.at("a");
-    const auto &data = g.get_class_analysis_data(a_id);
-    if (auto *prop = std::get_if<MatrixProperty>(&data.property)) {
-        return prop->flags.has_orthonormal_columns;
-    }
-    return false;
-}, [](EGraph &g, const Substitution &s) {
+    make_rewrite("orthonormal-transpose", "Tr(?a) * ?a", "Identity", false, is_orthonormal_cond("a"), [](EGraph &g, const Substitution &s) {
     return make_identity_for(g, s, "a", false);
 });
 
@@ -174,23 +205,17 @@ static const auto minus_cancel =
 });
 
 static const auto add_comm_zero =
-    make_rewrite("add-comm-zero", "?a + ?z", "?a", false, [](const EGraph &g, const Substitution &s) {
-    return is_zero(s, g, "z");
-});
+    make_rewrite("add-comm-zero", "?a + ?z", "?a", false, is_zero_cond("z"));
 
 static const auto mul_zero_left =
-    make_rewrite("mul-zero-left", "?z * ?a", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
-    return is_zero(s, g, "z");
-}, [](EGraph &g, const Substitution &s) {
+    make_rewrite("mul-zero-left", "?z * ?a", "Dynamic", false, is_zero_cond("z"), [](EGraph &g, const Substitution &s) {
     const auto *z_prop = get_matrix_data(g, s.at("z"));
     const auto *a_prop = get_matrix_data(g, s.at("a"));
     return make_zero_of_shape(g, {z_prop->shape.first, a_prop->shape.second});
 });
 
 static const auto mul_zero_right =
-    make_rewrite("mul-zero-right", "?a * ?z", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
-    return is_zero(s, g, "z");
-}, [](EGraph &g, const Substitution &s) {
+    make_rewrite("mul-zero-right", "?a * ?z", "Dynamic", false, is_zero_cond("z"), [](EGraph &g, const Substitution &s) {
     const auto *a_prop = get_matrix_data(g, s.at("a"));
     const auto *z_prop = get_matrix_data(g, s.at("z"));
     return make_zero_of_shape(g, {a_prop->shape.first, z_prop->shape.second});
@@ -199,14 +224,12 @@ static const auto mul_zero_right =
 static const auto solver_left = make_rewrite("solver_left", "Inv(?a) * ?b", "Sol(?a, ?b)");
 static const auto solve_composition = make_rewrite(
     "solve_composition", "Sol(?a * ?b, ?c)", "Sol(?b, Sol(?a, ?c))", true, [](const EGraph &g, const Substitution &s) {
-    return check_is_square(s, g, "a") && check_is_square(s, g, "b");
+    return is_square("a")(g, s) && is_square("b")(g, s);
 });
 static const auto solve_cancel_left = make_rewrite("solve_cancel_left", "Sol(?a, ?a * ?b)", "?b");
 static const auto solve_cancel_right = make_rewrite("solve_cancel_right", "?a * Sol(?a, ?b)", "?b");
 static const auto solve_by_id =
-    make_rewrite("solve_by_id", "Sol(?b, ?a)", "?a", false, [](const EGraph &g, const Substitution &s) {
-    return is_identity(s, g, "b");
-}, nullptr);
+    make_rewrite("solve_by_id", "Sol(?b, ?a)", "?a", false, is_identity_cond("b"), nullptr);
 static const auto solve_identity =
     make_rewrite("solve_identity", "Sol(?a, ?a)", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s) {
     return make_identity_for(g, s, "a");
@@ -215,7 +238,7 @@ static const auto solve_identity =
 // this creates lots of cycles somehow
 static const auto inverse_solve =
     make_rewrite("inverse_solve", "Inv(Sol(?a, ?b))", "Sol(?b, ?a)", false, [](const EGraph &g, const Substitution &s) {
-    return check_is_square(s, g, "a") && check_is_square(s, g, "b");
+    return is_square("a")(g, s) && is_square("b")(g, s);
 });
 
 static const auto solver_right = make_rewrite("solver_right", "?b * Inv(?a)", "Tr(Sol(Tr(?a), Tr(?b)))");
@@ -258,9 +281,7 @@ static const auto syrk_with_c_right = make_rewrite("syrk_with_c_right", "Tr(?a) 
 
 static const auto trsm =
     make_rewrite("trsm", "Sol(?a, ?b)", "Trsm(?a, ?b)", false, [](const EGraph &g, const Substitution &s) {
-    Id a_id = s.at("a");
-    const auto *a_prop = get_matrix_data(g, a_id);
-    return a_prop->is_square() && (a_prop->flags.is_upper_triangular || a_prop->flags.is_lower_triangular);
+    return is_square("a")(g, s) && is_triangular("a")(g, s);
 });
 
 static const auto sub_to_add_scale = make_rewrite("sub_to_add_scale", "?a - ?b", "?a + Scale(?b, -1)");
@@ -268,20 +289,10 @@ static const auto sub_to_add_scale = make_rewrite("sub_to_add_scale", "?a - ?b",
 static const auto potrf = make_rewrite("potrf", "LLt(?a)", "Potrf(?a)", false);
 static const auto geqrf = make_rewrite("geqrf", "QR(?a)", "Geqrf(?a)", false);
 static const auto trtri =
-    make_rewrite("trtri", "Inv(?a)", "Trtri(?a)", false, [](const EGraph &g, const Substitution &s) {
-    Id a_id = s.at("a");
-    const auto *a_prop = get_matrix_data(g, a_id);
-    return a_prop->flags.is_upper_triangular || a_prop->flags.is_lower_triangular;
-});
+    make_rewrite("trtri", "Inv(?a)", "Trtri(?a)", false, is_triangular("a"));
 static const auto gemv_without_c =
     make_rewrite("gemv_without_c", "?a * ?b", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
-    Id a_id = s.at("a");
-    Id b_id = s.at("b");
-    const auto *a_prop = get_matrix_data(g, a_id);
-    const auto *b_prop = get_matrix_data(g, b_id);
-    if (!a_prop || !b_prop)
-        return false;
-    return (!a_prop->is_vector() && !a_prop->is_scalar()) && b_prop->is_vector();
+    return is_matrix("a")(g, s) && is_vector("b")(g, s);
 }, [](EGraph &g, const Substitution &s) {
     Id a_id = s.at("a");
     Id b_id = s.at("b");
@@ -294,15 +305,7 @@ static const auto gemv_without_c =
 
 static const auto gemv_with_c =
     make_rewrite("gemv_with_c", "?a * ?b + ?c", "Gemv(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
-    Id a_id = s.at("a");
-    Id b_id = s.at("b");
-    Id c_id = s.at("c");
-    const auto *a_prop = get_matrix_data(g, a_id);
-    const auto *b_prop = get_matrix_data(g, b_id);
-    const auto *c_prop = get_matrix_data(g, c_id);
-    if (!a_prop || !b_prop || !c_prop)
-        return false;
-    return (!a_prop->is_vector() && !a_prop->is_scalar()) && b_prop->is_vector() && c_prop->is_vector();
+    return is_matrix("a")(g, s) && is_vector("b")(g, s) && is_vector("c")(g, s);
 });
 
 static const std::vector<Rewrite> kernel_set = {
