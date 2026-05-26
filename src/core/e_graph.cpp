@@ -340,6 +340,7 @@ PruneResult EGraph::prune_nodes_except(const std::unordered_map<Id, std::unorder
 
     memo = std::move(new_memo);
 
+    // remove dangling parents
     for (auto &[class_id, eclass_ptr] : classes) {
         auto &parents = eclass_ptr->get_parents();
         parents.erase(
@@ -351,6 +352,7 @@ PruneResult EGraph::prune_nodes_except(const std::unordered_map<Id, std::unorder
             parents.end());
     }
 
+    // remove pending ids that are no longer valid
     pending.erase(
         std::remove_if(
             pending.begin(), pending.end(),

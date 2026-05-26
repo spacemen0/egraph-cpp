@@ -48,14 +48,16 @@ TEST(Integration, OLSPruneConverges) {
 
     pruner.rewrite_and_prune({root_id}, rewriter, options, pre_iteration, post_iteration);
     Rewriter kernel_rewriter(egraph, build_rewrite_sets({"kernel"}), 500);
-    kernel_rewriter.apply_rewrites(1);
+    kernel_rewriter.apply_rewrites();
+    egraph.to_img("egraph_after_pruning", "svg");
     Pruner::prune_symbolic_when_kernel_available(egraph);
+    egraph.to_img("egraph_after_symbolic_pruning", "svg");
     auto result = extractor.extract_symbolic(root_id);
     for (const auto &candidate : result) {
         std::cout << "Candidate expression: " << candidate.expr.to_string(true) << std::endl;
         std::cout << "Cost: " << candidate.cost << std::endl;
     }
-    // ASSERT_TRUE(std::any_of(result.begin(), result.end(), [](const auto &c) {
-    //     return c.expr.to_string(true) == "Sol(R(M), Q(M)ᵀ * n)";
-    // }));
+    ASSERT_TRUE(std::any_of(result.begin(), result.end(), [](const auto &c) {
+        return c.expr.to_string(true) == "Trsm(R(M), Gemv(Q(M)ᵀ, n, Zero_Bx1))";
+    }));
 }
