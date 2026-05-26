@@ -1,8 +1,8 @@
-#include "algebraic_transformation.h"
-#include "algorithmic_expansions.h"
-#include "kernel_lowering.h"
+#include "expansions.h"
+#include "lowering.h"
 #include "rewriter.h"
 #include "simplification.h"
+#include "transformation.h"
 #include <string>
 #include <string_view>
 #include <vector>
