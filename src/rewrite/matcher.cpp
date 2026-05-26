@@ -46,6 +46,7 @@ std::vector<Substitution> Matcher::search_eclass_for_pattern(
             auto var_name = str_atom->substr(1);
             auto it = initial_subst.find(var_name);
 
+            // already bound variable must match the id, but different variable can match the same id
             if (it != initial_subst.end()) {
                 if (it->second == canonical_id) {
                     results.push_back(initial_subst);
