@@ -46,7 +46,7 @@ TEST(Integration, OLSSymbolic) {
     auto end_add = std::chrono::high_resolution_clock::now();
 
     auto start_rules = std::chrono::high_resolution_clock::now();
-    std::vector<Rewrite> rules = build_rewrite_sets({"complete"});
+    std::vector<Rewrite> rules = build_rewrite_sets({"simplification", "transformation", "expansion"});
     auto end_rules = std::chrono::high_resolution_clock::now();
 
     Rewriter rewriter(egraph, rules, 1000, true);

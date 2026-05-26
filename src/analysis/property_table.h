@@ -145,7 +145,7 @@ struct MatrixProperty {
 using TupleProperty = std::vector<MatrixProperty>;
 
 struct AnalysisData {
-    std::variant<MatrixProperty, TupleProperty, std::string> property;
+    std::variant<MatrixProperty, TupleProperty, int> property;
     bool operator==(const AnalysisData &other) const {
         if (property.index() != other.property.index())
             return false;

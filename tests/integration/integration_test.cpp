@@ -182,18 +182,11 @@ TEST(Integration, SimpleDiagram) {
     Rewriter rewriter(egraph, rules, 500, true);
     rewriter.apply_rewrites(1);
     egraph.to_img("simple_diagram", "svg");
-    Rewriter rewriter2(egraph, build_rewrite_sets({"algebraic"}), 500, true);
+    Rewriter rewriter2(egraph, build_rewrite_sets({"simplification", "transformation"}), 500, true);
     rewriter2.apply_rewrites(3);
-    egraph.to_img("simple_diagram_after_algebraic", "svg");
+    egraph.to_img("simple_diagram_after_simplification", "svg");
 }
 
-TEST(Integration, OLSDiagram) {
-    EGraph egraph(get_property_table());
-    egraph.add_expression(Expression("Inv(Tr(X) * X) * Tr(X) * y"));
-    Rewriter rewriter(egraph, build_rewrite_sets({"algebraic"}), 1000, true);
-    rewriter.apply_rewrites(1);
-    egraph.to_img("ols", "svg");
-}
 TEST(Integration, VerySimpleDiagram) {
     PropertyTable pt;
     pt.add_or_update_property_entry("a", {.shape = std::make_pair(3, 3)});
@@ -209,7 +202,7 @@ TEST(Integration, VerySimpleDiagram) {
 TEST(Integration, ExpressionMapToManyKernelSequences) {
     EGraph egraph(get_property_table());
     egraph.add_expression(Expression("Sol(Get(QR(X),1), Tr(Get(QR(X),0)) * y)"));
-    Rewriter rewriter(egraph, build_rewrite_sets({"kernel"}), 1000, true);
+    Rewriter rewriter(egraph, build_rewrite_sets({"lowering"}), 1000, true);
     rewriter.apply_rewrites();
     Pruner::prune_symbolic_when_kernel_available(egraph);
     egraph.to_img("many_kernels", "svg");

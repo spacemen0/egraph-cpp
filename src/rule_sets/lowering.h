@@ -68,3 +68,18 @@ static const auto trsm =
 static const auto potrf = make_rewrite("potrf", "LLt(?a)", "Potrf(?a)", false);
 static const auto geqrf = make_rewrite("geqrf", "QR(?a)", "Geqrf(?a)", false);
 static const auto trtri = make_rewrite("trtri", "Inv(?a)", "Trtri(?a)", false, is_triangular("a"));
+
+static const std::vector<Rewrite> lowering_set = {
+    gemv_without_c,
+    gemv_with_c,
+    gemm_without_c,
+    gemm_with_c,
+    syrk_without_c_left,
+    syrk_without_c_right,
+    syrk_with_c_left,
+    syrk_with_c_right,
+    trsm,
+    potrf,
+    geqrf,
+    trtri,
+};

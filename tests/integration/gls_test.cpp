@@ -14,8 +14,7 @@ TEST(Integration, GLSNumeric) {
         MatrixProperty{.shape = std::make_pair(3, 3), .flags = {.is_symmetric = true, .is_positive_definite = true}});
     auto id = egraph.add_expression(Expression("(Inv(Tr(X) * Inv(M) * X) * (Tr(X) * Inv(M))) * y"));
 
-    std::vector<Rewrite> rules =
-        build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality", "solver"});
+    std::vector<Rewrite> rules = build_rewrite_sets({"complete"});
     CostStorage cost_storage(egraph);
     Rewriter rewriter(egraph, rules, 1000, true);
     while (rewriter.apply_rewrites(10))
@@ -38,8 +37,7 @@ TEST(Integration, GLSSymbolic) {
     EGraph egraph(pt);
     auto id = egraph.add_expression(Expression("(Inv(Tr(X) * Inv(M) * X) * (Tr(X) * Inv(M))) * y"));
 
-    std::vector<Rewrite> rules =
-        build_rewrite_sets({"factorization", "algebraic", "inverse", "orthogonality", "solver"});
+    std::vector<Rewrite> rules = build_rewrite_sets({"complete"});
     CostStorage cost_storage(egraph);
     Rewriter rewriter(egraph, rules, 3000, true);
     while (rewriter.apply_rewrites(10))

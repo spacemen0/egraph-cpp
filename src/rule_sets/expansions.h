@@ -48,3 +48,7 @@ static const auto llt_leaf = make_rewrite(
     "llt-leaf", "?a", "Tr(Get(LLt(?a), 0)) * Get(LLt(?a), 0)", false, [](const EGraph &g, const Substitution &s) {
     return leaf_and_not_factorized_and_square("a")(g, s) && is_pos_def("a")(g, s) && is_symmetric("a")(g, s);
 });
+
+static const std::vector<Rewrite> expansion_set = {
+    solver_left, solver_right, qr_invert, qr_leaf, lu_invert, lu_leaf, llt_invert, llt_leaf,
+};

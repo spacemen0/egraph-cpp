@@ -47,7 +47,7 @@ TEST(Integration, OLSPruneConverges) {
     };
 
     pruner.rewrite_and_prune({root_id}, rewriter, options, pre_iteration, post_iteration);
-    Rewriter kernel_rewriter(egraph, build_rewrite_sets({"kernel"}), 500);
+    Rewriter kernel_rewriter(egraph, build_rewrite_sets({"lowering"}), 500);
     kernel_rewriter.apply_rewrites();
     egraph.to_img("egraph_after_pruning", "svg");
     Pruner::prune_symbolic_when_kernel_available(egraph);

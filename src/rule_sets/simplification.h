@@ -24,14 +24,20 @@ static const auto mul_zero_right = make_rewrite(
     const auto *z_prop = get_matrix_data(g, s.at("z"));
     return make_zero_of_shape(g, {a_prop->shape.first, z_prop->shape.second});
 });
-
+static const auto scale_zero_scalar =
+    make_rewrite("scale_zero_scalar", "Scale(?a, 0)", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s) {
+    const auto *a_prop = get_matrix_data(g, s.at("a"));
+    return make_zero_of_shape(g, a_prop->shape);
+});
+static const auto scale_zero_matrix =
+    make_rewrite("scale_zero_matrix", "Scale(?a, ?z)", "?a", false, is_zero_cond("a"));
 /// Identity Eliminations
 /// ----------------------------------------------------------
 static const auto mul_identity_left = make_rewrite("mul-identity-left", "?a * ?i", "?a", false, is_identity_cond("i"));
 static const auto mul_identity_right =
     make_rewrite("mul-identity-right", "?i * ?a", "?a", false, is_identity_cond("i"));
 static const auto solve_by_id = make_rewrite("solve_by_id", "Sol(?b, ?a)", "?a", false, is_identity_cond("b"), nullptr);
-
+static const auto scale_one = make_rewrite("scale_one", "Scale(?a, 1)", "?a");
 /// Cancellations
 /// ----------------------------------------------------------
 static const auto invert_cancel_left = make_rewrite(
@@ -48,6 +54,35 @@ static const auto solve_identity =
     make_rewrite("solve_identity", "Sol(?a, ?a)", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s) {
     return make_identity_for(g, s, "a");
 });
+static const auto scale_collapse = make_rewrite(
+    "scale-collapse", "Scale(Scale(?a, ?s1), ?s2)", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s) {
+    auto s1 = g.get_class_analysis_data(s.at("s1"));
+    auto s2 = g.get_class_analysis_data(s.at("s2"));
+    if (std::holds_alternative<int>(s1.property) && std::holds_alternative<int>(s2.property)) {
+        int new_scale = std::get<int>(s1.property) * std::get<int>(s2.property);
+        return g.add_expression(Expression("Scale(?a, " + std::to_string(new_scale) + ")"), s);
+    }
+    throw InvalidOperationError("scale_collapse requires both scale factors to be integers");
+});
+static const auto scale_combine = make_rewrite(
+    "scale_combine", "Scale(?a,?s1)+Scale(?a,?s2)", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s) {
+    auto s1 = g.get_class_analysis_data(s.at("s1"));
+    auto s2 = g.get_class_analysis_data(s.at("s2"));
+    if (std::holds_alternative<int>(s1.property) && std::holds_alternative<int>(s2.property)) {
+        int combined = std::get<int>(s1.property) + std::get<int>(s2.property);
+        return g.add_expression(Expression("Scale(?a, " + std::to_string(combined) + ")"), s);
+    }
+    throw std::runtime_error("scale_add: Expected both properties to be integers");
+});
+static const auto scale_combine_implicit = make_rewrite(
+    "scale_combine_implicit", "Scale(?a,?s1)+?a", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s) {
+    auto s1 = g.get_class_analysis_data(s.at("s1"));
+    if (std::holds_alternative<int>(s1.property)) {
+        int combined = std::get<int>(s1.property) + 1;
+        return g.add_expression(Expression("Scale(?a, " + std::to_string(combined) + ")"), s);
+    }
+    throw std::runtime_error("scale_add_implicit: Expected scale factor to be an integer");
+});
 
 /// Property-Based Simplifications
 /// ----------------------------------------------------------
@@ -61,3 +96,10 @@ static const auto orthonormal_transpose = make_rewrite(
     [](EGraph &g, const Substitution &s) {
     return make_identity_for(g, s, "a", false);
 });
+
+static const std::vector<Rewrite> simplification_set = {
+    minus_cancel,       add_comm_zero,       mul_zero_left,          mul_zero_right,       scale_zero_scalar,
+    scale_zero_matrix,  mul_identity_left,   mul_identity_right,     solve_by_id,          scale_one,
+    invert_cancel_left, invert_cancel_right, solve_cancel_left,      solve_cancel_right,   solve_identity,
+    scale_collapse,     scale_combine,       scale_combine_implicit, orthogonal_transpose, orthonormal_transpose,
+};
