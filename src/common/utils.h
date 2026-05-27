@@ -125,8 +125,11 @@ inline std::string atom_to_string(const Atom &atom) {
         return "UnknownOp";
     } else if (std::holds_alternative<std::string>(atom)) {
         return std::get<std::string>(atom);
-    } else if (std::holds_alternative<int>(atom)) {
-        return std::to_string(std::get<int>(atom));
+    } else if (std::holds_alternative<double>(atom)) {
+        double v = std::get<double>(atom);
+        if (v == static_cast<long long>(v))
+            return std::to_string(static_cast<long long>(v));
+        return std::to_string(v);
     }
     return "UnknownAtom";
 }

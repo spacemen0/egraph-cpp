@@ -13,8 +13,8 @@ bool Matcher::atoms_match(const Atom &pat_atom, const Atom &enode_atom) const {
     if (const auto s1 = std::get_if<std::string>(&pat_atom))
         return *s1 == std::get<std::string>(enode_atom);
 
-    if (const auto i1 = std::get_if<int>(&pat_atom))
-        return *i1 == std::get<int>(enode_atom);
+    if (const auto i1 = std::get_if<double>(&pat_atom))
+        return *i1 == std::get<double>(enode_atom);
 
     return false;
 }

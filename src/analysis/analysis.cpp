@@ -21,7 +21,7 @@ AnalysisData MatrixAnalysis::make(const EGraph &egraph, const ENode &node) {
         }
         throw AnalysisError("Variable has no property: " + *s);
     } else {
-        return AnalysisData{std::get<int>(atom)};
+        return AnalysisData{std::get<double>(atom)};
     }
 }
 
@@ -295,16 +295,17 @@ static AnalysisData analyze_get(const EGraph &egraph, const std::vector<Id> &chi
         throw AnalysisError("Get index has no nodes");
 
     const Atom &index_atom = index_nodes[0]->get_atom();
-    if (const int *idx = std::get_if<int>(&index_atom)) {
+    if (const double *idx_ptr = std::get_if<double>(&index_atom)) {
+        int idx = static_cast<int>(*idx_ptr);
         if (auto *props = std::get_if<TupleProperty>(&tuple_data.property)) {
-            if (*idx >= 0 && *idx < props->size()) {
-                return AnalysisData{(*props)[*idx]};
+            if (idx >= 0 && idx < props->size()) {
+                return AnalysisData{(*props)[idx]};
             }
             throw AnalysisError("Get index out of bounds");
         }
         throw AnalysisError("Get called on non-tuple");
     }
-    throw AnalysisError("Get index must be a constant integer");
+    throw AnalysisError("Get index must be a constant number");
 }
 
 static AnalysisData analyze_solve(const EGraph &egraph, const std::vector<Id> &children) {

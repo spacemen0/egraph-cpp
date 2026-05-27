@@ -42,8 +42,15 @@ TEST(ParserTest, UnaryMinus) {
 
 TEST(ParserTest, NegativeInteger) {
     auto parsed = parser::parse_expression("-42");
-    EXPECT_TRUE(std::holds_alternative<int>(parsed.atom));
-    EXPECT_EQ(std::get<int>(parsed.atom), -42);
+    EXPECT_TRUE(std::holds_alternative<double>(parsed.atom));
+    EXPECT_EQ(std::get<double>(parsed.atom), -42.0);
+    EXPECT_TRUE(parsed.children_strings.empty());
+}
+
+TEST(ParserTest, DecimalNumber) {
+    auto parsed = parser::parse_expression("3.14");
+    EXPECT_TRUE(std::holds_alternative<double>(parsed.atom));
+    EXPECT_DOUBLE_EQ(std::get<double>(parsed.atom), 3.14);
     EXPECT_TRUE(parsed.children_strings.empty());
 }
 

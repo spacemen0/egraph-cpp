@@ -31,7 +31,7 @@ enum class Op {
 
 using Id = size_t;
 using Children = std::vector<Id>;
-using Atom = std::variant<Op, std::string, int>; // int for indexes in Get operations
+using Atom = std::variant<Op, std::string, double>; // double for indexes in Get operations and scalars in Scale
 using Size = std::variant<int, std::string>;
 using Shape = std::pair<Size, Size>;
 using SizeBindings = std::unordered_map<std::string, int>;

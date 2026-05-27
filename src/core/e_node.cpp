@@ -400,7 +400,7 @@ size_t ENode::hash() const {
         // use a fixed discriminant for string payloads;
         seed = std::hash<int>()(-1);
     } else {
-        // int payload
+        // double payload
         seed = std::hash<int>()(-2);
     }
 
@@ -414,9 +414,9 @@ size_t ENode::hash() const {
         const auto &s = std::get<std::string>(atom);
         size_t hp = std::hash<std::string>()(s);
         seed ^= hp + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
-    } else if (std::holds_alternative<int>(atom)) {
-        int i = std::get<int>(atom);
-        size_t hp = std::hash<int>()(i);
+    } else if (std::holds_alternative<double>(atom)) {
+        double d = std::get<double>(atom);
+        size_t hp = std::hash<double>()(d);
         seed ^= hp + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
     }
 

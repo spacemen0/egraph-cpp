@@ -94,8 +94,8 @@ std::string render(const Expression &expr, bool readable, int parent_precedence)
                parenthesize(expr.children[1], readable, precedence(expr));
     }
     case Get: {
-        if (readable && expr.children.size() == 2 && std::holds_alternative<int>(expr.children[1].atom)) {
-            int index = std::get<int>(expr.children[1].atom);
+        if (readable && expr.children.size() == 2 && std::holds_alternative<double>(expr.children[1].atom)) {
+            int index = static_cast<int>(std::get<double>(expr.children[1].atom));
             const Expression &tuple_expr = expr.children[0];
             if (std::holds_alternative<Op>(tuple_expr.atom)) {
                 Op tuple_op = std::get<Op>(tuple_expr.atom);

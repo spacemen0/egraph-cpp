@@ -2,7 +2,6 @@
 #include "errors.h"
 #include "utils.h"
 #include <cctype>
-#include <charconv>
 #include <memory>
 #include <vector>
 
@@ -70,7 +69,7 @@ class Lexer {
 
         if (std::isdigit(static_cast<unsigned char>(c))) {
             size_t start = pos;
-            while (pos < s.size() && std::isdigit(static_cast<unsigned char>(s[pos]))) {
+            while (pos < s.size() && (std::isdigit(static_cast<unsigned char>(s[pos])) || s[pos] == '.')) {
                 pos++;
             }
             return {TokenType::Num, s.substr(start, pos - start)};
@@ -143,7 +142,10 @@ struct ASTNode {
         } else if (std::holds_alternative<std::string>(atom)) {
             return std::get<std::string>(atom);
         } else {
-            return std::to_string(std::get<int>(atom));
+            double v = std::get<double>(atom);
+            if (v == static_cast<long long>(v))
+                return std::to_string(static_cast<long long>(v));
+            return std::to_string(v);
         }
     }
 };
@@ -173,10 +175,12 @@ class Parser {
 
     std::unique_ptr<ASTNode> parse_prefix() {
         if (curr.type == TokenType::Num) {
-            int v;
-            auto [ptr, ec] = std::from_chars(curr.text.data(), curr.text.data() + curr.text.size(), v);
-            if (ec != std::errc())
-                throw ParseError("Invalid integer");
+            double v;
+            try {
+                v = std::stod(std::string(curr.text));
+            } catch (...) {
+                throw ParseError("Invalid number: " + std::string(curr.text));
+            }
             auto node = std::make_unique<ASTNode>();
             node->atom = v;
             advance();
@@ -186,10 +190,12 @@ class Parser {
         if (curr.type == TokenType::Minus) {
             advance();
             if (curr.type == TokenType::Num) {
-                int v;
-                auto [ptr, ec] = std::from_chars(curr.text.data(), curr.text.data() + curr.text.size(), v);
-                if (ec != std::errc())
-                    throw ParseError("Invalid integer");
+                double v;
+                try {
+                    v = std::stod(std::string(curr.text));
+                } catch (...) {
+                    throw ParseError("Invalid number: " + std::string(curr.text));
+                }
                 auto node = std::make_unique<ASTNode>();
                 node->atom = -v;
                 advance();
@@ -200,7 +206,7 @@ class Parser {
             node->atom = Op::Minus;
 
             auto zero = std::make_unique<ASTNode>();
-            zero->atom = 0; // Using integer 0, which might not be ideal but functional.
+            zero->atom = 0.0;
             node->children.push_back(std::move(zero));
             node->children.push_back(std::move(expr));
             return node;
@@ -223,7 +229,9 @@ class Parser {
             if (curr.type == TokenType::LParen) {
                 Op op = parse_op(name);
                 if (op == Op::Add || op == Op::Mul || op == Op::Minus) {
-                    throw ParseError("Prefix syntax for " + std::string(name) + " is no longer supported. Use infix +, *, or - instead.");
+                    throw ParseError(
+                        "Prefix syntax for " + std::string(name) +
+                        " is no longer supported. Use infix +, *, or - instead.");
                 }
 
                 advance();
@@ -240,7 +248,8 @@ class Parser {
                         }
                     }
                 }
-                if (curr.type != TokenType::RParen) throw ParseError("Expected closing parenthesis after arguments");
+                if (curr.type != TokenType::RParen)
+                    throw ParseError("Expected closing parenthesis after arguments");
                 advance();
                 return node;
             } else {
@@ -249,7 +258,6 @@ class Parser {
                 return node;
             }
         }
-
 
         throw ParseError("Unexpected token in expression: " + std::string(curr.text));
     }
