@@ -58,6 +58,24 @@ class Lexer {
             return {TokenType::Comma, s.substr(pos - 1, 1)};
         }
 
+        if (std::isdigit(static_cast<unsigned char>(c)) ||
+            (c == '.' && pos + 1 < s.size() && std::isdigit(static_cast<unsigned char>(s[pos + 1])))) {
+            size_t start = pos;
+            bool has_dot = (c == '.');
+            pos++;
+            while (pos < s.size()) {
+                if (std::isdigit(static_cast<unsigned char>(s[pos]))) {
+                    pos++;
+                } else if (s[pos] == '.' && !has_dot) {
+                    has_dot = true;
+                    pos++;
+                } else {
+                    break;
+                }
+            }
+            return {TokenType::Num, s.substr(start, pos - start)};
+        }
+
         if (std::isalpha(static_cast<unsigned char>(c)) || c == '?' || c == '_') {
             size_t start = pos;
             while (pos < s.size() &&
@@ -65,14 +83,6 @@ class Lexer {
                 pos++;
             }
             return {TokenType::Ident, s.substr(start, pos - start)};
-        }
-
-        if (std::isdigit(static_cast<unsigned char>(c))) {
-            size_t start = pos;
-            while (pos < s.size() && (std::isdigit(static_cast<unsigned char>(s[pos])) || s[pos] == '.')) {
-                pos++;
-            }
-            return {TokenType::Num, s.substr(start, pos - start)};
         }
 
         return {TokenType::Error, s.substr(pos++, 1)};

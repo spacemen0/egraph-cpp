@@ -54,6 +54,28 @@ TEST(ParserTest, DecimalNumber) {
     EXPECT_TRUE(parsed.children_strings.empty());
 }
 
+TEST(ParserTest, LeadingDecimal) {
+    auto parsed = parser::parse_expression(".5");
+    EXPECT_TRUE(std::holds_alternative<double>(parsed.atom));
+    EXPECT_DOUBLE_EQ(std::get<double>(parsed.atom), 0.5);
+}
+
+TEST(ParserTest, TrailingDecimal) {
+    auto parsed = parser::parse_expression("42.");
+    EXPECT_TRUE(std::holds_alternative<double>(parsed.atom));
+    EXPECT_DOUBLE_EQ(std::get<double>(parsed.atom), 42.0);
+}
+
+TEST(ParserTest, NegativeDecimal) {
+    auto parsed = parser::parse_expression("-0.001");
+    EXPECT_TRUE(std::holds_alternative<double>(parsed.atom));
+    EXPECT_DOUBLE_EQ(std::get<double>(parsed.atom), -0.001);
+}
+
+TEST(ParserTest, InvalidNumber) {
+    EXPECT_THROW(parser::parse_expression("3.14.15"), ParseError);
+}
+
 TEST(ParserTest, FunctionCall) {
     auto parsed = parser::parse_expression("Inv(A)");
     EXPECT_TRUE(std::holds_alternative<Op>(parsed.atom));

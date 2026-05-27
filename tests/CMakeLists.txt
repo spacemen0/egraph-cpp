@@ -8,6 +8,7 @@ add_executable(unit_tests
     unit/expression_test.cpp
     unit/parser_test.cpp
     unit/rewrite_test.cpp
+    unit/scale_rewrite_test.cpp
     unit/extractor_test.cpp
     unit/property_test.cpp
     integration/integration_test.cpp
