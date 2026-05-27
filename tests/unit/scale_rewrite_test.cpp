@@ -42,3 +42,16 @@ TEST(ScaleRewrite, ScaleCombineImplicitDoubles) {
     Id id_expected = egraph.add_expression(Expression("Scale(A, 1.5)"));
     EXPECT_EQ(egraph.find_class_id(id), egraph.find_class_id(id_expected));
 }
+
+TEST(ScaleRewrite, ScaleInverse) {
+    EGraph egraph(get_property_table());
+
+    // Inv(Scale(A, 2.0)) -> Scale(Inv(A), 0.5)
+    Id id = egraph.add_expression(Expression("Inv(Scale(A, 2.0))"));
+
+    Rewriter rewriter(egraph, {scale_inverse}, 100);
+    rewriter.apply_rewrites();
+
+    Id id_expected = egraph.add_expression(Expression("Scale(Inv(A), 0.5)"));
+    EXPECT_EQ(egraph.find_class_id(id), egraph.find_class_id(id_expected));
+}
