@@ -55,3 +55,17 @@ TEST(ScaleRewrite, ScaleInverse) {
     Id id_expected = egraph.add_expression(Expression("Scale(Inv(A), 0.5)"));
     EXPECT_EQ(egraph.find_class_id(id), egraph.find_class_id(id_expected));
 }
+
+TEST(ScaleRewrite, ComplexScaleProduct) {
+    EGraph egraph(get_property_table());
+
+    // Inv(Scale(A, 3.0)) * Scale(Z, 3.0) -> Inv(A) * Z
+    // Both A and Z are 3x3 in the default property table.
+    Id id = egraph.add_expression(Expression("Inv(Scale(A, 3.0)) * Scale(Z, 3.0)"));
+
+    Rewriter rewriter(egraph, {scale_inverse, scale_mul_distribute_left, scale_mul_distribute_right, scale_collapse, scale_one}, 100);
+    rewriter.apply_rewrites();
+
+    Id id_expected = egraph.add_expression(Expression("Inv(A) * Z"));
+    EXPECT_EQ(egraph.find_class_id(id), egraph.find_class_id(id_expected));
+}

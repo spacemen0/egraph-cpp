@@ -3,7 +3,6 @@
 #include "condition_guards.h"
 #include "e_graph.h"
 #include "utils.h"
-#include <format>
 #include <string>
 #include <string_view>
 
@@ -35,15 +34,24 @@ static const auto invert_mat_prod = make_rewrite(
 static const auto mat_transpose_prod = make_rewrite("mat-transpose-prod", "Tr(?a * ?b)", "Tr(?b) * Tr(?a)", true);
 static const auto scale_transpose = make_rewrite("scale_transpose", "Tr(Scale(?a, ?s))", "Scale(Tr(?a), ?s)", true);
 
-static const auto scale_inverse = make_rewrite(
-    "scale_inverse", "Inv(Scale(?a, ?s))", "Dynamic", true, nullptr,
-    [](EGraph &g, const Substitution &s) {
+static const auto scale_inverse =
+    make_rewrite("scale_inverse", "Inv(Scale(?a, ?s))", "Dynamic", true, nullptr, [](EGraph &g, const Substitution &s) {
     auto s_val = g.get_class_analysis_data(s.at("s"));
     if (std::holds_alternative<double>(s_val.property)) {
         double val = std::get<double>(s_val.property);
-        if (val == 0.0) throw AnalysisError("Division by zero in scale_inverse");
-        auto s_str = std::format("{:.17g}", 1.0 / val);
-        return g.add_expression(Expression(std::format("Scale(Inv(?a), {})", s_str)), s);
+        if (val == 0.0)
+            throw AnalysisError("Division by zero in scale_inverse");
+
+        // Construct the expression tree directly: Scale(Inv(?a), 1/val)
+        std::vector<Expression> inv_children;
+        inv_children.push_back(Expression("?a"));
+        Expression inv_node(Atom(Op::Inv), inv_children);
+
+        std::vector<Expression> scale_children;
+        scale_children.push_back(inv_node);
+        scale_children.push_back(Expression(Atom(1.0 / val), {}));
+
+        return g.add_expression(Expression(Atom(Op::Scale), scale_children), s);
     }
     throw AnalysisError("Expected a constant scalar for the scale factor in scale_inverse rewrite");
 });
@@ -59,8 +67,8 @@ static const auto inverse_solve =
 });
 
 static const std::vector<Rewrite> transformation_set = {
-    mul_assoc,        commute_add,          mul_distribute_left,       mul_distribute_right,
-    sub_to_add_scale, scale_add_distribute, scale_mul_distribute_left, scale_mul_distribute_right,
-    invert_mat_prod,  mat_transpose_prod,   scale_transpose,           scale_inverse,
+    mul_assoc,         commute_add,          mul_distribute_left,       mul_distribute_right,
+    sub_to_add_scale,  scale_add_distribute, scale_mul_distribute_left, scale_mul_distribute_right,
+    invert_mat_prod,   mat_transpose_prod,   scale_transpose,           scale_inverse,
     solve_composition, inverse_solve,
 };

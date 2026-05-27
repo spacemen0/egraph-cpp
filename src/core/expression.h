@@ -8,7 +8,7 @@
 struct Expression {
     explicit Expression() = default;
     explicit Expression(std::string_view string);
-    explicit Expression(const Atom &atom, std::vector<Expression> &children)
+    explicit Expression(const Atom &atom, std::vector<Expression> children)
         : atom(atom), children(std::move(children)) {};
     explicit Expression(const ENode &node, const EGraph &egraph);
     Atom atom;

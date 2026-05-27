@@ -60,8 +60,10 @@ static const auto scale_collapse = make_rewrite(
     auto s2 = g.get_class_analysis_data(s.at("s2"));
     if (std::holds_alternative<double>(s1.property) && std::holds_alternative<double>(s2.property)) {
         double v = std::get<double>(s1.property) * std::get<double>(s2.property);
-        std::string v_str = (v == static_cast<long long>(v)) ? std::to_string(static_cast<long long>(v)) : std::to_string(v);
-        return g.add_expression(Expression("Scale(?a, " + v_str + ")"), s);
+        std::vector<Expression> children;
+        children.push_back(Expression("?a"));
+        children.push_back(Expression(Atom(v), {}));
+        return g.add_expression(Expression(Atom(Op::Scale), children), s);
     }
     throw InvalidOperationError("scale_collapse requires both scale factors to be numbers");
 });
@@ -71,8 +73,10 @@ static const auto scale_combine = make_rewrite(
     auto s2 = g.get_class_analysis_data(s.at("s2"));
     if (std::holds_alternative<double>(s1.property) && std::holds_alternative<double>(s2.property)) {
         double v = std::get<double>(s1.property) + std::get<double>(s2.property);
-        std::string v_str = (v == static_cast<long long>(v)) ? std::to_string(static_cast<long long>(v)) : std::to_string(v);
-        return g.add_expression(Expression("Scale(?a, " + v_str + ")"), s);
+        std::vector<Expression> children;
+        children.push_back(Expression("?a"));
+        children.push_back(Expression(Atom(v), {}));
+        return g.add_expression(Expression(Atom(Op::Scale), children), s);
     }
     throw std::runtime_error("scale_add: Expected both properties to be numbers");
 });
@@ -81,8 +85,10 @@ static const auto scale_combine_implicit = make_rewrite(
     auto s1 = g.get_class_analysis_data(s.at("s1"));
     if (std::holds_alternative<double>(s1.property)) {
         double v = std::get<double>(s1.property) + 1.0;
-        std::string v_str = (v == static_cast<long long>(v)) ? std::to_string(static_cast<long long>(v)) : std::to_string(v);
-        return g.add_expression(Expression("Scale(?a, " + v_str + ")"), s);
+        std::vector<Expression> children;
+        children.push_back(Expression("?a"));
+        children.push_back(Expression(Atom(v), {}));
+        return g.add_expression(Expression(Atom(Op::Scale), children), s);
     }
     throw std::runtime_error("scale_add_implicit: Expected scale factor to be a number");
 });
