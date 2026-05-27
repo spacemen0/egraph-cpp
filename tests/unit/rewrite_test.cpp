@@ -18,10 +18,7 @@ TEST(Rewrite, SimpleRewrite) {
     Pattern rhs("?z");
 
     EXPECT_NE(id_mul, id0);
-    std::vector<Rewrite> rules = {
-        make_rewrite("mul_zero", "?x * ?z", "?z", false, [](const EGraph &g, const Substitution &s) {
-        return is_zero(s, g, "z");
-    }, nullptr)};
+    std::vector<Rewrite> rules = {make_rewrite("mul_zero", "?x * ?z", "?z", false, is_zero_cond("z"), nullptr)};
 
     Rewriter rewriter(egraph, rules, 100);
     bool changed = rewriter.apply_rewrites();

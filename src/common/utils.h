@@ -286,27 +286,6 @@ inline Expression get_representative_expression(const EGraph &g, Id class_id) {
     return result.value();
 }
 
-inline bool is_identity(const Substitution &s, const EGraph &g, const std::string &var) {
-    Id id = s.at(var);
-    if (auto prop = std::get_if<MatrixProperty>(&g.get_class_analysis_data(id).property))
-        return prop->flags.is_identity;
-    return false;
-}
-
-inline bool is_zero(const Substitution &s, const EGraph &g, const std::string &var) {
-    Id id = s.at(var);
-    if (auto prop = std::get_if<MatrixProperty>(&g.get_class_analysis_data(id).property))
-        return prop->flags.is_zero;
-    return false;
-}
-
-inline bool check_is_square(const Substitution &s, const EGraph &g, const std::string &var) {
-    Id id = s.at(var);
-    if (auto prop = std::get_if<MatrixProperty>(&g.get_class_analysis_data(id).property))
-        return prop->is_square();
-    return false;
-}
-
 inline const MatrixProperty *get_matrix_data(const EGraph &egraph, Id id) {
     return std::get_if<MatrixProperty>(&egraph.get_class_analysis_data(id).property);
 }

@@ -8,7 +8,6 @@
 #include <numeric>
 #include <stdexcept>
 #include <string>
-#include <unordered_set>
 
 namespace {
 Size bind_size(const Size &size, const SizeBindings *size_bindings) {
@@ -424,32 +423,3 @@ size_t ENode::hash() const {
 }
 
 bool ENode::is_leaf() const { return children.empty(); }
-
-static bool has_ancestor_impl(
-    const ENode &node, std::string_view ancestor_op, const EGraph &egraph, std::unordered_set<Id> &visited) {
-    if (std::holds_alternative<Op>(node.get_atom()) && node.to_string() == ancestor_op) {
-        return true;
-    }
-    auto opt_id = egraph.find_node_id(node);
-    if (!opt_id.has_value())
-        return false;
-
-    Id this_class_id = egraph.find_class_id(opt_id.value());
-    if (!visited.insert(this_class_id).second) {
-        return false;
-    }
-
-    auto parent_ids = egraph.get_class_parents(this_class_id);
-    for (Id parent_id : parent_ids) {
-        const ENode &parent_node = egraph.at(parent_id);
-        if (has_ancestor_impl(parent_node, ancestor_op, egraph, visited)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool ENode::has_ancestor(std::string_view ancestor_op, const EGraph &egraph) const {
-    std::unordered_set<Id> visited;
-    return has_ancestor_impl(*this, ancestor_op, egraph, visited);
-}

@@ -30,8 +30,7 @@ PropertyTable &EGraph::get_property_table() noexcept { return property_table; }
 /// @brief  Find an e-class with the given matrix property.
 /// @param prop
 /// @return
-std::optional<Id> EGraph::find_class_with_property(const MatrixProperty &prop) const // probably not working correctly
-{
+std::optional<Id> EGraph::find_class_with_property(const MatrixProperty &prop) const {
     for (const auto &[class_id, eclass_ptr] : classes) {
         // only check root classes
         if (uf.find_root(class_id) != class_id)
@@ -307,6 +306,8 @@ PruneResult EGraph::prune_nodes_except(const std::unordered_map<Id, std::unorder
 
         auto &class_nodes = class_it->second->get_nodes();
         auto keep_it = keep_choices.find(root);
+
+        // remove the entire class
         if (keep_it == keep_choices.end()) {
             removed_nodes += class_nodes.size();
             changed_classes++;
@@ -314,6 +315,7 @@ PruneResult EGraph::prune_nodes_except(const std::unordered_map<Id, std::unorder
             continue;
         }
 
+        // remove nodes that are not in the keep set
         const auto &keep_nodes = keep_it->second;
         size_t before = class_nodes.size();
         class_nodes.erase(
@@ -330,6 +332,7 @@ PruneResult EGraph::prune_nodes_except(const std::unordered_map<Id, std::unorder
         }
     }
 
+    // build new memo
     for (const auto &[class_id, eclass_ptr] : classes) {
         assert(uf.find_root(class_id) == class_id);
 

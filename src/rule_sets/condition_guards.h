@@ -37,19 +37,28 @@ static auto is_not_factorized = [](std::string_view var) {
 };
 static auto is_square = [](std::string_view var) {
     return [var = std::string(var)](const EGraph &g, const Substitution &s) {
-        return check_is_square(s, g, var);
+        Id id = s.at(var);
+        if (auto prop = std::get_if<MatrixProperty>(&g.get_class_analysis_data(id).property))
+            return prop->is_square();
+        return false;
     };
 };
 
 static auto is_identity_cond = [](std::string_view var) {
     return [var = std::string(var)](const EGraph &g, const Substitution &s) {
-        return is_identity(s, g, var);
+        Id id = s.at(var);
+        if (auto prop = std::get_if<MatrixProperty>(&g.get_class_analysis_data(id).property))
+            return prop->flags.is_identity;
+        return false;
     };
 };
 
 static auto is_zero_cond = [](std::string_view var) {
     return [var = std::string(var)](const EGraph &g, const Substitution &s) {
-        return is_zero(s, g, var);
+        Id id = s.at(var);
+        if (auto prop = std::get_if<MatrixProperty>(&g.get_class_analysis_data(id).property))
+            return prop->flags.is_zero;
+        return false;
     };
 };
 

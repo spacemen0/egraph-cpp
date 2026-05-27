@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <sstream>
 
-namespace {
 int precedence(const Expression &expr) {
     if (!std::holds_alternative<Op>(expr.atom)) {
         return 100;
@@ -25,10 +24,8 @@ int precedence(const Expression &expr) {
     }
 }
 
-std::string render(const Expression &expr, bool readable, int parent_precedence = 0);
-
 std::string parenthesize(const Expression &expr, bool readable, int parent_precedence) {
-    std::string rendered = render(expr, readable, parent_precedence);
+    std::string rendered = Expression::render(expr, readable, parent_precedence);
     if (precedence(expr) < parent_precedence) {
         return "(" + rendered + ")";
     }
@@ -37,7 +34,7 @@ std::string parenthesize(const Expression &expr, bool readable, int parent_prece
 
 std::string parenthesize_mul_chain(const Expression &expr, bool readable) {
     constexpr int MulPrecedence = 20;
-    std::string rendered = render(expr, readable, MulPrecedence);
+    std::string rendered = Expression::render(expr, readable, MulPrecedence);
     if (std::holds_alternative<Op>(expr.atom) && std::get<Op>(expr.atom) == Op::Mul) {
         return "(" + rendered + ")";
     }
@@ -47,7 +44,7 @@ std::string parenthesize_mul_chain(const Expression &expr, bool readable) {
     return rendered;
 }
 
-std::string render(const Expression &expr, bool readable, int parent_precedence) {
+std::string Expression::render(const Expression &expr, bool readable, int parent_precedence) {
     if (!std::holds_alternative<Op>(expr.atom)) {
         return atom_to_string(expr.atom);
     }
@@ -56,40 +53,24 @@ std::string render(const Expression &expr, bool readable, int parent_precedence)
 
     if (readable) {
         if (op == Op::Tr) {
-            return render(expr.children[0], readable) + "ᵀ";
+            return Expression::render(expr.children[0], readable) + "ᵀ";
         }
         if (op == Op::Inv) {
-            return render(expr.children[0], readable) + "⁻¹";
+            return Expression::render(expr.children[0], readable) + "⁻¹";
         }
     }
 
     switch (op) {
         using enum Op;
     case Add: {
-        if (expr.children.empty())
-            return "0";
-        std::stringstream ss;
-        for (size_t i = 0; i < expr.children.size(); ++i) {
-            if (i > 0)
-                ss << " + ";
-            ss << parenthesize(expr.children[i], readable, precedence(expr));
-        }
-        return ss.str();
+        return parenthesize(expr.children[0], readable, precedence(expr)) + " + " +
+               parenthesize(expr.children[1], readable, precedence(expr));
     }
     case Mul: {
-        if (expr.children.empty())
-            return "1";
-        std::stringstream ss;
-        for (size_t i = 0; i < expr.children.size(); ++i) {
-            if (i > 0)
-                ss << " * ";
-            ss << parenthesize_mul_chain(expr.children[i], readable);
-        }
-        return ss.str();
+        return parenthesize_mul_chain(expr.children[0], readable) + " * " +
+               parenthesize_mul_chain(expr.children[1], readable);
     }
     case Minus: {
-        if (expr.children.size() < 2)
-            return "? - ?";
         return parenthesize(expr.children[0], readable, precedence(expr)) + " - " +
                parenthesize(expr.children[1], readable, precedence(expr));
     }
@@ -147,7 +128,6 @@ std::string render(const Expression &expr, bool readable, int parent_precedence)
     ss << ")";
     return ss.str();
 }
-} // namespace
 
 /// @brief parse a expression from a string with the format: Op(child1, child2,
 /// ...)

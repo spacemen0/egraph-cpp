@@ -24,7 +24,6 @@ class ENode {
     std::string format() const;
     size_t hash() const;
     bool is_leaf() const;
-    bool has_ancestor(std::string_view ancestor_op, const EGraph &egraph) const;
 
     // Declare operator== as a hidden friend
     friend bool operator==(const ENode &a, const ENode &b) noexcept {

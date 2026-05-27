@@ -48,9 +48,9 @@ class Extractor {
     size_t max_depth;
     size_t node_visit_limit;
 
-    mutable std::unordered_map<Id, double> tree_cost;              // Tree cost (Heuristic)
-    mutable std::unordered_map<Id, double> minimal_possible_costs; // Max-path cost (Safe LB)
-    mutable std::unordered_map<Id, size_t> minimal_possible_sizes; // Max-path size (Safe LB)
+    mutable std::unordered_map<Id, double> tree_cost;                       // Tree cost (Heuristic)
+    mutable std::unordered_map<Id, double> minimal_possible_sub_tree_costs; // Max-path cost (Safe LB)
+    mutable std::unordered_map<Id, size_t> minimal_possible_sizes;          // Max-path size (Safe LB)
     mutable std::unordered_map<Id, const ENode *> greedy_choices;
 
     void initial_tree_search_pass(const SizeBindings *size_bindings) const;
@@ -67,9 +67,8 @@ class Extractor {
     void search_top_numeric_dags(
         Id root, std::vector<Id> &pending, std::vector<size_t> &pending_set,
         std::vector<const ENode *> &current_choices, size_t chosen_count, const SizeBindings *size_bindings,
-        double current_cost, double current_pending_lb_cost, double current_pending_lb_size, size_t max_results,
-        std::vector<NumericSearchResult> &best_results, double &worst_selected_cost,
-        std::vector<size_t> &visited_buffer, std::vector<Id> &stack_buffer) const;
+        double current_cost, size_t max_results, std::vector<NumericSearchResult> &best_results,
+        double &worst_selected_cost, std::vector<size_t> &visited_buffer, std::vector<Id> &stack_buffer) const;
 
     void record_numeric_result(
         Id root, const std::vector<const ENode *> &current_choices, double current_cost, size_t max_results,
@@ -84,7 +83,7 @@ class Extractor {
         double local_cost;
         double tree_cost_heuristic;
         double minimal_possible_cost;
-        size_t minimal_possible_size;
+        size_t minimal_possible_sub_treesize;
     };
 
     std::vector<Candidate> evaluate_node_candidates(Id eclass_id, const SizeBindings *size_bindings) const;

@@ -15,4 +15,5 @@ struct Expression {
     std::vector<Expression> children;
     std::string to_string(bool readable = false) const;
     bool operator==(const Expression &other) const;
+    static std::string render(const Expression &expr, bool readable, int parent_precedence = 0);
 };
