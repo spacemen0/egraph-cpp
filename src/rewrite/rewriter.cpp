@@ -1,13 +1,6 @@
 #include "rewriter.h"
 #include "matcher.h"
 
-using Match = struct {
-    Id class_id;
-    size_t rewrite_idx;
-    Substitution subst;
-    bool left_to_right;
-};
-
 // Instantiate a pattern into the EGraph
 static Id instantiate(EGraph &egraph, const Pattern &pattern, const Substitution &subst) {
     if (const auto *str = std::get_if<std::string>(&pattern.atom)) {
@@ -25,73 +18,62 @@ static Id instantiate(EGraph &egraph, const Pattern &pattern, const Substitution
     return egraph.add_node(node); // new id or existing id
 }
 
-bool Rewriter::apply_one_iteration(size_t node_match_limit) {
-    bool changed = false;
+bool Rewriter::is_rewrite_banned(size_t i) {
+    if (ban_iterations_remaining[i] > 0 && enable_backoff) {
+        ban_iterations_remaining[i]--;
+        if (ban_iterations_remaining[i] == 0) {
+            rewrite_application_counts[i] = 0;
+        }
+        return true;
+    }
+    return false;
+}
 
-    Matcher matcher(egraph);
+void Rewriter::update_ban_status(size_t i, size_t total_valid_matches, size_t budget_remaining) {
+    if (total_valid_matches > budget_remaining && enable_backoff) {
+        ban_iterations_remaining[i] = ban_duration_next[i];
+        ban_duration_next[i] *= 2;
+        current_match_limits[i] *= 2;
+    }
+}
 
-    // Store matches to apply them in batch: (class_id, rewrite_index,
-    // substitution)
-    std::vector<Match> matches;
+std::vector<Rewriter::Match> Rewriter::find_matches_for_rewrite(
+    size_t i, const Matcher &matcher, const std::vector<Id> &class_ids, size_t node_match_limit,
+    size_t &total_valid_matches) {
+    auto &rewrite = rewrites[i];
+    std::vector<Match> rewrite_matches;
+    total_valid_matches = 0;
 
-    std::vector<Id> class_ids = egraph.get_all_class_ids();
-    std::ranges::sort(class_ids);
-
-    for (size_t i = 0; i < rewrites.size(); ++i) {
-        if (ban_iterations_remaining[i] > 0 && enable_backoff) {
-            ban_iterations_remaining[i]--;
-            if (ban_iterations_remaining[i] == 0) {
-                rewrite_application_counts[i] = 0;
-            }
+    for (Id class_id : class_ids) {
+        // Only check root classes
+        if (egraph.find_class_id(class_id) != class_id)
             continue;
+
+        std::set<Substitution> substs = matcher.find_matches_in_eclass(class_id, rewrite.lhs, node_match_limit);
+        std::set<Substitution> reverse_substs;
+        if (rewrite.bidirectional) {
+            reverse_substs = matcher.find_matches_in_eclass(class_id, rewrite.rhs, node_match_limit);
         }
-
-        auto &rewrite = rewrites[i];
-        std::vector<Match> rewrite_matches;
-        size_t total_valid_matches = 0;
-
-        for (Id class_id : class_ids) {
-            // Only check root classes
-            if (egraph.find_class_id(class_id) != class_id)
+        for (const auto &subst : substs) {
+            if (rewrite.condition && !rewrite.condition(egraph, subst)) {
                 continue;
-
-            std::set<Substitution> substs = matcher.find_matches_in_eclass(class_id, rewrite.lhs, node_match_limit);
-            std::set<Substitution> reverse_substs;
-            if (rewrite.bidirectional) {
-                reverse_substs = matcher.find_matches_in_eclass(class_id, rewrite.rhs, node_match_limit);
             }
-            for (const auto &subst : substs) {
-                if (rewrite.condition && !rewrite.condition(egraph, subst)) {
-                    continue;
-                }
-                total_valid_matches++;
-                rewrite_matches.emplace_back(class_id, i, subst, true);
-            }
-            for (const auto &subst : reverse_substs) {
-                if (rewrite.condition && !rewrite.condition(egraph, subst)) {
-                    continue;
-                }
-                total_valid_matches++;
-                rewrite_matches.emplace_back(class_id, i, subst, false);
-            }
+            total_valid_matches++;
+            rewrite_matches.emplace_back(class_id, i, subst, true);
         }
-
-        size_t budget_remaining =
-            enable_backoff ? current_match_limits[i] - rewrite_application_counts[i] : total_valid_matches;
-        size_t matches_to_apply = std::min(total_valid_matches, budget_remaining);
-
-        for (size_t j = 0; j < matches_to_apply; ++j) {
-            matches.push_back(rewrite_matches[j]);
-        }
-        rewrite_application_counts[i] += matches_to_apply;
-
-        if (total_valid_matches > budget_remaining && enable_backoff) {
-            ban_iterations_remaining[i] = ban_duration_next[i];
-            ban_duration_next[i] *= 2;
-            current_match_limits[i] *= 2;
+        for (const auto &subst : reverse_substs) {
+            if (rewrite.condition && !rewrite.condition(egraph, subst)) {
+                continue;
+            }
+            total_valid_matches++;
+            rewrite_matches.emplace_back(class_id, i, subst, false);
         }
     }
+    return rewrite_matches;
+}
 
+bool Rewriter::apply_matches(const std::vector<Match> &matches) {
+    bool changed = false;
     for (const auto &match : matches) {
         const auto &rewrite = rewrites[match.rewrite_idx];
         if (rewrite.applier) {
@@ -106,6 +88,43 @@ bool Rewriter::apply_one_iteration(size_t node_match_limit) {
             break; // Break the apply loop to enforce limits but guarantee rebuild
         }
     }
+    return changed;
+}
+
+bool Rewriter::apply_one_iteration(size_t node_match_limit) {
+    bool changed = false;
+
+    Matcher matcher(egraph);
+
+    // Store matches to apply them in batch: (class_id, rewrite_index,
+    // substitution)
+    std::vector<Match> matches;
+
+    std::vector<Id> class_ids = egraph.get_all_class_ids();
+    std::ranges::sort(class_ids);
+
+    for (size_t i = 0; i < rewrites.size(); ++i) {
+        if (is_rewrite_banned(i)) {
+            continue;
+        }
+
+        size_t total_valid_matches = 0;
+        std::vector<Match> rewrite_matches =
+            find_matches_for_rewrite(i, matcher, class_ids, node_match_limit, total_valid_matches);
+
+        size_t budget_remaining =
+            enable_backoff ? current_match_limits[i] - rewrite_application_counts[i] : total_valid_matches;
+        size_t matches_to_apply = std::min(total_valid_matches, budget_remaining);
+
+        for (size_t j = 0; j < matches_to_apply; ++j) {
+            matches.push_back(rewrite_matches[j]);
+        }
+        rewrite_application_counts[i] += matches_to_apply;
+
+        update_ban_status(i, total_valid_matches, budget_remaining);
+    }
+
+    changed = apply_matches(matches);
 
     if (changed) {
         egraph.rebuild();

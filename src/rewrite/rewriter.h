@@ -39,6 +39,20 @@ class Rewriter {
     void reset();
 
   private:
+    struct Match {
+        Id class_id;
+        size_t rewrite_idx;
+        Substitution subst;
+        bool left_to_right;
+    };
+
+    bool is_rewrite_banned(size_t i);
+    void update_ban_status(size_t i, size_t total_valid_matches, size_t budget_remaining);
+    std::vector<Match> find_matches_for_rewrite(
+        size_t i, const class Matcher &matcher, const std::vector<Id> &class_ids, size_t node_match_limit,
+        size_t &total_valid_matches);
+    bool apply_matches(const std::vector<Match> &matches);
+
     EGraph &egraph;
     bool enable_backoff;
     bool enable_node_match_limit;

@@ -65,6 +65,7 @@ std::vector<Substitution> Matcher::search_eclass_for_pattern(
             continue;
         }
 
+        // One match is a whole Substitution
         std::vector<Substitution> current_matches = {initial_subst};
         bool possible = true;
 
@@ -79,6 +80,8 @@ std::vector<Substitution> Matcher::search_eclass_for_pattern(
             }
 
             current_matches = std::move(next_matches);
+
+            // Every child pattern must have at least one match
             if (current_matches.empty()) {
                 possible = false;
                 break;
