@@ -18,7 +18,7 @@ static const auto gemv_without_c =
     const auto *b_prop = get_matrix_data(g, b_id);
     auto zero = make_zero_of_shape(g, {a_prop->shape.first, b_prop->shape.second});
     auto gemv_node = ENode{{a_id, b_id, zero}, Op::Gemv};
-    return g.add_node(gemv_node);
+    return std::make_pair(g.add_node(gemv_node), false);
 });
 static const auto gemv_with_c =
     make_rewrite("gemv_with_c", "?a * ?b + ?c", "Gemv(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
@@ -35,7 +35,7 @@ static const auto gemm_without_c = make_rewrite(
     const auto *b_prop = get_matrix_data(g, b_id);
     auto zero = make_zero_of_shape(g, {a_prop->shape.first, b_prop->shape.second});
     auto gemm_node = ENode{{a_id, b_id, zero}, Op::Gemm};
-    return g.add_node(gemm_node);
+    return std::make_pair(g.add_node(gemm_node), false);
 });
 static const auto gemm_with_c =
     make_rewrite("gemm_with_c", "?a * ?b + ?c", "Gemm(?a, ?b, ?c)", false, is_not_vector("b"));
@@ -45,7 +45,7 @@ static const auto syrk_without_c_left = make_rewrite(
     const auto *a_prop = get_matrix_data(g, a_id);
     auto zero = make_zero_of_shape(g, {a_prop->shape.first, a_prop->shape.first});
     auto syrk_node = ENode{{a_id, zero}, Op::Syrk};
-    return g.add_node(syrk_node);
+    return std::make_pair(g.add_node(syrk_node), false);
 });
 static const auto syrk_without_c_right = make_rewrite(
     "syrk_without_c_right", "Tr(?a) * ?a", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s, Id _) {
@@ -54,7 +54,7 @@ static const auto syrk_without_c_right = make_rewrite(
     auto zero = make_zero_of_shape(g, {a_prop->shape.second, a_prop->shape.second});
     auto transpose_a = g.add_expression(Expression("Tr(?a)"), s);
     auto syrk_node = ENode{{transpose_a, zero}, Op::Syrk};
-    return g.add_node(syrk_node);
+    return std::make_pair(g.add_node(syrk_node), false);
 });
 static const auto syrk_with_c_left = make_rewrite("syrk_with_c_left", "?a * Tr(?a) + ?c", "Syrk(?a, ?c)", false);
 static const auto syrk_with_c_right = make_rewrite("syrk_with_c_right", "Tr(?a) * ?a + ?c", "Syrk(Tr(?a), ?c)", false);

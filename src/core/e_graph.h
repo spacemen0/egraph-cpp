@@ -63,7 +63,7 @@ class EGraph {
     // stores pending parent updates after unions
     std::vector<Id> pending;
     // stores pending analysis updates
-    std::vector<Id> analysis_pending;
+    std::unordered_set<Id> analysis_pending;
     // stores mapping from ENode to EClass id (canonicalized one after rebuild)
     std::unordered_map<const ENode *, Id, ENodePtrHash, ENodePtrEqual> memo;
     // stores mapping from EClass id to EClass, classes being merged will be

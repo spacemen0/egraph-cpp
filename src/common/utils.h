@@ -137,7 +137,8 @@ inline std::string atom_to_string(const Atom &atom) {
 inline Rewrite make_rewrite(
     const std::string &name, std::string_view lhs, std::string_view rhs, bool bidirectional = false,
     const std::function<bool(const EGraph &, const Substitution &)> &condition = nullptr,
-    const std::function<Id(EGraph &, const Substitution &, Id)> &applier = nullptr, size_t initial_match_limit = 30) {
+    const std::function<std::pair<Id, bool>(EGraph &, const Substitution &, Id)> &applier = nullptr,
+    size_t initial_match_limit = 30) {
     return Rewrite{name, Pattern(lhs), Pattern(rhs), bidirectional, condition, applier, initial_match_limit};
 }
 

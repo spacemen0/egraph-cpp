@@ -77,7 +77,7 @@ TEST(Rewrite, NewNodes) {
 
     std::vector<Rewrite> rules = {make_rewrite(
         "inv-mul-left", "Inv(?a) * ?a", "?__dynamic__", false, nullptr, [](EGraph &g, const Substitution &s, Id _) {
-        return make_identity_for(g, s, "a");
+        return std::make_pair(make_identity_for(g, s, "a"), false);
     })};
 
     Rewriter rewriter(egraph, rules, 100);

@@ -9,7 +9,7 @@
 #include <variant>
 
 static const auto transpose_spd = make_rewrite(
-    "transpose_spd", "?a* Tr(?a)", "Dynamic", false, is_full_rank("a"),
+    "transpose_spd", "?a * Tr(?a)", "Dynamic", false, is_full_rank("a"),
     [](EGraph &g, const Substitution &s, Id class_id) {
     Id a_id = s.at("a");
     const auto *a_prop = get_matrix_data(g, a_id);
@@ -17,7 +17,6 @@ static const auto transpose_spd = make_rewrite(
     if (auto *mp = std::get_if<MatrixProperty>(&old_data.property)) {
         mp->flags.is_positive_definite = true;
         mp->flags.is_symmetric = true;
-    }
-    g.update_class_analysis_data(class_id, old_data);
-    return class_id;
+    };
+    return std::make_pair(class_id, g.update_class_analysis_data(class_id, old_data));
 });

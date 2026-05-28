@@ -77,7 +77,9 @@ bool Rewriter::apply_matches(const std::vector<Match> &matches) {
     for (const auto &match : matches) {
         const auto &rewrite = rewrites[match.rewrite_idx];
         if (rewrite.applier) {
-            changed |= egraph.union_classes(match.class_id, rewrite.applier(egraph, match.subst, match.class_id));
+            auto result = rewrite.applier(egraph, match.subst, match.class_id);
+            changed |= egraph.union_classes(match.class_id, result.first);
+            changed |= result.second;
         } else if (match.left_to_right) {
             changed |= egraph.union_classes(match.class_id, instantiate(egraph, rewrite.rhs, match.subst));
         } else {

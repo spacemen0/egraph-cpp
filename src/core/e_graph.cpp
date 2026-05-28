@@ -2,6 +2,7 @@
 #include "analysis.h"
 #include "e_graph_visualization.h"
 #include "e_node.h"
+#include "errors.h"
 #include "matcher.h"
 #include "pattern.h"
 #include <cassert>
@@ -181,10 +182,13 @@ bool EGraph::union_classes(Id id1, Id id2) {
 
     pending.insert(pending.end(), class2_ptr->get_parents().begin(), class2_ptr->get_parents().end());
     if (changed) {
-        analysis_pending.insert(
-            analysis_pending.end(), class1_ref->get_parents().begin(), class1_ref->get_parents().end());
+        for (auto parent : class1_ref->get_parents()) {
+            analysis_pending.insert(parent);
+        }
     }
-    analysis_pending.insert(analysis_pending.end(), class2_ptr->get_parents().begin(), class2_ptr->get_parents().end());
+    for (auto parent : class2_ptr->get_parents()) {
+        analysis_pending.insert(parent);
+    }
     // move the nodes and parents from class2 to class1
     auto &nodes1 = class1_ref->get_nodes();
     auto &nodes2 = class2_ptr->get_nodes();
@@ -217,7 +221,7 @@ void EGraph::rebuild() {
     }
 
     while (!analysis_pending.empty()) {
-        std::vector<Id> current_pending = std::move(analysis_pending);
+        std::unordered_set<Id> current_pending = std::move(analysis_pending);
         analysis_pending.clear();
 
         for (Id pending_id : current_pending) {
@@ -227,8 +231,9 @@ void EGraph::rebuild() {
             auto new_analysis = make_analysis(*node);
             bool changed = merge_analysis_data(class_ref->get_analysis_data(), new_analysis);
             if (changed) {
-                analysis_pending.insert(
-                    analysis_pending.end(), class_ref->get_parents().begin(), class_ref->get_parents().end());
+                for (auto parent : class_ref->get_parents()) {
+                    analysis_pending.insert(parent);
+                }
             }
         }
     }
@@ -402,12 +407,42 @@ bool EGraph::update_class_analysis_data(Id class_id, const AnalysisData &data) {
         return false;
     }
     auto &current_data = classes.at(root)->get_analysis_data();
-    if (current_data != data) {
-        current_data = data;
-        // Optionally trigger parent updates automatically:
-        register_analysis_pending_parents_for(root);
+
+    bool changed = false;
+    if (auto *p1 = std::get_if<MatrixProperty>(&current_data.property)) {
+        if (auto *p2 = std::get_if<MatrixProperty>(&data.property)) {
+            changed = !p1->strict_equal(*p2);
+        } else {
+            changed = true;
+        }
+    } else if (auto *t1 = std::get_if<TupleProperty>(&current_data.property)) {
+        if (auto *t2 = std::get_if<TupleProperty>(&data.property)) {
+            if (t1->size() != t2->size()) {
+                throw AnalysisError("Cannot merge TupleProperties of different sizes");
+            } else {
+                for (size_t i = 0; i < t1->size(); ++i) {
+                    if (!(*t1)[i].strict_equal((*t2)[i])) {
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+        } else {
+
+            throw AnalysisError("Cannot merge TupleProperty with non-TupleProperty");
+        }
+    } else {
+
+        // if current property is neither MatrixProperty nor TupleProperty, then it's double
+        changed = (current_data != data);
     }
-    return true;
+
+    if (changed) {
+        current_data = data;
+        register_analysis_pending_parents_for(root);
+        return true;
+    }
+    return false;
 }
 
 bool EGraph::register_analysis_pending_parents_for(Id class_id) {
@@ -416,7 +451,9 @@ bool EGraph::register_analysis_pending_parents_for(Id class_id) {
         return false;
     }
     auto &parents = classes.at(root)->get_parents();
-    analysis_pending.insert(analysis_pending.end(), parents.begin(), parents.end());
+    for (auto parent : parents) {
+        analysis_pending.insert(parent);
+    }
     return true;
 }
 

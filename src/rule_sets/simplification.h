@@ -9,25 +9,25 @@
 /// ----------------------------------------------------------
 static const auto minus_cancel =
     make_rewrite("minus-cancel", "?a - ?a", "?__dynamic__", false, nullptr, [](EGraph &g, const Substitution &s, Id _) {
-    return make_zero_for(g, s, "a");
+    return std::make_pair(make_zero_for(g, s, "a"), false);
 });
 static const auto add_comm_zero = make_rewrite("add-comm-zero", "?a + ?z", "?a", false, is_zero_cond("z"));
 static const auto mul_zero_left = make_rewrite(
     "mul-zero-left", "?z * ?a", "Dynamic", false, is_zero_cond("z"), [](EGraph &g, const Substitution &s, Id _) {
     const auto *z_prop = get_matrix_data(g, s.at("z"));
     const auto *a_prop = get_matrix_data(g, s.at("a"));
-    return make_zero_of_shape(g, {z_prop->shape.first, a_prop->shape.second});
+    return std::make_pair(make_zero_of_shape(g, {z_prop->shape.first, a_prop->shape.second}), false);
 });
 static const auto mul_zero_right = make_rewrite(
     "mul-zero-right", "?a * ?z", "Dynamic", false, is_zero_cond("z"), [](EGraph &g, const Substitution &s, Id _) {
     const auto *a_prop = get_matrix_data(g, s.at("a"));
     const auto *z_prop = get_matrix_data(g, s.at("z"));
-    return make_zero_of_shape(g, {a_prop->shape.first, z_prop->shape.second});
+    return std::make_pair(make_zero_of_shape(g, {a_prop->shape.first, z_prop->shape.second}), false);
 });
 static const auto scale_zero_scalar = make_rewrite(
     "scale_zero_scalar", "Scale(?a, 0)", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s, Id _) {
     const auto *a_prop = get_matrix_data(g, s.at("a"));
-    return make_zero_of_shape(g, a_prop->shape);
+    return std::make_pair(make_zero_of_shape(g, a_prop->shape), false);
 });
 static const auto scale_zero_matrix =
     make_rewrite("scale_zero_matrix", "Scale(?a, ?z)", "?a", false, is_zero_cond("a"));
@@ -42,17 +42,17 @@ static const auto scale_one = make_rewrite("scale_one", "Scale(?a, 1)", "?a");
 /// ----------------------------------------------------------
 static const auto invert_cancel_left = make_rewrite(
     "invert-cancel-left", "Inv(?a) * ?a", "?__dynamic__", false, nullptr, [](EGraph &g, const Substitution &s, Id _) {
-    return make_identity_for(g, s, "a");
+    return std::make_pair(make_identity_for(g, s, "a"), false);
 });
 static const auto invert_cancel_right = make_rewrite(
     "invert-cancel-right", "?a * Inv(?a)", "?__dynamic__", false, nullptr, [](EGraph &g, const Substitution &s, Id _) {
-    return make_identity_for(g, s, "a");
+    return std::make_pair(make_identity_for(g, s, "a"), false);
 });
 static const auto solve_cancel_left = make_rewrite("solve_cancel_left", "Sol(?a, ?a * ?b)", "?b");
 static const auto solve_cancel_right = make_rewrite("solve_cancel_right", "?a * Sol(?a, ?b)", "?b");
 static const auto solve_identity = make_rewrite(
     "solve_identity", "Sol(?a, ?a)", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s, Id _) {
-    return make_identity_for(g, s, "a");
+    return std::make_pair(make_identity_for(g, s, "a"), false);
 });
 static const auto scale_collapse = make_rewrite(
     "scale-collapse", "Scale(Scale(?a, ?s1), ?s2)", "Dynamic", false, nullptr,
@@ -64,7 +64,7 @@ static const auto scale_collapse = make_rewrite(
         std::vector<Expression> children;
         children.push_back(Expression("?a"));
         children.push_back(Expression(Atom(v), {}));
-        return g.add_expression(Expression(Atom(Op::Scale), children), s);
+        return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), children), s), false);
     }
     throw InvalidOperationError("scale_collapse requires both scale factors to be numbers");
 });
@@ -78,7 +78,7 @@ static const auto scale_combine = make_rewrite(
         std::vector<Expression> children;
         children.push_back(Expression("?a"));
         children.push_back(Expression(Atom(v), {}));
-        return g.add_expression(Expression(Atom(Op::Scale), children), s);
+        return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), children), s), false);
     }
     throw std::runtime_error("scale_add: Expected both properties to be numbers");
 });
@@ -91,7 +91,7 @@ static const auto scale_combine_implicit = make_rewrite(
         std::vector<Expression> children;
         children.push_back(Expression("?a"));
         children.push_back(Expression(Atom(v), {}));
-        return g.add_expression(Expression(Atom(Op::Scale), children), s);
+        return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), children), s), false);
     }
     throw std::runtime_error("scale_add_implicit: Expected scale factor to be a number");
 });
@@ -101,12 +101,12 @@ static const auto scale_combine_implicit = make_rewrite(
 static const auto orthogonal_transpose = make_rewrite(
     "orthogonal-transpose", "Tr(?a) * ?a", "Identity", false, is_orthogonal_cond("a"),
     [](EGraph &g, const Substitution &s, Id _) {
-    return make_identity_for(g, s, "a");
+    return std::make_pair(make_identity_for(g, s, "a"), false);
 });
 static const auto orthonormal_transpose = make_rewrite(
     "orthonormal-transpose", "Tr(?a) * ?a", "Identity", false, is_orthonormal_cond("a"),
     [](EGraph &g, const Substitution &s, Id _) {
-    return make_identity_for(g, s, "a", false);
+    return std::make_pair(make_identity_for(g, s, "a"), false);
 });
 
 static const std::vector<Rewrite> simplification_set = {

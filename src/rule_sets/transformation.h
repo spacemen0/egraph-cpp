@@ -51,7 +51,7 @@ static const auto scale_inverse = make_rewrite(
         scale_children.push_back(inv_node);
         scale_children.push_back(Expression(Atom(1.0 / val), {}));
 
-        return g.add_expression(Expression(Atom(Op::Scale), scale_children), s);
+        return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), scale_children), s), false);
     }
     throw AnalysisError("Expected a constant scalar for the scale factor in scale_inverse rewrite");
 });
