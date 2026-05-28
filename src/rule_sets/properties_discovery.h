@@ -10,6 +10,7 @@
 
 static const auto transpose_spd = make_rewrite(
     "transpose_spd", "?a * Tr(?a)", "Dynamic", false, is_full_rank("a"),
+
     [](EGraph &g, const Substitution &s, Id class_id) {
     Id a_id = s.at("a");
     const auto *a_prop = get_matrix_data(g, a_id);

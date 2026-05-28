@@ -106,7 +106,7 @@ static const auto orthogonal_transpose = make_rewrite(
 static const auto orthonormal_transpose = make_rewrite(
     "orthonormal-transpose", "Tr(?a) * ?a", "Identity", false, is_orthonormal_cond("a"),
     [](EGraph &g, const Substitution &s, Id _) {
-    return std::make_pair(make_identity_for(g, s, "a"), false);
+    return std::make_pair(make_identity_for(g, s, "a", false), false);
 });
 
 static const std::vector<Rewrite> simplification_set = {
