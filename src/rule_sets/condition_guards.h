@@ -111,6 +111,13 @@ static auto is_matrix = [](std::string_view var) {
     };
 };
 
+static auto is_full_rank = [](std::string_view var) {
+    return [var = std::string(var)](const EGraph &g, const Substitution &s) {
+        const auto *prop = get_matrix_data(g, s.at(var));
+        return prop && prop->flags.is_full_rank;
+    };
+};
+
 static auto is_vector = [](std::string_view var) {
     return [var = std::string(var)](const EGraph &g, const Substitution &s) {
         const auto *prop = get_matrix_data(g, s.at(var));

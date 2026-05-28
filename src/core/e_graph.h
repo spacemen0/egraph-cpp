@@ -41,6 +41,7 @@ class EGraph {
     PruneResult prune_nodes_except(const std::unordered_map<Id, std::unordered_set<const ENode *>> &keep_choices);
     size_t num_nodes() const noexcept;
     const AnalysisData &get_class_analysis_data(Id class_id) const;
+    bool update_class_analysis_data(Id class_id, const AnalysisData &data);
     const PropertyTable &get_property_table() const noexcept;
     PropertyTable &get_property_table() noexcept;
     std::optional<Id> find_class_with_property(const MatrixProperty &prop) const;
@@ -53,6 +54,7 @@ class EGraph {
     std::string to_dot() const;
     AnalysisData make_analysis(const ENode &node) const;
     bool merge_analysis_data(AnalysisData &data1, const AnalysisData &data2) const;
+    bool register_analysis_pending_parents_for(Id class_id);
 
     // stores the union-find structure for e-classes (which stores equivalences)
     UnionFind uf;

@@ -76,7 +76,7 @@ TEST(Rewrite, NewNodes) {
     Id id_add = egraph.add_expression(Expression("Inv(a) * a"));
 
     std::vector<Rewrite> rules = {make_rewrite(
-        "inv-mul-left", "Inv(?a) * ?a", "?__dynamic__", false, nullptr, [](EGraph &g, const Substitution &s) {
+        "inv-mul-left", "Inv(?a) * ?a", "?__dynamic__", false, nullptr, [](EGraph &g, const Substitution &s, Id _) {
         return make_identity_for(g, s, "a");
     })};
 

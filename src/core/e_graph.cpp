@@ -396,6 +396,30 @@ PruneResult EGraph::prune_nodes_except(const std::unordered_map<Id, std::unorder
     return result;
 }
 
+bool EGraph::update_class_analysis_data(Id class_id, const AnalysisData &data) {
+    Id root = uf.find_and_compress(class_id);
+    if (!classes.contains(root)) {
+        return false;
+    }
+    auto &current_data = classes.at(root)->get_analysis_data();
+    if (current_data != data) {
+        current_data = data;
+        // Optionally trigger parent updates automatically:
+        register_analysis_pending_parents_for(root);
+    }
+    return true;
+}
+
+bool EGraph::register_analysis_pending_parents_for(Id class_id) {
+    Id root = uf.find_and_compress(class_id);
+    if (!classes.contains(root)) {
+        return false;
+    }
+    auto &parents = classes.at(root)->get_parents();
+    analysis_pending.insert(analysis_pending.end(), parents.begin(), parents.end());
+    return true;
+}
+
 void EGraph::register_or_update_property(const std::string &name, const MatrixProperty &prop) {
     property_table.add_or_update_property_entry(name, prop);
 }

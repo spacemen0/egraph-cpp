@@ -34,8 +34,8 @@ static const auto invert_mat_prod = make_rewrite(
 static const auto mat_transpose_prod = make_rewrite("mat-transpose-prod", "Tr(?a * ?b)", "Tr(?b) * Tr(?a)", true);
 static const auto scale_transpose = make_rewrite("scale_transpose", "Tr(Scale(?a, ?s))", "Scale(Tr(?a), ?s)", true);
 
-static const auto scale_inverse =
-    make_rewrite("scale_inverse", "Inv(Scale(?a, ?s))", "Dynamic", true, nullptr, [](EGraph &g, const Substitution &s) {
+static const auto scale_inverse = make_rewrite(
+    "scale_inverse", "Inv(Scale(?a, ?s))", "Dynamic", true, nullptr, [](EGraph &g, const Substitution &s, Id _) {
     auto s_val = g.get_class_analysis_data(s.at("s"));
     if (std::holds_alternative<double>(s_val.property)) {
         double val = std::get<double>(s_val.property);

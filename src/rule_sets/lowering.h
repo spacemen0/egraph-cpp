@@ -11,7 +11,7 @@
 static const auto gemv_without_c =
     make_rewrite("gemv_without_c", "?a * ?b", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
     return is_matrix("a")(g, s) && is_vector("b")(g, s);
-}, [](EGraph &g, const Substitution &s) {
+}, [](EGraph &g, const Substitution &s, Id _) {
     Id a_id = s.at("a");
     Id b_id = s.at("b");
     const auto *a_prop = get_matrix_data(g, a_id);
@@ -28,7 +28,7 @@ static const auto gemv_with_c =
 /// BLAS Level 3
 /// ----------------------------------------------------------
 static const auto gemm_without_c = make_rewrite(
-    "gemm_without_c", "?a * ?b", "Dynamic", false, is_not_vector("b"), [](EGraph &g, const Substitution &s) {
+    "gemm_without_c", "?a * ?b", "Dynamic", false, is_not_vector("b"), [](EGraph &g, const Substitution &s, Id _) {
     Id a_id = s.at("a");
     Id b_id = s.at("b");
     const auto *a_prop = get_matrix_data(g, a_id);
@@ -39,8 +39,8 @@ static const auto gemm_without_c = make_rewrite(
 });
 static const auto gemm_with_c =
     make_rewrite("gemm_with_c", "?a * ?b + ?c", "Gemm(?a, ?b, ?c)", false, is_not_vector("b"));
-static const auto syrk_without_c_left =
-    make_rewrite("syrk_without_c_left", "?a * Tr(?a)", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s) {
+static const auto syrk_without_c_left = make_rewrite(
+    "syrk_without_c_left", "?a * Tr(?a)", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s, Id _) {
     Id a_id = s.at("a");
     const auto *a_prop = get_matrix_data(g, a_id);
     auto zero = make_zero_of_shape(g, {a_prop->shape.first, a_prop->shape.first});
@@ -48,7 +48,7 @@ static const auto syrk_without_c_left =
     return g.add_node(syrk_node);
 });
 static const auto syrk_without_c_right = make_rewrite(
-    "syrk_without_c_right", "Tr(?a) * ?a", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s) {
+    "syrk_without_c_right", "Tr(?a) * ?a", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s, Id _) {
     Id a_id = s.at("a");
     const auto *a_prop = get_matrix_data(g, a_id);
     auto zero = make_zero_of_shape(g, {a_prop->shape.second, a_prop->shape.second});
