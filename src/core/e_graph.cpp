@@ -169,7 +169,7 @@ bool EGraph::union_classes(Id id1, Id id2) {
 
     auto &data1 = classes.at(root1)->get_analysis_data();
     const auto &data2 = classes.at(root2)->get_analysis_data();
-    merge_analysis_data(data1, data2);
+    bool changed = merge_analysis_data(data1, data2);
     // takes the ownership of class2 to a local unique_ptr
     auto node_handle = classes.extract(root2);
     auto class2_ptr = std::move(node_handle.mapped());
@@ -180,7 +180,11 @@ bool EGraph::union_classes(Id id1, Id id2) {
     const auto &class1_ref = classes.at(root1);
 
     pending.insert(pending.end(), class2_ptr->get_parents().begin(), class2_ptr->get_parents().end());
-
+    if (changed) {
+        analysis_pending.insert(
+            analysis_pending.end(), class1_ref->get_parents().begin(), class1_ref->get_parents().end());
+    }
+    analysis_pending.insert(analysis_pending.end(), class2_ptr->get_parents().begin(), class2_ptr->get_parents().end());
     // move the nodes and parents from class2 to class1
     auto &nodes1 = class1_ref->get_nodes();
     auto &nodes2 = class2_ptr->get_nodes();
@@ -209,6 +213,23 @@ void EGraph::rebuild() {
                 classes.at(uf.find_root(existing_class_id))->clean_up_nodes();
             } else
                 memo.emplace(node, pending_id);
+        }
+    }
+
+    while (!analysis_pending.empty()) {
+        std::vector<Id> current_pending = std::move(analysis_pending);
+        analysis_pending.clear();
+
+        for (Id pending_id : current_pending) {
+            auto node = nodes[pending_id].get();
+            Id class_id = uf.find_root(pending_id);
+            auto &class_ref = classes.at(class_id);
+            auto new_analysis = make_analysis(*node);
+            bool changed = merge_analysis_data(class_ref->get_analysis_data(), new_analysis);
+            if (changed) {
+                analysis_pending.insert(
+                    analysis_pending.end(), class_ref->get_parents().begin(), class_ref->get_parents().end());
+            }
         }
     }
 }
@@ -248,8 +269,8 @@ AnalysisData EGraph::make_analysis(const ENode &node) const { return MatrixAnaly
 // @brief Merge two analysis data objects, throwing an error if they conflict.
 // @param data1
 // @param data2
-void EGraph::merge_analysis_data(AnalysisData &data1, const AnalysisData &data2) const {
-    MatrixAnalysis::merge(data1, data2);
+bool EGraph::merge_analysis_data(AnalysisData &data1, const AnalysisData &data2) const {
+    return MatrixAnalysis::merge(data1, data2);
 }
 
 void EGraph::find_matches_in_eclass(Id eclass_id, const Pattern &pattern, std::set<Substitution> &out_substitutions) {

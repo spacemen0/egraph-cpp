@@ -25,26 +25,28 @@ AnalysisData MatrixAnalysis::make(const EGraph &egraph, const ENode &node) {
     }
 }
 
-void MatrixAnalysis::merge(AnalysisData &data1, const AnalysisData &data2) {
+bool MatrixAnalysis::merge(AnalysisData &data1, const AnalysisData &data2) {
     if (data1 != data2) // has a custom operator ==
     {
         throw ShapeMismatchError("Merging e-classes with conflicting size data");
     }
 
     auto merge_matrix_props = [](MatrixProperty &p1, const MatrixProperty &p2) {
+        MatrixProperty old_p1 = p1;
         for (const auto &flag : MatrixProperty::flag_descriptors) {
             p1.flags.*(flag.member) = p1.flags.*(flag.member) || p2.flags.*(flag.member);
         }
+        enforce_hierarchy(p1);
+        return !p1.strict_equal(old_p1);
     };
 
+    bool changed = false;
     if (auto *p1 = std::get_if<MatrixProperty>(&data1.property)) {
         const auto *p2 = std::get_if<MatrixProperty>(&data2.property);
         if (!p2) {
-            throw AnalysisError(
-                "Cannot merge MatrixProperty with non-MatrixProperty "
-                "(likely TupleProperty)");
+            throw AnalysisError("Cannot merge MatrixProperty with non-MatrixProperty (likely TupleProperty)");
         }
-        merge_matrix_props(*p1, *p2);
+        return merge_matrix_props(*p1, *p2);
     } else if (auto *t1 = std::get_if<TupleProperty>(&data1.property)) {
         const auto *t2 = std::get_if<TupleProperty>(&data2.property);
         if (!t2) {
@@ -54,9 +56,12 @@ void MatrixAnalysis::merge(AnalysisData &data1, const AnalysisData &data2) {
             throw AnalysisError("Cannot merge TupleProperties of different sizes");
         }
         for (size_t i = 0; i < t1->size(); ++i) {
-            merge_matrix_props((*t1)[i], (*t2)[i]);
+            if (merge_matrix_props((*t1)[i], (*t2)[i])) {
+                changed = true;
+            }
         }
     }
+    return changed;
 }
 
 void MatrixAnalysis::enforce_hierarchy(MatrixProperty &p) {

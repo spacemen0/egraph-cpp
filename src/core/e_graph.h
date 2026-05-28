@@ -52,7 +52,7 @@ class EGraph {
   private:
     std::string to_dot() const;
     AnalysisData make_analysis(const ENode &node) const;
-    void merge_analysis_data(AnalysisData &data1, const AnalysisData &data2) const;
+    bool merge_analysis_data(AnalysisData &data1, const AnalysisData &data2) const;
 
     // stores the union-find structure for e-classes (which stores equivalences)
     UnionFind uf;
@@ -60,6 +60,8 @@ class EGraph {
     std::vector<std::unique_ptr<ENode>> nodes;
     // stores pending parent updates after unions
     std::vector<Id> pending;
+    // stores pending analysis updates
+    std::vector<Id> analysis_pending;
     // stores mapping from ENode to EClass id (canonicalized one after rebuild)
     std::unordered_map<const ENode *, Id, ENodePtrHash, ENodePtrEqual> memo;
     // stores mapping from EClass id to EClass, classes being merged will be
