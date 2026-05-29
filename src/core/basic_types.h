@@ -27,6 +27,7 @@ enum class Op {
     Geqrf, // QR factorization
     Trtri, // Inverse of a triangular matrix
     Gemv,  // Gemv(A, x, y) - General Matrix-Vector Multiply
+    Gemvt, // Gemv(A, x, y) - General Matrix-Vector Multiply with transposed A
 };
 
 using Id = size_t;
@@ -38,5 +39,6 @@ using SizeBindings = std::unordered_map<std::string, int>;
 
 static inline bool is_kernel_op(Op op) {
     using enum Op;
-    return op == Gemm || op == Syrk || op == Trsm || op == Potrf || op == Geqrf || op == Gemv || op == Trtri;
+    return op == Gemm || op == Syrk || op == Trsm || op == Potrf || op == Geqrf || op == Gemv || op == Gemvt ||
+           op == Trtri;
 }

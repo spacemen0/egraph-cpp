@@ -40,6 +40,14 @@ FetchContent_Declare(
   DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 FetchContent_MakeAvailable(googletest)
+
+FetchContent_Declare(
+  magic_enum
+  URL https://github.com/Neargye/magic_enum/archive/refs/tags/v0.9.6.zip
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+FetchContent_MakeAvailable(magic_enum)
+
 enable_testing()
 include(GoogleTest)
 

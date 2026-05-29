@@ -5,6 +5,7 @@
 #include "parser.h"
 #include "rewriter.h"
 #include "types.h"
+#include <magic_enum.hpp>
 #include <random>
 #include <span>
 #include <stdexcept>
@@ -14,47 +15,16 @@
 #include <vector>
 
 inline Op parse_op(std::string_view s) {
-    using enum Op;
-    if (s == "Add" || s == "+")
-        return Add;
-    if (s == "Mul" || s == "*")
-        return Mul;
-    if (s == "Tr")
-        return Tr;
-    if (s == "Inv")
-        return Inv;
-    if (s == "Minus" || s == "-")
-        return Minus;
-    if (s == "QR")
-        return QR;
-    if (s == "LU")
-        return LU;
-    if (s == "LLt")
-        return LLt;
-    if (s == "Get")
-        return Get;
-    if (s == "Sol")
-        return Sol;
-    if (s == "Det")
-        return Det;
-    if (s == "Log")
-        return Log;
-    if (s == "Scale")
-        return Scale;
-    if (s == "Geqrf")
-        return Geqrf;
-    if (s == "Gemm")
-        return Gemm;
-    if (s == "Syrk")
-        return Syrk;
-    if (s == "Trsm")
-        return Trsm;
-    if (s == "Potrf")
-        return Potrf;
-    if (s == "Trtri")
-        return Trtri;
-    if (s == "Gemv")
-        return Gemv;
+    if (s == "+")
+        return Op::Add;
+    if (s == "*")
+        return Op::Mul;
+    if (s == "-")
+        return Op::Minus;
+
+    if (auto op = magic_enum::enum_cast<Op>(s)) {
+        return *op;
+    }
     throw InvalidOperationError("Unknown operation: " + std::string(s));
 }
 
@@ -79,50 +49,15 @@ inline ParsedAtom string_to_parsed_atom(std::string_view s) { return parser::par
 
 inline std::string atom_to_string(const Atom &atom) {
     if (std::holds_alternative<Op>(atom)) {
-        switch (std::get<Op>(atom)) {
-            using enum Op;
-        case Add:
+        Op op = std::get<Op>(atom);
+        if (op == Op::Add)
             return "+";
-        case Mul:
+        if (op == Op::Mul)
             return "*";
-        case Tr:
-            return "Tr";
-        case Inv:
-            return "Inv";
-        case Minus:
+        if (op == Op::Minus)
             return "-";
-        case QR:
-            return "QR";
-        case LU:
-            return "LU";
-        case LLt:
-            return "LLt";
-        case Get:
-            return "Get";
-        case Sol:
-            return "Sol";
-        case Det:
-            return "Det";
-        case Scale:
-            return "Scale";
-        case Log:
-            return "Log";
-        case Gemm:
-            return "Gemm";
-        case Syrk:
-            return "Syrk";
-        case Trsm:
-            return "Trsm";
-        case Potrf:
-            return "Potrf";
-        case Geqrf:
-            return "Geqrf";
-        case Trtri:
-            return "Trtri";
-        case Gemv:
-            return "Gemv";
-        }
-        return "UnknownOp";
+
+        return std::string(magic_enum::enum_name(op));
     } else if (std::holds_alternative<std::string>(atom)) {
         return std::get<std::string>(atom);
     } else if (std::holds_alternative<double>(atom)) {

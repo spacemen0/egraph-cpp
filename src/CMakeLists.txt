@@ -27,5 +27,7 @@ target_include_directories(core_lib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/io
 )
 
+target_link_libraries(core_lib PUBLIC magic_enum::magic_enum)
+
 add_executable(egraph_cli main.cpp)
 target_link_libraries(egraph_cli PRIVATE core_lib)
