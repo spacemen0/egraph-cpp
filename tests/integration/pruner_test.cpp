@@ -58,6 +58,6 @@ TEST(Integration, OLSPruneConverges) {
         std::cout << "Cost: " << candidate.cost << std::endl;
     }
     ASSERT_TRUE(std::any_of(result.begin(), result.end(), [](const auto &c) {
-        return c.expr.to_string(true) == "Trsm(R(M), Gemv(Q(M)ᵀ, n, Zero_Bx1))";
+        return c.expr.to_string(true) == "Trsm(R(M), Gemvt(Q(M), n, Zero_Bx1))";
     }));
 }

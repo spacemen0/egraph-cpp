@@ -136,3 +136,11 @@ static auto leaf_and_not_factorized_and_square = [](std::string_view var) {
         return is_leaf(var)(g, s) && is_not_factorized(var)(g, s) && is_square(var)(g, s);
     };
 };
+
+static auto is_not_op = [](std::string_view var, Op op) {
+    return [var = std::string(var), op](const EGraph &g, const Substitution &s) {
+        Id id = s.at(var);
+        const auto &node = g.at(id);
+        return !std::holds_alternative<Op>(node.get_atom()) || std::get<Op>(node.get_atom()) != op;
+    };
+};

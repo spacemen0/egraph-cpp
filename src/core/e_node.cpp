@@ -363,6 +363,19 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
                 return sc;
             }
         }
+        case Gemvt: {
+            auto shapes = get_two_shapes(children.at(0), children.at(1));
+            if (is_numeric(shapes.first)) {
+                int rows = std::get<int>(shapes.first.first);
+                int cols = std::get<int>(shapes.first.second);
+                return 2.0 * rows * cols;
+            } else {
+                Monomial m = {{size_to_symbol(shapes.first.first), size_to_symbol(shapes.first.second)}};
+                SymbolicCost sc;
+                sc[m] = 2.0;
+                return sc;
+            }
+        }
         default:
             throw std::invalid_argument("Unknown Op in ENode::compute_local_cost");
         }

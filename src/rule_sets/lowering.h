@@ -10,7 +10,7 @@
 /// ----------------------------------------------------------
 static const auto gemv_without_c =
     make_rewrite("gemv_without_c", "?a * ?b", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
-    return is_matrix("a")(g, s) && is_vector("b")(g, s);
+    return is_matrix("a")(g, s) && is_vector("b")(g, s) && is_not_op("a", Op::Tr)(g, s);
 }, [](EGraph &g, const Substitution &s, Id _) {
     Id a_id = s.at("a");
     Id b_id = s.at("b");
@@ -22,6 +22,22 @@ static const auto gemv_without_c =
 });
 static const auto gemv_with_c =
     make_rewrite("gemv_with_c", "?a * ?b + ?c", "Gemv(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
+    return is_matrix("a")(g, s) && is_vector("b")(g, s) && is_vector("c")(g, s) && is_not_op("a", Op::Tr)(g, s);
+});
+static const auto gemvt_without_c =
+    make_rewrite("gemvt_without_c", "Tr(?a) * ?b", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
+    return is_matrix("a")(g, s) && is_vector("b")(g, s);
+}, [](EGraph &g, const Substitution &s, Id _) {
+    Id a_id = s.at("a");
+    Id b_id = s.at("b");
+    const auto *a_prop = get_matrix_data(g, a_id);
+    const auto *b_prop = get_matrix_data(g, b_id);
+    auto zero = make_zero_of_shape(g, {a_prop->shape.second, b_prop->shape.second});
+    auto gemvt_node = ENode{{a_id, b_id, zero}, Op::Gemvt};
+    return std::make_pair(g.add_node(gemvt_node), false);
+});
+static const auto gemvt_with_c = make_rewrite(
+    "gemvt_with_c", "Tr(?a) * ?b + ?c", "Gemvt(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
     return is_matrix("a")(g, s) && is_vector("b")(g, s) && is_vector("c")(g, s);
 });
 
@@ -74,6 +90,8 @@ static const std::vector<Rewrite> lowering_set = {
     gemv_with_c,
     gemm_without_c,
     gemm_with_c,
+    gemvt_without_c,
+    gemvt_with_c,
     syrk_without_c_left,
     syrk_without_c_right,
     syrk_with_c_left,

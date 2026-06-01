@@ -504,6 +504,35 @@ static AnalysisData analyze_gemv(const EGraph &egraph, const std::vector<Id> &ch
     }
     throw AnalysisError("Gemv expects Matrix inputs");
 }
+
+static AnalysisData analyze_gemvt(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 3, "Gemvt");
+
+    if (auto dataA = get_matrix_data(egraph, children.at(0))) {
+        if (auto dataX = get_matrix_data(egraph, children.at(1))) {
+            if (auto dataY = get_matrix_data(egraph, children.at(2))) {
+
+                if (!dataX->is_vector() || !dataY->is_vector()) {
+                    throw InvalidOperationError("Gemvt operation requires vector inputs for x and y");
+                }
+
+                if (dataA->shape.first != dataX->shape.first) {
+                    throw ShapeMismatchError("Gemvt operation with incompatible sizes between A and x");
+                }
+
+                if (dataA->shape.second != dataY->shape.first) {
+                    throw ShapeMismatchError("Gemvt operation with incompatible sizes between A and y");
+                }
+
+                MatrixProperty prop;
+                prop.shape = std::make_pair(dataA->shape.second, 1); // Result is n x 1
+                return matrix_property_data(prop);
+            }
+        }
+    }
+    throw AnalysisError("Gemvt expects Matrix inputs");
+}
+
 AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode &node, Op op) {
     const auto &children = node.get_children();
 
@@ -555,6 +584,9 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
     }
     case Gemv: {
         return analyze_gemv(egraph, children);
+    }
+    case Gemvt: {
+        return analyze_gemvt(egraph, children);
     }
     default:
         throw AnalysisError("Unknown operation in analysis");
