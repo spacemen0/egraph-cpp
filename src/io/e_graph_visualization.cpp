@@ -1,7 +1,6 @@
 #include "e_graph_visualization.h"
 #include "e_graph.h"
 #include "utils.h"
-#include <cstdio>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -21,7 +20,7 @@ std::string to_dot(const EGraph &egraph) {
         oss << "    style=dotted;\n";
 
         const auto representative = get_representative_expression(egraph, class_id);
-        oss << "    label=\" EC-" << class_id << ": " << representative.to_string() << "\";\n";
+        oss << "    label=\" EC-" << class_id << "\";\n";
 
         int i = 0;
         for (const auto &node : egraph.get_class_nodes(class_id)) {
@@ -115,6 +114,6 @@ void to_img(const EGraph &egraph, const std::string &filename, const std::string
     if (result != 0) {
         std::cerr << "Error: Failed to execute command: " << command << std::endl;
     }
-    std::remove(dot_filename.c_str());
+    // std::remove(dot_filename.c_str());
 }
 } // namespace EGraphVisualization

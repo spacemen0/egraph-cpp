@@ -6,6 +6,7 @@
 #include "rewrite_sets.h"
 #include "rewriter.h"
 #include "test_helpers.h"
+#include "transformation.h"
 #include "utils.h"
 #include <algorithm>
 #include <gtest/gtest.h>
@@ -177,14 +178,11 @@ TEST(Integration, SimpleDiagram) {
     pt.add_or_update_property_entry("D", {.shape = std::make_pair(3, 3)});
     EGraph egraph(pt);
     auto id = egraph.add_expression(Expression("(A + B) * (C + D)"));
-    egraph.to_img("initial_diagram", "svg");
-    std::vector<Rewrite> rules = {commute_add};
-    Rewriter rewriter(egraph, rules, 500, true);
-    rewriter.apply_rewrites(1);
+    std::vector<Rewrite> rules = {commute_add, mul_distribute_left, mul_distribute_right};
+    Rewriter rewriter = Rewriter(egraph, rules, 1000);
+    rewriter.apply_rewrites();
+    egraph.to_dot_file("simple_diagram.dot");
     egraph.to_img("simple_diagram", "svg");
-    Rewriter rewriter2(egraph, build_rewrite_sets({"simplification", "transformation"}), 500, true);
-    rewriter2.apply_rewrites(3);
-    egraph.to_img("simple_diagram_after_simplification", "svg");
 }
 
 TEST(Integration, VerySimpleDiagram) {
@@ -194,8 +192,9 @@ TEST(Integration, VerySimpleDiagram) {
     pt.add_or_update_property_entry("c", {.shape = std::make_pair(3, 3)});
     pt.add_or_update_property_entry("d", {.shape = std::make_pair(3, 3)});
     EGraph egraph(pt);
-    egraph.add_expression(Expression("a * b + c"));
-    egraph.add_expression(Expression("a * b + d"));
+    egraph.add_expression(Expression("(a + b)*(c + d)"));
+    egraph.add_expression(Expression("(a+b)*(d+c)"));
+    egraph.to_dot_file("diagram.dot");
     egraph.to_img("very_simple_diagram", "svg");
 }
 
