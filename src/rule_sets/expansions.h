@@ -9,7 +9,9 @@
 /// Solver Lowering
 /// ----------------------------------------------------------
 static const auto solver_left = make_rewrite("solver_left", "Inv(?a) * ?b", "Sol(?a, ?b)");
-static const auto solver_right = make_rewrite("solver_right", "?b * Inv(?a)", "Tr(Sol(Tr(?a), Tr(?b)))");
+static const auto solver_right = make_rewrite("solver_right", "?b * Inv(?a)", "SolR(?a, ?b)");
+static const auto solver_right_to_left =
+    make_rewrite("solver_right_to_left", "SolR(?a, ?b)", "Tr(Sol(Tr(?a), Tr(?b)))", true);
 
 /// QR Factorization
 /// ----------------------------------------------------------
@@ -45,10 +47,15 @@ static const auto llt_invert = make_rewrite(
     return is_not_factorized("a")(g, s) && is_pos_def("a")(g, s) && is_symmetric("a")(g, s);
 });
 static const auto llt_leaf = make_rewrite(
-    "llt-leaf", "?a", "Tr(Get(LLt(?a), 0)) * Get(LLt(?a), 0)", false, [](const EGraph &g, const Substitution &s) {
+    "llt-leaf", "?a", "Get(LLt(?a), 0) * Tr(Get(LLt(?a), 0))", false, [](const EGraph &g, const Substitution &s) {
     return leaf_and_not_factorized_and_square("a")(g, s) && is_pos_def("a")(g, s) && is_symmetric("a")(g, s);
+});
+static const auto llt_to_utu = make_rewrite(
+    "llt_to_utu", "Get(LLt(?a), 0)", "Tr(Get(UtU(?a), 0))", true, [](const EGraph &g, const Substitution &s) {
+    return is_pos_def("a")(g, s) && is_symmetric("a")(g, s);
 });
 
 static const std::vector<Rewrite> expansion_set = {
-    solver_left, solver_right, qr_invert, qr_leaf, lu_invert, lu_leaf, llt_invert, llt_leaf,
+    solver_left, solver_right, solver_right_to_left, qr_invert, qr_leaf,
+    lu_invert,   lu_leaf,      llt_invert,           llt_leaf,  llt_to_utu,
 };

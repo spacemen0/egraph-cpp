@@ -118,6 +118,38 @@ TEST(Rewrite, SolveRule) {
         std::make_pair(Size(3), Size(2)));
 }
 
+TEST(Rewrite, SolR_RightSolve) {
+    PropertyTable pt;
+
+    MatrixProperty prop_a;
+    prop_a.shape = {3, 3};
+    prop_a.flags.is_non_singular = true;
+    prop_a.flags.is_lower_triangular = true;
+    pt.add_or_update_property_entry("a", prop_a);
+
+    MatrixProperty prop_b;
+    prop_b.shape = {2, 3};
+    prop_b.flags.is_non_singular = true;
+    pt.add_or_update_property_entry("b", prop_b);
+
+    EGraph egraph(std::move(pt));
+
+    Id id_expr = egraph.add_expression(Expression("b * Inv(a)"));
+
+    Rewriter rewriter(egraph, {solver_right, trsm_rn}, 100);
+    bool changed = rewriter.apply_rewrites();
+    EXPECT_TRUE(changed);
+
+    Id id_solr = egraph.add_expression(Expression("SolR(a, b)"));
+    Id id_trsm_rn = egraph.add_expression(Expression("Trsm_RN(a, b)"));
+
+    EXPECT_EQ(egraph.find_class_id(id_expr), egraph.find_class_id(id_solr));
+    EXPECT_EQ(egraph.find_class_id(id_expr), egraph.find_class_id(id_trsm_rn));
+    EXPECT_EQ(
+        std::get<MatrixProperty>(egraph.get_class_analysis_data(id_expr).property).shape,
+        std::make_pair(Size(2), Size(3)));
+}
+
 TEST(Rewrite, LLtRewrite) {
     EGraph egraph(get_property_table());
 
@@ -129,6 +161,19 @@ TEST(Rewrite, LLtRewrite) {
 
     Id id_llt = egraph.add_expression(Expression("Tr(Inv(Get(LLt(V), 0))) * Inv(Get(LLt(V), 0))"));
     EXPECT_EQ(egraph.find_class_id(id_expr), egraph.find_class_id(id_llt));
+}
+
+TEST(Rewrite, LLtToUtURewrite) {
+    EGraph egraph(get_property_table());
+
+    Id id_llt = egraph.add_expression(Expression("Get(LLt(V), 0)"));
+
+    Rewriter rewriter(egraph, {llt_to_utu}, 100);
+    bool changed = rewriter.apply_rewrites();
+    EXPECT_TRUE(changed);
+
+    Id id_utu = egraph.add_expression(Expression("Tr(Get(UtU(V), 0))"));
+    EXPECT_EQ(egraph.find_class_id(id_llt), egraph.find_class_id(id_utu));
 }
 
 TEST(Rewrite, BackoffScheduler) {

@@ -335,6 +335,28 @@ static AnalysisData analyze_solve(const EGraph &egraph, const std::vector<Id> &c
     throw AnalysisError("Sol expects Matrix inputs");
 }
 
+static AnalysisData analyze_solve_right(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 2, "SolR");
+    if (auto data1 = get_matrix_data(egraph, children.at(0))) {
+        if (!data1->is_square())
+            throw InvalidOperationError(
+                "SolR operation on non-square matrix " +
+                Expression(egraph.find_node(children.at(0)).value(), egraph).to_string());
+        if (auto data2 = get_matrix_data(egraph, children.at(1))) {
+            if (data2->shape.second != data1->shape.first) {
+                throw ShapeMismatchError("SolR operation with incompatible sizes");
+            }
+
+            MatrixProperty prop;
+            prop.shape = {data2->shape.first, data1->shape.second};
+            prop.flags.is_full_rank = data2->flags.is_full_rank;
+            prop.flags.is_non_singular = data2->flags.is_non_singular;
+            return matrix_property_data(prop);
+        }
+    }
+    throw AnalysisError("SolR expects Matrix inputs");
+}
+
 static AnalysisData analyze_lu(const EGraph &egraph, const std::vector<Id> &children) {
     check_arity(children, 1, "LU");
     if (auto data = get_matrix_data(egraph, children.at(0))) {
@@ -387,24 +409,29 @@ static AnalysisData analyze_llt(const EGraph &egraph, const std::vector<Id> &chi
     throw AnalysisError("LLt expects a Matrix input");
 }
 
-static AnalysisData analyze_gemm(const EGraph &egraph, const std::vector<Id> &children) {
-    check_arity(children, 3, "Gemm");
+static AnalysisData analyze_utu(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 1, "UtU");
     if (auto data = get_matrix_data(egraph, children.at(0))) {
-        if (auto data2 = get_matrix_data(egraph, children.at(1))) {
-            if (auto data3 = get_matrix_data(egraph, children.at(2))) {
-                if (data->shape.second != data2->shape.first || data2->shape.second != data3->shape.second ||
-                    data->shape.first != data3->shape.first) {
-                    throw ShapeMismatchError("Gemm operation with incompatible sizes");
-                }
-
-                MatrixProperty prop;
-                prop.shape = std::make_pair(data->shape.first, data3->shape.second);
-                return matrix_property_data(prop);
-            }
+        if (data->shape.first != data->shape.second) {
+            throw InvalidOperationError("UtU operation on non-square matrix");
         }
+        if (!data->flags.is_positive_definite) {
+            throw InvalidOperationError("UtU operation on non-positive-definite matrix");
+        }
+        if (!data->flags.is_symmetric) {
+            throw InvalidOperationError("UtU operation on non-symmetric matrix");
+        }
+        MatrixProperty U;
+        U.shape = data->shape;
+        U.flags.is_upper_triangular = true;
+        U.flags.is_non_singular = true;
+        auto props = std::vector{U};
+        return tuple_property_data(props);
     }
-    throw AnalysisError("Gemm expects Matrix inputs");
+    throw AnalysisError("UtU expects a Matrix input");
 }
+
+
 
 static AnalysisData analyze_syrk(const EGraph &egraph, const std::vector<Id> &children) {
     check_arity(children, 2, "Syrk");
@@ -445,9 +472,225 @@ static AnalysisData analyze_trsm(const EGraph &egraph, const std::vector<Id> &ch
     throw AnalysisError("Trsm expects Matrix inputs");
 }
 
+static AnalysisData analyze_gemm(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 3, "Gemm");
+    if (auto data = get_matrix_data(egraph, children.at(0))) {
+        if (auto data2 = get_matrix_data(egraph, children.at(1))) {
+            if (auto data3 = get_matrix_data(egraph, children.at(2))) {
+                if (data->shape.second != data2->shape.first || data2->shape.second != data3->shape.second ||
+                    data->shape.first != data3->shape.first) {
+                    throw ShapeMismatchError("Gemm operation with incompatible sizes");
+                }
+
+                MatrixProperty prop;
+                prop.shape = std::make_pair(data->shape.first, data3->shape.second);
+                return matrix_property_data(prop);
+            }
+        }
+    }
+    throw AnalysisError("Gemm expects Matrix inputs");
+}
+
+static AnalysisData analyze_gemm_nn(const EGraph &egraph, const std::vector<Id> &children) {
+    return analyze_gemm(egraph, children);
+}
+
+static AnalysisData analyze_gemm_tn(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 3, "Gemm_TN");
+    if (auto data = get_matrix_data(egraph, children.at(0))) {
+        if (auto data2 = get_matrix_data(egraph, children.at(1))) {
+            if (auto data3 = get_matrix_data(egraph, children.at(2))) {
+                if (data->shape.first != data2->shape.first || data2->shape.second != data3->shape.second ||
+                    data->shape.second != data3->shape.first) {
+                    throw ShapeMismatchError("Gemm_TN operation with incompatible sizes");
+                }
+                MatrixProperty prop;
+                prop.shape = std::make_pair(data->shape.second, data2->shape.second);
+                return matrix_property_data(prop);
+            }
+        }
+    }
+    throw AnalysisError("Gemm_TN expects Matrix inputs");
+}
+
+static AnalysisData analyze_gemm_nt(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 3, "Gemm_NT");
+    if (auto data = get_matrix_data(egraph, children.at(0))) {
+        if (auto data2 = get_matrix_data(egraph, children.at(1))) {
+            if (auto data3 = get_matrix_data(egraph, children.at(2))) {
+                if (data->shape.second != data2->shape.second || data2->shape.first != data3->shape.second ||
+                    data->shape.first != data3->shape.first) {
+                    throw ShapeMismatchError("Gemm_NT operation with incompatible sizes");
+                }
+                MatrixProperty prop;
+                prop.shape = std::make_pair(data->shape.first, data2->shape.first);
+                return matrix_property_data(prop);
+            }
+        }
+    }
+    throw AnalysisError("Gemm_NT expects Matrix inputs");
+}
+
+static AnalysisData analyze_gemm_tt(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 3, "Gemm_TT");
+    if (auto data = get_matrix_data(egraph, children.at(0))) {
+        if (auto data2 = get_matrix_data(egraph, children.at(1))) {
+            if (auto data3 = get_matrix_data(egraph, children.at(2))) {
+                if (data->shape.first != data2->shape.second || data2->shape.first != data3->shape.second ||
+                    data->shape.second != data3->shape.first) {
+                    throw ShapeMismatchError("Gemm_TT operation with incompatible sizes");
+                }
+                MatrixProperty prop;
+                prop.shape = std::make_pair(data->shape.second, data2->shape.first);
+                return matrix_property_data(prop);
+            }
+        }
+    }
+    throw AnalysisError("Gemm_TT expects Matrix inputs");
+}
+
+static AnalysisData analyze_syrk_n(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 2, "Syrk_N");
+    if (auto data = get_matrix_data(egraph, children.at(0))) {
+        if (auto data2 = get_matrix_data(egraph, children.at(1))) {
+            if (data->shape.first != data2->shape.first || data->shape.first != data2->shape.second) {
+                throw ShapeMismatchError("Syrk_N operation with incompatible sizes");
+            }
+            MatrixProperty prop;
+            prop.shape = std::make_pair(data->shape.first, data->shape.first);
+            prop.flags.is_symmetric = true;
+            return matrix_property_data(prop);
+        }
+    }
+    throw AnalysisError("Syrk_N expects Matrix inputs");
+}
+
+static AnalysisData analyze_syrk_t(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 2, "Syrk_T");
+    if (auto data = get_matrix_data(egraph, children.at(0))) {
+        if (auto data2 = get_matrix_data(egraph, children.at(1))) {
+            if (data->shape.second != data2->shape.first || data->shape.second != data2->shape.second) {
+                throw ShapeMismatchError("Syrk_T operation with incompatible sizes");
+            }
+            MatrixProperty prop;
+            prop.shape = std::make_pair(data->shape.second, data->shape.second);
+            prop.flags.is_symmetric = true;
+            return matrix_property_data(prop);
+        }
+    }
+    throw AnalysisError("Syrk_T expects Matrix inputs");
+}
+
+static AnalysisData analyze_trsm_ln(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 2, "Trsm_LN");
+    if (auto dataA = get_matrix_data(egraph, children.at(0))) {
+        if (auto dataB = get_matrix_data(egraph, children.at(1))) {
+            if (!dataA->flags.is_lower_triangular && !dataA->flags.is_upper_triangular) {
+                throw InvalidOperationError("Trsm_LN operation on non-triangular matrix A");
+            }
+            if (dataA->shape.second != dataB->shape.first || !dataA->flags.is_non_singular) {
+                throw ShapeMismatchError("Trsm_LN operation with incompatible sizes");
+            }
+            MatrixProperty prop;
+            prop.shape = std::make_pair(dataA->shape.first, dataB->shape.second);
+            prop.flags.is_full_rank = dataB->flags.is_full_rank;
+            prop.flags.is_non_singular = dataB->flags.is_non_singular;
+            return matrix_property_data(prop);
+        }
+    }
+    throw AnalysisError("Trsm_LN expects Matrix inputs");
+}
+
+static AnalysisData analyze_trsm_lt(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 2, "Trsm_LT");
+    if (auto dataA = get_matrix_data(egraph, children.at(0))) {
+        if (auto dataB = get_matrix_data(egraph, children.at(1))) {
+            if (!dataA->flags.is_lower_triangular && !dataA->flags.is_upper_triangular) {
+                throw InvalidOperationError("Trsm_LT operation on non-triangular matrix A");
+            }
+            if (dataA->shape.first != dataB->shape.first || !dataA->flags.is_non_singular) {
+                throw ShapeMismatchError("Trsm_LT operation with incompatible sizes");
+            }
+            MatrixProperty prop;
+            prop.shape = std::make_pair(dataA->shape.second, dataB->shape.second);
+            prop.flags.is_full_rank = dataB->flags.is_full_rank;
+            prop.flags.is_non_singular = dataB->flags.is_non_singular;
+            return matrix_property_data(prop);
+        }
+    }
+    throw AnalysisError("Trsm_LT expects Matrix inputs");
+}
+
+static AnalysisData analyze_trsm_rn(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 2, "Trsm_RN");
+    if (auto dataA = get_matrix_data(egraph, children.at(0))) {
+        if (auto dataB = get_matrix_data(egraph, children.at(1))) {
+            if (!dataA->flags.is_lower_triangular && !dataA->flags.is_upper_triangular) {
+                throw InvalidOperationError("Trsm_RN operation on non-triangular matrix A");
+            }
+            if (dataA->shape.first != dataB->shape.second || !dataA->flags.is_non_singular) {
+                throw ShapeMismatchError("Trsm_RN operation with incompatible sizes");
+            }
+            MatrixProperty prop;
+            prop.shape = std::make_pair(dataB->shape.first, dataA->shape.second);
+            prop.flags.is_full_rank = dataB->flags.is_full_rank;
+            prop.flags.is_non_singular = dataB->flags.is_non_singular;
+            return matrix_property_data(prop);
+        }
+    }
+    throw AnalysisError("Trsm_RN expects Matrix inputs");
+}
+
+static AnalysisData analyze_trsm_rt(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 2, "Trsm_RT");
+    if (auto dataA = get_matrix_data(egraph, children.at(0))) {
+        if (auto dataB = get_matrix_data(egraph, children.at(1))) {
+            if (!dataA->flags.is_lower_triangular && !dataA->flags.is_upper_triangular) {
+                throw InvalidOperationError("Trsm_RT operation on non-triangular matrix A");
+            }
+            if (dataA->shape.second != dataB->shape.second || !dataA->flags.is_non_singular) {
+                throw ShapeMismatchError("Trsm_RT operation with incompatible sizes");
+            }
+            MatrixProperty prop;
+            prop.shape = std::make_pair(dataB->shape.first, dataA->shape.first);
+            prop.flags.is_full_rank = dataB->flags.is_full_rank;
+            prop.flags.is_non_singular = dataB->flags.is_non_singular;
+            return matrix_property_data(prop);
+        }
+    }
+    throw AnalysisError("Trsm_RT expects Matrix inputs");
+}
+
 static AnalysisData analyze_potrf(const EGraph &egraph, const std::vector<Id> &children) {
     return analyze_llt(egraph, children);
 }
+
+static AnalysisData analyze_potrf_l(const EGraph &egraph, const std::vector<Id> &children) {
+    return analyze_llt(egraph, children);
+}
+
+static AnalysisData analyze_potrf_u(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 1, "Potrf_U");
+    if (auto data = get_matrix_data(egraph, children.at(0))) {
+        if (data->shape.first != data->shape.second) {
+            throw InvalidOperationError("Potrf_U operation on non-square matrix");
+        }
+        if (!data->flags.is_positive_definite) {
+            throw InvalidOperationError("Potrf_U operation on non-positive-definite matrix");
+        }
+        if (!data->flags.is_symmetric) {
+            throw InvalidOperationError("Potrf_U operation on non-symmetric matrix");
+        }
+        MatrixProperty U;
+        U.shape = data->shape;
+        U.flags.is_upper_triangular = true;
+        U.flags.is_non_singular = true;
+        auto props = std::vector{U};
+        return tuple_property_data(props);
+    }
+    throw AnalysisError("Potrf_U expects a Matrix input");
+}
+
 
 static AnalysisData analyze_geqrf(const EGraph &egraph, const std::vector<Id> &children) {
     return analyze_qr(egraph, children);
@@ -505,23 +748,23 @@ static AnalysisData analyze_gemv(const EGraph &egraph, const std::vector<Id> &ch
     throw AnalysisError("Gemv expects Matrix inputs");
 }
 
-static AnalysisData analyze_gemvt(const EGraph &egraph, const std::vector<Id> &children) {
-    check_arity(children, 3, "Gemvt");
+static AnalysisData analyze_gemv_t(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 3, "Gemv_T");
 
     if (auto dataA = get_matrix_data(egraph, children.at(0))) {
         if (auto dataX = get_matrix_data(egraph, children.at(1))) {
             if (auto dataY = get_matrix_data(egraph, children.at(2))) {
 
                 if (!dataX->is_vector() || !dataY->is_vector()) {
-                    throw InvalidOperationError("Gemvt operation requires vector inputs for x and y");
+                    throw InvalidOperationError("Gemv_T operation requires vector inputs for x and y");
                 }
 
                 if (dataA->shape.first != dataX->shape.first) {
-                    throw ShapeMismatchError("Gemvt operation with incompatible sizes between A and x");
+                    throw ShapeMismatchError("Gemv_T operation with incompatible sizes between A and x");
                 }
 
                 if (dataA->shape.second != dataY->shape.first) {
-                    throw ShapeMismatchError("Gemvt operation with incompatible sizes between A and y");
+                    throw ShapeMismatchError("Gemv_T operation with incompatible sizes between A and y");
                 }
 
                 MatrixProperty prop;
@@ -530,8 +773,9 @@ static AnalysisData analyze_gemvt(const EGraph &egraph, const std::vector<Id> &c
             }
         }
     }
-    throw AnalysisError("Gemvt expects Matrix inputs");
+    throw AnalysisError("Gemv_T expects Matrix inputs");
 }
+
 
 AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode &node, Op op) {
     const auto &children = node.get_children();
@@ -554,10 +798,14 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
         return analyze_lu(egraph, children);
     case LLt:
         return analyze_llt(egraph, children);
+    case UtU:
+        return analyze_utu(egraph, children);
     case Get:
         return analyze_get(egraph, children);
     case Sol:
         return analyze_solve(egraph, children);
+    case SolR:
+        return analyze_solve_right(egraph, children);
     case Det:
         return AnalysisData{};
     case Log:
@@ -567,14 +815,50 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
     case Gemm: {
         return analyze_gemm(egraph, children);
     }
+    case Gemm_NN: {
+        return analyze_gemm_nn(egraph, children);
+    }
+    case Gemm_TN: {
+        return analyze_gemm_tn(egraph, children);
+    }
+    case Gemm_NT: {
+        return analyze_gemm_nt(egraph, children);
+    }
+    case Gemm_TT: {
+        return analyze_gemm_tt(egraph, children);
+    }
     case Syrk: {
         return analyze_syrk(egraph, children);
+    }
+    case Syrk_N: {
+        return analyze_syrk_n(egraph, children);
+    }
+    case Syrk_T: {
+        return analyze_syrk_t(egraph, children);
     }
     case Trsm: {
         return analyze_trsm(egraph, children);
     }
+    case Trsm_LN: {
+        return analyze_trsm_ln(egraph, children);
+    }
+    case Trsm_LT: {
+        return analyze_trsm_lt(egraph, children);
+    }
+    case Trsm_RN: {
+        return analyze_trsm_rn(egraph, children);
+    }
+    case Trsm_RT: {
+        return analyze_trsm_rt(egraph, children);
+    }
     case Potrf: {
         return analyze_potrf(egraph, children);
+    }
+    case Potrf_L: {
+        return analyze_potrf_l(egraph, children);
+    }
+    case Potrf_U: {
+        return analyze_potrf_u(egraph, children);
     }
     case Geqrf: {
         return analyze_geqrf(egraph, children);
@@ -585,8 +869,8 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
     case Gemv: {
         return analyze_gemv(egraph, children);
     }
-    case Gemvt: {
-        return analyze_gemvt(egraph, children);
+    case Gemv_T: {
+        return analyze_gemv_t(egraph, children);
     }
     default:
         throw AnalysisError("Unknown operation in analysis");
