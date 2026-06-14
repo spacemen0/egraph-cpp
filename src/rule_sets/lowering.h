@@ -17,11 +17,11 @@ static const auto gemv_without_c =
     const auto *a_prop = get_matrix_data(g, a_id);
     const auto *b_prop = get_matrix_data(g, b_id);
     auto zero = make_zero_of_shape(g, {a_prop->shape.first, b_prop->shape.second});
-    auto gemv_node = ENode{{a_id, b_id, zero}, Op::Gemv};
+    auto gemv_node = ENode{{a_id, b_id, zero}, Op::Gemv_N};
     return std::make_pair(g.add_node(gemv_node), false);
 });
 static const auto gemv_with_c =
-    make_rewrite("gemv_with_c", "?a * ?b + ?c", "Gemv(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
+    make_rewrite("gemv_with_c", "?a * ?b + ?c", "Gemv_N(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
     return is_matrix("a")(g, s) && is_vector("b")(g, s) && is_vector("c")(g, s) && is_not_op("a", Op::Tr)(g, s);
 });
 static const auto gemv_t_without_c =
@@ -50,17 +50,17 @@ static const auto gemm_without_c = make_rewrite(
     const auto *a_prop = get_matrix_data(g, a_id);
     const auto *b_prop = get_matrix_data(g, b_id);
     auto zero = make_zero_of_shape(g, {a_prop->shape.first, b_prop->shape.second});
-    auto gemm_node = ENode{{a_id, b_id, zero}, Op::Gemm};
+    auto gemm_node = ENode{{a_id, b_id, zero}, Op::Gemm_NN};
     return std::make_pair(g.add_node(gemm_node), false);
 });
 static const auto gemm_with_c =
-    make_rewrite("gemm_with_c", "?a * ?b + ?c", "Gemm(?a, ?b, ?c)", false, is_not_vector("b"));
+    make_rewrite("gemm_with_c", "?a * ?b + ?c", "Gemm_NN(?a, ?b, ?c)", false, is_not_vector("b"));
 static const auto syrk_without_c_left = make_rewrite(
     "syrk_without_c_left", "?a * Tr(?a)", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s, Id _) {
     Id a_id = s.at("a");
     const auto *a_prop = get_matrix_data(g, a_id);
     auto zero = make_zero_of_shape(g, {a_prop->shape.first, a_prop->shape.first});
-    auto syrk_node = ENode{{a_id, zero}, Op::Syrk};
+    auto syrk_node = ENode{{a_id, zero}, Op::Syrk_N};
     return std::make_pair(g.add_node(syrk_node), false);
 });
 static const auto syrk_without_c_right = make_rewrite(
@@ -68,38 +68,25 @@ static const auto syrk_without_c_right = make_rewrite(
     Id a_id = s.at("a");
     const auto *a_prop = get_matrix_data(g, a_id);
     auto zero = make_zero_of_shape(g, {a_prop->shape.second, a_prop->shape.second});
-    auto transpose_a = g.add_expression(Expression("Tr(?a)"), s);
-    auto syrk_node = ENode{{transpose_a, zero}, Op::Syrk};
+    auto syrk_node = ENode{{a_id, zero}, Op::Syrk_T};
     return std::make_pair(g.add_node(syrk_node), false);
 });
-static const auto syrk_with_c_left = make_rewrite("syrk_with_c_left", "?a * Tr(?a) + ?c", "Syrk(?a, ?c)", false);
-static const auto syrk_with_c_right = make_rewrite("syrk_with_c_right", "Tr(?a) * ?a + ?c", "Syrk(Tr(?a), ?c)", false);
+static const auto syrk_with_c_left = make_rewrite("syrk_with_c_left", "?a * Tr(?a) + ?c", "Syrk_N(?a, ?c)", false);
+static const auto syrk_with_c_right = make_rewrite("syrk_with_c_right", "Tr(?a) * ?a + ?c", "Syrk_T(?a, ?c)", false);
 static const auto trsm =
-    make_rewrite("trsm", "Sol(?a, ?b)", "Trsm(?a, ?b)", false, [](const EGraph &g, const Substitution &s) {
+    make_rewrite("trsm", "Sol(?a, ?b)", "Trsm_LN(?a, ?b)", false, [](const EGraph &g, const Substitution &s) {
     return is_square("a")(g, s) && is_triangular("a")(g, s);
 });
 
-/// Physical mappings for concrete enums
+/// Transition Rules
 /// ----------------------------------------------------------
-static const auto gemm_nn = make_rewrite(
-    "gemm_nn", "Gemm(?a, ?b, ?c)", "Gemm_NN(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
-    return is_not_op("a", Op::Tr)(g, s) && is_not_op("b", Op::Tr)(g, s);
-});
-static const auto gemm_tn = make_rewrite("gemm_tn", "Gemm(Tr(?a), ?b, ?c)", "Gemm_TN(?a, ?b, ?c)", false);
-static const auto gemm_nt = make_rewrite("gemm_nt", "Gemm(?a, Tr(?b), ?c)", "Gemm_NT(?a, ?b, ?c)", false);
-static const auto gemm_tt = make_rewrite("gemm_tt", "Gemm(Tr(?a), Tr(?b), ?c)", "Gemm_TT(?a, ?b, ?c)", false);
+static const auto gemm_tn = make_rewrite("gemm_tn", "Gemm_NN(Tr(?a), ?b, ?c)", "Gemm_TN(?a, ?b, ?c)", false);
+static const auto gemm_nt = make_rewrite("gemm_nt", "Gemm_NN(?a, Tr(?b), ?c)", "Gemm_NT(?a, ?b, ?c)", false);
+static const auto gemm_tt = make_rewrite("gemm_tt", "Gemm_NN(Tr(?a), Tr(?b), ?c)", "Gemm_TT(?a, ?b, ?c)", false);
 
-static const auto syrk_n =
-    make_rewrite("syrk_n", "Syrk(?a, ?c)", "Syrk_N(?a, ?c)", false, [](const EGraph &g, const Substitution &s) {
-    return is_not_op("a", Op::Tr)(g, s);
-});
-static const auto syrk_t = make_rewrite("syrk_t", "Syrk(Tr(?a), ?c)", "Syrk_T(?a, ?c)", false);
+static const auto syrk_t = make_rewrite("syrk_t", "Syrk_N(Tr(?a), ?c)", "Syrk_T(?a, ?c)", false);
 
-static const auto trsm_ln =
-    make_rewrite("trsm_ln", "Trsm(?a, ?b)", "Trsm_LN(?a, ?b)", false, [](const EGraph &g, const Substitution &s) {
-    return is_not_op("a", Op::Tr)(g, s);
-});
-static const auto trsm_lt = make_rewrite("trsm_lt", "Trsm(Tr(?a), ?b)", "Trsm_LT(?a, ?b)", false);
+static const auto trsm_lt = make_rewrite("trsm_lt", "Trsm_LN(Tr(?a), ?b)", "Trsm_LT(?a, ?b)", false);
 
 static const auto trsm_rn = make_rewrite(
     "trsm_rn_direct", "SolR(?a, ?b)", "Trsm_RN(?a, ?b)", false, [](const EGraph &g, const Substitution &s) {
@@ -110,7 +97,6 @@ static const auto trsm_rt =
 
 /// LAPACK
 /// ----------------------------------------------------------
-static const auto potrf = make_rewrite("potrf", "LLt(?a)", "Potrf(?a)", false);
 static const auto potrf_l = make_rewrite("potrf_l", "LLt(?a)", "Potrf_L(?a)", false);
 static const auto potrf_u = make_rewrite("potrf_u", "UtU(?a)", "Potrf_U(?a)", false);
 static const auto geqrf = make_rewrite("geqrf", "QR(?a)", "Geqrf(?a)", false);
@@ -128,16 +114,12 @@ static const std::vector<Rewrite> lowering_set = {
     syrk_with_c_left,
     syrk_with_c_right,
     trsm,
-    potrf,
     geqrf,
     trtri,
-    gemm_nn,
     gemm_tn,
     gemm_nt,
     gemm_tt,
-    syrk_n,
     syrk_t,
-    trsm_ln,
     trsm_lt,
     trsm_rn,
     trsm_rt,

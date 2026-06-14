@@ -93,7 +93,7 @@ std::string Expression::render(const Expression &expr, bool readable, int parent
                         factor_name = "U";
                     else if (index == 2)
                         factor_name = "P";
-                } else if (tuple_op == Op::LLt || tuple_op == Op::Potrf) {
+                } else if (tuple_op == Op::LLt || tuple_op == Op::Potrf_L || tuple_op == Op::Potrf_U) {
                     if (index == 0)
                         factor_name = "LLt";
                 }

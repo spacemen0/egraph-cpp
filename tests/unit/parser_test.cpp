@@ -1,5 +1,5 @@
-#include "parser.h"
 #include "errors.h"
+#include "parser.h"
 #include <gtest/gtest.h>
 
 TEST(ParserTest, InfixBasic) {
@@ -72,9 +72,7 @@ TEST(ParserTest, NegativeDecimal) {
     EXPECT_DOUBLE_EQ(std::get<double>(parsed.atom), -0.001);
 }
 
-TEST(ParserTest, InvalidNumber) {
-    EXPECT_THROW(parser::parse_expression("3.14.15"), ParseError);
-}
+TEST(ParserTest, InvalidNumber) { EXPECT_THROW(parser::parse_expression("3.14.15"), ParseError); }
 
 TEST(ParserTest, FunctionCall) {
     auto parsed = parser::parse_expression("Inv(A)");
@@ -108,31 +106,31 @@ TEST(ParserTest, ComplexMixed) {
 }
 
 TEST(ParserTest, BlasLapackKernels) {
-    auto gemm = parser::parse_expression("Gemm(1, 0, 0, 0, A, B, C)");
-    EXPECT_EQ(std::get<Op>(gemm.atom), Op::Gemm);
+    auto gemm = parser::parse_expression("Gemm_NN(1, 0, 0, 0, A, B, C)");
+    EXPECT_EQ(std::get<Op>(gemm.atom), Op::Gemm_NN);
     ASSERT_EQ(gemm.children_strings.size(), 7);
     EXPECT_EQ(gemm.children_strings[4], "A");
     EXPECT_EQ(gemm.children_strings[5], "B");
     EXPECT_EQ(gemm.children_strings[6], "C");
 
-    auto potrf = parser::parse_expression("Potrf(0, A)");
-    EXPECT_EQ(std::get<Op>(potrf.atom), Op::Potrf);
+    auto potrf = parser::parse_expression("Potrf_L(0, A)");
+    EXPECT_EQ(std::get<Op>(potrf.atom), Op::Potrf_L);
     ASSERT_EQ(potrf.children_strings.size(), 2);
     EXPECT_EQ(potrf.children_strings[1], "A");
 
-    auto gemv = parser::parse_expression("Gemv(1, 0, 0, A, x, y)");
-    EXPECT_EQ(std::get<Op>(gemv.atom), Op::Gemv);
+    auto gemv = parser::parse_expression("Gemv_N(1, 0, 0, A, x, y)");
+    EXPECT_EQ(std::get<Op>(gemv.atom), Op::Gemv_N);
     ASSERT_EQ(gemv.children_strings.size(), 6);
     EXPECT_EQ(gemv.children_strings[3], "A");
 
-    auto syrk = parser::parse_expression("Syrk(1, 0, 0, 0, A, C)");
-    EXPECT_EQ(std::get<Op>(syrk.atom), Op::Syrk);
+    auto syrk = parser::parse_expression("Syrk_N(1, 0, 0, 0, A, C)");
+    EXPECT_EQ(std::get<Op>(syrk.atom), Op::Syrk_N);
     ASSERT_EQ(syrk.children_strings.size(), 6);
     EXPECT_EQ(syrk.children_strings[4], "A");
     EXPECT_EQ(syrk.children_strings[5], "C");
 
-    auto trsm = parser::parse_expression("Trsm(1, 0, 0, 0, 0, A, B)");
-    EXPECT_EQ(std::get<Op>(trsm.atom), Op::Trsm);
+    auto trsm = parser::parse_expression("Trsm_LN(1, 0, 0, 0, 0, A, B)");
+    EXPECT_EQ(std::get<Op>(trsm.atom), Op::Trsm_LN);
     ASSERT_EQ(trsm.children_strings.size(), 7);
     EXPECT_EQ(trsm.children_strings[5], "A");
     EXPECT_EQ(trsm.children_strings[6], "B");

@@ -36,7 +36,7 @@ TEST(Integration, OLSNumeric) {
         std::cout << "Candidate expression: " << candidate.expr.to_string(false) << std::endl;
         std::cout << "Cost: " << candidate.cost << std::endl;
     }
-    // ASSERT_TRUE(result[0].expr.to_string(true) == "Trsm(R(X), Gemv(Q(X)ᵀ, y, Zero_2x1))");
+    ASSERT_TRUE(result[0].expr.to_string(true) == "Trsm_LN(R(X), Gemv_T(Q(X), y, Zero_2x1))");
     // ASSERT_TRUE(result[0].expr.to_string(true) == "Sol(R(X), Q(X)ᵀ * y)");
 }
 
