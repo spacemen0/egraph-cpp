@@ -29,5 +29,5 @@ target_include_directories(core_lib PUBLIC
 
 target_link_libraries(core_lib PUBLIC magic_enum::magic_enum)
 
-add_executable(egraph_cli main.cpp)
+add_executable(egraph_cli cli.cpp)
 target_link_libraries(egraph_cli PRIVATE core_lib)

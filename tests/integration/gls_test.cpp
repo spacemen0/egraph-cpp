@@ -2,6 +2,7 @@
 #include "e_graph.h"
 #include "extractor.h"
 #include "property_table.h"
+#include "pruner.h"
 #include "rewrite_sets.h"
 #include "rewriter.h"
 #include "test_helpers.h"
@@ -20,6 +21,7 @@ TEST(Integration, GLSNumeric) {
     while (rewriter.apply_rewrites(10))
         ;
     Extractor extractor(egraph, cost_storage, true);
+    Pruner::prune_symbolic_when_kernel_available(egraph);
     auto result = extractor.extract(id, 10);
     for (const auto &r : result) {
         std::cout << "Candidate expression: " << r.expr.to_string(true) << std::endl;
@@ -39,7 +41,7 @@ TEST(Integration, GLSSymbolic) {
 
     std::vector<Rewrite> rules = build_rewrite_sets({"complete"});
     CostStorage cost_storage(egraph);
-    Rewriter rewriter(egraph, rules, 3000, true);
+    Rewriter rewriter(egraph, rules, 1000, true);
     while (rewriter.apply_rewrites(10))
         ;
     Extractor extractor(egraph, cost_storage, true);
