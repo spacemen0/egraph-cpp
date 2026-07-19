@@ -40,7 +40,7 @@ struct MatrixProperty {
         const char *label;
     };
 
-    static constexpr std::array<FlagDescriptor, 13> flag_descriptors = {{
+    static constexpr std::array<FlagDescriptor, 15> flag_descriptors = {{
         {&MatrixFlags::is_symmetric, "symmetric"},
         {&MatrixFlags::is_orthogonal, "orthogonal"},
         {&MatrixFlags::has_orthonormal_columns, "orthonormal"},
@@ -50,6 +50,8 @@ struct MatrixProperty {
         {&MatrixFlags::is_lower_triangular, "lower_triangular"},
         {&MatrixFlags::is_diagonal, "diagonal"},
         {&MatrixFlags::is_positive_definite, "positive_definite"},
+        {&MatrixFlags::is_positive_semi_definite, "positive_semi_definite"},
+        {&MatrixFlags::is_full_rank, "full_rank"},
         {&MatrixFlags::is_non_singular, "non_singular"},
         {&MatrixFlags::is_permutation, "permutation"},
         {&MatrixFlags::is_tall, "tall"},
