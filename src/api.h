@@ -96,6 +96,31 @@ class Context {
 
     void prune_symbolic_when_kernel_available() { Pruner::prune_symbolic_when_kernel_available(egraph); }
 
+    void rewrite_and_prune(
+        const std::vector<Id> &target_ids, const std::vector<std::string> &size_keys,
+        const std::vector<std::string> &rulesets = {"complete"}, int num_iterations = 8,
+        int rewrite_steps_per_iteration = 20, int prune_samples_per_iteration = 20, int max_results_per_binding = 5,
+        int max_nodes = 500) {
+        std::vector<Rewrite> rewrites;
+        for (const auto &ruleset : rulesets) {
+            auto rules = get_rewrite_set_by_name(ruleset);
+            rewrites.insert(rewrites.end(), rules.begin(), rules.end());
+        }
+        Rewriter rewriter(egraph, rewrites, max_nodes, true);
+        CostStorage cost_storage(egraph);
+        Extractor extractor(egraph, cost_storage, true, 20);
+        Pruner pruner(egraph, extractor);
+
+        PruneOptions options{
+            .num_iterations = num_iterations,
+            .rewrite_steps_per_iteration = rewrite_steps_per_iteration,
+            .prune_samples_per_iteration = prune_samples_per_iteration,
+            .max_results_per_binding = max_results_per_binding,
+            .size_keys = size_keys,
+        };
+        pruner.rewrite_and_prune(target_ids, rewriter, options);
+    }
+
     Expression extract(Id target_id, const SizeBindings &bindings = {}) {
         CostStorage cost_storage(egraph);
         Extractor extractor(egraph, cost_storage);
@@ -104,6 +129,12 @@ class Context {
         } else {
             return extractor.extract(target_id, bindings).expr;
         }
+    }
+
+    std::vector<ExtractionResult> extract_symbolic(Id target_id) {
+        CostStorage cost_storage(egraph);
+        Extractor extractor(egraph, cost_storage, true, 20);
+        return extractor.extract_symbolic(target_id);
     }
 
     Expression optimize_concrete(
@@ -117,6 +148,23 @@ class Context {
         rewrite({"lowering"});
         prune_symbolic_when_kernel_available();
         return extract(target_id);
+    }
+
+    Id optimize_symbolic(
+        const Expr &target_expr, 
+        const std::vector<std::string> &size_keys,
+        const std::vector<Expr> &background_exprs = {},
+        const std::vector<std::string> &rulesets = {"complete"}) {
+        Id target_id = add(target_expr);
+        for (const auto &bg_expr : background_exprs) {
+            add(bg_expr);
+        }
+        
+        rewrite_and_prune({target_id}, size_keys, rulesets);
+        rewrite({"lowering"}, 500, false, -1);
+        prune_symbolic_when_kernel_available();
+        
+        return target_id;
     }
 
   private:
