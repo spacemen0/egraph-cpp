@@ -4,13 +4,13 @@
 
 TEST(Expression, ParseVariable) {
     Expression p("X");
-    EXPECT_EQ(std::get<std::string>(p.atom), "X");
+    EXPECT_EQ(std::get<uint32_t>(p.atom), register_string_in_lookup("X"));
     EXPECT_TRUE(p.children.empty());
 }
 
 TEST(Expression, ParseOperationWithoutChildren) {
     Expression p("Identity");
-    EXPECT_EQ(std::get<std::string>(p.atom), "Identity");
+    EXPECT_EQ(std::get<uint32_t>(p.atom), register_string_in_lookup("Identity"));
     EXPECT_TRUE(p.children.empty());
 }
 
@@ -18,10 +18,10 @@ TEST(Expression, ParseOperationWithChildren) {
     Expression p(" X + Y ");
     EXPECT_EQ(std::get<Op>(p.atom), Op::Add);
     ASSERT_EQ(p.children.size(), 2);
-    EXPECT_TRUE(std::holds_alternative<std::string>(p.children[0].atom));
-    EXPECT_EQ(std::get<std::string>(p.children[0].atom), "X");
-    EXPECT_TRUE(std::holds_alternative<std::string>(p.children[1].atom));
-    EXPECT_EQ(std::get<std::string>(p.children[1].atom), "Y");
+    EXPECT_TRUE(std::holds_alternative<uint32_t>(p.children[0].atom));
+    EXPECT_EQ(std::get<uint32_t>(p.children[0].atom), register_string_in_lookup("X"));
+    EXPECT_TRUE(std::holds_alternative<uint32_t>(p.children[1].atom));
+    EXPECT_EQ(std::get<uint32_t>(p.children[1].atom), register_string_in_lookup("Y"));
 }
 
 TEST(Expression, ParseNestedOperations) {
@@ -31,15 +31,15 @@ TEST(Expression, ParseNestedOperations) {
     const Expression &add_child = p.children[0];
     EXPECT_EQ(std::get<Op>(add_child.atom), Op::Add);
     ASSERT_EQ(add_child.children.size(), 2);
-    EXPECT_TRUE(std::holds_alternative<std::string>(add_child.children[0].children[0].atom));
-    EXPECT_EQ(std::get<std::string>(add_child.children[0].children[0].atom), "X");
-    EXPECT_TRUE(std::holds_alternative<std::string>(add_child.children[1].atom));
-    EXPECT_EQ(std::get<std::string>(add_child.children[1].atom), "Y");
+    EXPECT_TRUE(std::holds_alternative<uint32_t>(add_child.children[0].children[0].atom));
+    EXPECT_EQ(std::get<uint32_t>(add_child.children[0].children[0].atom), register_string_in_lookup("X"));
+    EXPECT_TRUE(std::holds_alternative<uint32_t>(add_child.children[1].atom));
+    EXPECT_EQ(std::get<uint32_t>(add_child.children[1].atom), register_string_in_lookup("Y"));
     const Expression &transpose_child = p.children[1];
     EXPECT_EQ(std::get<Op>(transpose_child.atom), Op::Tr);
     ASSERT_EQ(transpose_child.children.size(), 1);
-    EXPECT_TRUE(std::holds_alternative<std::string>(transpose_child.children[0].atom));
-    EXPECT_EQ(std::get<std::string>(transpose_child.children[0].atom), "Z");
+    EXPECT_TRUE(std::holds_alternative<uint32_t>(transpose_child.children[0].atom));
+    EXPECT_EQ(std::get<uint32_t>(transpose_child.children[0].atom), register_string_in_lookup("Z"));
 }
 
 TEST(Expression, ToString) {

@@ -13,13 +13,14 @@ AnalysisData MatrixAnalysis::make(const EGraph &egraph, const ENode &node) {
         return analyze_matrix_op(egraph, node, *op);
     }
 
-    else if (const auto *s = std::get_if<std::string>(&atom)) {
-        if (egraph.get_property_table().has_property(*s)) {
-            auto property = egraph.get_property_table().get_property(*s).value();
+    else if (const auto *a = std::get_if<uint32_t>(&atom)) {
+        const auto s = get_string_from_lookup(*a);
+        if (egraph.get_property_table().has_property(s)) {
+            auto property = egraph.get_property_table().get_property(s).value();
             enforce_hierarchy(property);
             return AnalysisData{property};
         }
-        throw AnalysisError("Variable has no property: " + *s);
+        throw AnalysisError("Variable has no property: " + s);
     } else {
         return AnalysisData{std::get<double>(atom)};
     }

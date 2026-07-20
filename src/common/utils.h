@@ -58,8 +58,8 @@ inline std::string atom_to_string(const Atom &atom) {
             return "-";
 
         return std::string(magic_enum::enum_name(op));
-    } else if (std::holds_alternative<std::string>(atom)) {
-        return std::get<std::string>(atom);
+    } else if (std::holds_alternative<uint32_t>(atom)) {
+        return get_string_from_lookup(std::get<uint32_t>(atom));
     } else if (std::holds_alternative<double>(atom)) {
         double v = std::get<double>(atom);
         if (v == static_cast<long long>(v))
@@ -120,7 +120,7 @@ make_identity_for(EGraph &egraph, const Substitution &s, const std::string &var_
 
     std::string identity_name = "I_" + size_str + "x" + size_str;
     egraph.register_or_update_property(identity_name, prop);
-    return egraph.add_node(ENode({}, identity_name));
+    return egraph.add_node(ENode({}, register_string_in_lookup(identity_name)));
 }
 
 inline Id make_zero_of_shape(EGraph &g, const Shape &shape) {
@@ -156,7 +156,7 @@ inline Id make_zero_of_shape(EGraph &g, const Shape &shape) {
 
     g.register_or_update_property(zero_name, prop);
 
-    return g.add_node(ENode({}, zero_name));
+    return g.add_node(ENode({}, register_string_in_lookup(zero_name)));
 }
 
 inline Id make_zero_for(EGraph &g, const Substitution &s, const std::string &var_name) {

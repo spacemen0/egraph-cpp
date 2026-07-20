@@ -7,7 +7,7 @@
 TEST(Rewrite, SimpleRewrite) {
     EGraph egraph(get_property_table());
 
-    ENode zero_node({}, "Zero");
+    ENode zero_node({}, register_string_in_lookup("Zero"));
     Id id0 = egraph.add_node(zero_node);
 
     Id id_mul = egraph.add_expression(Expression("A * Zero"));
@@ -85,7 +85,7 @@ TEST(Rewrite, NewNodes) {
     EXPECT_TRUE(changed);
 
     // Check the new identity node
-    auto results = egraph.find_node_id(ENode({}, "I_10x10"));
+    auto results = egraph.find_node_id(ENode({}, register_string_in_lookup("I_10x10")));
     EXPECT_TRUE(results.has_value());
     EXPECT_EQ(results.value(), egraph.find_class_id(id_add));
 }

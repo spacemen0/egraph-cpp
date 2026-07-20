@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <sys/types.h>
 #include <unordered_map>
 #include <variant>
 #include <vector>
@@ -42,10 +43,15 @@ enum class Op {
 
 using Id = size_t;
 using Children = std::vector<Id>;
-using Atom = std::variant<Op, std::string, double>; // double for indexes in Get operations and scalars in Scale
+using LookupTable = std::unordered_map<std::string, uint32_t>; // maps string to unique integer id for storage in ENode
+using Atom = std::variant<Op, uint32_t, double>; // double for indexes in Get operations and scalars in Scale
 using Size = std::variant<int, std::string>;
 using Shape = std::pair<Size, Size>;
 using SizeBindings = std::unordered_map<std::string, int>;
+
+std::string get_string_from_lookup(uint32_t id);
+uint32_t register_string_in_lookup(const std::string &s);
+
 
 static inline bool is_kernel_op(Op op) {
     using enum Op;

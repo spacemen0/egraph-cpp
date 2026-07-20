@@ -5,7 +5,7 @@
 #include "property_table.h"
 #include <gtest/gtest.h>
 
-static ENode make_symbol(const std::string &name) { return ENode(Children{}, std::string(name)); }
+static ENode make_symbol(const std::string &name) { return ENode(Children{}, register_string_in_lookup(name)); }
 
 static ENode make_leaf(Op op) { return ENode(Children{}, op); }
 

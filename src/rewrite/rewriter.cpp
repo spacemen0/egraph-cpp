@@ -3,9 +3,9 @@
 
 // Instantiate a pattern into the EGraph
 static Id instantiate(EGraph &egraph, const Pattern &pattern, const Substitution &subst) {
-    if (const auto *str = std::get_if<std::string>(&pattern.atom)) {
-        if (str->starts_with('?')) {
-            return subst.at(str->substr(1));
+    if (const auto *str = std::get_if<uint32_t>(&pattern.atom)) {
+        if (get_string_from_lookup(*str).starts_with('?')) {
+            return subst.at(get_string_from_lookup(*str).substr(1));
         }
     }
 

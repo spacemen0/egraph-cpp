@@ -128,8 +128,9 @@ Id EGraph::add_expression(const Expression &expr) {
 }
 
 Id EGraph::add_expression(const Expression &expr, const Substitution &subst) {
-    if (std::holds_alternative<std::string>(expr.atom)) {
-        const std::string &name = std::get<std::string>(expr.atom);
+    if (std::holds_alternative<uint32_t>(expr.atom)) {
+        const uint32_t id = std::get<uint32_t>(expr.atom);
+        const std::string &name = get_string_from_lookup(id);
         if (name.length() > 1 && name[0] == '?') {
             std::string var_name = name.substr(1);
             if (subst.count(var_name)) {

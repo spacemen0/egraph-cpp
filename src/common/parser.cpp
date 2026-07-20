@@ -149,8 +149,8 @@ struct ASTNode {
             }
             res += ")";
             return res;
-        } else if (std::holds_alternative<std::string>(atom)) {
-            return std::get<std::string>(atom);
+        } else if (std::holds_alternative<uint32_t>(atom)) {
+            return get_string_from_lookup(std::get<uint32_t>(atom));
         } else {
             double v = std::get<double>(atom);
             if (v == static_cast<long long>(v))
@@ -264,7 +264,7 @@ class Parser {
                 return node;
             } else {
                 auto node = std::make_unique<ASTNode>();
-                node->atom = std::string(name);
+                node->atom = register_string_in_lookup(std::string(name));
                 return node;
             }
         }

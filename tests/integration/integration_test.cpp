@@ -1,3 +1,4 @@
+#include "basic_types.h"
 #include "cost_storage.h"
 #include "e_graph.h"
 #include "extractor.h"
@@ -25,8 +26,8 @@ TEST(Integration, MatrixPartialSet) {
     Extractor extractor(egraph, cost_storage);
     auto result = extractor.extract(id);
     EXPECT_EQ(result.cost, Cost(0.0));
-    EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
-    EXPECT_EQ(std::get<std::string>(result.expr.atom), "X");
+    EXPECT_TRUE(std::holds_alternative<uint32_t>(result.expr.atom));
+    EXPECT_EQ(std::get<uint32_t>(result.expr.atom), register_string_in_lookup("X"));
 }
 
 TEST(Integration, SimplifyComplexMatrixChain) {
@@ -92,8 +93,8 @@ TEST(Integration, MinimalRealisticExplosionRules) {
     std::cout << "Final extracted cost: " << result.cost << std::endl;
 
     EXPECT_EQ(result.cost, Cost(0.0));
-    EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
-    EXPECT_EQ(std::get<std::string>(result.expr.atom), "A");
+    EXPECT_TRUE(std::holds_alternative<uint32_t>(result.expr.atom));
+    EXPECT_EQ(std::get<uint32_t>(result.expr.atom), register_string_in_lookup("A"));
 }
 
 TEST(Integration, CyclicTermsThatDoNotExplode) {
@@ -119,8 +120,8 @@ TEST(Integration, CyclicTermsThatDoNotExplode) {
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
 
     EXPECT_EQ(result.cost, Cost(0.0));
-    EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
-    EXPECT_EQ(std::get<std::string>(result.expr.atom), "A");
+    EXPECT_TRUE(std::holds_alternative<uint32_t>(result.expr.atom));
+    EXPECT_EQ(std::get<uint32_t>(result.expr.atom), register_string_in_lookup("A"));
 }
 
 TEST(Integration, MatrixChainSymbolicSizes) {

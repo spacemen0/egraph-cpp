@@ -16,8 +16,8 @@ TEST_F(ExtractorTest, CheaperExtraction) {
     auto result = extractor.extract(id_mul);
     // Should extract 'a'
     EXPECT_EQ(result.cost, Cost(0.0));
-    EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
-    EXPECT_EQ(std::get<std::string>(result.expr.atom), "A");
+    EXPECT_TRUE(std::holds_alternative<uint32_t>(result.expr.atom));
+    EXPECT_EQ(std::get<uint32_t>(result.expr.atom), register_string_in_lookup("A"));
 }
 
 TEST_F(ExtractorTest, RewriteAndExtract) {
@@ -38,8 +38,8 @@ TEST_F(ExtractorTest, RewriteAndExtract) {
     ExtractionResult result = extractor.extract(root_id);
     EXPECT_EQ(result.cost, Cost(0.0));
 
-    EXPECT_TRUE(std::holds_alternative<std::string>(result.expr.atom));
-    EXPECT_EQ(std::get<std::string>(result.expr.atom), "Z");
+    EXPECT_TRUE(std::holds_alternative<uint32_t>(result.expr.atom));
+    EXPECT_EQ(std::get<uint32_t>(result.expr.atom), register_string_in_lookup("Z"));
 }
 
 TEST_F(ExtractorTest, SharedSubexpressionDAGCost) {

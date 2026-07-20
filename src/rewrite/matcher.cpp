@@ -10,8 +10,8 @@ bool Matcher::atoms_match(const Atom &pat_atom, const Atom &enode_atom) const {
     if (const auto op1 = std::get_if<Op>(&pat_atom))
         return *op1 == std::get<Op>(enode_atom);
 
-    if (const auto s1 = std::get_if<std::string>(&pat_atom))
-        return *s1 == std::get<std::string>(enode_atom);
+    if (const auto s1 = std::get_if<uint32_t>(&pat_atom))
+        return *s1 == std::get<uint32_t>(enode_atom);
 
     if (const auto i1 = std::get_if<double>(&pat_atom))
         return *i1 == std::get<double>(enode_atom);
@@ -41,9 +41,9 @@ std::vector<Substitution> Matcher::search_eclass_for_pattern(
     std::vector<Substitution> results;
     Id canonical_id = egraph.find_class_id(eclass_id);
 
-    if (const std::string *str_atom = std::get_if<std::string>(&pattern.atom)) {
-        if (str_atom->starts_with('?')) {
-            auto var_name = str_atom->substr(1);
+    if (const uint32_t *str_atom = std::get_if<uint32_t>(&pattern.atom)) {
+        if (get_string_from_lookup(*str_atom).starts_with('?')) {
+            auto var_name = get_string_from_lookup(*str_atom).substr(1);
             auto it = initial_subst.find(var_name);
 
             // already bound variable must match the id, but different variable can match the same id
