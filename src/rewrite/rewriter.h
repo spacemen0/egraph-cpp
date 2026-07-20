@@ -23,8 +23,8 @@ class Rewriter {
     Rewriter(
         EGraph &egraph, std::vector<Rewrite> rewrites, size_t max_nodes, bool enable_backoff = false,
         bool enable_node_match_limit = false)
-        : egraph(egraph), rewrites(std::move(rewrites)), max_nodes(max_nodes), enable_backoff(enable_backoff),
-          enable_node_match_limit(enable_node_match_limit) {
+        : egraph(egraph), enable_backoff(enable_backoff), enable_node_match_limit(enable_node_match_limit),
+          rewrites(std::move(rewrites)), max_nodes(max_nodes) {
         current_match_limits.resize(this->rewrites.size());
         rewrite_application_counts.resize(this->rewrites.size(), 0);
         ban_iterations_remaining.resize(this->rewrites.size(), 0);
