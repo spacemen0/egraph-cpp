@@ -97,11 +97,11 @@ TEST(ApiTest, OptimizeSymbolic) {
     auto results = ctx.extract_symbolic(target_id);
 
     bool found = std::any_of(results.begin(), results.end(), [](const auto &c) {
-        return c.expr.to_string(true) == "Trsm_LN(R(M), Gemv_T(Q(M), n, Zero_Bx1))";
+        return c.expr.to_string(false) == "Trsm_LN(Get(Geqrf(M), 1), Gemv_T(Get(Geqrf(M), 0), n, Zero_Bx1))";
     });
     EXPECT_TRUE(found);
 
     SizeBindings concrete_sizes = {{"A", 30}, {"B", 10}};
     Expression concrete_ast = ctx.extract(target_id, concrete_sizes);
-    EXPECT_FALSE(concrete_ast.to_string(true).empty());
+    EXPECT_FALSE(concrete_ast.to_string(false).empty());
 }

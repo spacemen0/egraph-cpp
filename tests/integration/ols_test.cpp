@@ -11,7 +11,8 @@
 
 TEST(Integration, OLSNumeric) {
     EGraph egraph(get_property_table());
-    auto id = egraph.add_expression(inverse(transpose(Expression("X")) * Expression("X")) * transpose(Expression("X")) * Expression("y"));
+    auto id = egraph.add_expression(
+        inverse(transpose(Expression("X")) * Expression("X")) * transpose(Expression("X")) * Expression("y"));
     std::vector<Rewrite> rules = build_rewrite_sets({"complete"});
     Rewriter rewriter(egraph, rules, 500, true);
     constexpr int max_iterations = 10;
@@ -36,7 +37,7 @@ TEST(Integration, OLSNumeric) {
         std::cout << "Candidate expression: " << candidate.expr.to_string(false) << std::endl;
         std::cout << "Cost: " << candidate.cost << std::endl;
     }
-    ASSERT_TRUE(result[0].expr.to_string(true) == "Trsm_LN(R(X), Gemv_T(Q(X), y, Zero_2x1))");
+    EXPECT_EQ(result[0].expr.to_string(false), "Trsm_LN(Get(Geqrf(X), 1), Gemv_T(Get(Geqrf(X), 0), y, Zero_2x1))");
     // ASSERT_TRUE(result[0].expr.to_string(true) == "Sol(R(X), Q(X)ᵀ * y)");
 }
 
