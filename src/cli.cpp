@@ -1,13 +1,5 @@
-#include "basic_types.h"
-#include "e_graph.h"
-#include "errors.h"
-#include "expression.h"
-#include "extractor.h"
-#include "property_table.h"
-#include "rewrite_sets.h"
-#include "rewriter.h"
+#include "api.h"
 #include <iostream>
-#include <optional>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -20,12 +12,14 @@
 #endif
 #include <vector>
 
+using namespace egraph;
+
 namespace {
 
 struct SessionState {
     std::vector<std::string> expressions;
-    EGraph egraph;
-    std::vector<Rewrite> rewrites;
+    Context ctx;
+    std::vector<std::string> rulesets;
     bool numeric_mode = true;
 };
 
@@ -82,14 +76,20 @@ bool parse_session_mode(const std::string &text, bool &numeric_mode) {
     return false;
 }
 
-bool parse_property_assignment(const std::string &string_value, std::string &name, MatrixProperty &property) {
+bool parse_property_assignment(const std::string &string_value, std::string &name, std::string &property_str) {
     auto name_end = string_value.find(':');
     if (name_end == std::string::npos) {
-        throw ParseError("Property assignment must use '<name>:<property>' (missing ':')");
+        throw std::runtime_error("Property assignment must use '<name>:<property>' (missing ':')");
     }
 
-    name = std::string(trim(string_value.substr(0, name_end)));
-    property = MatrixProperty::from_string(trim(string_value.substr(name_end + 1)));
+    name = std::string(string_value.substr(0, name_end));
+    // strip whitespace
+    name.erase(0, name.find_first_not_of(" \t\r\n"));
+    name.erase(name.find_last_not_of(" \t\r\n") + 1);
+
+    property_str = std::string(string_value.substr(name_end + 1));
+    property_str.erase(0, property_str.find_first_not_of(" \t\r\n"));
+    property_str.erase(property_str.find_last_not_of(" \t\r\n") + 1);
     return true;
 }
 
@@ -111,7 +111,7 @@ bool parse_binding_token(const std::string &token, std::string &key, int &value)
 
 void parse_expression(SessionState &state, const std::string &expr_str, size_t index) {
     Expression expr = Expression(expr_str);
-    Id id = state.egraph.add_expression(expr);
+    Id id = state.ctx.add(expr);
     std::cout << "Parsed expression #" << index << " with root id " << id << ".\n";
 }
 
@@ -119,20 +119,16 @@ void add_properties_to_state(SessionState &state, const std::vector<std::string>
     for (const auto &string : property_strings) {
         try {
             std::string name;
-            MatrixProperty property;
-            parse_property_assignment(string, name, property);
+            std::string property_str;
+            parse_property_assignment(string, name, property_str);
 
-            if (state.numeric_mode && property.has_symbolic_shape()) {
-                std::cerr << "Numeric mode does not accept symbolic matrix sizes: " << string << "\n";
-                continue;
-            }
-
-            if (state.egraph.get_property_table().add_or_update_property_entry(name, property)) {
+            // Let define_matrix handle it
+            if (state.ctx.define_matrix(name, property_str)) {
                 std::cout << "Updated property: " << string << "\n";
             } else {
                 std::cout << "Added property: " << string << "\n";
             }
-        } catch (const ParseError &e) {
+        } catch (const std::exception &e) {
             std::cerr << "Failed to parse property string '" << string << "': " << e.what() << "\n";
         }
     }
@@ -143,73 +139,52 @@ void add_rule_set_to_state(SessionState &state, const std::vector<std::string> &
         if (!is_available_rule_set(set_name)) {
             throw std::invalid_argument("Unknown rule set: " + set_name);
         }
-        std::vector<Rewrite> set_rewrites = get_rewrite_set_by_name(set_name);
-        state.rewrites.insert(state.rewrites.end(), set_rewrites.begin(), set_rewrites.end());
+        state.rulesets.push_back(set_name);
     }
 }
 
 void rewrite_e_graph(SessionState &state, std::optional<int> num_iterations) {
-    if (state.rewrites.empty()) {
+    if (state.rulesets.empty()) {
         std::cerr << "No rewrites enabled. Use 'add rule-set <name>' to add a rewrite set.\n";
         return;
     }
-    Rewriter rewriter(state.egraph, state.rewrites, 10000, true);
-    if (num_iterations.has_value()) {
-        rewriter.apply_rewrites(num_iterations.value());
-    } else {
-        rewriter.apply_rewrites();
-    }
+    int max_iters = num_iterations.has_value() ? num_iterations.value() : -1;
+    state.ctx.rewrite(state.rulesets, 10000, true, max_iters);
 }
 
 void extract_expression(SessionState &state, size_t expression_id) {
-    if (!state.egraph.find_node(expression_id).has_value()) {
-        std::cerr << "Expression id " << expression_id
-                  << " does not exist in the e-graph. Make sure to rewrite the e-graph after parsing to populate the "
-                     "e-classes.\n";
-        return;
+    try {
+        Expression expr = state.ctx.extract(expression_id);
+        std::cout << "Best extracted expression: " << expr.to_string(true) << "\n";
+    } catch (const std::exception &e) {
+        std::cerr << "Failed to extract expression: " << e.what() << "\n";
     }
-    CostStorage cost_storage(state.egraph);
-    Extractor extractor(state.egraph, cost_storage);
-    auto result = extractor.extract(expression_id);
-    std::cout << "Best extracted expression: " << result.expr.to_string(true) << "\n";
-    std::cout << "Cost: " << result.cost << "\n";
 }
 
 void extract_expression_with_bindings(SessionState &state, size_t expression_id, const SizeBindings &bindings) {
-    if (!state.egraph.find_node(expression_id).has_value()) {
-        std::cerr << "Expression id " << expression_id
-                  << " does not exist in the e-graph. Make sure to rewrite the e-graph after parsing to populate the "
-                     "e-classes.\n";
-        return;
+    try {
+        Expression expr = state.ctx.extract(expression_id, bindings);
+        std::cout << "Best extracted expression (with bindings): " << expr.to_string(true) << "\n";
+    } catch (const std::exception &e) {
+        std::cerr << "Failed to extract expression: " << e.what() << "\n";
     }
-
-    CostStorage cost_storage(state.egraph);
-    Extractor extractor(state.egraph, cost_storage);
-    auto result = extractor.extract(expression_id, bindings);
-    std::cout << "Best extracted expression (with bindings): " << result.expr.to_string(true) << "\n";
-    std::cout << "Cost: " << result.cost << "\n";
 }
 
 void extract_symbolic_expressions(SessionState &state, size_t expression_id) {
-    if (!state.egraph.find_node(expression_id).has_value()) {
-        std::cerr << "Expression id " << expression_id
-                  << " does not exist in the e-graph. Make sure to rewrite the e-graph after parsing to populate the "
-                     "e-classes.\n";
-        return;
-    }
+    try {
+        auto results = state.ctx.extract_symbolic(expression_id);
+        if (results.empty()) {
+            std::cout << "No symbolic extraction candidates found.\n";
+            return;
+        }
 
-    CostStorage cost_storage(state.egraph);
-    Extractor extractor(state.egraph, cost_storage);
-    auto results = extractor.extract_symbolic(expression_id);
-    if (results.empty()) {
-        std::cout << "No symbolic extraction candidates found.\n";
-        return;
-    }
-
-    std::cout << "Symbolic extraction candidates: " << results.size() << "\n";
-    for (size_t i = 0; i < results.size(); ++i) {
-        std::cout << "  [" << i << "] " << results[i].expr.to_string(true) << "\n";
-        std::cout << "      Cost: " << results[i].cost << "\n";
+        std::cout << "Symbolic extraction candidates: " << results.size() << "\n";
+        for (size_t i = 0; i < results.size(); ++i) {
+            std::cout << "  [" << i << "] " << results[i].expr.to_string(true) << "\n";
+            std::cout << "      Cost: " << results[i].cost << "\n";
+        }
+    } catch (const std::exception &e) {
+        std::cerr << "Failed to extract expression: " << e.what() << "\n";
     }
 }
 
@@ -219,7 +194,7 @@ void print_session_state(const SessionState &state) {
         std::cout << "  <none>\n";
     } else {
         for (size_t i = 0; i < state.expressions.size(); ++i) {
-            auto id = state.egraph.find_expression_id(Expression(state.expressions[i]));
+            auto id = state.ctx.find_expr(Expression(state.expressions[i]));
             if (id.has_value()) {
                 std::cout << "  #" << i << " [id: " << id.value() << "] " << state.expressions[i] << "\n";
             } else {
@@ -229,14 +204,14 @@ void print_session_state(const SessionState &state) {
     }
 
     std::cout << "Properties:\n";
-    state.egraph.get_property_table().print_all_properties();
+    state.ctx.print_properties();
     std::cout << "Mode: " << (state.numeric_mode ? "numeric" : "symbolic") << "\n";
     std::cout << "Enabled rewrites :\n";
-    if (state.rewrites.empty()) {
+    if (state.rulesets.empty()) {
         std::cout << "  <none>\n";
     } else {
-        for (const auto &rewrite : state.rewrites) {
-            std::cout << "  - " << rewrite.name << "\n";
+        for (const auto &rs : state.rulesets) {
+            std::cout << "  - " << rs << "\n";
         }
     }
 }
@@ -323,8 +298,6 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
         try {
             parse_expression(state, expression_text, state.expressions.size());
             state.expressions.push_back(expression_text);
-        } catch (const ParseError &e) {
-            std::cerr << e.what() << "\n";
         } catch (const std::exception &e) {
             std::cerr << "parse failed: " << e.what() << "\n";
         }
@@ -348,11 +321,8 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
 
             return rewrite_e_graph(state, std::stoi(tokens[1]));
 
-        } catch (const ParseError &e) {
-            std::cerr << e.what() << "\n";
-            return;
         } catch (const std::exception &e) {
-            std::cerr << "rewrite failed: " << e.what() << "\n";
+            std::cerr << "Command failed: " << e.what() << "\n";
             return;
         }
     }
@@ -378,7 +348,7 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
         if (requested_val.has_value()) {
             size_t val = requested_val.value();
             if (val < state.expressions.size()) {
-                auto id_opt = state.egraph.find_expression_id(Expression(state.expressions[val]));
+                auto id_opt = state.ctx.find_expr(Expression(state.expressions[val]));
                 if (id_opt.has_value()) {
                     expression_id = id_opt.value();
                 } else {
@@ -391,7 +361,7 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
                 return;
             }
         } else if (state.expressions.size() == 1) {
-            auto expression_id_opt = state.egraph.find_expression_id(Expression(state.expressions[0]));
+            auto expression_id_opt = state.ctx.find_expr(Expression(state.expressions[0]));
             if (!expression_id_opt.has_value()) {
                 std::cerr << "Failed to find the expression in the e-graph.\n";
                 return;
@@ -428,11 +398,8 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
                 extract_expression(state, expression_id);
             }
             return;
-        } catch (const ParseError &e) {
-            std::cerr << e.what() << "\n";
-            return;
         } catch (const std::exception &e) {
-            std::cerr << "extract failed: " << e.what() << "\n";
+            std::cerr << "Command failed: " << e.what() << "\n";
             return;
         }
     }

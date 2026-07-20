@@ -40,7 +40,7 @@ TEST_F(EGraphTest, UnionClasses) {
 
 TEST_F(EGraphTest, RebuildParentsBasic) {
 
-    auto id_node1 = egraph.add_expression(Expression("D + D"));
+    auto id_node1 = egraph.add_expression(Expression("D") + Expression("D"));
     auto id_node2 = egraph.add_expression(Expression("D + W"));
 
     EXPECT_NE(egraph.find_class_id(id_node1), egraph.find_class_id(id_node2));
@@ -55,8 +55,8 @@ TEST_F(EGraphTest, RebuildParentsBasic) {
 
 TEST_F(EGraphTest, RebuildMultiLevelParents) {
 
-    Id id_add_ab = egraph.add_expression(Expression("A + Z"));
-    Id id_add_ac = egraph.add_expression(Expression("A + A"));
+    Id id_add_ab = egraph.add_expression(Expression("A") + Expression("Z"));
+    Id id_add_ac = egraph.add_expression(Expression("A") + Expression("A"));
     EXPECT_NE(egraph.find_class_id(id_add_ab), egraph.find_class_id(id_add_ac));
 
     Id id_mul1 = egraph.add_expression(Expression("(A + Z) * Z"));

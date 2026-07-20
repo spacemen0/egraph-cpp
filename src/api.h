@@ -9,35 +9,9 @@
 #include "rewriter.h"
 #include <stdexcept>
 #include <string>
-#include <utility>
 #include <vector>
 
 namespace egraph {
-
-class Expr {
-  public:
-    Expression ast;
-
-    explicit Expr(Expression e) : ast(std::move(e)) {}
-
-    explicit Expr(const std::string &name) : ast(name, {}) {}
-
-    explicit Expr(double scalar_value) : ast(scalar_value, {}) {}
-};
-
-inline Expr operator+(const Expr &lhs, const Expr &rhs) { return Expr(Expression(Op::Add, {lhs.ast, rhs.ast})); }
-
-inline Expr operator-(const Expr &lhs, const Expr &rhs) { return Expr(Expression(Op::Minus, {lhs.ast, rhs.ast})); }
-
-inline Expr operator*(const Expr &lhs, const Expr &rhs) { return Expr(Expression(Op::Mul, {lhs.ast, rhs.ast})); }
-
-inline Expr transpose(const Expr &e) { return Expr(Expression(Op::Tr, {e.ast})); }
-
-inline Expr inverse(const Expr &e) { return Expr(Expression(Op::Inv, {e.ast})); }
-
-inline Expr determinant(const Expr &e) { return Expr(Expression(Op::Det, {e.ast})); }
-
-inline Expr log(const Expr &e) { return Expr(Expression(Op::Log, {e.ast})); }
 
 // --- Optimization Context ---
 class Context {
@@ -49,6 +23,11 @@ class Context {
         prop.shape = Shape{rows, cols};
         apply_flags(prop, flags);
         egraph.get_property_table().add_or_update_property_entry(name, prop);
+    }
+
+    bool define_matrix(const std::string &name, const std::string &property_str) {
+        auto prop = MatrixProperty::from_string(property_str);
+        return egraph.get_property_table().add_or_update_property_entry(name, prop);
     }
 
     void define_matrix_symbolic(
@@ -76,7 +55,7 @@ class Context {
         egraph.get_property_table().add_or_update_property_entry(name, prop);
     }
 
-    Id add(const Expr &expr) { return egraph.add_expression(expr.ast); }
+    Id add(const Expression &expr) { return egraph.add_expression(expr); }
 
     void rewrite(
         const std::vector<std::string> &rulesets = {"complete"}, int max_nodes = 10000, bool enable_pruning = true,
@@ -138,7 +117,7 @@ class Context {
     }
 
     Expression optimize_concrete(
-        const Expr &target_expr, const std::vector<Expr> &background_exprs = {},
+        const Expression &target_expr, const std::vector<Expression> &background_exprs = {},
         const std::vector<std::string> &rulesets = {"complete"}) {
         Id target_id = add(target_expr);
         for (const auto &bg_expr : background_exprs) {
@@ -151,21 +130,23 @@ class Context {
     }
 
     Id optimize_symbolic(
-        const Expr &target_expr, 
-        const std::vector<std::string> &size_keys,
-        const std::vector<Expr> &background_exprs = {},
-        const std::vector<std::string> &rulesets = {"complete"}) {
+        const Expression &target_expr, const std::vector<std::string> &size_keys,
+        const std::vector<Expression> &background_exprs = {}, const std::vector<std::string> &rulesets = {"complete"}) {
         Id target_id = add(target_expr);
         for (const auto &bg_expr : background_exprs) {
             add(bg_expr);
         }
-        
+
         rewrite_and_prune({target_id}, size_keys, rulesets);
         rewrite({"lowering"}, 500, false, -1);
         prune_symbolic_when_kernel_available();
-        
+
         return target_id;
     }
+
+    void print_properties() const { egraph.get_property_table().print_all_properties(); }
+
+    std::optional<Id> find_expr(const Expression &expr) const { return egraph.find_expression_id(expr); }
 
   private:
     void apply_flags(MatrixProperty &prop, const std::vector<std::string> &flags) {

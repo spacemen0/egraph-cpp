@@ -11,7 +11,7 @@
 
 TEST(Integration, OLSNumeric) {
     EGraph egraph(get_property_table());
-    auto id = egraph.add_expression(Expression("Inv(Tr(X) * X) * Tr(X) * y"));
+    auto id = egraph.add_expression(inverse(transpose(Expression("X")) * Expression("X")) * transpose(Expression("X")) * Expression("y"));
     std::vector<Rewrite> rules = build_rewrite_sets({"complete"});
     Rewriter rewriter(egraph, rules, 500, true);
     constexpr int max_iterations = 10;
