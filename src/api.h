@@ -60,11 +60,7 @@ class Context {
     void rewrite(
         const std::vector<std::string> &rulesets = {"complete"}, int max_nodes = 10000, bool enable_pruning = true,
         int max_iterations = 30) {
-        std::vector<Rewrite> rewrites;
-        for (const auto &ruleset : rulesets) {
-            auto rules = get_rewrite_set_by_name(ruleset);
-            rewrites.insert(rewrites.end(), rules.begin(), rules.end());
-        }
+        std::vector<Rewrite> rewrites = build_rewrite_sets(rulesets);
         Rewriter rewriter(egraph, rewrites, max_nodes, enable_pruning);
         if (max_iterations > 0) {
             rewriter.apply_rewrites(max_iterations);
@@ -80,11 +76,7 @@ class Context {
         const std::vector<std::string> &rulesets = {"complete"}, int num_iterations = 8,
         int rewrite_steps_per_iteration = 20, int prune_samples_per_iteration = 20, int max_results_per_binding = 5,
         int max_nodes = 500) {
-        std::vector<Rewrite> rewrites;
-        for (const auto &ruleset : rulesets) {
-            auto rules = get_rewrite_set_by_name(ruleset);
-            rewrites.insert(rewrites.end(), rules.begin(), rules.end());
-        }
+        std::vector<Rewrite> rewrites = build_rewrite_sets(rulesets);
         Rewriter rewriter(egraph, rewrites, max_nodes, true);
         CostStorage cost_storage(egraph);
         Extractor extractor(egraph, cost_storage, true, 20);

@@ -4,7 +4,6 @@
 #include "simplification.h"
 #include "transformation.h"
 #include <string>
-#include <string_view>
 #include <vector>
 
 static std::vector<Rewrite> build_complete_rewrite_set() {
@@ -35,10 +34,9 @@ inline std::vector<Rewrite> get_rewrite_set_by_name(const std::string &name) {
     throw std::invalid_argument("Unknown rewrite set name: " + name);
 }
 
-/// Available sets: "complete", "simplification", "transformation", "expansion", "lowering"
-inline std::vector<Rewrite> build_rewrite_sets(std::initializer_list<std::string_view> set_names) {
+inline std::vector<Rewrite> build_rewrite_sets(const std::vector<std::string> &set_names) {
     std::vector<Rewrite> rules;
-    for (std::string_view set_name : set_names) {
+    for (const auto &set_name : set_names) {
         auto set_rules = get_rewrite_set_by_name(std::string(set_name));
         rules.insert(rules.end(), set_rules.begin(), set_rules.end());
     }
