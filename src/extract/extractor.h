@@ -10,6 +10,8 @@
 struct ExtractionResult {
     Cost cost;
     Expression expr;
+    std::vector<Id> execution_order;
+    std::unordered_map<Id, const ENode*> choices;
 };
 
 class Extractor {
@@ -103,4 +105,5 @@ class Extractor {
 
     Expression build_expression(
         Id class_id, const std::unordered_map<Id, const ENode *> &choices, std::unordered_set<Id> &visiting) const;
+    std::vector<Id> build_execution_order(Id class_id, const std::unordered_map<Id, const ENode *> &choices) const;
 };

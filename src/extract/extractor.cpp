@@ -212,7 +212,9 @@ ExtractionResult Extractor::tree_extract(Id class_id, const SizeBindings &size_b
     }
 
     std::unordered_set<Id> visiting;
-    return ExtractionResult{tree_cost.at(root), build_expression(root, greedy_choices, visiting)};
+    return ExtractionResult{
+        tree_cost.at(root), build_expression(root, greedy_choices, visiting),
+        build_execution_order(root, greedy_choices), greedy_choices};
 }
 
 std::vector<Extractor::SymbolicSearchResult> Extractor::find_symbolic_dags(Id root_class_id) const {
@@ -571,6 +573,31 @@ Expression Extractor::build_expression(
     return Expression(it->second->get_atom(), children);
 }
 
+std::vector<Id>
+Extractor::build_execution_order(Id class_id, const std::unordered_map<Id, const ENode *> &choices) const {
+    Id root = egraph.find_class_id(class_id);
+    std::vector<Id> execution_order;
+    std::unordered_set<Id> visited;
+
+    auto dfs = [&](auto &self, Id current_id) -> void {
+        Id current = egraph.find_class_id(current_id);
+        if (visited.count(current))
+            return;
+        visited.insert(current);
+
+        auto it = choices.find(current);
+        if (it != choices.end()) {
+            for (Id child_id : it->second->get_children()) {
+                self(self, child_id);
+            }
+        }
+        execution_order.push_back(current);
+    };
+
+    dfs(dfs, root);
+    return execution_order;
+}
+
 ExtractionResult Extractor::extract(Id class_id, const SizeBindings &size_bindings) const {
     auto results = extract(class_id, 1, size_bindings);
     if (!results.empty()) {
@@ -593,7 +620,9 @@ Extractor::extract(Id class_id, size_t max_results, const SizeBindings &size_bin
     results.reserve(top_dags.size());
     for (const auto &dag : top_dags) {
         std::unordered_set<Id> visiting;
-        results.emplace_back(dag.cost, build_expression(class_id, dag.choices, visiting));
+        results.push_back(
+            {dag.cost, build_expression(class_id, dag.choices, visiting), build_execution_order(class_id, dag.choices),
+             dag.choices});
     }
     return results;
 }
@@ -606,6 +635,7 @@ bool Extractor::creates_cycle(
         stack_buffer.push_back(egraph.find_class_id(child));
     }
 
+    // Use a thread-local marker to avoid clearing the visited_buffer on every call
     static thread_local size_t marker = 0;
     if (++marker == 0) {
         std::fill(visited_buffer.begin(), visited_buffer.end(), 0);
@@ -639,15 +669,16 @@ std::vector<ExtractionResult> Extractor::extract_symbolic(Id class_id, bool buil
     std::vector<ExtractionResult> results;
     for (const auto &dag : symbolic_dags) {
         std::unordered_set<Id> visiting;
+        Expression expr;
         if (build_expressions) {
-            results.emplace_back(dag.cost, build_expression(class_id, dag.choices, visiting));
-        } else {
-            results.emplace_back(dag.cost, Expression());
+            expr = build_expression(class_id, dag.choices, visiting);
         }
+        results.push_back({dag.cost, expr, build_execution_order(class_id, dag.choices), dag.choices});
     }
     return results;
 }
 
+/// Collects the extracted nodes for the given roots and size bindings, storing them in selected_choices. Returns true
 bool Extractor::collect_selected_nodes_for_binding(
     const std::vector<Id> &roots, const SizeBindings &size_bindings, size_t max_results,
     std::unordered_map<Id, std::unordered_set<const ENode *>> &selected_choices) const {
