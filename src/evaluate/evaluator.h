@@ -10,9 +10,10 @@ struct NodeData {
 class Evaluator {
   public:
     explicit Evaluator(EGraph &egraph, const ExtractionResult &result, const SizeBindings *size_bindings);
-    double evaluate() const;
+    double *evaluate();
 
   private:
+    void dispatch_kernel(const Op &op, std::vector<NodeData> inputs, NodeData &output) const;
     EGraph &egraph;
     ExtractionResult result;
     std::unordered_map<Id, NodeData> data_storage;
