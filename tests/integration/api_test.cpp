@@ -64,9 +64,9 @@ TEST(ApiTest, OLSSymbolic) {
     ctx.rewrite({"simplification", "transformation", "expansion"}, 1000, true, 10);
 
     SizeBindings bindings = {{"A", 30}, {"B", 10}};
-    Expression best_ast = ctx.extract(target_id, bindings);
+    ExtractionResult best_result = ctx.extract(target_id, bindings);
 
-    EXPECT_EQ(best_ast.to_string(true), "Sol(R(M), Q(M)ᵀ * n)");
+    EXPECT_EQ(best_result.expr.to_string(true), "Sol(R(M), Q(M)ᵀ * n)");
 }
 
 TEST(ApiTest, KernelMapping) {
@@ -102,6 +102,6 @@ TEST(ApiTest, OptimizeSymbolic) {
     EXPECT_TRUE(found);
 
     SizeBindings concrete_sizes = {{"A", 30}, {"B", 10}};
-    Expression concrete_ast = ctx.extract(target_id, concrete_sizes);
-    EXPECT_FALSE(concrete_ast.to_string(false).empty());
+    ExtractionResult concrete_result = ctx.extract(target_id, concrete_sizes);
+    EXPECT_FALSE(concrete_result.expr.to_string(false).empty());
 }

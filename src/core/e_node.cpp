@@ -10,23 +10,6 @@
 #include <string>
 
 namespace {
-Size bind_size(const Size &size, const SizeBindings *size_bindings) {
-    if (!size_bindings) {
-        return size;
-    }
-
-    if (const auto *symbol = std::get_if<std::string>(&size)) {
-        if (auto it = size_bindings->find(*symbol); it != size_bindings->end()) {
-            return it->second;
-        }
-    }
-
-    return size;
-}
-
-Shape bind_shape(const Shape &shape, const SizeBindings *size_bindings) {
-    return {bind_size(shape.first, size_bindings), bind_size(shape.second, size_bindings)};
-}
 
 std::string size_to_symbol(const Size &size) {
     if (const auto *value = std::get_if<int>(&size)) {
@@ -545,18 +528,18 @@ size_t ENode::hash() const {
 
 bool ENode::is_leaf() const { return children.empty(); }
 
-static LookupTable& get_lookup_table() {
+static LookupTable &get_lookup_table() {
     static LookupTable table;
     return table;
 }
 
-static std::vector<std::string>& get_reverse_lookup() {
+static std::vector<std::string> &get_reverse_lookup() {
     static std::vector<std::string> reverse;
     return reverse;
 }
 
 std::string get_string_from_lookup(uint32_t id) {
-    auto& reverse = get_reverse_lookup();
+    auto &reverse = get_reverse_lookup();
     if (id < reverse.size()) {
         return reverse[id];
     }
@@ -564,7 +547,7 @@ std::string get_string_from_lookup(uint32_t id) {
 }
 
 uint32_t register_string_in_lookup(const std::string &s) {
-    auto& table = get_lookup_table();
+    auto &table = get_lookup_table();
     if (table.find(s) == table.end()) {
         uint32_t id = static_cast<uint32_t>(table.size());
         table[s] = id;

@@ -69,6 +69,24 @@ inline std::string atom_to_string(const Atom &atom) {
     return "UnknownAtom";
 }
 
+inline Size bind_size(const Size &size, const SizeBindings *size_bindings) {
+    if (!size_bindings) {
+        return size;
+    }
+
+    if (const auto *symbol = std::get_if<std::string>(&size)) {
+        if (auto it = size_bindings->find(*symbol); it != size_bindings->end()) {
+            return it->second;
+        }
+    }
+
+    return size;
+}
+
+inline Shape bind_shape(const Shape &shape, const SizeBindings *size_bindings) {
+    return {bind_size(shape.first, size_bindings), bind_size(shape.second, size_bindings)};
+}
+
 inline Rewrite make_rewrite(
     const std::string &name, std::string_view lhs, std::string_view rhs, bool bidirectional = false,
     const std::function<bool(const EGraph &, const Substitution &)> &condition = nullptr,

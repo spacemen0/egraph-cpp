@@ -92,13 +92,13 @@ class Context {
         pruner.rewrite_and_prune(target_ids, rewriter, options);
     }
 
-    Expression extract(Id target_id, const SizeBindings &bindings = {}) {
+    ExtractionResult extract(Id target_id, const SizeBindings &bindings = {}) {
         CostStorage cost_storage(egraph);
         Extractor extractor(egraph, cost_storage);
         if (bindings.empty()) {
-            return extractor.extract(target_id).expr;
+            return extractor.extract(target_id);
         } else {
-            return extractor.extract(target_id, bindings).expr;
+            return extractor.extract(target_id, bindings);
         }
     }
 
@@ -118,7 +118,7 @@ class Context {
         rewrite(rulesets);
         rewrite({"lowering"});
         prune_symbolic_when_kernel_available();
-        return extract(target_id);
+        return extract(target_id).expr;
     }
 
     Id optimize_symbolic(

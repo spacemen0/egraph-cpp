@@ -14,6 +14,7 @@ add_library(core_lib STATIC
     analysis/analysis.cpp
     io/e_graph_visualization.cpp
     common/parser.cpp
+    evaluate/evaluator.cpp
 )
 target_include_directories(core_lib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -25,6 +26,7 @@ target_include_directories(core_lib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/common
     ${CMAKE_CURRENT_SOURCE_DIR}/rule_sets
     ${CMAKE_CURRENT_SOURCE_DIR}/io
+    ${CMAKE_CURRENT_SOURCE_DIR}/evaluate
 )
 
 target_link_libraries(core_lib PUBLIC magic_enum::magic_enum)
