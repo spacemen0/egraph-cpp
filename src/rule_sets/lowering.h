@@ -86,7 +86,7 @@ static const auto gemm_tt = make_rewrite("gemm_tt", "Gemm_NN(Tr(?a), Tr(?b), ?c)
 
 static const auto syrk_t = make_rewrite("syrk_t", "Syrk_N(Tr(?a), ?c)", "Syrk_T(?a, ?c)", false);
 
-static const auto trsm_lt = make_rewrite("trsm_lt", "Trsm_LN(Tr(?a), ?b)", "Trsm_LT(?a, ?b)", false);
+static const auto trsm_lt = make_rewrite("trsm_lt", "Trsm_LN(Tr(?a), ?b)", "Trsm_LT(?a, ?b)", false, is_triangular("a"));
 
 static const auto trsm_rn = make_rewrite(
     "trsm_rn_direct", "SolR(?a, ?b)", "Trsm_RN(?a, ?b)", false, [](const EGraph &g, const Substitution &s) {

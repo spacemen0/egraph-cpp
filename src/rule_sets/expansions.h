@@ -48,7 +48,7 @@ static const auto llt_invert = make_rewrite(
 });
 static const auto llt_leaf = make_rewrite(
     "llt-leaf", "?a", "Get(LLt(?a), 0) * Tr(Get(LLt(?a), 0))", false, [](const EGraph &g, const Substitution &s) {
-    return leaf_and_not_factorized_and_square("a")(g, s) && is_pos_def("a")(g, s) && is_symmetric("a")(g, s);
+    return is_not_factorized("a")(g, s) && is_square("a")(g, s) && is_pos_def("a")(g, s) && is_symmetric("a")(g, s);
 });
 static const auto llt_to_utu = make_rewrite(
     "llt_to_utu", "Get(LLt(?a), 0)", "Tr(Get(UtU(?a), 0))", true, [](const EGraph &g, const Substitution &s) {
