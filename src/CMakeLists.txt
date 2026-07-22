@@ -29,7 +29,19 @@ target_include_directories(core_lib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/evaluate
 )
 
-target_link_libraries(core_lib PUBLIC magic_enum::magic_enum)
+find_package(BLAS REQUIRED)
+target_link_libraries(core_lib PUBLIC magic_enum::magic_enum ${BLAS_LIBRARIES})
+
+if (APPLE)
+    # Use Homebrew LAPACK for LAPACKE
+    set(ENV{PKG_CONFIG_PATH} "/opt/homebrew/opt/lapack/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")
+endif()
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LAPACKE REQUIRED lapacke)
+
+target_include_directories(core_lib PUBLIC ${LAPACKE_INCLUDE_DIRS})
+target_link_directories(core_lib PUBLIC ${LAPACKE_LIBRARY_DIRS})
+target_link_libraries(core_lib PUBLIC ${LAPACKE_LIBRARIES})
 
 add_executable(egraph_cli cli.cpp)
 target_link_libraries(egraph_cli PRIVATE core_lib)

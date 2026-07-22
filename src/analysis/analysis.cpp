@@ -515,6 +515,11 @@ static AnalysisData analyze_syrk_n(const EGraph &egraph, const std::vector<Id> &
             MatrixProperty prop;
             prop.shape = std::make_pair(data->shape.first, data->shape.first);
             prop.flags.is_symmetric = true;
+            if (data->flags.is_full_rank || data->flags.is_positive_definite) {
+                prop.flags.is_positive_definite = true;
+                prop.flags.is_full_rank = true;
+                prop.flags.is_non_singular = true;
+            }
             return matrix_property_data(prop);
         }
     }
@@ -531,6 +536,11 @@ static AnalysisData analyze_syrk_t(const EGraph &egraph, const std::vector<Id> &
             MatrixProperty prop;
             prop.shape = std::make_pair(data->shape.second, data->shape.second);
             prop.flags.is_symmetric = true;
+            if (data->flags.is_full_rank || data->flags.is_positive_definite) {
+                prop.flags.is_positive_definite = true;
+                prop.flags.is_full_rank = true;
+                prop.flags.is_non_singular = true;
+            }
             return matrix_property_data(prop);
         }
     }

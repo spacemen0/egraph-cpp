@@ -154,7 +154,7 @@ void rewrite_e_graph(SessionState &state, std::optional<int> num_iterations) {
 
 void extract_expression(SessionState &state, size_t expression_id) {
     try {
-        Expression expr = state.ctx.extract(expression_id);
+        Expression expr = state.ctx.extract(expression_id).expr;
         std::cout << "Best extracted expression: " << expr.to_string(true) << "\n";
     } catch (const std::exception &e) {
         std::cerr << "Failed to extract expression: " << e.what() << "\n";
@@ -163,7 +163,7 @@ void extract_expression(SessionState &state, size_t expression_id) {
 
 void extract_expression_with_bindings(SessionState &state, size_t expression_id, const SizeBindings &bindings) {
     try {
-        Expression expr = state.ctx.extract(expression_id, bindings);
+        Expression expr = state.ctx.extract(expression_id, bindings).expr;
         std::cout << "Best extracted expression (with bindings): " << expr.to_string(true) << "\n";
     } catch (const std::exception &e) {
         std::cerr << "Failed to extract expression: " << e.what() << "\n";
