@@ -1,6 +1,7 @@
 #include "api.h"
 #include "test_helpers.h"
 #include <gtest/gtest.h>
+#include <iostream>
 
 using namespace egraph;
 
@@ -87,7 +88,7 @@ TEST(ApiTest, OptimizeSymbolic) {
     Context ctx;
     ctx.egraph = EGraph(get_property_table());
 
-    ctx.define_matrix_symbolic("M", "A", "B", {"positive_definite", "tall"});
+    ctx.define_matrix_symbolic("M", "A", "B", {"full_rank", "tall"});
     Expression M("M");
     Expression n("n");
 
@@ -103,5 +104,6 @@ TEST(ApiTest, OptimizeSymbolic) {
 
     SizeBindings concrete_sizes = {{"A", 30}, {"B", 10}};
     ExtractionResult concrete_result = ctx.extract(target_id, concrete_sizes);
+    std::cout << "Concrete result: " << concrete_result.expr.to_string(false) << std::endl;
     EXPECT_FALSE(concrete_result.expr.to_string(false).empty());
 }

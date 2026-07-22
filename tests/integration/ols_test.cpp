@@ -26,18 +26,18 @@ TEST(Integration, OLSNumeric) {
     ASSERT_TRUE(egraph.find_class_id(alternative_id) == egraph.find_class_id(id));
     CostStorage cost_storage(egraph);
     egraph.to_img("OLS_numeric", "svg");
-    Rewriter kernel_rewriter(egraph, build_rewrite_sets({"lowering"}), 500);
-    kernel_rewriter.apply_rewrites();
+    // Rewriter kernel_rewriter(egraph, build_rewrite_sets({"lowering"}), 500);
+    // kernel_rewriter.apply_rewrites();
     Pruner::prune_symbolic_when_kernel_available(egraph);
     std::cout << "Doing extraction, num of nodes: " << egraph.num_nodes() << std::endl;
     Extractor extractor(egraph, cost_storage, true, 20);
 
-    auto result = extractor.extract(id, 5);
-    for (const auto &candidate : result) {
-        std::cout << "Candidate expression: " << candidate.expr.to_string(false) << std::endl;
-        std::cout << "Cost: " << candidate.cost << std::endl;
-    }
-    EXPECT_EQ(result[0].expr.to_string(false), "Trsm_LN(Get(Geqrf(X), 1), Gemv_T(Get(Geqrf(X), 0), y, Zero_2x1))");
+    auto result = extractor.extract(id);
+    // for (const auto &candidate : result) {
+    //     std::cout << "Candidate expression: " << candidate.expr.to_string(false) << std::endl;
+    //     std::cout << "Cost: " << candidate.cost << std::endl;
+    // }
+    EXPECT_EQ(result.expr.to_string(false), "Trsm_LN(Get(Geqrf(X), 1), Gemv_T(Get(Geqrf(X), 0), y, Zero_2x1))");
     // ASSERT_TRUE(result[0].expr.to_string(true) == "Sol(R(X), Q(X)ᵀ * y)");
 }
 
@@ -52,7 +52,7 @@ TEST(Integration, OLSSymbolic) {
     auto end_add = std::chrono::high_resolution_clock::now();
 
     auto start_rules = std::chrono::high_resolution_clock::now();
-    std::vector<Rewrite> rules = build_rewrite_sets({"simplification", "transformation", "expansion"});
+    std::vector<Rewrite> rules = build_rewrite_sets({"complete"});
     auto end_rules = std::chrono::high_resolution_clock::now();
 
     Rewriter rewriter(egraph, rules, 1000, true);
@@ -62,9 +62,9 @@ TEST(Integration, OLSSymbolic) {
 
     CostStorage cost_storage(egraph);
     Extractor extractor(egraph, cost_storage, true, 20);
-
+    Pruner::prune_symbolic_when_kernel_available(egraph);
     auto start_extract = std::chrono::high_resolution_clock::now();
-    auto results = extractor.extract(id, 5, {{"A", 30}, {"B", 10}});
+    auto results = extractor.extract(id, {{"A", 30}, {"B", 10}});
     auto end_extract = std::chrono::high_resolution_clock::now();
 
     auto end_total = std::chrono::high_resolution_clock::now();
@@ -82,9 +82,9 @@ TEST(Integration, OLSSymbolic) {
               << " ms" << std::endl;
     std::cout << "--------------------------------------\n" << std::endl;
 
-    for (const auto &candidate : results) {
-        std::cout << "Candidate expression: " << candidate.expr.to_string(true) << std::endl;
-        std::cout << "Cost: " << candidate.cost << std::endl;
-    }
-    ASSERT_TRUE(results[0].expr.to_string(true) == "Sol(R(M), Q(M)ᵀ * n)");
+    // for (const auto &candidate : results) {
+    //     std::cout << "Candidate expression: " << candidate.expr.to_string(true) << std::endl;
+    //     std::cout << "Cost: " << candidate.cost << std::endl;
+    // }
+    EXPECT_EQ(results.expr.to_string(false), "Trsm_LN(Get(Geqrf(M), 1), Gemv_T(Get(Geqrf(M), 0), n, Zero_Bx1))");
 }
