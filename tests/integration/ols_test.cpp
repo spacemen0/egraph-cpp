@@ -15,8 +15,8 @@ TEST(Integration, OLSNumeric) {
     EGraph egraph(get_property_table());
     auto id = egraph.add_expression(
         inverse(transpose(Expression("J")) * Expression("J")) * transpose(Expression("J")) * Expression("k"));
-    std::vector<Rewrite> rules = build_rewrite_sets({"simplification", "transformation", "expansion"});
-    Rewriter rewriter(egraph, rules, 500, true);
+    std::vector<Rewrite> rules = build_rewrite_sets({"complete"});
+    Rewriter rewriter(egraph, rules, 50000, true);
     constexpr int max_iterations = 10;
     for (int iteration = 0; iteration < max_iterations; ++iteration) {
         if (!rewriter.apply_one_iteration()) {
@@ -28,27 +28,23 @@ TEST(Integration, OLSNumeric) {
     ASSERT_TRUE(egraph.find_class_id(alternative_id) == egraph.find_class_id(id));
     CostStorage cost_storage(egraph);
     egraph.to_img("OLS_numeric", "svg");
-    Rewriter kernel_rewriter(egraph, build_rewrite_sets({"lowering"}), 50000);
-    kernel_rewriter.apply_rewrites();
     Pruner::prune_symbolic_when_kernel_available(egraph);
     std::cout << "Doing extraction, num of nodes: " << egraph.num_nodes() << std::endl;
     Extractor extractor(egraph, cost_storage, true, 20);
 
     auto result = extractor.extract(id);
-    // for (const auto &candidate : result) {
-    //     std::cout << "Candidate expression: " << candidate.expr.to_string(false) << std::endl;
-    //     std::cout << "Cost: " << candidate.cost << std::endl;
-    // }
-    EXPECT_EQ(
-        result.expr.to_string(false), "Trsm_LN(Get(LU(Syrk_T(J, Zero_20x20)), 1), Trsm_LN(Get(LU(Syrk_T(J, "
-                                      "Zero_20x20)), 0), Gemv_T(J, k, Zero_20x1)))");
+    std::cout << "Candidate expression: " << result.expr.to_string(false) << std::endl;
+    std::cout << "Cost: " << result.cost << std::endl;
+    EXPECT_TRUE(
+        result.expr.to_string(false) == "Trsm_LT(Tr(Get(Potrf_U(Syrk_T(J, Zero_20x20)), 0)), Trsm_LN(Tr(Get(Potrf_U(Syrk_T(J, Zero_20x20)), 0)), Gemv_T(J, k, Zero_20x1)))" ||
+        result.expr.to_string(false) == "Trsm_LN(Tr(Get(Potrf_L(Syrk_T(J, Zero_20x20)), 0)), Trsm_LN(Get(Potrf_L(Syrk_T(J, Zero_20x20)), 0), Gemv_T(J, k, Zero_20x1)))");
 
-    // Evaluator evaluator(egraph, result, nullptr);
-    // double *out = evaluator.evaluate();
-    // std::cout << "EVALUATOR OLS NUMERIC OUTPUT (first 5): ";
-    // for (int i = 0; i < 5; ++i)
-    //     std::cout << out[i] << " ";
-    // std::cout << std::endl;
+    Evaluator evaluator(egraph, result, nullptr);
+    double *out = evaluator.evaluate();
+    std::cout << "EVALUATOR OLS NUMERIC OUTPUT (first 5): ";
+    for (int i = 0; i < 5; ++i)
+        std::cout << out[i] << " ";
+    std::cout << std::endl;
 }
 
 TEST(Integration, OLSSymbolic) {

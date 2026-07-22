@@ -1,5 +1,6 @@
 #include "evaluator.h"
 #include "utils.h"
+#include <cstdint>
 #include <variant>
 #include <vector>
 
@@ -27,11 +28,11 @@ Evaluator::Evaluator(EGraph &egraph, const ExtractionResult &result, const SizeB
                 Shape shape = bind_shape(data->shape, size_bindings);
                 node_data.rows = *std::get_if<int>(&shape.first);
                 node_data.cols = *std::get_if<int>(&shape.second);
-                if (atom.index() == 0) // op
+                if (std::holds_alternative<Op>(atom)) // op
                 {
                     node_data.data = new double[node_data.rows * node_data.cols];
                 }
-                if (atom.index() == 1) // matrix
+                if (std::holds_alternative<uint32_t>(atom)) // matrix
                 {
                     node_data.data = new double[node_data.rows * node_data.cols];
                     for (int i = 0; i < node_data.rows * node_data.cols; ++i) {
@@ -88,19 +89,21 @@ void Evaluator::dispatch_kernel(Op op, const std::vector<NodeData> &inputs, Node
     case Trsm_LN: {
         std::copy(inputs[1].data, inputs[1].data + (output.rows * output.cols), output.data);
         auto is_lower = egraph.get_class_analysis_data(node->get_children()[0]);
-        CBLAS_UPLO uplo = std::get<MatrixProperty>(is_lower.property).flags.is_lower_triangular ? CblasLower : CblasUpper;
+        CBLAS_UPLO uplo =
+            std::get<MatrixProperty>(is_lower.property).flags.is_lower_triangular ? CblasLower : CblasUpper;
         cblas_dtrsm(
-            CblasColMajor, CblasLeft, uplo, CblasNoTrans, CblasNonUnit, output.rows, output.cols, 1.0,
-            inputs[0].data, inputs[0].rows, output.data, output.rows);
+            CblasColMajor, CblasLeft, uplo, CblasNoTrans, CblasNonUnit, output.rows, output.cols, 1.0, inputs[0].data,
+            inputs[0].rows, output.data, output.rows);
         break;
     }
     case Trsm_LT: {
         std::copy(inputs[1].data, inputs[1].data + (output.rows * output.cols), output.data);
         auto is_lower = egraph.get_class_analysis_data(node->get_children()[0]);
-        CBLAS_UPLO uplo = std::get<MatrixProperty>(is_lower.property).flags.is_lower_triangular ? CblasLower : CblasUpper;
+        CBLAS_UPLO uplo =
+            std::get<MatrixProperty>(is_lower.property).flags.is_lower_triangular ? CblasLower : CblasUpper;
         cblas_dtrsm(
-            CblasColMajor, CblasLeft, uplo, CblasTrans, CblasNonUnit, output.rows, output.cols, 1.0,
-            inputs[0].data, inputs[0].rows, output.data, output.rows);
+            CblasColMajor, CblasLeft, uplo, CblasTrans, CblasNonUnit, output.rows, output.cols, 1.0, inputs[0].data,
+            inputs[0].rows, output.data, output.rows);
         break;
     }
     case Gemv_N: {

@@ -1,4 +1,5 @@
 #include "expansions.h"
+#include "properties_discovery.h"
 #include "lowering.h"
 #include "rewriter.h"
 #include "simplification.h"
@@ -8,6 +9,7 @@
 
 static std::vector<Rewrite> build_complete_rewrite_set() {
     std::vector<Rewrite> rewrites;
+    rewrites.insert(rewrites.end(), property_discovery_set.begin(), property_discovery_set.end());
     rewrites.insert(rewrites.end(), simplification_set.begin(), simplification_set.end());
     rewrites.insert(rewrites.end(), transformation_set.begin(), transformation_set.end());
     rewrites.insert(rewrites.end(), expansion_set.begin(), expansion_set.end());
@@ -15,10 +17,13 @@ static std::vector<Rewrite> build_complete_rewrite_set() {
     return rewrites;
 }
 
-// available rewrite sets: "complete", "simplification", "transformation", "expansion", "lowering"
+// available rewrite sets: "complete", "property_discovery", "simplification", "transformation", "expansion", "lowering"
 inline std::vector<Rewrite> get_rewrite_set_by_name(const std::string &name) {
     if (name == "complete") {
         return build_complete_rewrite_set();
+    }
+    if (name == "property_discovery") {
+        return property_discovery_set;
     }
     if (name == "simplification") {
         return simplification_set;
