@@ -87,15 +87,19 @@ void Evaluator::dispatch_kernel(Op op, const std::vector<NodeData> &inputs, Node
     switch (op) {
     case Trsm_LN: {
         std::copy(inputs[1].data, inputs[1].data + (output.rows * output.cols), output.data);
+        auto is_lower = egraph.get_class_analysis_data(node->get_children()[0]);
+        CBLAS_UPLO uplo = std::get<MatrixProperty>(is_lower.property).flags.is_lower_triangular ? CblasLower : CblasUpper;
         cblas_dtrsm(
-            CblasColMajor, CblasLeft, CblasLower, CblasNoTrans, CblasNonUnit, output.rows, output.cols, 1.0,
+            CblasColMajor, CblasLeft, uplo, CblasNoTrans, CblasNonUnit, output.rows, output.cols, 1.0,
             inputs[0].data, inputs[0].rows, output.data, output.rows);
         break;
     }
     case Trsm_LT: {
         std::copy(inputs[1].data, inputs[1].data + (output.rows * output.cols), output.data);
+        auto is_lower = egraph.get_class_analysis_data(node->get_children()[0]);
+        CBLAS_UPLO uplo = std::get<MatrixProperty>(is_lower.property).flags.is_lower_triangular ? CblasLower : CblasUpper;
         cblas_dtrsm(
-            CblasColMajor, CblasLeft, CblasLower, CblasTrans, CblasNonUnit, output.rows, output.cols, 1.0,
+            CblasColMajor, CblasLeft, uplo, CblasTrans, CblasNonUnit, output.rows, output.cols, 1.0,
             inputs[0].data, inputs[0].rows, output.data, output.rows);
         break;
     }

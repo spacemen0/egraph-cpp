@@ -1,3 +1,5 @@
+#include "evaluator.h"
+
 #include "e_graph.h"
 #include "expression.h"
 #include "extractor.h"
@@ -40,6 +42,12 @@ TEST(Integration, OLSNumeric) {
     EXPECT_EQ(
         result.expr.to_string(false), "Trsm_LN(Tr(Get(Potrf_L(Syrk_T(J, Zero_20x20)), 0)), "
                                       "Trsm_LN(Get(Potrf_L(Syrk_T(J, Zero_20x20)), 0), Gemv_T(J, k, Zero_20x1)))");
+
+    Evaluator evaluator(egraph, result, nullptr);
+    double* out = evaluator.evaluate();
+    std::cout << "EVALUATOR OLS NUMERIC OUTPUT (first 5): ";
+    for(int i=0; i<5; ++i) std::cout << out[i] << " ";
+    std::cout << std::endl;
 }
 
 TEST(Integration, OLSSymbolic) {

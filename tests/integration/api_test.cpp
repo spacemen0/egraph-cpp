@@ -1,3 +1,5 @@
+#include "evaluator.h"
+
 #include "api.h"
 #include "test_helpers.h"
 #include <gtest/gtest.h>
@@ -106,4 +108,8 @@ TEST(ApiTest, OptimizeSymbolic) {
     ExtractionResult concrete_result = ctx.extract(target_id, concrete_sizes);
     std::cout << "Concrete result: " << concrete_result.expr.to_string(false) << std::endl;
     EXPECT_FALSE(concrete_result.expr.to_string(false).empty());
+
+    Evaluator evaluator(ctx.egraph, concrete_result, &concrete_sizes);
+    double* out = evaluator.evaluate();
+    EXPECT_NE(out, nullptr);
 }
