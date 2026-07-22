@@ -15,6 +15,7 @@ static std::vector<Rewrite> build_complete_rewrite_set() {
     return rewrites;
 }
 
+// available rewrite sets: "complete", "simplification", "transformation", "expansion", "lowering"
 inline std::vector<Rewrite> get_rewrite_set_by_name(const std::string &name) {
     if (name == "complete") {
         return build_complete_rewrite_set();
@@ -34,6 +35,7 @@ inline std::vector<Rewrite> get_rewrite_set_by_name(const std::string &name) {
     throw std::invalid_argument("Unknown rewrite set name: " + name);
 }
 
+// available rewrite sets: "complete", "simplification", "transformation", "expansion", "lowering"
 inline std::vector<Rewrite> build_rewrite_sets(const std::vector<std::string> &set_names) {
     std::vector<Rewrite> rules;
     for (const auto &set_name : set_names) {

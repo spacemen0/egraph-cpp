@@ -130,7 +130,7 @@ class Context {
         }
 
         rewrite_and_prune({target_id}, size_keys, rulesets);
-        rewrite({"lowering"}, 500, false, -1);
+        rewrite({"lowering"}, 50000, false, -1);
         prune_symbolic_when_kernel_available();
 
         return target_id;
