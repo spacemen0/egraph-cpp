@@ -19,6 +19,7 @@ static PropertyTable get_property_table() {
     pt.add_or_update_property_entry("D", {.shape = std::make_pair(2, 2), .flags = {.is_non_singular = true}});
     pt.add_or_update_property_entry("X", {.shape = std::make_pair(3, 2), .flags = {.is_full_rank = true}});
     pt.add_or_update_property_entry("Y", {.shape = std::make_pair(2, 3), .flags = {.is_full_rank = true}});
+    pt.add_or_update_property_entry("J", {.shape = std::make_pair(30, 20), .flags = {.is_full_rank = true}});
     pt.add_or_update_property_entry("Z", {.shape = std::make_pair(3, 3), .flags = {.is_non_singular = true}});
     pt.add_or_update_property_entry("W", {.shape = std::make_pair(2, 2), .flags = {.is_non_singular = true}});
     pt.add_or_update_property_entry(
@@ -26,6 +27,7 @@ static PropertyTable get_property_table() {
     pt.add_or_update_property_entry("I_3x3", {.shape = std::make_pair(3, 3), .flags = {.is_identity = true}});
     pt.add_or_update_property_entry("Zero", {.shape = std::make_pair(3, 3), .flags = {.is_zero = true}});
     pt.add_or_update_property_entry("y", {.shape = std::make_pair(3, 1)});
+    pt.add_or_update_property_entry("k", {.shape = std::make_pair(30, 1)});
     pt.add_or_update_property_entry(
         "M", {.shape = std::make_pair("A", "B"), .flags = {.is_full_rank = true, .is_tall = true}});
     pt.add_or_update_property_entry("n", {.shape = std::make_pair("A", 1)});

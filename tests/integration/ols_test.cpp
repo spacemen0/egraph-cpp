@@ -12,7 +12,7 @@
 TEST(Integration, OLSNumeric) {
     EGraph egraph(get_property_table());
     auto id = egraph.add_expression(
-        inverse(transpose(Expression("X")) * Expression("X")) * transpose(Expression("X")) * Expression("y"));
+        inverse(transpose(Expression("J")) * Expression("J")) * transpose(Expression("J")) * Expression("k"));
     std::vector<Rewrite> rules = build_rewrite_sets({"complete"});
     Rewriter rewriter(egraph, rules, 500, true);
     constexpr int max_iterations = 10;
@@ -21,7 +21,7 @@ TEST(Integration, OLSNumeric) {
             break;
         }
     }
-    auto alternative_expression = Expression("Sol(Get(QR(X),1), Tr(Get(QR(X),0)) * y)");
+    auto alternative_expression = Expression("Sol(Get(QR(J),1), Tr(Get(QR(J),0)) * k)");
     auto alternative_id = egraph.add_expression(alternative_expression);
     ASSERT_TRUE(egraph.find_class_id(alternative_id) == egraph.find_class_id(id));
     CostStorage cost_storage(egraph);
@@ -37,8 +37,9 @@ TEST(Integration, OLSNumeric) {
     //     std::cout << "Candidate expression: " << candidate.expr.to_string(false) << std::endl;
     //     std::cout << "Cost: " << candidate.cost << std::endl;
     // }
-    EXPECT_EQ(result.expr.to_string(false), "Trsm_LN(Get(Geqrf(X), 1), Gemv_T(Get(Geqrf(X), 0), y, Zero_2x1))");
-    // ASSERT_TRUE(result[0].expr.to_string(true) == "Sol(R(X), Q(X)ᵀ * y)");
+    EXPECT_EQ(
+        result.expr.to_string(false), "Trsm_LN(Tr(Get(Potrf_L(Syrk_T(J, Zero_20x20)), 0)), "
+                                      "Trsm_LN(Get(Potrf_L(Syrk_T(J, Zero_20x20)), 0), Gemv_T(J, k, Zero_20x1)))");
 }
 
 TEST(Integration, OLSSymbolic) {
@@ -64,7 +65,7 @@ TEST(Integration, OLSSymbolic) {
     Extractor extractor(egraph, cost_storage, true, 20);
     Pruner::prune_symbolic_when_kernel_available(egraph);
     auto start_extract = std::chrono::high_resolution_clock::now();
-    auto results = extractor.extract(id, {{"A", 30}, {"B", 10}});
+    auto results = extractor.extract(id, {{"A", 30}, {"B", 20}});
     auto end_extract = std::chrono::high_resolution_clock::now();
 
     auto end_total = std::chrono::high_resolution_clock::now();
@@ -86,5 +87,7 @@ TEST(Integration, OLSSymbolic) {
     //     std::cout << "Candidate expression: " << candidate.expr.to_string(true) << std::endl;
     //     std::cout << "Cost: " << candidate.cost << std::endl;
     // }
-    EXPECT_EQ(results.expr.to_string(false), "Trsm_LN(Get(Geqrf(M), 1), Gemv_T(Get(Geqrf(M), 0), n, Zero_Bx1))");
+    EXPECT_EQ(
+        results.expr.to_string(false), "Trsm_LN(Tr(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0)), "
+                                       "Trsm_LN(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Gemv_T(M, n, Zero_Bx1)))");
 }

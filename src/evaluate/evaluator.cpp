@@ -1,13 +1,15 @@
 #include "evaluator.h"
 #include "utils.h"
 #include <variant>
+#include <vector>
 
 #ifdef __APPLE__
+#include <lapacke.h>
 #include <vecLib/cblas.h>
 #else
 #include <cblas.h>
-#endif
 #include <lapacke.h>
+#endif
 
 Evaluator::Evaluator(EGraph &egraph, const ExtractionResult &result, const SizeBindings *size_bindings)
     : egraph(egraph), result(result) {
@@ -51,7 +53,7 @@ Evaluator::Evaluator(EGraph &egraph, const ExtractionResult &result, const SizeB
                     node_data.rows = child.rows;
                     node_data.cols = child.cols;
                     node_data.data = new double[node_data.rows * node_data.cols];
-                    node_data.tau = new double[std::min(node_data.rows, node_data.cols)]; 
+                    node_data.tau = new double[std::min(node_data.rows, node_data.cols)];
                     data_storage[class_id] = node_data;
                 }
             }
@@ -85,42 +87,35 @@ void Evaluator::dispatch_kernel(Op op, const std::vector<NodeData> &inputs, Node
     switch (op) {
     case Trsm_LN: {
         std::copy(inputs[1].data, inputs[1].data + (output.rows * output.cols), output.data);
-        cblas_dtrsm(CblasColMajor, CblasLeft, CblasLower, CblasNoTrans, CblasNonUnit,
-                    output.rows, output.cols,
-                    1.0, inputs[0].data, inputs[0].rows,
-                    output.data, output.rows);
+        cblas_dtrsm(
+            CblasColMajor, CblasLeft, CblasLower, CblasNoTrans, CblasNonUnit, output.rows, output.cols, 1.0,
+            inputs[0].data, inputs[0].rows, output.data, output.rows);
         break;
     }
     case Trsm_LT: {
         std::copy(inputs[1].data, inputs[1].data + (output.rows * output.cols), output.data);
-        cblas_dtrsm(CblasColMajor, CblasLeft, CblasLower, CblasTrans, CblasNonUnit,
-                    output.rows, output.cols,
-                    1.0, inputs[0].data, inputs[0].rows,
-                    output.data, output.rows);
+        cblas_dtrsm(
+            CblasColMajor, CblasLeft, CblasLower, CblasTrans, CblasNonUnit, output.rows, output.cols, 1.0,
+            inputs[0].data, inputs[0].rows, output.data, output.rows);
         break;
     }
     case Gemv_N: {
         std::copy(inputs[2].data, inputs[2].data + output.rows, output.data);
-        cblas_dgemv(CblasColMajor, CblasNoTrans,
-                    inputs[0].rows, inputs[0].cols,
-                    1.0, inputs[0].data, inputs[0].rows,
-                    inputs[1].data, 1,
-                    1.0, output.data, 1);
+        cblas_dgemv(
+            CblasColMajor, CblasNoTrans, inputs[0].rows, inputs[0].cols, 1.0, inputs[0].data, inputs[0].rows,
+            inputs[1].data, 1, 1.0, output.data, 1);
         break;
     }
     case Gemv_T: {
         std::copy(inputs[2].data, inputs[2].data + output.rows, output.data);
-        cblas_dgemv(CblasColMajor, CblasTrans,
-                    inputs[0].rows, inputs[0].cols,
-                    1.0, inputs[0].data, inputs[0].rows,
-                    inputs[1].data, 1,
-                    1.0, output.data, 1);
+        cblas_dgemv(
+            CblasColMajor, CblasTrans, inputs[0].rows, inputs[0].cols, 1.0, inputs[0].data, inputs[0].rows,
+            inputs[1].data, 1, 1.0, output.data, 1);
         break;
     }
     case Geqrf: {
         std::copy(inputs[0].data, inputs[0].data + (output.rows * output.cols), output.data);
-        LAPACKE_dgeqrf(LAPACK_COL_MAJOR, output.rows, output.cols, 
-                       output.data, output.rows, output.tau);
+        LAPACKE_dgeqrf(LAPACK_COL_MAJOR, output.rows, output.cols, output.data, output.rows, output.tau);
         break;
     }
     case Get: {
@@ -129,13 +124,12 @@ void Evaluator::dispatch_kernel(Op op, const std::vector<NodeData> &inputs, Node
         const ENode *tuple_node = result.choices.at(tuple_id);
         Atom tuple_atom = tuple_node->get_atom();
         const auto *tuple_op = std::get_if<Op>(&tuple_atom);
-        
+
         if (tuple_op && *tuple_op == Op::Geqrf) {
             if (index == 0) {
                 std::copy(inputs[0].data, inputs[0].data + (inputs[0].rows * inputs[0].cols), output.data);
                 int k = std::min(inputs[0].rows, inputs[0].cols);
-                LAPACKE_dorgqr(LAPACK_COL_MAJOR, output.rows, output.cols, k, 
-                               output.data, output.rows, inputs[0].tau);
+                LAPACKE_dorgqr(LAPACK_COL_MAJOR, output.rows, output.cols, k, output.data, output.rows, inputs[0].tau);
             } else if (index == 1) {
                 int src_rows = inputs[0].rows;
                 for (int j = 0; j < output.cols; ++j) {
@@ -156,10 +150,9 @@ void Evaluator::dispatch_kernel(Op op, const std::vector<NodeData> &inputs, Node
     }
     case Syrk_N: {
         std::copy(inputs[1].data, inputs[1].data + (output.rows * output.cols), output.data);
-        cblas_dsyrk(CblasColMajor, CblasUpper, CblasNoTrans,
-                    output.rows, inputs[0].cols,
-                    1.0, inputs[0].data, inputs[0].rows,
-                    1.0, output.data, output.rows);
+        cblas_dsyrk(
+            CblasColMajor, CblasUpper, CblasNoTrans, output.rows, inputs[0].cols, 1.0, inputs[0].data, inputs[0].rows,
+            1.0, output.data, output.rows);
         for (int j = 0; j < output.cols; ++j) {
             for (int i = j + 1; i < output.rows; ++i) {
                 output.data[i + j * output.rows] = output.data[j + i * output.rows];
@@ -169,10 +162,9 @@ void Evaluator::dispatch_kernel(Op op, const std::vector<NodeData> &inputs, Node
     }
     case Syrk_T: {
         std::copy(inputs[1].data, inputs[1].data + (output.rows * output.cols), output.data);
-        cblas_dsyrk(CblasColMajor, CblasUpper, CblasTrans,
-                    output.rows, inputs[0].rows,
-                    1.0, inputs[0].data, inputs[0].rows,
-                    1.0, output.data, output.rows);
+        cblas_dsyrk(
+            CblasColMajor, CblasUpper, CblasTrans, output.rows, inputs[0].rows, 1.0, inputs[0].data, inputs[0].rows,
+            1.0, output.data, output.rows);
         for (int j = 0; j < output.cols; ++j) {
             for (int i = j + 1; i < output.rows; ++i) {
                 output.data[i + j * output.rows] = output.data[j + i * output.rows];
@@ -204,7 +196,8 @@ void Evaluator::dispatch_kernel(Op op, const std::vector<NodeData> &inputs, Node
         int n = output.rows;
         std::copy(inputs[0].data, inputs[0].data + n * n, output.data);
         auto is_lower = egraph.get_class_analysis_data(node->get_children()[0]);
-        int uplo = std::get<MatrixProperty>(is_lower.property).flags.is_lower_triangular ? LAPACK_COL_MAJOR : LAPACK_ROW_MAJOR;
+        int uplo =
+            std::get<MatrixProperty>(is_lower.property).flags.is_lower_triangular ? LAPACK_COL_MAJOR : LAPACK_ROW_MAJOR;
         LAPACKE_dtrtri(LAPACK_COL_MAJOR, uplo == LAPACK_COL_MAJOR ? 'L' : 'U', 'N', n, output.data, n);
         break;
     }

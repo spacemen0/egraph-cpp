@@ -23,22 +23,22 @@ enum class Op {
     Log,   // [A] computing log(A)
     Scale, // [A, int] representing scalar * A
     // Gemm, Syrk, Trsm, Potrf removed in favor of flagged versions
-    Geqrf,  // QR factorization
-    Trtri,  // Inverse of a triangular matrix
-    Gemv_N, // Gemv(A, x, y) - General Matrix-Vector Multiply
-    Gemv_T, // Gemv(A, x, y) - General Matrix-Vector Multiply with transposed A
-    Gemm_NN,
-    Gemm_TN,
-    Gemm_NT,
-    Gemm_TT,
-    Syrk_N,
-    Syrk_T,
-    Trsm_LN,
-    Trsm_LT,
-    Trsm_RN,
-    Trsm_RT,
-    Potrf_L,
-    Potrf_U,
+    Geqrf,   // QR factorization
+    Trtri,   // Inverse of a triangular matrix
+    Gemv_N,  // Gemv(A, x, y) - General Matrix-Vector Multiply
+    Gemv_T,  // Gemv(A, x, y) - General Matrix-Vector Multiply with transposed A
+    Gemm_NN, // Gemm(A, B, C) - General Matrix-Matrix Multiply
+    Gemm_TN, // Gemm(A, B, C) - General Matrix-Matrix Multiply with transposed A
+    Gemm_NT, // Gemm(A, B, C) - General Matrix-Matrix Multiply with transposed B
+    Gemm_TT, // Gemm(A, B, C) - General Matrix-Matrix Multiply with transposed A and B
+    Syrk_N,  // Syrk(A, C) - Symmetric Rank-K Update
+    Syrk_T,  // Syrk(A, C) - Symmetric Rank-K Update with transposed A
+    Trsm_LN, // Trsm(A, B) - Triangular Solve with multiple right-hand sides, left side, no transpose
+    Trsm_LT, // Trsm(A, B) - Triangular Solve with multiple right-hand sides, left side, transposed
+    Trsm_RN, // Trsm(A, B) - Triangular Solve with multiple right-hand sides, right side, no transpose
+    Trsm_RT, // Trsm(A, B) - Triangular Solve with multiple right-hand sides, right side, transposed
+    Potrf_L, // Potrf(A) - Cholesky factorization, lower triangular
+    Potrf_U, // Potrf(A) - Cholesky factorization, upper triangular
 };
 
 using Id = size_t;
@@ -51,7 +51,6 @@ using SizeBindings = std::unordered_map<std::string, int>;
 
 std::string get_string_from_lookup(uint32_t id);
 uint32_t register_string_in_lookup(const std::string &s);
-
 
 static inline bool is_kernel_op(Op op) {
     using enum Op;
