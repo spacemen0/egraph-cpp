@@ -72,7 +72,20 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
             throw std::invalid_argument("Invalid shapes for Mul operation in ENode::compute_local_cost");
         }
         case Tr: {
-            return 0.0;
+            // future: should occur as zero cost if consumed as kernel parameter
+            auto shape = get_one_shape(children.at(0));
+            if (is_numeric(shape)) {
+                int rows = std::get<int>(shape.first);
+                int cols = std::get<int>(shape.second);
+                return static_cast<double>(rows * cols);
+            }
+            if (!is_numeric(shape)) {
+                Monomial m = {{size_to_symbol(shape.first), size_to_symbol(shape.second)}};
+                SymbolicCost sc;
+                sc[m] = 1.0;
+                return sc;
+            }
+            throw std::invalid_argument("Invalid shape for Tr operation in ENode::compute_local_cost");
         }
         // LU L-1 then Solve
         case Inv: {

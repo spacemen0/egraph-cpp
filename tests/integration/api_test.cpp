@@ -47,7 +47,7 @@ TEST(ApiTest, ContextOptimization) {
 
     Expression best_ast = ctx.optimize_concrete(my_math, {}, {"complete"});
 
-    EXPECT_EQ(best_ast.to_string(true), "Gemm_NN(Bᵀ, Aᵀ, Zero_300x100)");
+    EXPECT_EQ(best_ast.to_string(true), "Gemm_TT(B, A, Zero_300x100)");
 }
 
 TEST(ApiTest, OLSSymbolic) {

@@ -59,7 +59,7 @@ TEST_F(ExtractorTest, SharedSubexpressionDAGCost) {
     auto result = extractor.extract(id_root);
 
     EXPECT_TRUE(std::holds_alternative<double>(result.cost));
-    EXPECT_EQ(std::get<double>(result.cost), 78.0);
+    EXPECT_EQ(std::get<double>(result.cost), 84.0);
 
     EXPECT_TRUE(std::holds_alternative<Op>(result.expr.atom));
     EXPECT_EQ(std::get<Op>(result.expr.atom), Op::Add);
@@ -97,6 +97,7 @@ TEST_F(ExtractorTest, ExtractSymbolicSingleDag) {
 
     SymbolicCost expected;
     expected[Monomial{{"A", "B", "1"}}] = 2.0;
+    expected[Monomial{{"A", "B"}}] = 1.0;
     EXPECT_EQ(std::get<SymbolicCost>(results[0].cost), expected);
 }
 
@@ -124,6 +125,7 @@ TEST_F(ExtractorTest, ExtractSymbolicMultipleDags) {
         ASSERT_TRUE(std::holds_alternative<SymbolicCost>(r.cost));
         SymbolicCost expected;
         expected[Monomial{{"A", "B", "1"}}] = 2.0;
+        expected[Monomial{{"A", "B"}}] = 1.0;
         EXPECT_EQ(std::get<SymbolicCost>(r.cost), expected);
     }
 

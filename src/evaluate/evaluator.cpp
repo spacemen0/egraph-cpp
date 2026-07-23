@@ -5,6 +5,8 @@
 #include <vector>
 
 #ifdef __APPLE__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #include <lapacke.h>
 #include <vecLib/cblas.h>
 #else
@@ -120,36 +122,13 @@ void Evaluator::dispatch_kernel(Op op, const std::vector<NodeData> &inputs, Node
             inputs[1].data, 1, 1.0, output.data, 1);
         break;
     }
-    case Geqrf: {
-        std::copy(inputs[0].data, inputs[0].data + (output.rows * output.cols), output.data);
-        LAPACKE_dgeqrf(LAPACK_COL_MAJOR, output.rows, output.cols, output.data, output.rows, output.tau);
-        break;
-    }
     case Get: {
         int index = static_cast<int>(*inputs[1].data);
         Id tuple_id = node->get_children()[0];
         const ENode *tuple_node = result.choices.at(tuple_id);
         Atom tuple_atom = tuple_node->get_atom();
         const auto *tuple_op = std::get_if<Op>(&tuple_atom);
-
-        if (tuple_op && *tuple_op == Op::Geqrf) {
-            if (index == 0) {
-                std::copy(inputs[0].data, inputs[0].data + (inputs[0].rows * inputs[0].cols), output.data);
-                int k = std::min(inputs[0].rows, inputs[0].cols);
-                LAPACKE_dorgqr(LAPACK_COL_MAJOR, output.rows, output.cols, k, output.data, output.rows, inputs[0].tau);
-            } else if (index == 1) {
-                int src_rows = inputs[0].rows;
-                for (int j = 0; j < output.cols; ++j) {
-                    for (int i = 0; i < output.rows; ++i) {
-                        if (i > j) {
-                            output.data[j * output.rows + i] = 0.0;
-                        } else {
-                            output.data[j * output.rows + i] = inputs[0].data[j * src_rows + i];
-                        }
-                    }
-                }
-            }
-        } else {
+        {
             // For Potrf_U, Potrf_L, just copy raw data
             std::copy(inputs[0].data, inputs[0].data + (inputs[0].rows * inputs[0].cols), output.data);
         }
