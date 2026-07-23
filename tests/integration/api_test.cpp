@@ -101,10 +101,8 @@ TEST(ApiTest, OptimizeSymbolic) {
 
     bool found = std::any_of(results.begin(), results.end(), [](const auto &c) {
         std::cout << "CANDIDATE: " << c.expr.to_string(false) << std::endl;
-        return c.expr.to_string(false) == "Trsm_LN(Get(Potrf_U(Syrk_T(M, Zero_BxB)), 0), Trsm_LN(Tr(Get(Potrf_U(Syrk_T(M, Zero_BxB)), 0)), Gemv_T(M, n, Zero_Bx1)))" ||
-               c.expr.to_string(false) == "Trsm_LT(Tr(Get(Potrf_U(Syrk_N(Tr(M), Zero_BxB)), 0)), Trsm_LN(Tr(Get(Potrf_U(Syrk_N(Tr(M), Zero_BxB)), 0)), Gemv_T(M, n, Zero_Bx1)))" ||
-               c.expr.to_string(false) == "Trsm_LT(Tr(Get(Potrf_U(Syrk_T(M, Zero_BxB)), 0)), Trsm_LN(Tr(Get(Potrf_U(Syrk_T(M, Zero_BxB)), 0)), Gemv_T(M, n, Zero_Bx1)))" ||
-               c.expr.to_string(false) == "Trsm_LN(Tr(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0)), Trsm_LN(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Gemv_T(M, n, Zero_Bx1)))";
+        return c.expr.to_string(false) == "Trsm_LN(Get(Potrf_U(Syrk_T(M, Zero_BxB)), 0), Trsm_LT(Get(Potrf_U(Syrk_T(M, Zero_BxB)), 0), Gemv_T(M, n, Zero_Bx1)))" ||
+               c.expr.to_string(false) == "Trsm_LT(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Trsm_LN(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Gemv_T(M, n, Zero_Bx1)))";
     });
     EXPECT_TRUE(found);
 
