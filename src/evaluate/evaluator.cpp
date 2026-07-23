@@ -160,6 +160,8 @@ void Evaluator::dispatch_kernel(Op op, const std::vector<NodeData> &inputs, Node
         cblas_dsyrk(
             CblasColMajor, CblasUpper, CblasNoTrans, output.rows, inputs[0].cols, 1.0, inputs[0].data, inputs[0].rows,
             1.0, output.data, output.rows);
+
+        // Fill the lower triangular part of the matrix to make it symmetric
         for (int j = 0; j < output.cols; ++j) {
             for (int i = j + 1; i < output.rows; ++i) {
                 output.data[i + j * output.rows] = output.data[j + i * output.rows];
@@ -182,6 +184,7 @@ void Evaluator::dispatch_kernel(Op op, const std::vector<NodeData> &inputs, Node
     case Potrf_U: {
         std::copy(inputs[0].data, inputs[0].data + (output.rows * output.cols), output.data);
         LAPACKE_dpotrf(LAPACK_COL_MAJOR, 'U', output.rows, output.data, output.rows);
+        // Zero out the lower triangular part of the matrix (can be omitted)
         for (int j = 0; j < output.cols; ++j) {
             for (int i = j + 1; i < output.rows; ++i) {
                 output.data[i + j * output.rows] = 0.0;
@@ -203,11 +206,12 @@ void Evaluator::dispatch_kernel(Op op, const std::vector<NodeData> &inputs, Node
         int n = output.rows;
         std::copy(inputs[0].data, inputs[0].data + n * n, output.data);
         auto is_lower = egraph.get_class_analysis_data(node->get_children()[0]);
-        int uplo =
-            std::get<MatrixProperty>(is_lower.property).flags.is_lower_triangular ? LAPACK_COL_MAJOR : LAPACK_ROW_MAJOR;
-        LAPACKE_dtrtri(LAPACK_COL_MAJOR, uplo == LAPACK_COL_MAJOR ? 'L' : 'U', 'N', n, output.data, n);
+        char uplo = std::get<MatrixProperty>(is_lower.property).flags.is_lower_triangular ? 'L' : 'U';
+        LAPACKE_dtrtri(LAPACK_COL_MAJOR, uplo, 'N', n, output.data, n);
         break;
     }
+
+        // normally should be consumed as kernel parameters
     case Tr: {
         int rows = inputs[0].rows;
         int cols = inputs[0].cols;
