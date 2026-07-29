@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 #include <iostream>
 
-using namespace egraph;
+using namespace Egraph;
 
 TEST(ApiTest, VariableConstruction) {
     Expression A("A");

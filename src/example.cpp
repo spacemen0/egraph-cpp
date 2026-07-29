@@ -3,7 +3,7 @@
 #include <vector>
 
 int main() {
-    egraph::Context ctx;
+    Egraph::Context ctx;
     PropertyTable pt;
     ctx.egraph = EGraph(pt);
 
@@ -27,10 +27,7 @@ int main() {
         }
 
         SizeBindings concrete_sizes = {{"A", A}, {"B", B}};
-        DataBindings concrete_data = {
-            {"M", M_data},
-            {"n", n_data}
-        };
+        DataBindings concrete_data = {{"M", M_data}, {"n", n_data}};
 
         auto out1 = ctx.evaluate_concrete(target_id, concrete_sizes, concrete_data);
 

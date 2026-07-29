@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-namespace egraph {
+namespace Egraph {
 
 // --- Optimization Context ---
 class Context {
@@ -80,7 +80,7 @@ class Context {
         std::vector<Rewrite> rewrites = build_rewrite_sets(rulesets);
         Rewriter rewriter(egraph, rewrites, max_nodes, true);
         CostStorage cost_storage(egraph);
-        Extractor extractor(egraph, cost_storage, true, 20);
+        Extractor extractor(egraph, cost_storage, false, 20);
         Pruner pruner(egraph, extractor);
 
         PruneOptions options{
@@ -166,4 +166,4 @@ class Context {
     }
 };
 
-} // namespace egraph
+} // namespace Egraph

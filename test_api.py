@@ -8,8 +8,6 @@ def test_batch():
     inputs = []
     expected_xs = []
     
-    np.random.seed(42)
-    
     for _ in range(num_tests):
         # Random dimension A >= B
         B = np.random.randint(1, 20)
@@ -102,7 +100,7 @@ def test_batch():
         print(results[0])  # Print the first result for reference
         print(expected_xs[0])
     else:
-        print("Some tests failed.")
+        print(f"\033[91mSome tests failed!\033[0m")
 
 if __name__ == "__main__":
     test_batch()
