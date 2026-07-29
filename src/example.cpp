@@ -1,4 +1,7 @@
 #include "api.h"
+#include <iostream>
+#include <vector>
+
 int main() {
     egraph::Context ctx;
     PropertyTable pt;
@@ -10,12 +13,31 @@ int main() {
     Expression n("n");
 
     Expression target_math = (inverse(transpose(M) * M) * transpose(M)) * n;
-
     Id target_id = ctx.optimize_symbolic(target_math, {"A", "B"});
 
-    SizeBindings concrete_sizes = {{"A", 3}, {"B", 2}};
+    int A, B;
+    while (std::cin >> A >> B) {
+        std::vector<double> M_data(A * B);
+        for (int i = 0; i < A * B; ++i) {
+            std::cin >> M_data[i];
+        }
+        std::vector<double> n_data(A);
+        for (int i = 0; i < A; ++i) {
+            std::cin >> n_data[i];
+        }
 
-    DataBindings concrete_data = {
-        {"M", std::vector<double>{1.0, 0.0, 0.0, 0.0, 1.0, 0.0}}, {"n", std::vector<double>{5.0, -3.0, 42.0}}};
-    auto out1 = ctx.evaluate_concrete(target_id, concrete_sizes, concrete_data);
+        SizeBindings concrete_sizes = {{"A", A}, {"B", B}};
+        DataBindings concrete_data = {
+            {"M", M_data},
+            {"n", n_data}
+        };
+
+        auto out1 = ctx.evaluate_concrete(target_id, concrete_sizes, concrete_data);
+
+        for (int i = 0; i < B; ++i) {
+            std::cout << out1[i] << (i == B - 1 ? "" : " ");
+        }
+        std::cout << "\n";
+    }
+    return 0;
 }
