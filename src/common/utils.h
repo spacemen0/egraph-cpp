@@ -244,6 +244,10 @@ inline const MatrixProperty *get_matrix_data(const EGraph &egraph, Id id) {
     return std::get_if<MatrixProperty>(&egraph.get_class_analysis_data(id).property);
 }
 
+inline const TupleProperty *get_tuple_data(const EGraph &egraph, Id id) {
+    return std::get_if<TupleProperty>(&egraph.get_class_analysis_data(id).property);
+}
+
 inline bool is_numeric(const Shape &shape) {
     return std::holds_alternative<int>(shape.first) && std::holds_alternative<int>(shape.second);
 }

@@ -64,6 +64,8 @@ struct MatrixProperty {
     bool has_symbolic_shape() const {
         return !std::holds_alternative<int>(shape.first) || !std::holds_alternative<int>(shape.second);
     }
+
+    // rows > cols
     bool is_tall_matrix() const {
         if (auto rows = std::get_if<int>(&shape.first)) {
             if (auto cols = std::get_if<int>(&shape.second)) {
@@ -72,6 +74,8 @@ struct MatrixProperty {
         }
         return flags.is_tall;
     }
+
+    // rows < cols
     bool is_wide_matrix() const {
         if (auto rows = std::get_if<int>(&shape.first)) {
             if (auto cols = std::get_if<int>(&shape.second)) {
