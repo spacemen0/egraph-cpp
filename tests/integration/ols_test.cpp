@@ -36,11 +36,13 @@ TEST(Integration, OLSNumeric) {
     std::cout << "Candidate expression: " << result.expr.to_string(false) << std::endl;
     std::cout << "Cost: " << result.cost << std::endl;
     EXPECT_TRUE(
-        result.expr.to_string(false) == "Trsm_LN(Get(Potrf_U(Syrk_T(J, Zero_20x20)), 0), Trsm_LT(Get(Potrf_U(Syrk_T(J, Zero_20x20)), 0), Gemv_T(J, k, Zero_20x1)))" ||
-        result.expr.to_string(false) == "Trsm_LT(Get(Potrf_L(Syrk_T(J, Zero_20x20)), 0), Trsm_LN(Get(Potrf_L(Syrk_T(J, Zero_20x20)), 0), Gemv_T(J, k, Zero_20x1)))");
+        result.expr.to_string(false) == "Trsm_LN(Get(Potrf_U(Syrk_T(J, Zero_20x20)), 0), Trsm_LT(Get(Potrf_U(Syrk_T(J, "
+                                        "Zero_20x20)), 0), Gemv_T(J, k, Zero_20x1)))" ||
+        result.expr.to_string(false) == "Trsm_LT(Get(Potrf_L(Syrk_T(J, Zero_20x20)), 0), Trsm_LN(Get(Potrf_L(Syrk_T(J, "
+                                        "Zero_20x20)), 0), Gemv_T(J, k, Zero_20x1)))");
 
     Evaluator evaluator(egraph, result, nullptr);
-    double *out = evaluator.evaluate();
+    const auto &out = evaluator.evaluate();
     std::cout << "EVALUATOR OLS NUMERIC OUTPUT (first 5): ";
     for (int i = 0; i < 5; ++i)
         std::cout << out[i] << " ";
@@ -99,6 +101,8 @@ TEST(Integration, OLSSymbolic) {
     std::cout << "ACTUAL RESULT: " << results.expr.to_string(false) << std::endl;
     std::cout << "ACTUAL RESULT: " << results.expr.to_string(false) << std::endl;
     EXPECT_TRUE(
-        results.expr.to_string(false) == "Trsm_LN(Get(Potrf_U(Syrk_T(M, Zero_BxB)), 0), Trsm_LT(Get(Potrf_U(Syrk_T(M, Zero_BxB)), 0), Gemv_T(M, n, Zero_Bx1)))" ||
-        results.expr.to_string(false) == "Trsm_LT(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Trsm_LN(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Gemv_T(M, n, Zero_Bx1)))");
+        results.expr.to_string(false) == "Trsm_LN(Get(Potrf_U(Syrk_T(M, Zero_BxB)), 0), Trsm_LT(Get(Potrf_U(Syrk_T(M, "
+                                         "Zero_BxB)), 0), Gemv_T(M, n, Zero_Bx1)))" ||
+        results.expr.to_string(false) == "Trsm_LT(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Trsm_LN(Get(Potrf_L(Syrk_T(M, "
+                                         "Zero_BxB)), 0), Gemv_T(M, n, Zero_Bx1)))");
 }
