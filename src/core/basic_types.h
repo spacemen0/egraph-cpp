@@ -33,10 +33,10 @@ enum class Op {
     Gemm_TT, // Gemm(A, B, C) - General Matrix-Matrix Multiply with transposed A and B
     Syrk_N,  // Syrk(A, C) - Symmetric Rank-K Update
     Syrk_T,  // Syrk(A, C) - Symmetric Rank-K Update with transposed A
-    Trsm_LN, // Trsm(A, B) - Triangular Solve with multiple right-hand sides, left side, no transpose
-    Trsm_LT, // Trsm(A, B) - Triangular Solve with multiple right-hand sides, left side, transposed
-    Trsm_RN, // Trsm(A, B) - Triangular Solve with multiple right-hand sides, right side, no transpose
-    Trsm_RT, // Trsm(A, B) - Triangular Solve with multiple right-hand sides, right side, transposed
+    Trsm_LN, // Trsm(A, B) - Triangular Solve with multiple right-hand sides, AX = B, no transpose
+    Trsm_LT, // Trsm(A, B) - Triangular Solve with multiple right-hand sides, AX = B, transposed
+    Trsm_RN, // Trsm(A, B) - Triangular Solve with multiple right-hand sides, XA = B, no transpose
+    Trsm_RT, // Trsm(A, B) - Triangular Solve with multiple right-hand sides, XA = B, transposed
     Potrf_L, // Potrf(A) - Cholesky factorization, lower triangular
     Potrf_U, // Potrf(A) - Cholesky factorization, upper triangular
 };
