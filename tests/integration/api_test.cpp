@@ -1,4 +1,3 @@
-#include "evaluator.h"
 
 #include "api.h"
 #include "test_helpers.h"
@@ -113,7 +112,12 @@ TEST(ApiTest, OptimizeSymbolic) {
     std::cout << "Concrete result: " << concrete_result.expr.to_string(false) << std::endl;
     EXPECT_FALSE(concrete_result.expr.to_string(false).empty());
 
-    Evaluator evaluator(ctx.egraph, concrete_result, &concrete_sizes);
+    DataBinding concrete_data = {
+        {"M", std::vector<double>(30 * 10, 1.0)}, // Example data for M
+        {"n", std::vector<double>(30, 1.0)}       // Example data for n
+    };
+
+    Evaluator evaluator(ctx.egraph, concrete_result, &concrete_sizes, &concrete_data);
     const auto &out = evaluator.evaluate();
     EXPECT_FALSE(out.empty());
 }

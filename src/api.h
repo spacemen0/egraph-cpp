@@ -1,6 +1,7 @@
 #pragma once
 
 #include "e_graph.h"
+#include "evaluator.h"
 #include "expression.h"
 #include "extractor.h"
 #include "property_table.h"
@@ -119,6 +120,13 @@ class Context {
         rewrite({"lowering"});
         prune_symbolic_when_kernel_available();
         return extract(target_id).expr;
+    }
+
+    std::vector<double> evaluate_concrete(
+        Id target_id, const SizeBindings &size_bindings, const DataBinding &bindings = {}) {
+        auto result = extract(target_id, size_bindings);
+        Evaluator evaluator(egraph, result, &size_bindings, &bindings);
+        return evaluator.evaluate();
     }
 
     Id optimize_symbolic(

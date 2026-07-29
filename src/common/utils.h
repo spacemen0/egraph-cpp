@@ -14,6 +14,34 @@
 #include <unordered_set>
 #include <vector>
 
+inline LookupTable &get_lookup_table() {
+    static LookupTable table;
+    return table;
+}
+
+inline std::vector<std::string> &get_reverse_lookup() {
+    static std::vector<std::string> reverse;
+    return reverse;
+}
+
+inline std::string get_string_from_lookup(uint32_t id) {
+    auto &reverse = get_reverse_lookup();
+    if (id < reverse.size()) {
+        return reverse[id];
+    }
+    return "<unknown>";
+}
+
+inline uint32_t register_string_in_lookup(const std::string &s) {
+    auto &table = get_lookup_table();
+    if (table.find(s) == table.end()) {
+        uint32_t id = static_cast<uint32_t>(table.size());
+        table[s] = id;
+        get_reverse_lookup().push_back(s);
+    }
+    return table[s];
+}
+
 inline Op parse_op(std::string_view s) {
     if (s == "+")
         return Op::Add;

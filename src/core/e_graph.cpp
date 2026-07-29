@@ -5,6 +5,7 @@
 #include "errors.h"
 #include "matcher.h"
 #include "pattern.h"
+#include "utils.h"
 #include <cassert>
 #include <iostream>
 #include <optional>

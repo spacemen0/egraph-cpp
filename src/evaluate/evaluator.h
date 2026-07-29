@@ -1,3 +1,4 @@
+#pragma once
 #include "e_graph.h"
 #include "extractor.h"
 
@@ -16,7 +17,9 @@ using DataStorage = std::variant<MatrixNode, TupleNode>;
 
 class Evaluator {
   public:
-    explicit Evaluator(EGraph &egraph, const ExtractionResult &result, const SizeBindings *size_bindings);
+    explicit Evaluator(
+        EGraph &egraph, const ExtractionResult &result, const SizeBindings *size_bindings,
+        const DataBinding *data_bindings = nullptr);
     std::vector<double> evaluate();
 
   private:

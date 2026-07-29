@@ -540,31 +540,3 @@ size_t ENode::hash() const {
 }
 
 bool ENode::is_leaf() const { return children.empty(); }
-
-static LookupTable &get_lookup_table() {
-    static LookupTable table;
-    return table;
-}
-
-static std::vector<std::string> &get_reverse_lookup() {
-    static std::vector<std::string> reverse;
-    return reverse;
-}
-
-std::string get_string_from_lookup(uint32_t id) {
-    auto &reverse = get_reverse_lookup();
-    if (id < reverse.size()) {
-        return reverse[id];
-    }
-    return "<unknown>";
-}
-
-uint32_t register_string_in_lookup(const std::string &s) {
-    auto &table = get_lookup_table();
-    if (table.find(s) == table.end()) {
-        uint32_t id = static_cast<uint32_t>(table.size());
-        table[s] = id;
-        get_reverse_lookup().push_back(s);
-    }
-    return table[s];
-}

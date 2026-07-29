@@ -1,5 +1,6 @@
 #include "rewriter.h"
 #include "matcher.h"
+#include "utils.h"
 
 // Instantiate a pattern into the EGraph
 static Id instantiate(EGraph &egraph, const Pattern &pattern, const Substitution &subst) {

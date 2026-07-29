@@ -1,5 +1,6 @@
 #include "matcher.h"
 #include "e_graph.h"
+#include "utils.h"
 
 Matcher::Matcher(EGraph &egraph) : egraph(egraph) {}
 

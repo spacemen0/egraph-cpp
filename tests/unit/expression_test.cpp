@@ -1,5 +1,6 @@
 #include "errors.h"
 #include "expression.h"
+#include "utils.h"
 #include <gtest/gtest.h>
 
 TEST(Expression, ParseVariable) {
