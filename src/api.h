@@ -122,8 +122,8 @@ class Context {
         return extract(target_id).expr;
     }
 
-    std::vector<double> evaluate_concrete(
-        Id target_id, const SizeBindings &size_bindings, const DataBinding &bindings = {}) {
+    std::vector<double>
+    evaluate_concrete(Id target_id, const SizeBindings &size_bindings, const DataBindings &bindings = {}) {
         auto result = extract(target_id, size_bindings);
         Evaluator evaluator(egraph, result, &size_bindings, &bindings);
         return evaluator.evaluate();

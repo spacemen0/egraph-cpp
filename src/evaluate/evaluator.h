@@ -19,7 +19,7 @@ class Evaluator {
   public:
     explicit Evaluator(
         EGraph &egraph, const ExtractionResult &result, const SizeBindings *size_bindings,
-        const DataBinding *data_bindings = nullptr);
+        const DataBindings *data_bindings = nullptr);
     std::vector<double> evaluate();
 
   private:

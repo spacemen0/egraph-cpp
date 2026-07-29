@@ -48,7 +48,7 @@ using Atom = std::variant<Op, uint32_t, double>; // double for indexes in Get op
 using Size = std::variant<int, std::string>;
 using Shape = std::pair<Size, Size>;
 using SizeBindings = std::unordered_map<std::string, int>;
-using DataBinding = std::unordered_map<std::string, std::vector<double>>;
+using DataBindings = std::unordered_map<std::string, std::vector<double>>;
 
 static inline bool is_kernel_op(Op op) {
     using enum Op;

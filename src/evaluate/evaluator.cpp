@@ -16,7 +16,8 @@
 #endif
 
 Evaluator::Evaluator(
-    EGraph &egraph, const ExtractionResult &result, const SizeBindings *size_bindings, const DataBinding *data_bindings)
+    EGraph &egraph, const ExtractionResult &result, const SizeBindings *size_bindings,
+    const DataBindings *data_bindings)
     : egraph(egraph), result(result) {
 
     for (Id class_id : result.execution_order) {
