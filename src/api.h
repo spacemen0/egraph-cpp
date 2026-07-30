@@ -19,41 +19,46 @@ class Context {
   public:
     EGraph egraph;
 
-    void define_matrix(const std::string &name, int rows, int cols, const std::vector<std::string> &flags = {}) {
+    Expression define_matrix(const std::string &name, int rows, int cols, const std::vector<std::string> &flags = {}) {
         MatrixProperty prop;
         prop.shape = Shape{rows, cols};
         apply_flags(prop, flags);
         egraph.get_property_table().add_or_update_property_entry(name, prop);
+        return Expression(name);
     }
 
-    bool define_matrix(const std::string &name, const std::string &property_str) {
+    Expression define_matrix(const std::string &name, const std::string &property_str) {
         auto prop = MatrixProperty::from_string(property_str);
-        return egraph.get_property_table().add_or_update_property_entry(name, prop);
+        egraph.get_property_table().add_or_update_property_entry(name, prop);
+        return Expression(name);
     }
 
-    void define_matrix_symbolic(
+    Expression define_matrix_symbolic(
         const std::string &name, const std::string &rows_var, const std::string &cols_var,
         const std::vector<std::string> &flags = {}) {
         MatrixProperty prop;
         prop.shape = Shape{rows_var, cols_var};
         apply_flags(prop, flags);
         egraph.get_property_table().add_or_update_property_entry(name, prop);
+        return Expression(name);
     }
 
-    void define_matrix_symbolic(
+    Expression define_matrix_symbolic(
         const std::string &name, const std::string &rows_var, int cols, const std::vector<std::string> &flags = {}) {
         MatrixProperty prop;
         prop.shape = Shape{rows_var, cols};
         apply_flags(prop, flags);
         egraph.get_property_table().add_or_update_property_entry(name, prop);
+        return Expression(name);
     }
 
-    void define_matrix_symbolic(
+    Expression define_matrix_symbolic(
         const std::string &name, int rows, const std::string &cols_var, const std::vector<std::string> &flags = {}) {
         MatrixProperty prop;
         prop.shape = Shape{rows, cols_var};
         apply_flags(prop, flags);
         egraph.get_property_table().add_or_update_property_entry(name, prop);
+        return Expression(name);
     }
 
     Id add(const Expression &expr) { return egraph.add_expression(expr); }
@@ -122,8 +127,8 @@ class Context {
         return extract(target_id).expr;
     }
 
-    std::vector<double>
-    evaluate_concrete(Id target_id, const SizeBindings &size_bindings, const DataBindings &bindings = {}) {
+    std::vector<double> evaluate_concrete(
+        Id target_id, const SizeBindings &size_bindings, const DataBindings &bindings = {}) {
         auto result = extract(target_id, size_bindings);
         Evaluator evaluator(egraph, result, &size_bindings, &bindings);
         return evaluator.evaluate();
@@ -140,13 +145,14 @@ class Context {
         rewrite_and_prune({target_id}, size_keys, rulesets);
         rewrite({"lowering"}, 50000, false, -1);
         prune_symbolic_when_kernel_available();
-
         return target_id;
     }
 
     void print_properties() const { egraph.get_property_table().print_all_properties(); }
 
     std::optional<Id> find_expr(const Expression &expr) const { return egraph.find_expression_id(expr); }
+
+    void clear() { egraph = EGraph(); }
 
   private:
     void apply_flags(MatrixProperty &prop, const std::vector<std::string> &flags) {

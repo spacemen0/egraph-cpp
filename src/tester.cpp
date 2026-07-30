@@ -12,7 +12,7 @@ int main() {
     Expression n("n");
 
     Expression target_math = (inverse(transpose(M) * M) * transpose(M)) * n;
-    Id target_id = ctx.optimize_symbolic(target_math, {"A", "B"});
+    ctx.optimize_symbolic(target_math, {"A", "B"});
 
     int A, B;
     while (std::cin >> A >> B) {
@@ -28,7 +28,7 @@ int main() {
         SizeBindings concrete_sizes = {{"A", A}, {"B", B}};
         DataBindings concrete_data = {{"M", M_data}, {"n", n_data}};
 
-        auto out1 = ctx.evaluate_concrete(target_id, concrete_sizes, concrete_data);
+        auto out1 = ctx.evaluate_concrete(target_math, concrete_sizes, concrete_data);
 
         for (int i = 0; i < B; ++i) {
             std::cout << out1[i] << (i == B - 1 ? "" : " ");

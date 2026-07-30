@@ -121,13 +121,8 @@ void add_properties_to_state(SessionState &state, const std::vector<std::string>
             std::string name;
             std::string property_str;
             parse_property_assignment(string, name, property_str);
-
-            // Let define_matrix handle it
-            if (state.ctx.define_matrix(name, property_str)) {
-                std::cout << "Updated property: " << string << "\n";
-            } else {
-                std::cout << "Added property: " << string << "\n";
-            }
+            state.ctx.define_matrix(name, property_str);
+            std::cout << "Added (Updated) property.\n";
         } catch (const std::exception &e) {
             std::cerr << "Failed to parse property string '" << string << "': " << e.what() << "\n";
         }

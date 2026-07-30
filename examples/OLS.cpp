@@ -1,18 +1,17 @@
 #include "api.h"
+#include <iostream>
 
 int main() {
     EGraphRunner::Context ctx;
     ctx.egraph = EGraph();
 
-    ctx.define_matrix_symbolic("M", "A", "B", {"full_rank", "tall"});
-    ctx.define_matrix_symbolic("n", "A", 1);
-    Expression M("M");
-    Expression n("n");
+    Expression M = ctx.define_matrix_symbolic("M", "a", "b", {"full_rank", "tall"});
+    Expression n = ctx.define_matrix_symbolic("n", "a", 1);
     Expression target_math = (inverse(transpose(M) * M) * transpose(M)) * n;
 
-    Id target_id = ctx.optimize_symbolic(target_math, {"A", "B"});
+    Id target_id = ctx.optimize_symbolic(target_math, {"a", "b"});
 
-    SizeBindings concrete_sizes = {{"A", 3}, {"B", 2}};
+    SizeBindings concrete_sizes = {{"a", 3}, {"b", 2}};
     DataBindings concrete_data = {
         {"M", std::vector<double>{2.0, 1.0, 0.0, 1.0, 3.0, 1.0}}, {"n", std::vector<double>{5.0, 10.0, 3.0}}};
 
