@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-namespace Egraph {
+namespace EGraphRunner {
 
 // --- Optimization Context ---
 class Context {
@@ -166,4 +166,4 @@ class Context {
     }
 };
 
-} // namespace Egraph
+} // namespace EGraphRunner

@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 #include <iostream>
 
-using namespace Egraph;
+using namespace EGraphRunner;
 
 TEST(ApiTest, VariableConstruction) {
     Expression A("A");
@@ -87,8 +87,7 @@ TEST(ApiTest, KernelMapping) {
 
 TEST(ApiTest, OptimizeSymbolic) {
     Context ctx;
-    PropertyTable pt;
-    ctx.egraph = EGraph(pt);
+    ctx.egraph = EGraph();
 
     ctx.define_matrix_symbolic("M", "A", "B", {"full_rank", "tall"});
     ctx.define_matrix_symbolic("n", "A", 1);
