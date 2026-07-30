@@ -28,7 +28,7 @@ int main() {
         SizeBindings concrete_sizes = {{"A", A}, {"B", B}};
         DataBindings concrete_data = {{"M", M_data}, {"n", n_data}};
 
-        auto out1 = ctx.evaluate_concrete(target_math, concrete_sizes, concrete_data);
+        auto out1 = ctx.evaluate_concrete(concrete_sizes, concrete_data);
 
         for (int i = 0; i < B; ++i) {
             std::cout << out1[i] << (i == B - 1 ? "" : " ");

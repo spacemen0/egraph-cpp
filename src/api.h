@@ -108,6 +108,8 @@ class Context {
         }
     }
 
+    std::vector<ExtractionResult> extract_symbolic() { return extract_symbolic(target_id); }
+
     std::vector<ExtractionResult> extract_symbolic(Id target_id) {
         CostStorage cost_storage(egraph);
         Extractor extractor(egraph, cost_storage, true, 20);
@@ -127,17 +129,17 @@ class Context {
         return extract(target_id).expr;
     }
 
-    std::vector<double> evaluate_concrete(
-        Id target_id, const SizeBindings &size_bindings, const DataBindings &bindings = {}) {
+    std::vector<double> evaluate_concrete(const SizeBindings &size_bindings, const DataBindings &bindings = {}) {
         auto result = extract(target_id, size_bindings);
         Evaluator evaluator(egraph, result, &size_bindings, &bindings);
         return evaluator.evaluate();
     }
 
-    Id optimize_symbolic(
+    void optimize_symbolic(
         const Expression &target_expr, const std::vector<std::string> &size_keys,
         const std::vector<Expression> &background_exprs = {}, const std::vector<std::string> &rulesets = {"complete"}) {
-        Id target_id = add(target_expr);
+        target_id = add(target_expr);
+
         for (const auto &bg_expr : background_exprs) {
             add(bg_expr);
         }
@@ -145,7 +147,6 @@ class Context {
         rewrite_and_prune({target_id}, size_keys, rulesets);
         rewrite({"lowering"}, 50000, false, -1);
         prune_symbolic_when_kernel_available();
-        return target_id;
     }
 
     void print_properties() const { egraph.get_property_table().print_all_properties(); }
@@ -155,6 +156,8 @@ class Context {
     void clear() { egraph = EGraph(); }
 
   private:
+    Id target_id = 0;
+
     void apply_flags(MatrixProperty &prop, const std::vector<std::string> &flags) {
         for (const auto &f : flags) {
             bool found = false;

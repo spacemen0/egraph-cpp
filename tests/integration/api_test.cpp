@@ -96,8 +96,8 @@ TEST(ApiTest, OptimizeSymbolic) {
 
     Expression target_math = (inverse(transpose(M) * M) * transpose(M)) * n;
 
-    Id target_id = ctx.optimize_symbolic(target_math, {"A", "B"});
-    auto results = ctx.extract_symbolic(target_id);
+    ctx.optimize_symbolic(target_math, {"A", "B"});
+    auto results = ctx.extract_symbolic();
 
     bool found = std::any_of(results.begin(), results.end(), [](const auto &c) {
         std::cout << "CANDIDATE: " << c.expr.to_string(false) << std::endl;
@@ -112,7 +112,7 @@ TEST(ApiTest, OptimizeSymbolic) {
 
     DataBindings data1 = {
         {"M", std::vector<double>{1.0, 0.0, 0.0, 0.0, 1.0, 0.0}}, {"n", std::vector<double>{5.0, -3.0, 42.0}}};
-    auto out1 = ctx.evaluate_concrete(target_id, concrete_sizes, data1);
+    auto out1 = ctx.evaluate_concrete(concrete_sizes, data1);
 
     ASSERT_EQ(out1.size(), 2);
     EXPECT_NEAR(out1[0], 5.0, 1e-6);
@@ -120,7 +120,7 @@ TEST(ApiTest, OptimizeSymbolic) {
 
     DataBindings data2 = {
         {"M", std::vector<double>{2.0, 1.0, 0.0, 1.0, 3.0, 1.0}}, {"n", std::vector<double>{5.0, 10.0, 3.0}}};
-    auto out2 = ctx.evaluate_concrete(target_id, concrete_sizes, data2);
+    auto out2 = ctx.evaluate_concrete(concrete_sizes, data2);
 
     ASSERT_EQ(out2.size(), 2);
     EXPECT_NEAR(out2[0], 1.0, 1e-6);
