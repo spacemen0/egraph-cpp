@@ -12,7 +12,7 @@
 #endif
 #include <vector>
 
-using namespace egraph;
+using namespace Egraph;
 
 namespace {
 

@@ -31,7 +31,7 @@ def test_batch():
         
     input_str = "\n".join(inputs) + "\n"
     
-    executable = "./build/src/example"
+    executable = "./build/src/tester"
     if not os.path.exists(executable):
         print(f"Error: Executable {executable} not found. Did you build it?")
         return

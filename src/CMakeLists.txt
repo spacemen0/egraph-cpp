@@ -41,5 +41,5 @@ target_link_libraries(core_lib PUBLIC ${LAPACKE_LIBRARIES})
 
 add_executable(egraph_cli cli.cpp)
 target_link_libraries(egraph_cli PRIVATE core_lib)
-add_executable(example example.cpp)
-target_link_libraries(example PRIVATE core_lib)
+add_executable(tester tester.cpp)
+target_link_libraries(tester PRIVATE core_lib)

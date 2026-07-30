@@ -3,7 +3,7 @@
 #include "extractor.h"
 
 struct MatrixNode {
-    std::vector<double> raw_data_vector; // will use random data for testing
+    std::vector<double> raw_data_vector;
     int rows;
     int cols;
 };
