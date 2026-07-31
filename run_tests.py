@@ -57,7 +57,7 @@ def main() -> int:
         cwd=repo_root,
     )
     run(
-        ["cmake", "--build", "build", "--target", "unit_tests", "--config", "Debug"],
+        ["cmake", "--build", "build", "--target", "all", "--config", "Debug"],
         cwd=repo_root,
     )
 

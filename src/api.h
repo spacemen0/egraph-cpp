@@ -8,6 +8,7 @@
 #include "pruner.h"
 #include "rewrite_sets.h"
 #include "rewriter.h"
+#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -130,7 +131,9 @@ class Context {
     }
 
     std::vector<double> evaluate_concrete(const SizeBindings &size_bindings, const DataBindings &bindings = {}) {
+        egraph.to_img("GLS", "svg");
         auto result = extract(target_id, size_bindings);
+        std::cout << "Extracted expression: " << result.expr.to_string() << "\n";
         Evaluator evaluator(egraph, result, &size_bindings, &bindings);
         return evaluator.evaluate();
     }
