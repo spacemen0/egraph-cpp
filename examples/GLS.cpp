@@ -15,7 +15,18 @@ int main() {
     SizeBindings concrete_sizes = {{"a", 3}, {"b", 2}};
     DataBindings concrete_data = {
         {"X", std::vector<double>{2.0, 1.0, 0.0, 1.0, 3.0, 1.0}},
-        {"M", std::vector<double>{1.0, 0.0, 0.0, 1.0}},
+        {"M",
+         std::vector<double>{
+             1.0,
+             0.0,
+             0.0,
+             1.0,
+             2.0,
+             3.0,
+             5.0,
+             1.5,
+             1.0,
+         }},
         {"y", std::vector<double>{5.0, 10.0, 3.0}}};
 
     auto out1 = ctx.evaluate_concrete(concrete_sizes, concrete_data);

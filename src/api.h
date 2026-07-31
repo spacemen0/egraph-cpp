@@ -82,7 +82,7 @@ class Context {
         const std::vector<Id> &target_ids, const std::vector<std::string> &size_keys,
         const std::vector<std::string> &rulesets = {"complete"}, int num_iterations = 8,
         int rewrite_steps_per_iteration = 20, int prune_samples_per_iteration = 20, int max_results_per_binding = 5,
-        int max_nodes = 500) {
+        int max_nodes = 1000) {
         std::vector<Rewrite> rewrites = build_rewrite_sets(rulesets);
         Rewriter rewriter(egraph, rewrites, max_nodes, true);
         CostStorage cost_storage(egraph);
@@ -131,7 +131,6 @@ class Context {
     }
 
     std::vector<double> evaluate_concrete(const SizeBindings &size_bindings, const DataBindings &bindings = {}) {
-        egraph.to_img("GLS", "svg");
         auto result = extract(target_id, size_bindings);
         std::cout << "Extracted expression: " << result.expr.to_string() << "\n";
         Evaluator evaluator(egraph, result, &size_bindings, &bindings);
@@ -146,7 +145,6 @@ class Context {
         for (const auto &bg_expr : background_exprs) {
             add(bg_expr);
         }
-
         rewrite_and_prune({target_id}, size_keys, rulesets);
         rewrite({"lowering"}, 50000, false, -1);
         prune_symbolic_when_kernel_available();
