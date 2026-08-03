@@ -735,6 +735,81 @@ static AnalysisData analyze_gemv_t(const EGraph &egraph, const std::vector<Id> &
     throw AnalysisError("Gemv_T expects Matrix inputs");
 }
 
+static AnalysisData analyze_orgqr(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 1, "Orgqr");
+    auto data = egraph.get_class_analysis_data(children.at(0));
+    if (auto *props = std::get_if<TupleProperty>(&data.property)) {
+        if (!props->empty()) {
+            return AnalysisData{(*props)[0]};
+        }
+    }
+    throw AnalysisError("Orgqr expects Geqrf output");
+}
+
+static AnalysisData analyze_ormqr_ln(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 2, "Ormqr_LN");
+    auto data = egraph.get_class_analysis_data(children.at(0));
+    if (auto *props = std::get_if<TupleProperty>(&data.property)) {
+        if (auto C = get_matrix_data(egraph, children.at(1))) {
+            MatrixProperty prop;
+            prop.shape = {(*props)[0].shape.first, C->shape.second};
+            prop.flags.is_full_rank = C->flags.is_full_rank;
+            prop.flags.is_non_singular = C->flags.is_non_singular;
+            prop.flags.is_orthogonal = (*props)[0].flags.is_orthogonal && C->flags.is_orthogonal;
+            return matrix_property_data(prop);
+        }
+    }
+    throw AnalysisError("Ormqr_LN expects Geqrf output and a matrix");
+}
+
+static AnalysisData analyze_ormqr_lt(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 2, "Ormqr_LT");
+    auto data = egraph.get_class_analysis_data(children.at(0));
+    if (auto *props = std::get_if<TupleProperty>(&data.property)) {
+        if (auto C = get_matrix_data(egraph, children.at(1))) {
+            MatrixProperty prop;
+            prop.shape = {(*props)[0].shape.second, C->shape.second};
+            prop.flags.is_full_rank = C->flags.is_full_rank;
+            prop.flags.is_non_singular = C->flags.is_non_singular;
+            prop.flags.is_orthogonal = (*props)[0].flags.is_orthogonal && C->flags.is_orthogonal;
+            return matrix_property_data(prop);
+        }
+    }
+    throw AnalysisError("Ormqr_LT expects Geqrf output and a matrix");
+}
+
+static AnalysisData analyze_ormqr_rn(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 2, "Ormqr_RN");
+    auto data = egraph.get_class_analysis_data(children.at(0));
+    if (auto *props = std::get_if<TupleProperty>(&data.property)) {
+        if (auto C = get_matrix_data(egraph, children.at(1))) {
+            MatrixProperty prop;
+            prop.shape = {C->shape.first, (*props)[0].shape.second};
+            prop.flags.is_full_rank = C->flags.is_full_rank;
+            prop.flags.is_non_singular = C->flags.is_non_singular;
+            prop.flags.is_orthogonal = (*props)[0].flags.is_orthogonal && C->flags.is_orthogonal;
+            return matrix_property_data(prop);
+        }
+    }
+    throw AnalysisError("Ormqr_RN expects Geqrf output and a matrix");
+}
+
+static AnalysisData analyze_ormqr_rt(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 2, "Ormqr_RT");
+    auto data = egraph.get_class_analysis_data(children.at(0));
+    if (auto *props = std::get_if<TupleProperty>(&data.property)) {
+        if (auto C = get_matrix_data(egraph, children.at(1))) {
+            MatrixProperty prop;
+            prop.shape = {C->shape.first, (*props)[0].shape.first};
+            prop.flags.is_full_rank = C->flags.is_full_rank;
+            prop.flags.is_non_singular = C->flags.is_non_singular;
+            prop.flags.is_orthogonal = (*props)[0].flags.is_orthogonal && C->flags.is_orthogonal;
+            return matrix_property_data(prop);
+        }
+    }
+    throw AnalysisError("Ormqr_RT expects Geqrf output and a matrix");
+}
+
 AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode &node, Op op) {
     const auto &children = node.get_children();
 
@@ -819,7 +894,17 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
     case Gemv_T: {
         return analyze_gemv_t(egraph, children);
     }
+    case Orgqr:
+        return analyze_orgqr(egraph, children);
+    case Ormqr_LN:
+        return analyze_ormqr_ln(egraph, children);
+    case Ormqr_LT:
+        return analyze_ormqr_lt(egraph, children);
+    case Ormqr_RN:
+        return analyze_ormqr_rn(egraph, children);
+    case Ormqr_RT:
+        return analyze_ormqr_rt(egraph, children);
     default:
-        throw AnalysisError("Unknown operation in analysis");
+        throw AnalysisError(std::string("Unknown operation in analysis: ") + std::string(magic_enum::enum_name(op)));
     }
 }

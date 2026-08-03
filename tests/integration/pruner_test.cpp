@@ -57,7 +57,7 @@ TEST(Integration, OLSPruneConverges) {
         std::cout << "Candidate expression: " << candidate.expr.to_string(true) << std::endl;
         std::cout << "Cost: " << candidate.cost << std::endl;
     }
-    ASSERT_TRUE(std::any_of(result.begin(), result.end(), [](const auto &c) {
-        return c.expr.to_string(true) == "Trsm_LN(R(M), Gemv_T(Q(M), n, Zero_Bx1))";
+    EXPECT_TRUE(std::any_of(result.begin(), result.end(), [](const auto &c) {
+        return c.expr.to_string(true) == "Trsm_LN(R(M), Ormqr_LT(Geqrf(M), n))";
     }));
 }

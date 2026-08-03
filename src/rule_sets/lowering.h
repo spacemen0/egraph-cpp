@@ -100,6 +100,12 @@ static const auto trsm_rt =
 static const auto potrf_l = make_rewrite("potrf_l", "LLt(?a)", "Potrf_L(?a)", false);
 static const auto potrf_u = make_rewrite("potrf_u", "UtU(?a)", "Potrf_U(?a)", false);
 static const auto geqrf = make_rewrite("geqrf", "QR(?a)", "Geqrf(?a)", false);
+static const auto get_orgqr = make_rewrite("get_orgqr", "Get(Geqrf(?a), 0)", "Orgqr(Geqrf(?a))", false);
+static const auto fuse_ormqr_ln = make_rewrite("fuse_ormqr_ln", "Get(Geqrf(?a), 0) * ?b", "Ormqr_LN(Geqrf(?a), ?b)", false);
+static const auto fuse_ormqr_lt = make_rewrite("fuse_ormqr_lt", "Tr(Get(Geqrf(?a), 0)) * ?b", "Ormqr_LT(Geqrf(?a), ?b)", false);
+static const auto fuse_ormqr_rn = make_rewrite("fuse_ormqr_rn", "?b * Get(Geqrf(?a), 0)", "Ormqr_RN(Geqrf(?a), ?b)", false);
+static const auto fuse_ormqr_rt = make_rewrite("fuse_ormqr_rt", "?b * Tr(Get(Geqrf(?a), 0))", "Ormqr_RT(Geqrf(?a), ?b)", false);
+
 static const auto trtri = make_rewrite("trtri", "Inv(?a)", "Trtri(?a)", false, is_triangular("a"));
 
 static const std::vector<Rewrite> lowering_set = {
@@ -115,6 +121,11 @@ static const std::vector<Rewrite> lowering_set = {
     syrk_with_c_right,
     trsm,
     geqrf,
+    get_orgqr,
+    fuse_ormqr_ln,
+    fuse_ormqr_lt,
+    fuse_ormqr_rn,
+    fuse_ormqr_rt,
     trtri,
     gemm_tn,
     gemm_nt,

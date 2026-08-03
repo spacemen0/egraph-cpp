@@ -221,7 +221,32 @@ Cost compute_utu_cost(Op op, const ENode &node, const EGraph &egraph, const Size
     throw std::invalid_argument("Invalid shape for UtU operation in compute_local_cost");
 }
 
-Cost compute_get_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) { return 0.0; }
+Cost compute_get_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
+    // If Get's first child is Geqrf, and index is 0, return infinite cost to force using Orgqr
+    Id child_id = node.get_children().at(0);
+    Id index_id = node.get_children().at(1);
+    bool is_geqrf = false;
+    for (const auto *enode : egraph.get_class_nodes(child_id)) {
+        Atom child_atom = enode->get_atom();
+        if (auto child_op = std::get_if<Op>(&child_atom)) {
+            if (*child_op == Op::Geqrf) {
+                is_geqrf = true;
+                break;
+            }
+        }
+    }
+    if (is_geqrf) {
+        for (const auto *index_enode : egraph.get_class_nodes(index_id)) {
+            Atom index_atom = index_enode->get_atom();
+            if (auto val = std::get_if<double>(&index_atom)) {
+                if (*val == 0.0) {
+                    return 1e12; // effectively infinite
+                }
+            }
+        }
+    }
+    return 0.0;
+}
 
 Cost compute_sol_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
     auto shapeA = get_one_shape(egraph, size_bindings, node.get_children().at(0));
@@ -481,6 +506,78 @@ Cost compute_gemv_t_cost(Op op, const ENode &node, const EGraph &egraph, const S
         Monomial m = {{size_to_symbol(shapes.first.first), size_to_symbol(shapes.first.second)}};
         SymbolicCost sc;
         sc[m] = 2.0;
+        return sc;
+    }
+}
+
+Cost compute_orgqr_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
+    Id geqrf_id = node.get_children().at(0);
+    auto tuple_data = egraph.get_class_analysis_data(geqrf_id);
+    Shape shape = {{}, {}};
+    if (auto *props = std::get_if<TupleProperty>(&tuple_data.property)) {
+        if (!props->empty())
+            shape = bind_shape((*props)[0].shape, size_bindings);
+    }
+    if (is_numeric(shape)) {
+        double rows = std::get<int>(shape.first);
+        double cols = std::get<int>(shape.second);
+        auto min_dim = std::min(rows, cols);
+        auto max_dim = std::max(rows, cols);
+        return 2.0 * min_dim * min_dim * max_dim - (2.0 / 3.0) * min_dim * min_dim * min_dim;
+    } else {
+        std::string r = size_to_symbol(shape.first);
+        std::string c = size_to_symbol(shape.second);
+        if (auto props = std::get_if<TupleProperty>(&tuple_data.property)) {
+            if ((*props)[0].is_wide_matrix()) {
+                std::swap(r, c);
+            }
+        }
+        std::vector<std::string> mn2_vec{r, c, c};
+
+        std::vector<std::string> n3_vec{c, c, c};
+
+        SymbolicCost sc;
+        sc[Monomial(mn2_vec)] = 2.0;
+        sc[Monomial(n3_vec)] = -2.0 / 3.0;
+        return sc;
+    }
+}
+
+Cost compute_ormqr_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
+    Id geqrf_id = node.get_children().at(0);
+    auto tuple_data = egraph.get_class_analysis_data(geqrf_id);
+    Shape shapeQ = {{}, {}};
+    if (auto *props = std::get_if<TupleProperty>(&tuple_data.property)) {
+        if (!props->empty())
+            shapeQ = bind_shape((*props)[0].shape, size_bindings);
+    }
+    auto shapeC = get_one_shape(egraph, size_bindings, node.get_children().at(1));
+    if (is_numeric(shapeQ) && is_numeric(shapeC)) {
+        double m = std::get<int>(shapeC.first);
+        double n = std::get<int>(shapeC.second);
+        double rowsA = std::get<int>(shapeQ.first);
+        double colsA = std::get<int>(shapeQ.second);
+        double k = std::min(rowsA, colsA);
+        return 4.0 * m * n * k - 2.0 * m * k * k + 3.0 * n * k;
+    } else {
+        std::string m = size_to_symbol(shapeC.first);
+        std::string n = size_to_symbol(shapeC.second);
+        std::string k;
+        if (auto props = std::get_if<TupleProperty>(&tuple_data.property)) {
+            if ((*props)[0].is_wide_matrix()) {
+                k = size_to_symbol(shapeQ.second);
+            }
+        }
+
+        std::vector<std::string> mnk_vec{m, n, k};
+
+        std::vector<std::string> mkk_vec{m, k, k};
+        std::vector<std::string> nk_vec{n, k};
+
+        SymbolicCost sc;
+        sc[Monomial(mnk_vec)] = 4.0;
+        sc[Monomial(mkk_vec)] = -2.0;
+        sc[Monomial(nk_vec)] = 3.0;
         return sc;
     }
 }

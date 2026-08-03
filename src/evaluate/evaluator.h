@@ -23,8 +23,7 @@ class Evaluator {
     std::vector<double> evaluate();
 
   private:
-    void
-    dispatch_matrix_kernel(Op op, const std::vector<MatrixNode> &inputs, MatrixNode &output, const ENode *node) const;
+    void dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *node) const;
     void dispatch_factorization(Op op, const MatrixNode &input, TupleNode &output, const ENode *node) const;
     void dispatch_get(const TupleNode &input_tuple, int index, MatrixNode &output) const;
     EGraph &egraph;

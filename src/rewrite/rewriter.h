@@ -13,7 +13,7 @@ struct Rewrite {
     Pattern rhs;
     bool bidirectional = false;
     std::function<bool(const EGraph &, const Substitution &)> condition = nullptr;
-    // bool indicates if analysis data changed
+    // bool indicates if analysis data of any e-node changed
     std::function<std::pair<Id, bool>(EGraph &, const Substitution &, Id)> applier = nullptr;
     size_t initial_match_limit = 30;
 };

@@ -119,11 +119,7 @@ std::vector<double> Evaluator::evaluate() {
                         dispatch_factorization(*op, input, output, node);
                     } else {
                         MatrixNode &output = std::get<MatrixNode>(it->second);
-                        std::vector<MatrixNode> inputs;
-                        for (Id child_id : node->get_children()) {
-                            inputs.push_back(std::get<MatrixNode>(data_storage.at(child_id)));
-                        }
-                        dispatch_matrix_kernel(*op, inputs, output, node);
+                        dispatch_matrix_kernel(*op, output, node);
                     }
                 }
             }
@@ -133,9 +129,15 @@ std::vector<double> Evaluator::evaluate() {
     return std::get<MatrixNode>(data_storage.at(result.execution_order.back())).raw_data_vector;
 }
 
-void Evaluator::dispatch_matrix_kernel(
-    Op op, const std::vector<MatrixNode> &inputs, MatrixNode &output, const ENode *node) const {
+void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *node) const {
     using enum Op;
+
+    std::vector<MatrixNode> inputs;
+    for (Id child_id : node->get_children()) {
+        if (std::holds_alternative<MatrixNode>(data_storage.at(child_id))) {
+            inputs.push_back(std::get<MatrixNode>(data_storage.at(child_id)));
+        }
+    }
     switch (op) {
     case Trsm_LN: {
         std::copy(
@@ -232,6 +234,53 @@ void Evaluator::dispatch_matrix_kernel(
         }
         break;
     }
+
+    case Orgqr: {
+        Id geqrf_id = node->get_children()[0];
+        const TupleNode &geqrf_tuple = std::get<TupleNode>(data_storage.at(geqrf_id));
+        const MatrixNode &q_node = geqrf_tuple.matrices[0];
+        int k = std::min(q_node.rows, q_node.cols);
+        std::copy(q_node.raw_data_vector.begin(), q_node.raw_data_vector.end(), output.raw_data_vector.begin());
+        LAPACKE_dorgqr(
+            LAPACK_COL_MAJOR, output.rows, output.cols, k, output.raw_data_vector.data(), output.rows,
+            geqrf_tuple.tau.data());
+        break;
+    }
+    case Ormqr_LN:
+    case Ormqr_LT:
+    case Ormqr_RN:
+    case Ormqr_RT: {
+        Id geqrf_id = node->get_children()[0];
+        Id b_id = node->get_children()[1];
+        const TupleNode &geqrf_tuple = std::get<TupleNode>(data_storage.at(geqrf_id));
+        const MatrixNode &b_node = std::get<MatrixNode>(data_storage.at(b_id));
+        const MatrixNode &a_node = geqrf_tuple.matrices[0]; // householder
+        int k = std::min(a_node.rows, a_node.cols);
+
+        char side = (op == Ormqr_LN || op == Ormqr_LT) ? 'L' : 'R';
+        char trans = (op == Ormqr_LN || op == Ormqr_RN) ? 'N' : 'T';
+
+        int c_rows = (side == 'L') ? a_node.rows : b_node.rows;
+        int c_cols = (side == 'L') ? b_node.cols : a_node.rows;
+
+        std::vector<double> c_data(c_rows * c_cols, 0.0);
+        for (int j = 0; j < b_node.cols; ++j) {
+            for (int i = 0; i < b_node.rows; ++i) {
+                c_data[i + j * c_rows] = b_node.raw_data_vector[i + j * b_node.rows];
+            }
+        }
+
+        LAPACKE_dormqr(
+            LAPACK_COL_MAJOR, side, trans, c_rows, c_cols, k, a_node.raw_data_vector.data(), a_node.rows,
+            geqrf_tuple.tau.data(), c_data.data(), c_rows);
+
+        for (int j = 0; j < output.cols; ++j) {
+            for (int i = 0; i < output.rows; ++i) {
+                output.raw_data_vector[i + j * output.rows] = c_data[i + j * c_rows];
+            }
+        }
+        break;
+    }
     case Gemm_NN:
     case Gemm_NT:
     case Gemm_TN:
@@ -279,7 +328,7 @@ void Evaluator::dispatch_factorization(Op op, const MatrixNode &input, TupleNode
             input.raw_data_vector.data(), input.raw_data_vector.data() + (input.rows * input.cols), a_copy.data());
         LAPACKE_dgeqrf(LAPACK_COL_MAJOR, input.rows, input.cols, a_copy.data(), input.rows, output.tau.data());
 
-        // Fill the R matrix (upper triangular) in the output tuple
+        // Fill the R matrix (upper triangular) in the output tuple, should be handled by storage format in the future
         if (output.matrices.size() > 1) {
             MatrixNode &r_node = output.matrices[1];
             for (int j = 0; j < r_node.cols; ++j) {
@@ -295,15 +344,13 @@ void Evaluator::dispatch_factorization(Op op, const MatrixNode &input, TupleNode
         if (!output.matrices.empty()) {
             MatrixNode &q_node = output.matrices[0];
             int k = std::min(input.rows, input.cols);
-            // Copy the reflectors part of a_copy to q_node before generating Q
-            for (int j = 0; j < q_node.cols; ++j) {
+            // Copy the reflectors part of a_copy to q_node before generating Q or using it in Ormqr
+            // upper triangular part of q_node will be overwritten anyway
+            for (int j = 0; j < k; ++j) {
                 for (int i = 0; i < q_node.rows; ++i) {
                     q_node.raw_data_vector[i + j * q_node.rows] = a_copy[i + j * input.rows];
                 }
             }
-            LAPACKE_dorgqr(
-                LAPACK_COL_MAJOR, q_node.rows, q_node.cols, k, q_node.raw_data_vector.data(), q_node.rows,
-                output.tau.data());
         }
         break;
     }

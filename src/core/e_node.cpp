@@ -127,6 +127,14 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
             return compute_gemv_n_cost(*op, *this, egraph, size_bindings);
         case Gemv_T:
             return compute_gemv_t_cost(*op, *this, egraph, size_bindings);
+
+        case Orgqr:
+            return compute_orgqr_cost(*op, *this, egraph, size_bindings);
+        case Ormqr_LN:
+        case Ormqr_LT:
+        case Ormqr_RN:
+        case Ormqr_RT:
+            return compute_ormqr_cost(*op, *this, egraph, size_bindings);
         default:
             throw std::invalid_argument("Unknown Op in compute_local_cost");
         }

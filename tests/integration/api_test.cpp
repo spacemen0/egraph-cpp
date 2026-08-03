@@ -81,8 +81,7 @@ TEST(ApiTest, KernelMapping) {
     // (X^T * X)^-1 * X^T * y
     Expression target_math = inverse(transpose(X) * X) * transpose(X) * y;
     Expression best_ast = ctx.optimize_concrete(target_math);
-
-    EXPECT_EQ(best_ast.to_string(true), "Trsm_LN(R(X), Gemv_T(Q(X), y, Zero_2x1))");
+    EXPECT_EQ(best_ast.to_string(true), "Trsm_LN(R(X), Ormqr_LT(Geqrf(X), y))");
 }
 
 TEST(ApiTest, OptimizeSymbolic) {
@@ -101,10 +100,7 @@ TEST(ApiTest, OptimizeSymbolic) {
 
     bool found = std::any_of(results.begin(), results.end(), [](const auto &c) {
         std::cout << "CANDIDATE: " << c.expr.to_string(false) << std::endl;
-        return c.expr.to_string(false) == "Trsm_LN(Get(Potrf_U(Syrk_T(M, Zero_BxB)), 0), Trsm_LT(Get(Potrf_U(Syrk_T(M, "
-                                          "Zero_BxB)), 0), Gemv_T(M, n, Zero_Bx1)))" ||
-               c.expr.to_string(false) == "Trsm_LT(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Trsm_LN(Get(Potrf_L(Syrk_T(M, "
-                                          "Zero_BxB)), 0), Gemv_T(M, n, Zero_Bx1)))";
+        return c.expr.to_string(false) == "Trsm_LN(Get(Geqrf(M), 1), Ormqr_LT(Geqrf(M), n))";
     });
     EXPECT_TRUE(found);
 
