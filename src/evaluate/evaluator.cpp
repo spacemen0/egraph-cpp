@@ -251,34 +251,21 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
     case Ormqr_RN:
     case Ormqr_RT: {
         Id geqrf_id = node->get_children()[0];
-        Id b_id = node->get_children()[1];
+        Id c_id = node->get_children()[1];
         const TupleNode &geqrf_tuple = std::get<TupleNode>(data_storage.at(geqrf_id));
-        const MatrixNode &b_node = std::get<MatrixNode>(data_storage.at(b_id));
+        const MatrixNode &c_node = std::get<MatrixNode>(data_storage.at(c_id));
         const MatrixNode &a_node = geqrf_tuple.matrices[0]; // householder
-        int k = std::min(a_node.rows, a_node.cols);
 
         char side = (op == Ormqr_LN || op == Ormqr_LT) ? 'L' : 'R';
         char trans = (op == Ormqr_LN || op == Ormqr_RN) ? 'N' : 'T';
+        int m = c_node.rows;
+        int n = c_node.cols;
+        int k = std::min(a_node.rows, a_node.cols);
 
-        int c_rows = (side == 'L') ? a_node.rows : b_node.rows;
-        int c_cols = (side == 'L') ? b_node.cols : a_node.rows;
-
-        std::vector<double> c_data(c_rows * c_cols, 0.0);
-        for (int j = 0; j < b_node.cols; ++j) {
-            for (int i = 0; i < b_node.rows; ++i) {
-                c_data[i + j * c_rows] = b_node.raw_data_vector[i + j * b_node.rows];
-            }
-        }
-
+        std::copy(c_node.raw_data_vector.begin(), c_node.raw_data_vector.end(), output.raw_data_vector.begin());
         LAPACKE_dormqr(
-            LAPACK_COL_MAJOR, side, trans, c_rows, c_cols, k, a_node.raw_data_vector.data(), a_node.rows,
-            geqrf_tuple.tau.data(), c_data.data(), c_rows);
-
-        for (int j = 0; j < output.cols; ++j) {
-            for (int i = 0; i < output.rows; ++i) {
-                output.raw_data_vector[i + j * output.rows] = c_data[i + j * c_rows];
-            }
-        }
+            LAPACK_COL_MAJOR, side, trans, m, n, k, a_node.raw_data_vector.data(), a_node.rows, geqrf_tuple.tau.data(),
+            output.raw_data_vector.data(), m);
         break;
     }
     case Gemm_NN:
