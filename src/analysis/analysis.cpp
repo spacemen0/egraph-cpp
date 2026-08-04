@@ -244,6 +244,7 @@ static AnalysisData analyze_minus(const EGraph &egraph, const std::vector<Id> &c
     throw AnalysisError("- expects Matrix inputs");
 }
 
+// Doing thin QR
 static AnalysisData analyze_qr(const EGraph &egraph, const std::vector<Id> &children) {
     check_arity(children, 1, "QR");
     if (auto data = get_matrix_data(egraph, children.at(0))) {

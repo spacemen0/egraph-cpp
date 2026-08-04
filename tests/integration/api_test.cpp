@@ -3,6 +3,7 @@
 #include "test_helpers.h"
 #include <gtest/gtest.h>
 #include <iostream>
+#include <random>
 
 using namespace EGraphRunner;
 
@@ -121,4 +122,37 @@ TEST(ApiTest, OptimizeSymbolic) {
     ASSERT_EQ(out2.size(), 2);
     EXPECT_NEAR(out2[0], 1.0, 1e-6);
     EXPECT_NEAR(out2[1], 3.0, 1e-6);
+}
+
+TEST(ApiTest, EvaluateConcrete) {
+    Context ctx;
+    ctx.egraph = EGraph();
+    ctx.define_matrix_symbolic("M", "A", "B", {"full_rank", "tall"});
+    ctx.define_matrix_symbolic("n", "A", 1);
+    Expression M("M");
+    Expression n("n");
+
+    Expression target_math = (inverse(transpose(M) * M) * transpose(M)) * n;
+
+    ctx.optimize_symbolic(target_math, {"A", "B"});
+
+    SizeBindings concrete_sizes = {{"A", 30}, {"B", 20}};
+    std::mt19937 gen(42);
+    std::uniform_real_distribution<double> dist(-5.0, 5.0);
+
+    DataBindings concrete_data = {
+        {"M", std::vector<double>(concrete_sizes["A"] * concrete_sizes["B"])},
+        {"n", std::vector<double>(concrete_sizes["A"])}};
+
+    for (auto &value : concrete_data["M"]) {
+        value = dist(gen);
+    }
+    for (auto &value : concrete_data["n"]) {
+        value = dist(gen);
+    }
+
+    auto out1 = ctx.evaluate_concrete(concrete_sizes, concrete_data);
+    for (size_t i = 0; i < out1.size(); ++i) {
+        std::cout << out1[i] << (i == out1.size() - 1 ? "" : " ");
+    }
 }

@@ -262,10 +262,26 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         int n = c_node.cols;
         int k = std::min(a_node.rows, a_node.cols);
 
-        std::copy(c_node.raw_data_vector.begin(), c_node.raw_data_vector.end(), output.raw_data_vector.begin());
+        // dormqr requires C to be m x n and overwrites it.
+        // We reuse output.raw_data_vector as the temporary buffer by assigning c_node to it.
+        int out_rows = output.rows;
+        int out_cols = output.cols;
+        output.raw_data_vector = c_node.raw_data_vector;
+
         LAPACKE_dormqr(
             LAPACK_COL_MAJOR, side, trans, m, n, k, a_node.raw_data_vector.data(), a_node.rows, geqrf_tuple.tau.data(),
             output.raw_data_vector.data(), m);
+
+        // Extract the relevant part into output in-place
+        if (out_rows != m) {
+            for (int j = 0; j < out_cols; ++j) {
+                for (int i = 0; i < out_rows; ++i) {
+                    output.raw_data_vector[i + j * out_rows] = output.raw_data_vector[i + j * m];
+                }
+            }
+            output.raw_data_vector.resize(out_rows * out_cols);
+        }
+
         break;
     }
     case Gemm_NN:
