@@ -284,11 +284,49 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
 
         break;
     }
-    case Gemm_NN:
-    case Gemm_NT:
-    case Gemm_TN:
+    case Gemm_NN: {
+        const MatrixNode &a_node = inputs[0];
+        const MatrixNode &b_node = inputs[1];
+        const MatrixNode &c_node = inputs[2];
+        std::copy(c_node.raw_data_vector.begin(), c_node.raw_data_vector.end(), output.raw_data_vector.begin());
+        cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, output.rows, output.cols, a_node.cols,
+                    1.0, a_node.raw_data_vector.data(), a_node.rows,
+                    b_node.raw_data_vector.data(), b_node.rows,
+                    1.0, output.raw_data_vector.data(), output.rows);
+        break;
+    }
+    case Gemm_NT: {
+        const MatrixNode &a_node = inputs[0];
+        const MatrixNode &b_node = inputs[1];
+        const MatrixNode &c_node = inputs[2];
+        std::copy(c_node.raw_data_vector.begin(), c_node.raw_data_vector.end(), output.raw_data_vector.begin());
+        cblas_dgemm(CblasColMajor, CblasNoTrans, CblasTrans, output.rows, output.cols, a_node.cols,
+                    1.0, a_node.raw_data_vector.data(), a_node.rows,
+                    b_node.raw_data_vector.data(), b_node.rows,
+                    1.0, output.raw_data_vector.data(), output.rows);
+        break;
+    }
+    case Gemm_TN: {
+        const MatrixNode &a_node = inputs[0];
+        const MatrixNode &b_node = inputs[1];
+        const MatrixNode &c_node = inputs[2];
+        std::copy(c_node.raw_data_vector.begin(), c_node.raw_data_vector.end(), output.raw_data_vector.begin());
+        cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, output.rows, output.cols, a_node.rows,
+                    1.0, a_node.raw_data_vector.data(), a_node.rows,
+                    b_node.raw_data_vector.data(), b_node.rows,
+                    1.0, output.raw_data_vector.data(), output.rows);
+        break;
+    }
     case Gemm_TT: {
-        throw std::runtime_error("Kernel not implemented for this operation: " + std::to_string(static_cast<int>(op)));
+        const MatrixNode &a_node = inputs[0];
+        const MatrixNode &b_node = inputs[1];
+        const MatrixNode &c_node = inputs[2];
+        std::copy(c_node.raw_data_vector.begin(), c_node.raw_data_vector.end(), output.raw_data_vector.begin());
+        cblas_dgemm(CblasColMajor, CblasTrans, CblasTrans, output.rows, output.cols, a_node.rows,
+                    1.0, a_node.raw_data_vector.data(), a_node.rows,
+                    b_node.raw_data_vector.data(), b_node.rows,
+                    1.0, output.raw_data_vector.data(), output.rows);
+        break;
     }
     default:
         throw std::runtime_error("Kernel not implemented for this operation: " + std::to_string(static_cast<int>(op)));
