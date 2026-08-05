@@ -69,10 +69,10 @@ class Context {
     Id add(const Expression &expr) { return egraph.add_expression(expr); }
 
     void rewrite(
-        const std::vector<std::string> &rulesets = {"complete"}, int max_nodes = 10000, bool enable_pruning = true,
+        const std::vector<std::string> &rulesets = {"complete"}, int max_nodes = 10000, bool enable_backoff = true,
         int max_iterations = 30) {
         std::vector<Rewrite> rewrites = build_rewrite_sets(rulesets);
-        Rewriter rewriter(egraph, rewrites, max_nodes, enable_pruning);
+        Rewriter rewriter(egraph, rewrites, max_nodes, enable_backoff);
         if (max_iterations > 0) {
             rewriter.apply_rewrites(max_iterations);
         } else {
@@ -135,6 +135,13 @@ class Context {
     }
 
     std::vector<double> evaluate_concrete(const SizeBindings &size_bindings, const DataBindings &bindings = {}) {
+        auto result = extract(target_id, size_bindings);
+        std::cout << "Extracted expression: " << result.expr.to_string() << "\n";
+        Evaluator evaluator(egraph, result, &size_bindings, &bindings);
+        return evaluator.evaluate();
+    }
+    std::vector<double>
+    evaluate_concrete(Id target_id, const SizeBindings &size_bindings, const DataBindings &bindings = {}) {
         auto result = extract(target_id, size_bindings);
         std::cout << "Extracted expression: " << result.expr.to_string() << "\n";
         Evaluator evaluator(egraph, result, &size_bindings, &bindings);

@@ -12,7 +12,8 @@ static const auto solver_left = make_rewrite("solver_left", "Inv(?a) * ?b", "Sol
 static const auto solver_right = make_rewrite("solver_right", "?b * Inv(?a)", "SolR(?a, ?b)");
 static const auto solver_right_to_left =
     make_rewrite("solver_right_to_left", "SolR(?a, ?b)", "Tr(Sol(Tr(?a), Tr(?b)))", true);
-
+static const auto solver_left_to_right =
+    make_rewrite("solver_left_to_right", "Tr(Sol(?a, ?b))", "SolR(Tr(?a), Tr(?b))", true);
 /// QR Factorization
 /// ----------------------------------------------------------
 static const auto qr_invert =
@@ -56,6 +57,6 @@ static const auto llt_to_utu = make_rewrite(
 });
 
 static const std::vector<Rewrite> expansion_set = {
-    solver_left, solver_right, solver_right_to_left, qr_invert, qr_leaf,
-    lu_invert,   lu_leaf,      llt_invert,           llt_leaf,  llt_to_utu,
+    solver_left, solver_right, solver_right_to_left, solver_left_to_right, qr_invert, qr_leaf, lu_invert, lu_leaf,
+    llt_invert,  llt_leaf,     llt_to_utu,
 };

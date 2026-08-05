@@ -200,18 +200,18 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
     }
 
         // normally should be consumed as kernel parameters but explicit transpose might be needed sometimes
-        // case Tr: {
-        //     int rows = inputs[0].rows;
-        //     int cols = inputs[0].cols;
-        //     for (int i = 0; i < rows; ++i) {
-        //         for (int j = 0; j < cols; ++j) {
-        //             // Column major: input[i, j] = input.raw_data_vector[i + j * rows]
-        //             // Column major: output[j, i] = output.raw_data_vector[j + i * cols]
-        //             output.raw_data_vector[j + i * cols] = inputs[0].raw_data_vector[i + j * rows];
-        //         }
-        //     }
-        //     break;
-        // }
+    case Tr: {
+        int rows = inputs[0].rows;
+        int cols = inputs[0].cols;
+        for (int i = 0; i < rows; ++i) {
+            for (int j = 0; j < cols; ++j) {
+                // Column major: input[i, j] = input.raw_data_vector[i + j * rows]
+                // Column major: output[j, i] = output.raw_data_vector[j + i * cols]
+                output.raw_data_vector[j + i * cols] = inputs[0].raw_data_vector[i + j * rows];
+            }
+        }
+        break;
+    }
 
     case Orgqr: {
         Id geqrf_id = node->get_children()[0];
