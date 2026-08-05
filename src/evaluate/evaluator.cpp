@@ -139,71 +139,49 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         }
     }
     switch (op) {
-    case Trsm_LN: {
+    case Trsm_LN:
+    case Trsm_LT:
+    case Trsm_RN:
+    case Trsm_RT: {
         std::copy(
             inputs[1].raw_data_vector.data(), inputs[1].raw_data_vector.data() + (output.rows * output.cols),
             output.raw_data_vector.data());
         auto is_lower = egraph.get_class_analysis_data(node->get_children()[0]);
         CBLAS_UPLO uplo =
             std::get<MatrixProperty>(is_lower.property).flags.is_lower_triangular ? CblasLower : CblasUpper;
+
+        CBLAS_SIDE side = (op == Op::Trsm_LN || op == Op::Trsm_LT) ? CblasLeft : CblasRight;
+        CBLAS_TRANSPOSE trans = (op == Op::Trsm_LN || op == Op::Trsm_RN) ? CblasNoTrans : CblasTrans;
+
         cblas_dtrsm(
-            CblasColMajor, CblasLeft, uplo, CblasNoTrans, CblasNonUnit, output.rows, output.cols, 1.0,
+            CblasColMajor, side, uplo, trans, CblasNonUnit, output.rows, output.cols, 1.0,
             inputs[0].raw_data_vector.data(), inputs[0].rows, output.raw_data_vector.data(), output.rows);
         break;
     }
-    case Trsm_LT: {
-        std::copy(
-            inputs[1].raw_data_vector.data(), inputs[1].raw_data_vector.data() + (output.rows * output.cols),
-            output.raw_data_vector.data());
-        auto is_lower = egraph.get_class_analysis_data(node->get_children()[0]);
-        CBLAS_UPLO uplo =
-            std::get<MatrixProperty>(is_lower.property).flags.is_lower_triangular ? CblasLower : CblasUpper;
-        cblas_dtrsm(
-            CblasColMajor, CblasLeft, uplo, CblasTrans, CblasNonUnit, output.rows, output.cols, 1.0,
-            inputs[0].raw_data_vector.data(), inputs[0].rows, output.raw_data_vector.data(), output.rows);
-        break;
-    }
-    case Gemv_N: {
-        std::copy(
-            inputs[2].raw_data_vector.data(), inputs[2].raw_data_vector.data() + output.rows,
-            output.raw_data_vector.data());
-        cblas_dgemv(
-            CblasColMajor, CblasNoTrans, inputs[0].rows, inputs[0].cols, 1.0, inputs[0].raw_data_vector.data(),
-            inputs[0].rows, inputs[1].raw_data_vector.data(), 1, 1.0, output.raw_data_vector.data(), 1);
-        break;
-    }
+    case Gemv_N:
     case Gemv_T: {
         std::copy(
             inputs[2].raw_data_vector.data(), inputs[2].raw_data_vector.data() + output.rows,
             output.raw_data_vector.data());
+        CBLAS_TRANSPOSE trans = (op == Op::Gemv_T) ? CblasTrans : CblasNoTrans;
         cblas_dgemv(
-            CblasColMajor, CblasTrans, inputs[0].rows, inputs[0].cols, 1.0, inputs[0].raw_data_vector.data(),
-            inputs[0].rows, inputs[1].raw_data_vector.data(), 1, 1.0, output.raw_data_vector.data(), 1);
+            CblasColMajor, trans, inputs[0].rows, inputs[0].cols, 1.0, inputs[0].raw_data_vector.data(), inputs[0].rows,
+            inputs[1].raw_data_vector.data(), 1, 1.0, output.raw_data_vector.data(), 1);
         break;
     }
-    case Syrk_N: {
-        std::copy(
-            inputs[1].raw_data_vector.data(), inputs[1].raw_data_vector.data() + (output.rows * output.cols),
-            output.raw_data_vector.data());
-        cblas_dsyrk(
-            CblasColMajor, CblasUpper, CblasNoTrans, output.rows, inputs[0].cols, 1.0, inputs[0].raw_data_vector.data(),
-            inputs[0].rows, 1.0, output.raw_data_vector.data(), output.rows);
-
-        // Fill the lower triangular part of the matrix to make it symmetric
-        for (int j = 0; j < output.cols; ++j) {
-            for (int i = j + 1; i < output.rows; ++i) {
-                output.raw_data_vector[i + j * output.rows] = output.raw_data_vector[j + i * output.rows];
-            }
-        }
-        break;
-    }
+    case Syrk_N:
     case Syrk_T: {
+        CBLAS_TRANSPOSE trans = (op == Op::Syrk_T) ? CblasTrans : CblasNoTrans;
+        int k = (trans == CblasNoTrans) ? inputs[0].cols : inputs[0].rows;
         std::copy(
             inputs[1].raw_data_vector.data(), inputs[1].raw_data_vector.data() + (output.rows * output.cols),
             output.raw_data_vector.data());
         cblas_dsyrk(
-            CblasColMajor, CblasUpper, CblasTrans, output.rows, inputs[0].rows, 1.0, inputs[0].raw_data_vector.data(),
-            inputs[0].rows, 1.0, output.raw_data_vector.data(), output.rows);
+            CblasColMajor, CblasUpper, trans, output.rows, k, 1.0, inputs[0].raw_data_vector.data(), inputs[0].rows,
+            1.0, output.raw_data_vector.data(), output.rows);
+
+        // Fill the lower triangular part of the matrix to make it symmetric (should be handled by storage format in the
+        // future)
         for (int j = 0; j < output.cols; ++j) {
             for (int i = j + 1; i < output.rows; ++i) {
                 output.raw_data_vector[i + j * output.rows] = output.raw_data_vector[j + i * output.rows];
@@ -221,19 +199,19 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         break;
     }
 
-        // normally should be consumed as kernel parameters
-    case Tr: {
-        int rows = inputs[0].rows;
-        int cols = inputs[0].cols;
-        for (int i = 0; i < rows; ++i) {
-            for (int j = 0; j < cols; ++j) {
-                // Column major: input[i, j] = input.raw_data_vector[i + j * rows]
-                // Column major: output[j, i] = output.raw_data_vector[j + i * cols]
-                output.raw_data_vector[j + i * cols] = inputs[0].raw_data_vector[i + j * rows];
-            }
-        }
-        break;
-    }
+        // normally should be consumed as kernel parameters but explicit transpose might be needed sometimes
+        // case Tr: {
+        //     int rows = inputs[0].rows;
+        //     int cols = inputs[0].cols;
+        //     for (int i = 0; i < rows; ++i) {
+        //         for (int j = 0; j < cols; ++j) {
+        //             // Column major: input[i, j] = input.raw_data_vector[i + j * rows]
+        //             // Column major: output[j, i] = output.raw_data_vector[j + i * cols]
+        //             output.raw_data_vector[j + i * cols] = inputs[0].raw_data_vector[i + j * rows];
+        //         }
+        //     }
+        //     break;
+        // }
 
     case Orgqr: {
         Id geqrf_id = node->get_children()[0];
@@ -284,48 +262,22 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
 
         break;
     }
-    case Gemm_NN: {
-        const MatrixNode &a_node = inputs[0];
-        const MatrixNode &b_node = inputs[1];
-        const MatrixNode &c_node = inputs[2];
-        std::copy(c_node.raw_data_vector.begin(), c_node.raw_data_vector.end(), output.raw_data_vector.begin());
-        cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, output.rows, output.cols, a_node.cols,
-                    1.0, a_node.raw_data_vector.data(), a_node.rows,
-                    b_node.raw_data_vector.data(), b_node.rows,
-                    1.0, output.raw_data_vector.data(), output.rows);
-        break;
-    }
-    case Gemm_NT: {
-        const MatrixNode &a_node = inputs[0];
-        const MatrixNode &b_node = inputs[1];
-        const MatrixNode &c_node = inputs[2];
-        std::copy(c_node.raw_data_vector.begin(), c_node.raw_data_vector.end(), output.raw_data_vector.begin());
-        cblas_dgemm(CblasColMajor, CblasNoTrans, CblasTrans, output.rows, output.cols, a_node.cols,
-                    1.0, a_node.raw_data_vector.data(), a_node.rows,
-                    b_node.raw_data_vector.data(), b_node.rows,
-                    1.0, output.raw_data_vector.data(), output.rows);
-        break;
-    }
-    case Gemm_TN: {
-        const MatrixNode &a_node = inputs[0];
-        const MatrixNode &b_node = inputs[1];
-        const MatrixNode &c_node = inputs[2];
-        std::copy(c_node.raw_data_vector.begin(), c_node.raw_data_vector.end(), output.raw_data_vector.begin());
-        cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, output.rows, output.cols, a_node.rows,
-                    1.0, a_node.raw_data_vector.data(), a_node.rows,
-                    b_node.raw_data_vector.data(), b_node.rows,
-                    1.0, output.raw_data_vector.data(), output.rows);
-        break;
-    }
+    case Gemm_NN:
+    case Gemm_NT:
+    case Gemm_TN:
     case Gemm_TT: {
         const MatrixNode &a_node = inputs[0];
         const MatrixNode &b_node = inputs[1];
         const MatrixNode &c_node = inputs[2];
+
+        CBLAS_TRANSPOSE transA = (op == Op::Gemm_TN || op == Op::Gemm_TT) ? CblasTrans : CblasNoTrans;
+        CBLAS_TRANSPOSE transB = (op == Op::Gemm_NT || op == Op::Gemm_TT) ? CblasTrans : CblasNoTrans;
+        int k = (transA == CblasNoTrans) ? a_node.cols : a_node.rows;
+
         std::copy(c_node.raw_data_vector.begin(), c_node.raw_data_vector.end(), output.raw_data_vector.begin());
-        cblas_dgemm(CblasColMajor, CblasTrans, CblasTrans, output.rows, output.cols, a_node.rows,
-                    1.0, a_node.raw_data_vector.data(), a_node.rows,
-                    b_node.raw_data_vector.data(), b_node.rows,
-                    1.0, output.raw_data_vector.data(), output.rows);
+        cblas_dgemm(
+            CblasColMajor, transA, transB, output.rows, output.cols, k, 1.0, a_node.raw_data_vector.data(), a_node.rows,
+            b_node.raw_data_vector.data(), b_node.rows, 1.0, output.raw_data_vector.data(), output.rows);
         break;
     }
     default:
