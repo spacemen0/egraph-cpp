@@ -3,7 +3,6 @@
 
 int main() {
     EGraphRunner::Context ctx;
-    ctx.egraph = EGraph();
 
     Expression M = ctx.define_matrix_symbolic("M", "a", "b", {"full_rank", "tall"});
     Expression n = ctx.define_matrix_symbolic("n", "a", 1);

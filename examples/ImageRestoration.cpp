@@ -4,7 +4,6 @@
 
 int main() {
     EGraphRunner::Context ctx;
-    ctx.egraph = EGraph();
 
     Expression H = ctx.define_matrix_symbolic("H", "a", "b", {"full_rank", "wide"});
     Expression y = ctx.define_matrix_symbolic("y", "a", 1);

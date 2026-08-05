@@ -87,7 +87,6 @@ TEST(ApiTest, KernelMapping) {
 
 TEST(ApiTest, OptimizeSymbolic) {
     Context ctx;
-    ctx.egraph = EGraph();
 
     ctx.define_matrix_symbolic("M", "A", "B", {"full_rank", "tall"});
     ctx.define_matrix_symbolic("n", "A", 1);
@@ -126,7 +125,6 @@ TEST(ApiTest, OptimizeSymbolic) {
 
 TEST(ApiTest, EvaluateConcrete) {
     Context ctx;
-    ctx.egraph = EGraph();
     ctx.define_matrix_symbolic("M", "A", "B", {"full_rank", "tall"});
     ctx.define_matrix_symbolic("n", "A", 1);
     Expression M("M");

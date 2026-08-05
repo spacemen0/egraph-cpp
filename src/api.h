@@ -19,7 +19,6 @@ namespace EGraphRunner {
 class Context {
   public:
     EGraph egraph;
-
     Expression define_matrix(const std::string &name, int rows, int cols, const std::vector<std::string> &flags = {}) {
         MatrixProperty prop;
         prop.shape = Shape{rows, cols};
