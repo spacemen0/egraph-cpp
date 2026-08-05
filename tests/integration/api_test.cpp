@@ -51,8 +51,7 @@ TEST(ApiTest, ContextOptimization) {
 }
 
 TEST(ApiTest, OLSSymbolic) {
-    Context ctx;
-    ctx.egraph = EGraph(get_property_table());
+    Context ctx((EGraph(get_property_table())));
     ctx.define_matrix_symbolic("M", "A", "B", {"full_rank", "tall"});
     ctx.define_matrix_symbolic("n", "A", 1);
 
@@ -73,8 +72,7 @@ TEST(ApiTest, OLSSymbolic) {
 }
 
 TEST(ApiTest, KernelMapping) {
-    Context ctx;
-    ctx.egraph = EGraph(get_property_table());
+    Context ctx((EGraph(get_property_table())));
 
     Expression X("X");
     Expression y("y");
@@ -86,7 +84,7 @@ TEST(ApiTest, KernelMapping) {
 }
 
 TEST(ApiTest, OptimizeSymbolic) {
-    Context ctx;
+    Context ctx((EGraph(get_property_table())));
 
     ctx.define_matrix_symbolic("M", "A", "B", {"full_rank", "tall"});
     ctx.define_matrix_symbolic("n", "A", 1);

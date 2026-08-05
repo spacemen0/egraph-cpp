@@ -18,7 +18,7 @@ namespace EGraphRunner {
 // --- Optimization Context ---
 class Context {
   public:
-    EGraph egraph;
+    Context(EGraph egraph = EGraph()) : egraph(std::move(egraph)) {}
     Expression define_matrix(const std::string &name, int rows, int cols, const std::vector<std::string> &flags = {}) {
         MatrixProperty prop;
         prop.shape = Shape{rows, cols};
@@ -167,6 +167,7 @@ class Context {
     void clear() { egraph = EGraph(); }
 
   private:
+    EGraph egraph;
     Id target_id = 0;
     std::vector<std::string> size_keys;
 
