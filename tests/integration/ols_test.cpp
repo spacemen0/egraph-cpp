@@ -39,7 +39,8 @@ TEST(Integration, OLSNumeric) {
 
         result.expr.to_string(false) == "Trsm_LN(Get(Geqrf(J), 1), Ormqr_LT(Geqrf(J), k))");
 
-    Evaluator evaluator(egraph, result, nullptr);
+    DataBindings data_bindings = {{"J", generate_random_vector(30 * 20)}, {"k", generate_random_vector(30)}};
+    Evaluator evaluator(egraph, result, nullptr, data_bindings);
     const auto &out = evaluator.evaluate();
     std::cout << "EVALUATOR OLS NUMERIC OUTPUT (first 5): ";
     for (int i = 0; i < 5; ++i)

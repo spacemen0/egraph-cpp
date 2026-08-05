@@ -17,7 +17,7 @@
 
 Evaluator::Evaluator(
     EGraph &egraph, const ExtractionResult &result, const SizeBindings *size_bindings,
-    const DataBindings *data_bindings)
+    const DataBindings &data_bindings)
     : egraph(egraph), result(result) {
 
     for (Id class_id : result.execution_order) {
@@ -26,7 +26,7 @@ Evaluator::Evaluator(
             const Atom &atom = node->get_atom();
 
             if (auto data = get_matrix_data(egraph, class_id)) {
-                if (data->has_symbolic_shape() && (!data_bindings || data_bindings->empty())) {
+                if (data->has_symbolic_shape() && (data_bindings.empty())) {
                     throw std::runtime_error("Cannot evaluate with symbolic matrices without data bindings.");
                 }
                 MatrixNode node_data;
@@ -39,32 +39,25 @@ Evaluator::Evaluator(
                 }
                 if (std::holds_alternative<uint32_t>(atom)) // input matrices
                 {
-                    if (data->flags.is_identity || data->flags.is_zero)
-                    // if Identity or Zero, fill different values
-                    {
-                        node_data.raw_data_vector = std::vector<double>(node_data.rows * node_data.cols);
-                        for (int i = 0; i < node_data.rows * node_data.cols; ++i) {
-                            if (data->flags.is_identity) {
-                                node_data.raw_data_vector[i] =
-                                    (i / node_data.rows == i % node_data.cols) ? 1.0 : 0.0; // Identity matrix
-                            } else if (data->flags.is_zero) {
-                                node_data.raw_data_vector[i] = 0.0; // Zero matrix
-                            }
-                        }
-                    } else {
-                        auto matrix_name = get_string_from_lookup(std::get<uint32_t>(atom));
-                        if (data_bindings) {
-                            if (data_bindings->find(matrix_name) == data_bindings->end()) {
-                                throw std::runtime_error("Data binding for matrix " + matrix_name + " not provided.");
-                            }
-                            node_data.raw_data_vector = data_bindings->at(matrix_name);
-                        } else {
+
+                    auto matrix_name = get_string_from_lookup(std::get<uint32_t>(atom));
+
+                    if (data_bindings.find(matrix_name) == data_bindings.end()) {
+                        if (data->flags.is_identity == false && data->flags.is_zero == false)
+                            throw std::runtime_error("Data binding for matrix " + matrix_name + " not provided.");
+                        else {
                             node_data.raw_data_vector = std::vector<double>(node_data.rows * node_data.cols);
                             for (int i = 0; i < node_data.rows * node_data.cols; ++i) {
-                                node_data.raw_data_vector[i] = static_cast<double>(rand()) / RAND_MAX;
+                                if (data->flags.is_identity) {
+                                    node_data.raw_data_vector[i] =
+                                        (i / node_data.rows == i % node_data.cols) ? 1.0 : 0.0; // Identity matrix
+                                } else if (data->flags.is_zero) {
+                                    node_data.raw_data_vector[i] = 0.0; // Zero matrix
+                                }
                             }
                         }
                     }
+                    node_data.raw_data_vector = data_bindings.at(matrix_name);
                 }
                 data_storage[class_id] = node_data;
             } else if (std::holds_alternative<double>(atom)) {

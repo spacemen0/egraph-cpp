@@ -137,14 +137,14 @@ class Context {
     std::vector<double> evaluate_concrete(const SizeBindings &size_bindings, const DataBindings &bindings = {}) {
         auto result = extract(target_id, size_bindings);
         std::cout << "Extracted expression: " << result.expr.to_string() << "\n";
-        Evaluator evaluator(egraph, result, &size_bindings, &bindings);
+        Evaluator evaluator(egraph, result, &size_bindings, bindings);
         return evaluator.evaluate();
     }
     std::vector<double>
     evaluate_concrete(Id target_id, const SizeBindings &size_bindings, const DataBindings &bindings = {}) {
         auto result = extract(target_id, size_bindings);
         std::cout << "Extracted expression: " << result.expr.to_string() << "\n";
-        Evaluator evaluator(egraph, result, &size_bindings, &bindings);
+        Evaluator evaluator(egraph, result, &size_bindings, bindings);
         return evaluator.evaluate();
     }
 

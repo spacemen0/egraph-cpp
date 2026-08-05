@@ -1,25 +1,6 @@
 #include "api.h"
 #include <iostream>
-#include <random>
 #include <vector>
-
-std::vector<double> generate_random_vector(int size) {
-    std::vector<double> vec(size);
-    std::mt19937 gen(42);
-    std::uniform_real_distribution<double> dis(-1.0, 1.0);
-    for (int i = 0; i < size; ++i) {
-        vec[i] = dis(gen);
-    }
-    return vec;
-}
-
-std::vector<double> generate_identity_matrix(int size) {
-    std::vector<double> vec(size * size, 0.0);
-    for (int i = 0; i < size; ++i) {
-        vec[i * size + i] = 1.0;
-    }
-    return vec;
-}
 
 int main() {
     EGraphRunner::Context ctx;
