@@ -96,7 +96,7 @@ TEST(ApiTest, OptimizeSymbolic) {
 
     Expression target_math = (inverse(transpose(M) * M) * transpose(M)) * n;
 
-    ctx.optimize_symbolic(target_math, {"A", "B"});
+    ctx.optimize_symbolic(target_math);
     auto results = ctx.extract_symbolic();
 
     bool found = std::any_of(results.begin(), results.end(), [](const auto &c) {
@@ -134,7 +134,7 @@ TEST(ApiTest, EvaluateConcrete) {
 
     Expression target_math = (inverse(transpose(M) * M) * transpose(M)) * n;
 
-    ctx.optimize_symbolic(target_math, {"A", "B"});
+    ctx.optimize_symbolic(target_math);
 
     SizeBindings concrete_sizes = {{"A", 30}, {"B", 20}};
     std::mt19937 gen(42);

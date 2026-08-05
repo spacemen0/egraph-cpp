@@ -10,7 +10,7 @@ int main() {
     Expression M = ctx.define_matrix_symbolic("M", "a", "a", {"symmetric", "positive_definite"});
     Expression target_math = inverse(transpose(X) * inverse(M) * X) * transpose(X) * inverse(M) * y;
 
-    ctx.optimize_symbolic(target_math, {"a", "b"});
+    ctx.optimize_symbolic(target_math);
 
     SizeBindings concrete_sizes = {{"a", 3}, {"b", 2}};
     DataBindings concrete_data = {

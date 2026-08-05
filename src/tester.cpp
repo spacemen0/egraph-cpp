@@ -12,7 +12,7 @@ int main() {
     Expression n("n");
 
     Expression target_math = (inverse(transpose(M) * M) * transpose(M)) * n;
-    ctx.optimize_symbolic(target_math, {"A", "B"});
+    ctx.optimize_symbolic(target_math);
 
     int A, B;
     while (std::cin >> A >> B) {

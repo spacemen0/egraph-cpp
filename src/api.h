@@ -37,6 +37,8 @@ class Context {
     Expression define_matrix_symbolic(
         const std::string &name, const std::string &rows_var, const std::string &cols_var,
         const std::vector<std::string> &flags = {}) {
+        size_keys.push_back(rows_var);
+        size_keys.push_back(cols_var);
         MatrixProperty prop;
         prop.shape = Shape{rows_var, cols_var};
         apply_flags(prop, flags);
@@ -46,6 +48,7 @@ class Context {
 
     Expression define_matrix_symbolic(
         const std::string &name, const std::string &rows_var, int cols, const std::vector<std::string> &flags = {}) {
+        size_keys.push_back(rows_var);
         MatrixProperty prop;
         prop.shape = Shape{rows_var, cols};
         apply_flags(prop, flags);
@@ -55,6 +58,7 @@ class Context {
 
     Expression define_matrix_symbolic(
         const std::string &name, int rows, const std::string &cols_var, const std::vector<std::string> &flags = {}) {
+        size_keys.push_back(cols_var);
         MatrixProperty prop;
         prop.shape = Shape{rows, cols_var};
         apply_flags(prop, flags);
@@ -138,8 +142,8 @@ class Context {
     }
 
     void optimize_symbolic(
-        const Expression &target_expr, const std::vector<std::string> &size_keys,
-        const std::vector<Expression> &background_exprs = {}, const std::vector<std::string> &rulesets = {"complete"}) {
+        const Expression &target_expr, const std::vector<Expression> &background_exprs = {},
+        const std::vector<std::string> &rulesets = {"complete"}) {
         target_id = add(target_expr);
 
         for (const auto &bg_expr : background_exprs) {
@@ -158,6 +162,7 @@ class Context {
 
   private:
     Id target_id = 0;
+    std::vector<std::string> size_keys;
 
     void apply_flags(MatrixProperty &prop, const std::vector<std::string> &flags) {
         for (const auto &f : flags) {
