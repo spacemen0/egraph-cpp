@@ -70,6 +70,12 @@ class Context {
     void rewrite(
         const std::vector<std::string> &rulesets = {"complete"}, int max_nodes = 10000, bool enable_backoff = true,
         int max_iterations = 30) {
+        if (logging) {
+            std::cout << "[API] Running rewrite with rulesets: ";
+            for (const auto &rs : rulesets)
+                std::cout << rs << " ";
+            std::cout << "\n";
+        }
         std::vector<Rewrite> rewrites = build_rewrite_sets(rulesets);
         Rewriter rewriter(egraph, rewrites, max_nodes, enable_backoff);
         if (max_iterations > 0) {
@@ -79,13 +85,21 @@ class Context {
         }
     }
 
-    void prune_symbolic_when_kernel_available() { Pruner::prune_symbolic_when_kernel_available(egraph); }
+    void prune_symbolic_when_kernel_available() {
+        if (logging) {
+            std::cout << "[API] Pruning symbolic nodes\n";
+        }
+        Pruner::prune_symbolic_when_kernel_available(egraph);
+    }
 
     void rewrite_and_prune(
         const std::vector<Id> &target_ids, const std::vector<std::string> &size_keys,
         const std::vector<std::string> &rulesets = {"complete"}, int num_iterations = 8,
         int rewrite_steps_per_iteration = 20, int prune_samples_per_iteration = 20, int max_results_per_binding = 5,
         int max_nodes = 1000) {
+        if (logging) {
+            std::cout << "[API] Starting rewrite_and_prune for " << num_iterations << " iterations...\n";
+        }
         std::vector<Rewrite> rewrites = build_rewrite_sets(rulesets);
         Rewriter rewriter(egraph, rewrites, max_nodes, true);
         CostStorage cost_storage(egraph);
@@ -103,8 +117,11 @@ class Context {
     }
 
     ExtractionResult extract(Id target_id, const SizeBindings &bindings = {}) {
+        if (logging) {
+            std::cout << "[API] Extracting concrete expression for target " << target_id << "...\n";
+        }
         CostStorage cost_storage(egraph);
-        Extractor extractor(egraph, cost_storage);
+        Extractor extractor(egraph, cost_storage, logging);
         if (bindings.empty()) {
             return extractor.extract(target_id);
         } else {
@@ -115,6 +132,9 @@ class Context {
     std::vector<ExtractionResult> extract_symbolic() { return extract_symbolic(target_id); }
 
     std::vector<ExtractionResult> extract_symbolic(Id target_id) {
+        if (logging) {
+            std::cout << "[API] Extracting symbolic expressions for target " << target_id << "...\n";
+        }
         CostStorage cost_storage(egraph);
         Extractor extractor(egraph, cost_storage, true, 20);
         return extractor.extract_symbolic(target_id);
@@ -123,6 +143,9 @@ class Context {
     Expression optimize_concrete(
         const Expression &target_expr, const std::vector<Expression> &background_exprs = {},
         const std::vector<std::string> &rulesets = {"complete"}) {
+        if (logging) {
+            std::cout << "[API] Optimizing concrete expression: " << target_expr.to_string() << "\n";
+        }
         Id target_id = add(target_expr);
         for (const auto &bg_expr : background_exprs) {
             add(bg_expr);
@@ -134,15 +157,16 @@ class Context {
     }
 
     std::vector<double> evaluate_concrete(const SizeBindings &size_bindings, const DataBindings &bindings = {}) {
-        auto result = extract(target_id, size_bindings);
-        std::cout << "Extracted expression: " << result.expr.to_string() << "\n";
-        Evaluator evaluator(egraph, result, &size_bindings, bindings);
-        return evaluator.evaluate();
+        return evaluate_concrete(target_id, size_bindings, bindings);
     }
+
     std::vector<double>
     evaluate_concrete(Id target_id, const SizeBindings &size_bindings, const DataBindings &bindings = {}) {
         auto result = extract(target_id, size_bindings);
-        std::cout << "Extracted expression: " << result.expr.to_string() << "\n";
+        if (logging) {
+            std::cout << "[API] Extracted expression: " << result.expr.to_string() << "\n";
+            std::cout << "[API] Evaluating concrete expression...\n";
+        }
         Evaluator evaluator(egraph, result, &size_bindings, bindings);
         return evaluator.evaluate();
     }
@@ -150,6 +174,9 @@ class Context {
     void optimize_symbolic(
         const Expression &target_expr, const std::vector<Expression> &background_exprs = {},
         const std::vector<std::string> &rulesets = {"complete"}) {
+        if (logging) {
+            std::cout << "[API] Optimizing symbolic expression: " << target_expr.to_string() << "\n";
+        }
         target_id = add(target_expr);
 
         for (const auto &bg_expr : background_exprs) {
@@ -165,10 +192,12 @@ class Context {
     std::optional<Id> find_expr(const Expression &expr) const { return egraph.find_expression_id(expr); }
 
     void clear() { egraph = EGraph(); }
+    void enable_logging() { logging = true; }
 
   private:
     EGraph egraph;
     Id target_id = 0;
+    bool logging = false;
     std::vector<std::string> size_keys;
 
     void apply_flags(MatrixProperty &prop, const std::vector<std::string> &flags) {

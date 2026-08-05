@@ -4,7 +4,7 @@
 
 int main() {
     EGraphRunner::Context ctx;
-
+    ctx.enable_logging();
     Expression H = ctx.define_matrix_symbolic("H", "a", "b", {"full_rank", "wide"});
     Expression y = ctx.define_matrix_symbolic("y", "a", 1);
     Expression I = ctx.define_matrix_symbolic("I", "b", "b", {"identity"});

@@ -56,8 +56,9 @@ Evaluator::Evaluator(
                                 }
                             }
                         }
+                    } else {
+                        node_data.raw_data_vector = data_bindings.at(matrix_name);
                     }
-                    node_data.raw_data_vector = data_bindings.at(matrix_name);
                 }
                 data_storage[class_id] = node_data;
             } else if (std::holds_alternative<double>(atom)) {
