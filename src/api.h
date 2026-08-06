@@ -68,7 +68,7 @@ class Context {
     Id add(const Expression &expr) { return egraph.add_expression(expr); }
 
     void rewrite(
-        const std::vector<std::string> &rulesets = {"complete"}, int max_nodes = 10000, bool enable_backoff = true,
+        const std::vector<std::string> &rulesets = {"complete"}, int max_nodes = 5000, bool enable_backoff = true,
         int max_iterations = 30) {
         if (logging) {
             std::cout << "[API] Running rewrite with rulesets: ";
@@ -89,21 +89,23 @@ class Context {
         if (logging) {
             std::cout << "[API] Pruning symbolic nodes\n";
         }
-        Pruner::prune_symbolic_when_kernel_available(egraph);
+        auto res = Pruner::prune_symbolic_when_kernel_available(egraph);
+        if (logging) {
+            std::cout << "[Pruner] Symbolic prune removed " << res.nodes_pruned << " nodes.\n";
+        }
     }
 
     void rewrite_and_prune(
-        const std::vector<Id> &target_ids, const std::vector<std::string> &size_keys,
-        const std::vector<std::string> &rulesets = {"complete"}, int num_iterations = 8,
-        int rewrite_steps_per_iteration = 20, int prune_samples_per_iteration = 20, int max_results_per_binding = 5,
-        int max_nodes = 1000) {
+        const std::vector<Id> &target_ids, const std::vector<std::string> &rulesets = {"everything_but_lowering"},
+        int num_iterations = 5, int rewrite_steps_per_iteration = 30, int prune_samples_per_iteration = 5,
+        int max_results_per_binding = 5, int max_nodes = 5000) {
         if (logging) {
             std::cout << "[API] Starting rewrite_and_prune for " << num_iterations << " iterations...\n";
         }
         std::vector<Rewrite> rewrites = build_rewrite_sets(rulesets);
         Rewriter rewriter(egraph, rewrites, max_nodes, true);
         CostStorage cost_storage(egraph);
-        Extractor extractor(egraph, cost_storage, false, 20);
+        Extractor extractor(egraph, cost_storage, false, 30);
         Pruner pruner(egraph, extractor);
 
         PruneOptions options{
@@ -113,9 +115,23 @@ class Context {
             .max_results_per_binding = max_results_per_binding,
             .size_keys = size_keys,
         };
-        pruner.rewrite_and_prune(target_ids, rewriter, options);
+        pruner.rewrite_and_prune(
+            target_ids, rewriter, options, nullptr, [this](int iteration, const PruneResult &result) {
+            if (logging) {
+                std::cout << "[Pruner] Iteration " << iteration + 1 << " finished. Pruned " << result.nodes_pruned
+                          << " nodes.\n";
+            }
+        });
     }
-
+    void lower_to_kernels() {
+        if (logging) {
+            std::cout << "[API] Lowering to kernels...\n";
+        }
+        std::vector<Rewrite> rewrites = build_rewrite_sets({"lowering"});
+        Rewriter rewriter(egraph, rewrites, 5000, true);
+        rewriter.apply_rewrites();
+        prune_symbolic_when_kernel_available();
+    }
     ExtractionResult extract(Id target_id, const SizeBindings &bindings = {}) {
         if (logging) {
             std::cout << "[API] Extracting concrete expression for target " << target_id << "...\n";
@@ -136,7 +152,7 @@ class Context {
             std::cout << "[API] Extracting symbolic expressions for target " << target_id << "...\n";
         }
         CostStorage cost_storage(egraph);
-        Extractor extractor(egraph, cost_storage, true, 20);
+        Extractor extractor(egraph, cost_storage, true, 30);
         return extractor.extract_symbolic(target_id);
     }
 
@@ -151,8 +167,7 @@ class Context {
             add(bg_expr);
         }
         rewrite(rulesets);
-        rewrite({"lowering"});
-        prune_symbolic_when_kernel_available();
+        lower_to_kernels();
         return extract(target_id).expr;
     }
 
@@ -173,7 +188,7 @@ class Context {
 
     void optimize_symbolic(
         const Expression &target_expr, const std::vector<Expression> &background_exprs = {},
-        const std::vector<std::string> &rulesets = {"complete"}) {
+        const std::vector<std::string> &rulesets = {"everything_but_lowering"}, int max_nodes = 5000) {
         if (logging) {
             std::cout << "[API] Optimizing symbolic expression: " << target_expr.to_string() << "\n";
         }
@@ -182,9 +197,8 @@ class Context {
         for (const auto &bg_expr : background_exprs) {
             add(bg_expr);
         }
-        rewrite_and_prune({target_id}, size_keys, rulesets);
-        rewrite({"lowering"}, 50000, false, -1);
-        prune_symbolic_when_kernel_available();
+        rewrite_and_prune({target_id}, rulesets);
+        lower_to_kernels();
     }
 
     void print_properties() const { egraph.get_property_table().print_all_properties(); }

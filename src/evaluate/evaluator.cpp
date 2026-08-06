@@ -207,6 +207,13 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         break;
     }
 
+    case Scale: {
+        double scalar = inputs[1].raw_data_vector[0];
+        std::copy(inputs[0].raw_data_vector.begin(), inputs[0].raw_data_vector.end(), output.raw_data_vector.begin());
+        cblas_dscal(output.rows * output.cols, scalar, output.raw_data_vector.data(), 1);
+        break;
+    }
+
     case Orgqr: {
         Id geqrf_id = node->get_children()[0];
         const TupleNode &geqrf_tuple = std::get<TupleNode>(data_storage.at(geqrf_id));
@@ -275,7 +282,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         break;
     }
     default:
-        throw std::runtime_error("Kernel not implemented for this operation: " + std::to_string(static_cast<int>(op)));
+        throw std::runtime_error("Kernel not implemented for this operation: " + atom_to_string(op));
     }
 }
 
@@ -342,8 +349,7 @@ void Evaluator::dispatch_factorization(Op op, const MatrixNode &input, TupleNode
         break;
     }
     default:
-        throw std::runtime_error(
-            "Factorization not implemented for this operation: " + std::to_string(static_cast<int>(op)));
+        throw std::runtime_error("Factorization not implemented for this operation: " + atom_to_string(op));
     }
 }
 

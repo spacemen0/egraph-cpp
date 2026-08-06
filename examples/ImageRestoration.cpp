@@ -14,7 +14,9 @@ int main() {
     Expression math_2 = math_1 * y + (I - math_1 * H) * x;
     auto id_1 = ctx.add(math_1);
     auto id_2 = ctx.add(math_2);
-    ctx.rewrite({"complete"}, 5000, true, -1);
+    // ctx.rewrite_and_prune({id_1, id_2});
+    // ctx.lower_to_kernels();
+    ctx.rewrite();
     ctx.prune_symbolic_when_kernel_available();
     SizeBindings concrete_sizes = {{"a", 1000}, {"b", 5000}};
     DataBindings concrete_data = {
