@@ -193,3 +193,44 @@ TEST_F(ExtractorTest, GreedyExtract) {
     EXPECT_EQ(result.cost, Cost(0.0));
     EXPECT_EQ(result.expr.to_string(), "A");
 }
+
+TEST_F(ExtractorTest, GreedyExtractIgnoresSharing) {
+    egraph.register_or_update_property("X", MatrixProperty{.shape = Shape{10, 10}});
+    egraph.register_or_update_property("A", MatrixProperty{.shape = Shape{10, 10}});
+    egraph.register_or_update_property("B", MatrixProperty{.shape = Shape{10, 10}});
+    egraph.register_or_update_property("Y", MatrixProperty{.shape = Shape{10, 10}});
+
+    Id id_x = egraph.add_node(make_symbol("X"));
+    Id id_a = egraph.add_node(make_symbol("A"));
+    Id id_b = egraph.add_node(make_symbol("B"));
+    Id id_y = egraph.add_node(make_symbol("Y"));
+
+    Id id_qr_x = egraph.add_node(make_op(Op::Mul, {id_x, id_x}));
+
+    // cost of Add = 100
+    Id id_add1 = egraph.add_node(make_op(Op::Add, {id_qr_x, id_a}));
+    Id id_add2 = egraph.add_node(make_op(Op::Add, {id_qr_x, id_b}));
+
+    // cost = 2000
+    Id id_root1 = egraph.add_node(make_op(Op::Mul, {id_add1, id_add2}));
+    // DAG cost: Mul(2000) + Add1(100) + Add2(100) + MulXX(2000) = 4200.
+    // Tree cost: Mul(2000) + Add1(100) + Add2(100) + 2 * MulXX(2000) = 6200.
+
+    // Cost = 2000 + 2000 + 2000 = 6000.
+    Id id_yy = egraph.add_node(make_op(Op::Mul, {id_y, id_y}));
+    Id id_ab = egraph.add_node(make_op(Op::Mul, {id_a, id_b}));
+    Id id_root2 = egraph.add_node(make_op(Op::Mul, {id_yy, id_ab}));
+
+    egraph.union_classes(id_root1, id_root2);
+    egraph.rebuild();
+
+    // Greedy should pick root2
+    // 6000 < 6200
+    auto greedy_result = extractor.tree_extract(id_root1);
+    EXPECT_EQ(greedy_result.expr.to_string(), "(Y * Y) * (A * B)");
+
+    // Regular extract should pick root1
+    // 4200 < 6000
+    auto dag_result = extractor.extract(id_root1);
+    EXPECT_EQ(dag_result.expr.to_string(), "(X * X + A) * (X * X + B)");
+}

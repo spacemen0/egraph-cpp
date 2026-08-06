@@ -155,6 +155,15 @@ class Context {
         }
     }
 
+    ExtractionResult extract_greedy(Id target_id, const SizeBindings &bindings = {}) {
+        if (logging) {
+            std::cout << "[API] Fast greedy extraction for target " << target_id << "...\n";
+        }
+        CostStorage cost_storage(egraph);
+        Extractor extractor(egraph, cost_storage, logging);
+        return extractor.tree_extract(target_id, bindings);
+    }
+
     std::vector<ExtractionResult> extract_symbolic() { return extract_symbolic(target_id); }
 
     std::vector<ExtractionResult> extract_symbolic(Id target_id) {
