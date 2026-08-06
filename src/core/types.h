@@ -72,6 +72,43 @@ inline Cost &operator+=(Cost &lhs, const Cost &rhs) {
     return lhs;
 }
 
+inline bool strictly_dominates(const SymbolicCost &a, const SymbolicCost &b) {
+    int deg_a = -1, deg_b = -1;
+    for (const auto &[m, c] : a) if (c > 0) deg_a = std::max(deg_a, (int)m.symbols.size());
+    for (const auto &[m, c] : b) if (c > 0) deg_b = std::max(deg_b, (int)m.symbols.size());
+    
+    if (deg_a > deg_b) return true; // a is asymptotically worse
+    if (deg_a < deg_b) return false;
+    
+    // If same degree, fall back to strict coefficient dominance
+    bool strictly_greater = false;
+    for (const auto& [monomial, coeff_b] : b) {
+        auto it = a.find(monomial);
+        if (it == a.end() || it->second < coeff_b) {
+            return false;
+        }
+        if (it->second > coeff_b) {
+            strictly_greater = true;
+        }
+    }
+    for (const auto& [monomial, coeff_a] : a) {
+        if (b.find(monomial) == b.end() && coeff_a > 0) {
+            strictly_greater = true;
+        }
+    }
+    return strictly_greater;
+}
+
+inline bool strictly_dominates(const Cost &a, const Cost &b) {
+    if (std::holds_alternative<SymbolicCost>(a) && std::holds_alternative<SymbolicCost>(b)) {
+        return strictly_dominates(std::get<SymbolicCost>(a), std::get<SymbolicCost>(b));
+    }
+    if (std::holds_alternative<double>(a) && std::holds_alternative<double>(b)) {
+        return std::get<double>(a) > std::get<double>(b);
+    }
+    return false; // Can't compare safely otherwise
+}
+
 inline std::ostream &operator<<(std::ostream &os, const Cost &cost) {
     if (std::holds_alternative<double>(cost)) {
         os << std::get<double>(cost);
