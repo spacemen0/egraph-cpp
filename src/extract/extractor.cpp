@@ -49,9 +49,12 @@ static std::vector<const ENode *> choices_to_vector(const std::shared_ptr<const 
 }
 } // namespace
 
-Extractor::Extractor(EGraph &egraph, const EGraphConfig &config)
+Extractor::Extractor(EGraph &egraph, const ExtractorConfig &config)
     : egraph(egraph), enable_logging(config.enable_logging), max_depth(config.max_depth),
       node_visit_limit(config.node_visit_limit) {}
+
+Extractor::Extractor(EGraph &egraph, const EGraphConfig &config)
+    : Extractor(egraph, config.extractor) {}
 
 void Extractor::reset() const {
     tree_cost.clear();

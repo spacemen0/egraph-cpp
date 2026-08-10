@@ -19,8 +19,8 @@ TEST(Integration, OLSPruneConverges) {
     std::vector<size_t> nodes_after_iteration;
 
     size_t total_pruned = 0;
-    Rewriter rewriter(egraph, rules, EGraphConfig{.node_limit = 500, .enable_backoff = true});
-    Extractor extractor(egraph, EGraphConfig{.max_depth = 20, .enable_logging = true});
+    Rewriter rewriter(egraph, rules, RewriteConfig{.node_limit = 500, .enable_backoff = true});
+    Extractor extractor(egraph, ExtractorConfig{.max_depth = 20, .enable_logging = true});
     Pruner pruner(egraph, extractor);
     Id root_id = egraph.add_expression(Expression("(Inv(Tr(M) * M) * Tr(M)) * n"));
 
@@ -46,7 +46,7 @@ TEST(Integration, OLSPruneConverges) {
     };
 
     pruner.rewrite_and_prune({root_id}, rewriter, options, pre_iteration, post_iteration);
-    Rewriter kernel_rewriter(egraph, build_rewrite_sets({"lowering"}), EGraphConfig{.node_limit = 500});
+    Rewriter kernel_rewriter(egraph, build_rewrite_sets({"lowering"}), RewriteConfig{.node_limit = 500});
     kernel_rewriter.apply_rewrites();
     egraph.to_img("egraph_after_pruning", "svg");
     Pruner::prune_symbolic_when_kernel_available(egraph);

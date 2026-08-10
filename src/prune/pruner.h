@@ -7,13 +7,9 @@
 #include <string>
 #include <vector>
 
-struct PruneOptions {
-    int num_iterations;
-    int rewrite_steps_per_iteration;
-    int prune_samples_per_iteration;
-    int max_results_per_binding;
-    std::vector<std::string> size_keys;
-};
+#include "egraph_config.h"
+
+using PruneOptions = PrunerConfig;
 
 class Pruner {
   public:
@@ -23,7 +19,7 @@ class Pruner {
     static PruneResult prune_symbolic_when_kernel_available(EGraph &egraph);
 
     void rewrite_and_prune(
-        const std::vector<Id> &roots, Rewriter &rewriter, const PruneOptions &options,
+        const std::vector<Id> &roots, Rewriter &rewriter, const PrunerConfig &config,
         std::function<void(int iteration)> onIterationStart = nullptr,
         std::function<void(int iteration, const PruneResult &)> onIterationFinish = nullptr) const;
 

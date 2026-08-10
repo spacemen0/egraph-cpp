@@ -21,8 +21,8 @@ struct Rewrite {
 
 class Rewriter {
   public:
-    Rewriter(EGraph &egraph, std::vector<Rewrite> rewrites, const EGraphConfig &config = EGraphConfig())
-        : egraph(egraph), enable_backoff(config.enable_backoff),
+    Rewriter(EGraph &egraph, std::vector<Rewrite> rewrites, const RewriteConfig &config = RewriteConfig())
+        : egraph(egraph), config(config), enable_backoff(config.enable_backoff),
           enable_node_match_limit(config.enable_node_match_limit),
           rewrites(std::move(rewrites)), max_nodes(config.node_limit) {
         current_match_limits.resize(this->rewrites.size());
@@ -34,6 +34,18 @@ class Rewriter {
             return r.initial_match_limit;
         });
     }
+
+    Rewriter(EGraph &egraph, std::vector<Rewrite> rewrites, const EGraphConfig &config)
+        : Rewriter(egraph, std::move(rewrites), config.rewrite) {}
+
+    void set_config(const RewriteConfig &cfg) {
+        config = cfg;
+        enable_backoff = cfg.enable_backoff;
+        enable_node_match_limit = cfg.enable_node_match_limit;
+        max_nodes = cfg.node_limit;
+    }
+
+    const RewriteConfig &get_config() const { return config; }
     bool apply_one_iteration(size_t node_match_limit = 0);
     bool apply_rewrites(int max_iterations);
     bool apply_rewrites();
@@ -55,6 +67,7 @@ class Rewriter {
     bool apply_matches(const std::vector<Match> &matches);
 
     EGraph &egraph;
+    RewriteConfig config;
     bool enable_backoff;
     bool enable_node_match_limit;
     std::vector<Rewrite> rewrites;

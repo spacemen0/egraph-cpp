@@ -63,11 +63,10 @@ TEST(ApiTest, OLSSymbolic) {
 
     Id target_id = ctx.add(target_math);
 
-    EGraphConfig cfg;
-    cfg.node_limit = 1000;
-    cfg.enable_backoff = true;
-    cfg.max_iterations = 10;
-    ctx.rewrite({"simplification", "transformation", "expansion"}, cfg);
+    ctx.config.rewrite.node_limit = 1000;
+    ctx.config.rewrite.enable_backoff = true;
+    ctx.config.rewrite.max_iterations = 10;
+    ctx.rewrite({"simplification", "transformation", "expansion"});
 
     SizeBindings bindings = {{"A", 30}, {"B", 10}};
     ExtractionResult best_result = ctx.extract(target_id, bindings);

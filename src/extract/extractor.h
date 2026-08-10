@@ -16,7 +16,8 @@ struct ExtractionResult {
 
 class Extractor {
   public:
-    explicit Extractor(EGraph &egraph, const EGraphConfig &config = EGraphConfig());
+    explicit Extractor(EGraph &egraph, const ExtractorConfig &config = ExtractorConfig());
+    explicit Extractor(EGraph &egraph, const EGraphConfig &config);
 
     ExtractionResult extract(Id class_id, const SizeBindings &size_bindings = {}) const;
     std::vector<ExtractionResult>
