@@ -32,13 +32,35 @@ target_include_directories(core_lib PUBLIC
 )
 
 # Find system BLAS and LAPACKE, or fetch OpenBLAS on Windows
+if(APPLE)
+    list(APPEND CMAKE_PREFIX_PATH 
+        "/opt/homebrew/opt/lapack"
+        "/opt/homebrew/opt/openblas"
+        "/usr/local/opt/lapack"
+        "/usr/local/opt/openblas"
+    )
+    if(DEFINED ENV{PKG_CONFIG_PATH})
+        set(ENV{PKG_CONFIG_PATH} "/opt/homebrew/opt/lapack/lib/pkgconfig:/opt/homebrew/opt/openblas/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")
+    else()
+        set(ENV{PKG_CONFIG_PATH} "/opt/homebrew/opt/lapack/lib/pkgconfig:/opt/homebrew/opt/openblas/lib/pkgconfig:/usr/local/opt/lapack/lib/pkgconfig:/usr/local/opt/openblas/lib/pkgconfig")
+    endif()
+endif()
+
 find_package(BLAS QUIET)
 find_package(PkgConfig QUIET)
 if(PkgConfig_FOUND)
     pkg_check_modules(LAPACKE QUIET lapacke)
 endif()
 
-if(BLAS_FOUND AND LAPACKE_FOUND)
+if(NOT LAPACKE_FOUND)
+    find_path(LAPACKE_INCLUDE_DIRS NAMES lapacke.h HINTS /opt/homebrew/opt/lapack/include /opt/homebrew/include /usr/local/include /usr/include)
+    find_library(LAPACKE_LIBRARIES NAMES lapacke lapack openblas HINTS /opt/homebrew/opt/lapack/lib /opt/homebrew/lib /usr/local/lib /usr/lib)
+    if(LAPACKE_INCLUDE_DIRS AND LAPACKE_LIBRARIES)
+        set(LAPACKE_FOUND TRUE)
+    endif()
+endif()
+
+if(LAPACKE_FOUND)
     message(STATUS "Found system BLAS and LAPACKE")
     target_include_directories(core_lib PUBLIC ${LAPACKE_INCLUDE_DIRS})
     target_link_directories(core_lib PUBLIC ${LAPACKE_LIBRARY_DIRS})
