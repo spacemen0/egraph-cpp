@@ -95,16 +95,6 @@ class Context {
         }
     }
 
-    void prune_symbolic_dominance() {
-        if (logging) {
-            std::cout << "[API] Pruning symbolic nodes based on dominance\n";
-        }
-        auto res = Pruner::prune_symbolic_dominance(egraph);
-        if (logging) {
-            std::cout << "[Pruner] Symbolic dominance prune removed " << res.nodes_pruned << " nodes.\n";
-        }
-    }
-
     void rewrite_and_prune(
         const std::vector<Id> &target_ids, const std::vector<std::string> &rulesets = {"everything_but_lowering"},
         int num_iterations = 5, int rewrite_steps_per_iteration = 30, int prune_samples_per_iteration = 5,

@@ -18,7 +18,6 @@ int main() {
     // ctx.lower_to_kernels();
     ctx.rewrite();
     ctx.prune_symbolic_when_kernel_available();
-    ctx.prune_symbolic_dominance();
     SizeBindings concrete_sizes = {{"a", 1000}, {"b", 5000}};
     DataBindings concrete_data = {
         {"y", generate_random_vector(1000)},
