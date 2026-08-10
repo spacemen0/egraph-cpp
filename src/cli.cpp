@@ -143,8 +143,13 @@ void rewrite_e_graph(SessionState &state, std::optional<int> num_iterations) {
         std::cerr << "No rewrites enabled. Use 'add rule-set <name>' to add a rewrite set.\n";
         return;
     }
-    int max_iters = num_iterations.has_value() ? num_iterations.value() : -1;
-    state.ctx.rewrite(state.rulesets, 10000, true, max_iters);
+    EGraphConfig cfg;
+    cfg.node_limit = 10000;
+    cfg.enable_backoff = true;
+    if (num_iterations.has_value()) {
+        cfg.max_iterations = num_iterations.value();
+    }
+    state.ctx.rewrite(state.rulesets, cfg);
 }
 
 void extract_expression(SessionState &state, size_t expression_id) {

@@ -13,6 +13,7 @@ add_library(core_lib STATIC
     analysis/analysis.cpp
     io/e_graph_visualization.cpp
     common/parser.cpp
+    common/egraph_config.cpp
     evaluate/evaluator.cpp
     cost_functions/op_costs.cpp
 )

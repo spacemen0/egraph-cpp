@@ -18,7 +18,9 @@ struct ChoiceNode {
 };
 
 struct AStarSearchNode {
+    // exact cost of selected nodes so far
     double g_cost;
+    // lower bound of cost of remaining nodes
     double h_cost;
     std::shared_ptr<const ChoiceNode> choices_head;
     std::vector<Id> pending;
@@ -50,6 +52,10 @@ static std::vector<const ENode *> choices_to_vector(const std::shared_ptr<const 
 Extractor::Extractor(EGraph &egraph, bool enable_logging, size_t max_depth, size_t node_visit_limit)
     : egraph(egraph), enable_logging(enable_logging), max_depth(max_depth), node_visit_limit(node_visit_limit) {}
 
+Extractor::Extractor(EGraph &egraph, const EGraphConfig &config)
+    : egraph(egraph), enable_logging(config.enable_logging), max_depth(config.max_depth),
+      node_visit_limit(config.node_visit_limit) {}
+
 void Extractor::reset() const {
     tree_cost.clear();
     minimal_possible_sub_tree_costs.clear();
@@ -77,6 +83,7 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
         max_id = std::max(max_id, id);
     }
 
+    // First node is the node with lowest f_cost
     std::priority_queue<AStarSearchNode, std::vector<AStarSearchNode>, std::greater<AStarSearchNode>> pq;
 
     AStarSearchNode start_node;
@@ -94,6 +101,8 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
     std::vector<NumericSearchResult> best_results;
 
     while (!pq.empty() && best_results.size() < max_results) {
+
+        // Pop the first node
         AStarSearchNode top = std::move(const_cast<AStarSearchNode &>(pq.top()));
         pq.pop();
         nodes_visited++;
@@ -125,7 +134,7 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
             }
             break;
         }
-
+        // decide which class to expand next: pick the one with the highest lower bound
         auto it = std::max_element(top.pending.begin(), top.pending.end(), [&](Id a, Id b) {
             return minimal_possible_sub_tree_costs.at(a) < minimal_possible_sub_tree_costs.at(b);
         });
@@ -184,12 +193,8 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
         std::cout << "[Extractor] Visited " << nodes_visited << " nodes during A* numeric extraction." << std::endl;
     }
 
-    if (best_results.empty() && tree_cost.count(root) && tree_cost[root] != std::numeric_limits<double>::infinity()) {
-        std::vector<const ENode *> greedy_vec(max_id + 1, nullptr);
-        for (const auto &[id, node] : greedy_choices) {
-            greedy_vec[id] = node;
-        }
-        best_results.push_back(NumericSearchResult{tree_cost[root], convert_to_map(greedy_vec, {root})});
+    if (best_results.empty()) {
+        throw std::runtime_error("Runtime error: no numeric DAG found for root class under supplied size bindings");
     }
 
     std::sort(
@@ -586,8 +591,4 @@ bool Extractor::collect_selected_nodes_for_binding(
     }
 
     return any_root_succeeded;
-}
-
-ExtractionResult Extractor::a_star_extract(Id class_id, const SizeBindings &size_bindings) const {
-    return extract(class_id, size_bindings);
 }

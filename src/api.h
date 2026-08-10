@@ -18,7 +18,12 @@ namespace EGraphRunner {
 // --- Optimization Context ---
 class Context {
   public:
-    Context(EGraph egraph = EGraph()) : egraph(std::move(egraph)) {}
+    Context(EGraph egraph = EGraph(), EGraphConfig config = EGraphConfig())
+        : egraph(std::move(egraph)), config(config) {}
+
+    void set_config(const EGraphConfig &cfg) { config = cfg; }
+    EGraphConfig &get_config() { return config; }
+    const EGraphConfig &get_config() const { return config; }
     Expression define_matrix(const std::string &name, int rows, int cols, const std::vector<std::string> &flags = {}) {
         MatrixProperty prop;
         prop.shape = Shape{rows, cols};
@@ -68,8 +73,8 @@ class Context {
     Id add(const Expression &expr) { return egraph.add_expression(expr); }
 
     void rewrite(
-        const std::vector<std::string> &rulesets = {"complete"}, int max_nodes = 5000, bool enable_backoff = true,
-        int max_iterations = 30) {
+        const std::vector<std::string> &rulesets = {"complete"},
+        std::optional<EGraphConfig> config_override = std::nullopt) {
         if (logging) {
             std::cout << "[API] Running rewrite with rulesets: ";
             for (const auto &rs : rulesets)
@@ -77,9 +82,12 @@ class Context {
             std::cout << "\n";
         }
         std::vector<Rewrite> rewrites = build_rewrite_sets(rulesets);
-        Rewriter rewriter(egraph, rewrites, max_nodes, enable_backoff);
-        if (max_iterations > 0) {
-            rewriter.apply_rewrites(max_iterations);
+        EGraphConfig cfg = config_override.value_or(config);
+        cfg.enable_logging = logging || cfg.enable_logging;
+
+        Rewriter rewriter(egraph, rewrites, cfg);
+        if (cfg.max_iterations > 0) {
+            rewriter.apply_rewrites(cfg.max_iterations);
         } else {
             rewriter.apply_rewrites();
         }
@@ -97,19 +105,22 @@ class Context {
 
     void rewrite_and_prune(
         const std::vector<Id> &target_ids, const std::vector<std::string> &rulesets = {"everything_but_lowering"},
-        int num_iterations = 5, int rewrite_steps_per_iteration = 30, int prune_samples_per_iteration = 5,
-        int max_results_per_binding = 5, int max_nodes = 5000) {
+        std::optional<EGraphConfig> config_override = std::nullopt, int prune_samples_per_iteration = 5,
+        int max_results_per_binding = 5) {
         if (logging) {
-            std::cout << "[API] Starting rewrite_and_prune for " << num_iterations << " iterations...\n";
+            std::cout << "[API] Starting rewrite_and_prune...\n";
         }
+        EGraphConfig cfg = config_override.value_or(config);
+        cfg.enable_logging = logging || cfg.enable_logging;
+
         std::vector<Rewrite> rewrites = build_rewrite_sets(rulesets);
-        Rewriter rewriter(egraph, rewrites, max_nodes, true);
-        Extractor extractor(egraph, false, 30);
+        Rewriter rewriter(egraph, rewrites, cfg);
+        Extractor extractor(egraph, cfg);
         Pruner pruner(egraph, extractor);
 
         PruneOptions options{
-            .num_iterations = num_iterations,
-            .rewrite_steps_per_iteration = rewrite_steps_per_iteration,
+            .num_iterations = static_cast<int>(cfg.prune_iterations),
+            .rewrite_steps_per_iteration = static_cast<int>(cfg.max_iterations),
             .prune_samples_per_iteration = prune_samples_per_iteration,
             .max_results_per_binding = max_results_per_binding,
             .size_keys = size_keys,
@@ -122,20 +133,25 @@ class Context {
             }
         });
     }
-    void lower_to_kernels() {
+    void lower_to_kernels(std::optional<EGraphConfig> config_override = std::nullopt) {
         if (logging) {
             std::cout << "[API] Lowering to kernels...\n";
         }
         std::vector<Rewrite> rewrites = build_rewrite_sets({"lowering"});
-        Rewriter rewriter(egraph, rewrites, 5000, true);
+        EGraphConfig cfg = config_override.value_or(config);
+        cfg.enable_logging = logging || cfg.enable_logging;
+        Rewriter rewriter(egraph, rewrites, cfg);
         rewriter.apply_rewrites();
         prune_symbolic_when_kernel_available();
     }
-    ExtractionResult extract(Id target_id, const SizeBindings &bindings = {}) {
+    ExtractionResult extract(
+        Id target_id, const SizeBindings &bindings = {}, std::optional<EGraphConfig> config_override = std::nullopt) {
         if (logging) {
             std::cout << "[API] Extracting concrete expression for target " << target_id << "...\n";
         }
-        Extractor extractor(egraph, logging);
+        EGraphConfig cfg = config_override.value_or(config);
+        cfg.enable_logging = logging || cfg.enable_logging;
+        Extractor extractor(egraph, cfg);
         if (bindings.empty()) {
             return extractor.extract(target_id);
         } else {
@@ -143,43 +159,36 @@ class Context {
         }
     }
 
-    ExtractionResult extract_greedy(Id target_id, const SizeBindings &bindings = {}) {
+    ExtractionResult extract_greedy(
+        Id target_id, const SizeBindings &bindings = {}, std::optional<EGraphConfig> config_override = std::nullopt) {
         if (logging) {
             std::cout << "[API] Fast greedy extraction for target " << target_id << "...\n";
         }
-        Extractor extractor(egraph, logging);
+        EGraphConfig cfg = config_override.value_or(config);
+        cfg.enable_logging = logging || cfg.enable_logging;
+        Extractor extractor(egraph, cfg);
         return extractor.tree_extract(target_id, bindings);
     }
 
-    ExtractionResult extract_ilp(Id target_id, const SizeBindings &bindings = {}) {
-        if (logging) {
-            std::cout << "[API] ILP extraction for target " << target_id << "...\n";
-        }
-        Extractor extractor(egraph, logging);
-        return extractor.ilp_extract(target_id, bindings);
+    std::vector<ExtractionResult> extract_symbolic(std::optional<EGraphConfig> config_override = std::nullopt) {
+        return extract_symbolic(target_id, config_override);
     }
 
-    ExtractionResult extract_astar(Id target_id, const SizeBindings &bindings = {}) {
-        if (logging) {
-            std::cout << "[API] A* extraction for target " << target_id << "...\n";
-        }
-        Extractor extractor(egraph, logging);
-        return extractor.a_star_extract(target_id, bindings);
-    }
-
-    std::vector<ExtractionResult> extract_symbolic() { return extract_symbolic(target_id); }
-
-    std::vector<ExtractionResult> extract_symbolic(Id target_id) {
+    std::vector<ExtractionResult>
+    extract_symbolic(Id target_id, std::optional<EGraphConfig> config_override = std::nullopt) {
         if (logging) {
             std::cout << "[API] Extracting symbolic expressions for target " << target_id << "...\n";
         }
-        Extractor extractor(egraph, true, 30);
+        EGraphConfig cfg = config_override.value_or(config);
+        cfg.enable_logging = logging || cfg.enable_logging;
+        Extractor extractor(egraph, cfg);
         return extractor.extract_symbolic(target_id);
     }
 
     Expression optimize_concrete(
         const Expression &target_expr, const std::vector<Expression> &background_exprs = {},
-        const std::vector<std::string> &rulesets = {"complete"}) {
+        const std::vector<std::string> &rulesets = {"complete"},
+        std::optional<EGraphConfig> config_override = std::nullopt) {
         if (logging) {
             std::cout << "[API] Optimizing concrete expression: " << target_expr.to_string() << "\n";
         }
@@ -187,18 +196,21 @@ class Context {
         for (const auto &bg_expr : background_exprs) {
             add(bg_expr);
         }
-        rewrite(rulesets);
-        lower_to_kernels();
-        return extract(target_id).expr;
+        rewrite(rulesets, config_override);
+        lower_to_kernels(config_override);
+        return extract(target_id, {}, config_override).expr;
     }
 
-    std::vector<double> evaluate_concrete(const SizeBindings &size_bindings, const DataBindings &bindings = {}) {
-        return evaluate_concrete(target_id, size_bindings, bindings);
+    std::vector<double> evaluate_concrete(
+        const SizeBindings &size_bindings, const DataBindings &bindings = {},
+        std::optional<EGraphConfig> config_override = std::nullopt) {
+        return evaluate_concrete(target_id, size_bindings, bindings, config_override);
     }
 
-    std::vector<double>
-    evaluate_concrete(Id target_id, const SizeBindings &size_bindings, const DataBindings &bindings = {}) {
-        auto result = extract(target_id, size_bindings);
+    std::vector<double> evaluate_concrete(
+        Id target_id, const SizeBindings &size_bindings, const DataBindings &bindings = {},
+        std::optional<EGraphConfig> config_override = std::nullopt) {
+        auto result = extract(target_id, size_bindings, config_override);
         if (logging) {
             std::cout << "[API] Extracted expression: " << result.expr.to_string() << "\n";
             std::cout << "[API] Evaluating concrete expression...\n";
@@ -209,7 +221,8 @@ class Context {
 
     void optimize_symbolic(
         const Expression &target_expr, const std::vector<Expression> &background_exprs = {},
-        const std::vector<std::string> &rulesets = {"everything_but_lowering"}, int max_nodes = 5000) {
+        const std::vector<std::string> &rulesets = {"everything_but_lowering"},
+        std::optional<EGraphConfig> config_override = std::nullopt) {
         if (logging) {
             std::cout << "[API] Optimizing symbolic expression: " << target_expr.to_string() << "\n";
         }
@@ -218,8 +231,8 @@ class Context {
         for (const auto &bg_expr : background_exprs) {
             add(bg_expr);
         }
-        rewrite_and_prune({target_id}, rulesets);
-        lower_to_kernels();
+        rewrite_and_prune({target_id}, rulesets, config_override);
+        lower_to_kernels(config_override);
     }
 
     void print_properties() const { egraph.get_property_table().print_all_properties(); }
@@ -231,6 +244,7 @@ class Context {
 
   private:
     EGraph egraph;
+    EGraphConfig config;
     Id target_id = 0;
     bool logging = false;
     std::vector<std::string> size_keys;

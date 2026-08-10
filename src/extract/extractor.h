@@ -1,6 +1,7 @@
 #pragma once
 
 #include "e_graph.h"
+#include "egraph_config.h"
 #include <cstddef>
 #include <unordered_map>
 #include <unordered_set>
@@ -10,24 +11,20 @@ struct ExtractionResult {
     Cost cost;
     Expression expr;
     std::vector<Id> execution_order;
-    std::unordered_map<Id, const ENode*> choices;
+    std::unordered_map<Id, const ENode *> choices;
 };
 
 class Extractor {
   public:
     explicit Extractor(
-        EGraph &egraph, bool enable_logging = false, size_t max_depth = 40,
-        size_t node_visit_limit = 10000000);
+        EGraph &egraph, bool enable_logging = false, size_t max_depth = 40, size_t node_visit_limit = 10000000);
+    explicit Extractor(EGraph &egraph, const EGraphConfig &config);
 
     ExtractionResult extract(Id class_id, const SizeBindings &size_bindings = {}) const;
     std::vector<ExtractionResult>
     extract(Id class_id, size_t max_results, const SizeBindings &size_bindings = {}) const;
 
     ExtractionResult tree_extract(Id class_id, const SizeBindings &size_bindings = {}) const;
-
-    ExtractionResult ilp_extract(Id class_id, const SizeBindings &size_bindings = {}) const;
-
-    ExtractionResult a_star_extract(Id class_id, const SizeBindings &size_bindings = {}) const;
 
     std::vector<ExtractionResult> extract_symbolic(Id class_id, bool build_expressions = true) const;
     bool collect_selected_nodes_for_binding(

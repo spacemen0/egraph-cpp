@@ -34,7 +34,9 @@ TEST(Integration, OLSNumeric) {
     auto result = extractor.extract(id);
     std::cout << "Candidate expression: " << result.expr.to_string(false) << std::endl;
     std::cout << "Cost: " << result.cost << std::endl;
-    EXPECT_EQ(result.expr.to_string(false), "Trsm_LN(Get(Potrf_U(Syrk_T(J, Zero_20x20)), 0), Trsm_LT(Get(Potrf_U(Syrk_T(J, Zero_20x20)), 0), Gemv_T(J, k, Zero_20x1)))");
+    EXPECT_EQ(
+        result.expr.to_string(false), "Trsm_LN(Get(Potrf_U(Syrk_T(J, Zero_20x20)), 0), Trsm_LT(Get(Potrf_U(Syrk_T(J, "
+                                      "Zero_20x20)), 0), Gemv_T(J, k, Zero_20x1)))");
 
     DataBindings data_bindings = {{"J", generate_random_vector(30 * 20)}, {"k", generate_random_vector(30)}};
     Evaluator evaluator(egraph, result, nullptr, data_bindings);
@@ -70,8 +72,8 @@ TEST(Integration, OLSSymbolic) {
     kernel_rewriter.apply_rewrites();
     Pruner::prune_symbolic_when_kernel_available(egraph);
     auto start_extract = std::chrono::high_resolution_clock::now();
-    auto results = extractor.extract(id, {{"A", 30}, {"B", 20}});
-    std::cout << "EVALUATOR OLS SYMBOLIC OUTPUT: " << results.expr.to_string(true) << std::endl;
+    auto result = extractor.extract(id, {{"A", 30}, {"B", 20}});
+    std::cout << "EVALUATOR OLS SYMBOLIC OUTPUT: " << result.expr.to_string(false) << std::endl;
     auto end_extract = std::chrono::high_resolution_clock::now();
 
     auto end_total = std::chrono::high_resolution_clock::now();
@@ -89,6 +91,8 @@ TEST(Integration, OLSSymbolic) {
               << " ms" << std::endl;
     std::cout << "--------------------------------------\n" << std::endl;
 
-    std::cout << "ACTUAL RESULT: " << results.expr.to_string(false) << std::endl;
-    EXPECT_EQ(results.expr.to_string(false), "Trsm_LT(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Trsm_LN(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Gemv_T(M, n, Zero_Bx1)))");
+    std::cout << "ACTUAL RESULT: " << result.expr.to_string(false) << std::endl;
+    EXPECT_EQ(
+        result.expr.to_string(false), "Trsm_LT(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Trsm_LN(Get(Potrf_L(Syrk_T(M, "
+                                      "Zero_BxB)), 0), Gemv_T(M, n, Zero_Bx1)))");
 }

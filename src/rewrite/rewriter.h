@@ -17,6 +17,8 @@ struct Rewrite {
     size_t initial_match_limit = 30;
 };
 
+#include "egraph_config.h"
+
 class Rewriter {
   public:
     Rewriter(
@@ -33,6 +35,10 @@ class Rewriter {
             return r.initial_match_limit;
         });
     }
+
+    Rewriter(EGraph &egraph, std::vector<Rewrite> rewrites, const EGraphConfig &config)
+        : Rewriter(
+              egraph, std::move(rewrites), config.node_limit, config.enable_backoff, config.enable_node_match_limit) {}
     bool apply_one_iteration(size_t node_match_limit = 0);
     bool apply_rewrites(int max_iterations);
     bool apply_rewrites();
