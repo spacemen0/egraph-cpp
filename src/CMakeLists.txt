@@ -31,15 +31,44 @@ target_include_directories(core_lib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/cost_functions
 )
 
-find_package(BLAS REQUIRED)
-target_link_libraries(core_lib PUBLIC magic_enum::magic_enum ${BLAS_LIBRARIES})
+# Find system BLAS and LAPACKE, or fetch OpenBLAS on Windows
+find_package(BLAS QUIET)
+find_package(PkgConfig QUIET)
+if(PkgConfig_FOUND)
+    pkg_check_modules(LAPACKE QUIET lapacke)
+endif()
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(LAPACKE REQUIRED lapacke)
+if(BLAS_FOUND AND LAPACKE_FOUND)
+    message(STATUS "Found system BLAS and LAPACKE")
+    target_include_directories(core_lib PUBLIC ${LAPACKE_INCLUDE_DIRS})
+    target_link_directories(core_lib PUBLIC ${LAPACKE_LIBRARY_DIRS})
+    target_link_libraries(core_lib PUBLIC magic_enum::magic_enum ${BLAS_LIBRARIES} ${LAPACKE_LIBRARIES})
+elseif(WIN32)
+    message(STATUS "System BLAS/LAPACKE not found. Fetching OpenBLAS prebuilt package for Windows...")
+    include(FetchContent)
+    FetchContent_Declare(
+        openblas_win
+        URL https://github.com/OpenMathLib/OpenBLAS/releases/download/v0.3.28/OpenBLAS-0.3.28-x64.zip
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    )
+    FetchContent_MakeAvailable(openblas_win)
 
-target_include_directories(core_lib PUBLIC ${LAPACKE_INCLUDE_DIRS})
-target_link_directories(core_lib PUBLIC ${LAPACKE_LIBRARY_DIRS})
-target_link_libraries(core_lib PUBLIC ${LAPACKE_LIBRARIES})
+    target_include_directories(core_lib PUBLIC ${openblas_win_SOURCE_DIR}/include)
+    if(MSVC)
+        target_link_libraries(core_lib PUBLIC magic_enum::magic_enum ${openblas_win_SOURCE_DIR}/lib/libopenblas.lib)
+    else()
+        target_link_libraries(core_lib PUBLIC magic_enum::magic_enum ${openblas_win_SOURCE_DIR}/lib/libopenblas.dll.a)
+    endif()
+
+    # Define target to copy DLL to target output directory
+    add_custom_target(copy_openblas_dll ALL
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${openblas_win_SOURCE_DIR}/bin/libopenblas.dll"
+            "${CMAKE_BINARY_DIR}/bin"
+    )
+else()
+    message(FATAL_ERROR "BLAS and LAPACKE are required. Please install them or configure PkgConfig.")
+endif()
 
 add_executable(egraph_cli cli.cpp)
 target_link_libraries(egraph_cli PRIVATE core_lib)

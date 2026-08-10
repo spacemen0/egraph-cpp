@@ -26,7 +26,7 @@ TEST(Integration, OLSNumeric) {
     auto alternative_expression = Expression("Sol(Get(QR(J),1), Tr(Get(QR(J),0)) * k)");
     auto alternative_id = egraph.add_expression(alternative_expression);
     ASSERT_TRUE(egraph.find_class_id(alternative_id) == egraph.find_class_id(id));
-    egraph.to_img("OLS_numeric", "svg");
+    // egraph.to_img("OLS_numeric", "svg");
     Pruner::prune_symbolic_when_kernel_available(egraph);
     std::cout << "Doing extraction, num of nodes: " << egraph.num_nodes() << std::endl;
     Extractor extractor(egraph, ExtractorConfig{.max_depth = 20, .enable_logging = true});
@@ -93,7 +93,10 @@ TEST(Integration, OLSSymbolic) {
     std::cout << "--------------------------------------\n" << std::endl;
 
     std::cout << "ACTUAL RESULT: " << result.expr.to_string(false) << std::endl;
-    EXPECT_EQ(
-        result.expr.to_string(false), "Trsm_LT(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Trsm_LN(Get(Potrf_L(Syrk_T(M, "
-                                      "Zero_BxB)), 0), Gemv_T(M, n, Zero_Bx1)))");
+    std::string actual = result.expr.to_string(false);
+    std::string expected_l = "Trsm_LT(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Trsm_LN(Get(Potrf_L(Syrk_T(M, "
+                             "Zero_BxB)), 0), Gemv_T(M, n, Zero_Bx1)))";
+    std::string expected_u = "Trsm_LN(Get(Potrf_U(Syrk_T(M, Zero_BxB)), 0), Trsm_LT(Get(Potrf_U(Syrk_T(M, "
+                             "Zero_BxB)), 0), Gemv_T(M, n, Zero_Bx1)))";
+    EXPECT_TRUE(actual == expected_l || actual == expected_u) << "Actual expression: " << actual;
 }

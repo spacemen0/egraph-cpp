@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.15)
 project(egraph-cpp LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+
 # Configure build settings before adding dependencies
 option(ENABLE_COVERAGE "Build with gcov/coverage instrumentation" OFF)
 

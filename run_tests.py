@@ -66,7 +66,11 @@ def main() -> int:
 
     exe_name = "unit_tests.exe" if os.name == "nt" else "unit_tests"
     tests_base = repo_root / "build" / "tests"
+    bin_base = repo_root / "build" / "bin"
     candidates = [
+        bin_base / exe_name,
+        bin_base / "Debug" / exe_name,
+        bin_base / "Release" / exe_name,
         tests_base / exe_name,
         tests_base / "Debug" / exe_name,
         tests_base / "Release" / exe_name,
