@@ -234,3 +234,24 @@ TEST_F(ExtractorTest, GreedyExtractIgnoresSharing) {
     auto dag_result = extractor.extract(id_root1);
     EXPECT_EQ(dag_result.expr.to_string(), "(X * X + A) * (X * X + B)");
 }
+
+TEST_F(ExtractorTest, BenchmarkExtraction) {
+    egraph.register_or_update_property("A", MatrixProperty{.shape = Shape{10, 10}});
+    egraph.register_or_update_property("B", MatrixProperty{.shape = Shape{10, 10}});
+    egraph.register_or_update_property("C", MatrixProperty{.shape = Shape{10, 10}});
+    egraph.register_or_update_property("D", MatrixProperty{.shape = Shape{10, 10}});
+
+    Id id_a = egraph.add_node(make_symbol("A"));
+    Id id_b = egraph.add_node(make_symbol("B"));
+    Id id_c = egraph.add_node(make_symbol("C"));
+    Id id_d = egraph.add_node(make_symbol("D"));
+
+    Id id_ab = egraph.add_node(make_op(Op::Mul, {id_a, id_b}));
+    Id id_add1 = egraph.add_node(make_op(Op::Add, {id_ab, id_c}));
+    Id id_add2 = egraph.add_node(make_op(Op::Add, {id_ab, id_d}));
+    Id root = egraph.add_node(make_op(Op::Mul, {id_add1, id_add2}));
+
+    auto res = extractor.extract(root);
+    auto astar_res = extractor.a_star_extract(root);
+    EXPECT_EQ(std::get<double>(res.cost), std::get<double>(astar_res.cost));
+}

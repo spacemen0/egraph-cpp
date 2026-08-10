@@ -5,20 +5,55 @@
 #include <cstddef>
 #include <iostream>
 #include <limits>
+#include <queue>
 #include <unordered_set>
 
 namespace {
 constexpr size_t kExtractorProgressLogEvery = 1000000;
-}
 
-Extractor::Extractor(
-    EGraph &egraph, bool enable_logging, size_t max_depth, size_t node_visit_limit)
-    : egraph(egraph), enable_logging(enable_logging), max_depth(max_depth),
-      node_visit_limit(node_visit_limit) {}
+struct ChoiceNode {
+    Id class_id;
+    const ENode *node;
+    std::shared_ptr<const ChoiceNode> parent;
+};
+
+struct AStarSearchNode {
+    double g_cost;
+    double h_cost;
+    std::shared_ptr<const ChoiceNode> choices_head;
+    std::vector<Id> pending;
+
+    double f_cost() const { return g_cost + h_cost; }
+
+    bool operator>(const AStarSearchNode &other) const {
+        if (std::abs(f_cost() - other.f_cost()) > 1e-9) {
+            return f_cost() > other.f_cost();
+        }
+        if (std::abs(g_cost - other.g_cost) > 1e-9) {
+            return g_cost > other.g_cost;
+        }
+        return pending.size() > other.pending.size();
+    }
+};
+
+static std::vector<const ENode *> choices_to_vector(const std::shared_ptr<const ChoiceNode> &head, size_t max_id) {
+    std::vector<const ENode *> vec(max_id + 1, nullptr);
+    for (auto curr = head; curr != nullptr; curr = curr->parent) {
+        if (curr->class_id <= max_id) {
+            vec[curr->class_id] = curr->node;
+        }
+    }
+    return vec;
+}
+} // namespace
+
+Extractor::Extractor(EGraph &egraph, bool enable_logging, size_t max_depth, size_t node_visit_limit)
+    : egraph(egraph), enable_logging(enable_logging), max_depth(max_depth), node_visit_limit(node_visit_limit) {}
 
 void Extractor::reset() const {
     tree_cost.clear();
     minimal_possible_sub_tree_costs.clear();
+    min_local_cost.clear();
     minimal_possible_sizes.clear();
     greedy_choices.clear();
     nodes_visited = 0;
@@ -42,53 +77,121 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
         max_id = std::max(max_id, id);
     }
 
-    std::vector<Id> pending = {root};
-    std::vector<size_t> pending_set(max_id + 1, 0);
-    pending_set[root] = 1;
-    std::vector<const ENode *> current_choices(max_id + 1, nullptr);
-    std::vector<NumericSearchResult> best_results;
-    double worst_selected_cost = std::numeric_limits<double>::infinity();
+    std::priority_queue<AStarSearchNode, std::vector<AStarSearchNode>, std::greater<AStarSearchNode>> pq;
 
-    std::vector<size_t> visited_buffer(max_id + 1, 0);
+    AStarSearchNode start_node;
+    start_node.g_cost = 0.0;
+    start_node.h_cost = minimal_possible_sub_tree_costs.at(root);
+    start_node.choices_head = nullptr;
+    start_node.pending.push_back(root);
 
-    // A single stack buffer for cycle detection to avoid reallocations during deep recursion
-    std::vector<Id> stack_buffer;
-    stack_buffer.reserve(max_id + 1);
+    pq.push(start_node);
 
     nodes_visited = 0;
+    std::vector<size_t> visited_buffer(max_id + 1, 0);
+    std::vector<Id> stack_buffer;
 
-    // Heuristic
-    if (tree_cost[root] != std::numeric_limits<double>::infinity()) {
+    std::vector<NumericSearchResult> best_results;
+
+    while (!pq.empty() && best_results.size() < max_results) {
+        AStarSearchNode top = std::move(const_cast<AStarSearchNode &>(pq.top()));
+        pq.pop();
+        nodes_visited++;
+
+        if (enable_logging && (nodes_visited % kExtractorProgressLogEvery == 0)) {
+            std::cout << "[Extractor] Progress (A*): visited=" << nodes_visited << ", pending=" << top.pending.size()
+                      << ", best_results=" << best_results.size() << std::endl;
+        }
+
+        auto choices_vec = choices_to_vector(top.choices_head, max_id);
+
+        if (top.pending.empty()) {
+            bool is_unique = true;
+            for (const auto &existing : best_results) {
+                if (std::abs(existing.cost - top.g_cost) < 1e-9) {
+                    is_unique = false;
+                    break;
+                }
+            }
+            if (is_unique) {
+                best_results.push_back(NumericSearchResult{top.g_cost, convert_to_map(choices_vec, {root})});
+            }
+            continue;
+        }
+
+        if (nodes_visited >= node_visit_limit) {
+            if (enable_logging) {
+                std::cout << "[Extractor] Node visit limit reached during A* search, stopping." << std::endl;
+            }
+            break;
+        }
+
+        auto it = std::max_element(top.pending.begin(), top.pending.end(), [&](Id a, Id b) {
+            return minimal_possible_sub_tree_costs.at(a) < minimal_possible_sub_tree_costs.at(b);
+        });
+
+        Id curr_class = *it;
+        size_t orig_idx = std::distance(top.pending.begin(), it);
+        std::swap(top.pending[orig_idx], top.pending.back());
+        top.pending.pop_back();
+
+        const auto &class_nodes = egraph.get_class_nodes(curr_class);
+        for (const ENode *node : class_nodes) {
+            Cost local_c = node->compute_local_cost(egraph, size_bindings);
+            if (!std::holds_alternative<double>(local_c))
+                continue;
+
+            double local_val = std::get<double>(local_c);
+            if (local_val == std::numeric_limits<double>::infinity())
+                continue;
+
+            if (creates_cycle(curr_class, node, choices_vec, visited_buffer, stack_buffer)) {
+                continue;
+            }
+
+            AStarSearchNode next_state;
+            next_state.choices_head = std::make_shared<ChoiceNode>(ChoiceNode{curr_class, node, top.choices_head});
+            next_state.g_cost = top.g_cost + local_val;
+            next_state.pending = top.pending;
+
+            for (Id child : node->get_children()) {
+                Id child_root = egraph.find_class_id(child);
+                if (choices_vec[child_root] == nullptr) {
+                    bool already_pending = false;
+                    for (Id p : next_state.pending) {
+                        if (p == child_root) {
+                            already_pending = true;
+                            break;
+                        }
+                    }
+                    if (!already_pending) {
+                        next_state.pending.push_back(child_root);
+                    }
+                }
+            }
+
+            double max_pending_lb = 0;
+            for (Id p : next_state.pending) {
+                max_pending_lb = std::max(max_pending_lb, minimal_possible_sub_tree_costs.at(p));
+            }
+            next_state.h_cost = max_pending_lb;
+
+            pq.push(std::move(next_state));
+        }
+    }
+
+    if (enable_logging) {
+        std::cout << "[Extractor] Visited " << nodes_visited << " nodes during A* numeric extraction." << std::endl;
+    }
+
+    if (best_results.empty() && tree_cost.count(root) && tree_cost[root] != std::numeric_limits<double>::infinity()) {
         std::vector<const ENode *> greedy_vec(max_id + 1, nullptr);
         for (const auto &[id, node] : greedy_choices) {
             greedy_vec[id] = node;
         }
         best_results.push_back(NumericSearchResult{tree_cost[root], convert_to_map(greedy_vec, {root})});
-
-        if (best_results.size() == max_results) {
-            worst_selected_cost = tree_cost[root]; // tree_cost is always larger or equal to actual cost
-        } else {
-            // Heuristic
-            worst_selected_cost = tree_cost[root] * 10.0;
-        }
     }
 
-    if (!should_prune_numeric_search(
-            0, 0.0, minimal_possible_sub_tree_costs[root], minimal_possible_sizes[root], max_results,
-            best_results.size(), worst_selected_cost)) {
-        search_top_numeric_dags(
-            root, pending, pending_set, current_choices, 0, size_bindings, 0.0, max_results, best_results,
-            worst_selected_cost, visited_buffer, stack_buffer);
-    }
-
-    if (enable_logging) {
-        std::cout << "[Extractor] Visited " << nodes_visited << " nodes during numeric extraction." << std::endl;
-    }
-    if (best_results.empty()) {
-        return {};
-    }
-
-    // Sort at the end to guarantee ascending order.
     std::sort(
         best_results.begin(), best_results.end(), [](const NumericSearchResult &lhs, const NumericSearchResult &rhs) {
         return lhs.cost < rhs.cost;
@@ -123,6 +226,7 @@ Extractor::convert_to_map(const std::vector<const ENode *> &choices, const std::
 void Extractor::initial_tree_search_pass(const SizeBindings *size_bindings) const {
     tree_cost.clear();
     minimal_possible_sub_tree_costs.clear();
+    min_local_cost.clear();
     minimal_possible_sizes.clear();
     greedy_choices.clear();
 
@@ -130,6 +234,7 @@ void Extractor::initial_tree_search_pass(const SizeBindings *size_bindings) cons
     for (Id id : all_class_ids) {
         tree_cost[id] = std::numeric_limits<double>::infinity();
         minimal_possible_sub_tree_costs[id] = std::numeric_limits<double>::infinity();
+        min_local_cost[id] = std::numeric_limits<double>::infinity();
         minimal_possible_sizes[id] = std::numeric_limits<double>::infinity();
     }
 
@@ -143,6 +248,7 @@ void Extractor::initial_tree_search_pass(const SizeBindings *size_bindings) cons
                     continue;
                 }
                 double local = std::get<double>(local_cost);
+                min_local_cost[class_id] = std::min(min_local_cost[class_id], local);
 
                 // Lower bounds for dag cost and size
                 double max_child_cost = 0;
@@ -244,212 +350,6 @@ std::vector<Extractor::SymbolicSearchResult> Extractor::find_symbolic_dags(Id ro
     }
 
     return results;
-}
-
-void Extractor::record_numeric_result(
-    Id root, const std::vector<const ENode *> &current_choices, double current_cost, size_t max_results,
-    std::vector<NumericSearchResult> &best_results, double &worst_selected_cost) const {
-
-    // Check if the current solution has a unique cost to avoid storing redundant results
-    bool has_unique_cost = true;
-    for (const auto &res : best_results) {
-        if (std::abs(res.cost - current_cost) < 1e-9) {
-            has_unique_cost = false;
-            break;
-        }
-    }
-
-    if (has_unique_cost) {
-        best_results.push_back(NumericSearchResult{current_cost, convert_to_map(current_choices, {root})});
-
-        std::push_heap(
-            best_results.begin(), best_results.end(), [](const NumericSearchResult &a, const NumericSearchResult &b) {
-            return a.cost < b.cost;
-        });
-
-        if (best_results.size() > max_results) {
-            std::pop_heap(
-                best_results.begin(), best_results.end(),
-                [](const NumericSearchResult &a, const NumericSearchResult &b) {
-                return a.cost < b.cost;
-            });
-            best_results.pop_back();
-        }
-
-        if (best_results.size() == max_results) {
-            worst_selected_cost = best_results.front().cost;
-        }
-    }
-}
-
-bool Extractor::should_prune_numeric_search(
-    size_t chosen_count, double current_cost, double pending_lb_cost, size_t pending_lb_size, size_t max_results,
-    size_t best_results_count, double worst_selected_cost) const {
-
-    if (std::max(chosen_count, pending_lb_size) > max_depth) {
-        return true;
-    }
-
-    if (best_results_count == max_results && std::max(current_cost, pending_lb_cost) >= worst_selected_cost) {
-        return true;
-    }
-
-    return false;
-}
-
-std::vector<Extractor::Candidate>
-Extractor::evaluate_node_candidates(Id eclass_id, const SizeBindings *size_bindings) const {
-
-    std::vector<Candidate> candidates;
-    const auto &class_nodes = egraph.get_class_nodes(eclass_id);
-    candidates.reserve(class_nodes.size());
-
-    for (const ENode *node : class_nodes) {
-
-        Cost cost = node->compute_local_cost(egraph, size_bindings);
-        if (std::holds_alternative<double>(cost)) {
-            double local = std::get<double>(cost);
-            double tree_est = local;
-            double max_child_cost = 0;
-            size_t max_child_size = 0;
-            bool any_child_infinite = false;
-
-            for (Id child : node->get_children()) {
-                Id child_root = egraph.find_class_id(child);
-                double child_greedy = tree_cost.at(child_root);
-
-                if (child_greedy == std::numeric_limits<double>::infinity()) {
-                    any_child_infinite = true;
-                    break;
-                }
-
-                tree_est += child_greedy;
-                max_child_cost = std::max(max_child_cost, minimal_possible_sub_tree_costs.at(child_root));
-                max_child_size = std::max(max_child_size, minimal_possible_sizes.at(child_root));
-            }
-
-            if (!any_child_infinite) {
-                candidates.push_back({node, local, tree_est, local + max_child_cost, 1 + max_child_size});
-            }
-        }
-    }
-
-    std::sort(candidates.begin(), candidates.end(), [](const Candidate &a, const Candidate &b) {
-        return a.tree_cost_heuristic < b.tree_cost_heuristic;
-    });
-
-    return candidates;
-}
-
-void Extractor::search_top_numeric_dags(
-    Id root, std::vector<Id> &pending, std::vector<size_t> &pending_set, std::vector<const ENode *> &current_choices,
-    size_t chosen_count, const SizeBindings *size_bindings, double current_cost, size_t max_results,
-    std::vector<NumericSearchResult> &best_results, double &worst_selected_cost, std::vector<size_t> &visited_buffer,
-    std::vector<Id> &stack_buffer) const {
-
-    nodes_visited++;
-    if (enable_logging && (nodes_visited % kExtractorProgressLogEvery == 0)) {
-        std::cout << "[Extractor] Progress (numeric): visited=" << nodes_visited << ", pending=" << pending.size()
-                  << ", chosen=" << chosen_count << ", best_results=" << best_results.size() << std::endl;
-    }
-
-    if (pending.empty()) {
-        record_numeric_result(root, current_choices, current_cost, max_results, best_results, worst_selected_cost);
-        return;
-    }
-
-    if (nodes_visited >= node_visit_limit) {
-        if (enable_logging) {
-            std::cout << "[Extractor] Node visit limit reached, stopping search." << std::endl;
-        }
-        return;
-    }
-
-    // Heuristic: Select the pending e-class with the highest lower bound on cost, because we want to make decisions on
-    // the most expensive parts of the DAG first.
-    auto it = std::max_element(pending.begin(), pending.end(), [&](Id a, Id b) {
-        return minimal_possible_sub_tree_costs.at(a) < minimal_possible_sub_tree_costs.at(b);
-    });
-
-    Id current = *it;
-    size_t original_index = std::distance(pending.begin(), it);
-    size_t last_index = pending.size() - 1;
-
-    std::swap(pending[original_index], pending[last_index]);
-    pending.pop_back();
-    pending_set[current] = 0;
-
-    // Pre-calculate lower bounds for the remaining e-classes
-    double remaining_work_cost_lower_bound = 0;
-    size_t remaining_work_size_lower_bound = 0;
-    for (Id p : pending) {
-        remaining_work_cost_lower_bound =
-            std::max(remaining_work_cost_lower_bound, minimal_possible_sub_tree_costs.at(p));
-        remaining_work_size_lower_bound = std::max(remaining_work_size_lower_bound, minimal_possible_sizes.at(p));
-    }
-
-    std::vector<Candidate> candidates = evaluate_node_candidates(current, size_bindings);
-
-    for (const Candidate &candidate : candidates) {
-        double next_cost = current_cost + candidate.local_cost;
-
-        if (creates_cycle(current, candidate.node, current_choices, visited_buffer, stack_buffer)) {
-            continue;
-        }
-
-        // Early cost pruning
-        if (best_results.size() == max_results &&
-            std::max({current_cost, remaining_work_cost_lower_bound, candidate.minimal_possible_cost}) >=
-                worst_selected_cost) {
-            continue;
-        }
-        // Early depth pruning
-        if (std::max({chosen_count, remaining_work_size_lower_bound, candidate.minimal_possible_sub_treesize}) >
-            max_depth) {
-            continue;
-        }
-
-        current_choices[current] = candidate.node;
-
-        // Add children to pending list if they haven't been chosen yet
-        int added_children_count = 0;
-        double next_step_lb_cost = remaining_work_cost_lower_bound;
-        size_t next_step_lb_size = remaining_work_size_lower_bound;
-        for (Id child : candidate.node->get_children()) {
-            Id child_root = egraph.find_class_id(child);
-
-            // This accounts for Common Subexpression Elimination
-            if (current_choices[child_root] == nullptr && !pending_set[child_root]) {
-                pending.push_back(child_root);
-                pending_set[child_root] = 1;
-                added_children_count++;
-                next_step_lb_cost = std::max(next_step_lb_cost, minimal_possible_sub_tree_costs.at(child_root));
-                next_step_lb_size = std::max(next_step_lb_size, minimal_possible_sizes.at(child_root));
-            }
-        }
-
-        if (!should_prune_numeric_search(
-                chosen_count + 1, next_cost, next_step_lb_cost, next_step_lb_size, max_results, best_results.size(),
-                worst_selected_cost)) {
-            search_top_numeric_dags(
-                root, pending, pending_set, current_choices, chosen_count + 1, size_bindings, next_cost, max_results,
-                best_results, worst_selected_cost, visited_buffer, stack_buffer);
-        }
-
-        // Backtrack
-        for (int i = 0; i < added_children_count; ++i) {
-            Id child_id = pending.back();
-            pending.pop_back();
-            pending_set[child_id] = 0;
-        }
-        // Undo the selection
-        current_choices[current] = nullptr;
-    }
-
-    // Backtrack
-    pending.push_back(current);
-    std::swap(pending[pending.size() - 1], pending[original_index]);
-    pending_set[current] = 1;
 }
 
 void Extractor::record_symbolic_result(
@@ -686,4 +586,8 @@ bool Extractor::collect_selected_nodes_for_binding(
     }
 
     return any_root_succeeded;
+}
+
+ExtractionResult Extractor::a_star_extract(Id class_id, const SizeBindings &size_bindings) const {
+    return extract(class_id, size_bindings);
 }

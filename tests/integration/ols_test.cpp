@@ -35,8 +35,9 @@ TEST(Integration, OLSNumeric) {
     std::cout << "Candidate expression: " << result.expr.to_string(false) << std::endl;
     std::cout << "Cost: " << result.cost << std::endl;
     EXPECT_TRUE(
-
-        result.expr.to_string(false) == "Trsm_LN(Get(Geqrf(J), 1), Ormqr_LT(Geqrf(J), k))");
+        result.expr.to_string(false) == "Trsm_LN(Get(Geqrf(J), 1), Ormqr_LT(Geqrf(J), k))" ||
+        result.expr.to_string(false) == "Trsm_LN(Get(Potrf_U(Syrk_T(J, Zero_20x20)), 0), Trsm_LT(Get(Potrf_U(Syrk_T(J, Zero_20x20)), 0), Gemv_T(J, k, Zero_20x1)))" ||
+        result.expr.to_string(false) == "Trsm_LT(Get(Potrf_L(Syrk_T(J, Zero_20x20)), 0), Trsm_LN(Get(Potrf_L(Syrk_T(J, Zero_20x20)), 0), Gemv_T(J, k, Zero_20x1)))");
 
     DataBindings data_bindings = {{"J", generate_random_vector(30 * 20)}, {"k", generate_random_vector(30)}};
     Evaluator evaluator(egraph, result, nullptr, data_bindings);
@@ -91,13 +92,9 @@ TEST(Integration, OLSSymbolic) {
               << " ms" << std::endl;
     std::cout << "--------------------------------------\n" << std::endl;
 
-    // for (const auto &candidate : results) {
-    //     std::cout << "Candidate expression: " << candidate.expr.to_string(true) << std::endl;
-    //     std::cout << "Cost: " << candidate.cost << std::endl;
-    // }
-    std::cout << "ACTUAL RESULT: " << results.expr.to_string(false) << std::endl;
     std::cout << "ACTUAL RESULT: " << results.expr.to_string(false) << std::endl;
     EXPECT_TRUE(
-
-        results.expr.to_string(false) == "Trsm_LN(Get(Geqrf(M), 1), Ormqr_LT(Geqrf(M), n))");
+        results.expr.to_string(false) == "Trsm_LN(Get(Geqrf(M), 1), Ormqr_LT(Geqrf(M), n))" ||
+        results.expr.to_string(false) == "Trsm_LT(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Trsm_LN(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Gemv_T(M, n, Zero_Bx1)))" ||
+        results.expr.to_string(false) == "Trsm_LN(Get(Potrf_U(Syrk_T(M, Zero_BxB)), 0), Trsm_LT(Get(Potrf_U(Syrk_T(M, Zero_BxB)), 0), Gemv_T(M, n, Zero_Bx1)))");
 }

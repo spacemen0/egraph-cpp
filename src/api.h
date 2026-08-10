@@ -159,6 +159,14 @@ class Context {
         return extractor.ilp_extract(target_id, bindings);
     }
 
+    ExtractionResult extract_astar(Id target_id, const SizeBindings &bindings = {}) {
+        if (logging) {
+            std::cout << "[API] A* extraction for target " << target_id << "...\n";
+        }
+        Extractor extractor(egraph, logging);
+        return extractor.a_star_extract(target_id, bindings);
+    }
+
     std::vector<ExtractionResult> extract_symbolic() { return extract_symbolic(target_id); }
 
     std::vector<ExtractionResult> extract_symbolic(Id target_id) {
