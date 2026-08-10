@@ -104,8 +104,7 @@ class Context {
         }
         std::vector<Rewrite> rewrites = build_rewrite_sets(rulesets);
         Rewriter rewriter(egraph, rewrites, max_nodes, true);
-        CostStorage cost_storage(egraph);
-        Extractor extractor(egraph, cost_storage, false, 30);
+        Extractor extractor(egraph, false, 30);
         Pruner pruner(egraph, extractor);
 
         PruneOptions options{
@@ -136,8 +135,7 @@ class Context {
         if (logging) {
             std::cout << "[API] Extracting concrete expression for target " << target_id << "...\n";
         }
-        CostStorage cost_storage(egraph);
-        Extractor extractor(egraph, cost_storage, logging);
+        Extractor extractor(egraph, logging);
         if (bindings.empty()) {
             return extractor.extract(target_id);
         } else {
@@ -149,9 +147,16 @@ class Context {
         if (logging) {
             std::cout << "[API] Fast greedy extraction for target " << target_id << "...\n";
         }
-        CostStorage cost_storage(egraph);
-        Extractor extractor(egraph, cost_storage, logging);
+        Extractor extractor(egraph, logging);
         return extractor.tree_extract(target_id, bindings);
+    }
+
+    ExtractionResult extract_ilp(Id target_id, const SizeBindings &bindings = {}) {
+        if (logging) {
+            std::cout << "[API] ILP extraction for target " << target_id << "...\n";
+        }
+        Extractor extractor(egraph, logging);
+        return extractor.ilp_extract(target_id, bindings);
     }
 
     std::vector<ExtractionResult> extract_symbolic() { return extract_symbolic(target_id); }
@@ -160,8 +165,7 @@ class Context {
         if (logging) {
             std::cout << "[API] Extracting symbolic expressions for target " << target_id << "...\n";
         }
-        CostStorage cost_storage(egraph);
-        Extractor extractor(egraph, cost_storage, true, 30);
+        Extractor extractor(egraph, true, 30);
         return extractor.extract_symbolic(target_id);
     }
 

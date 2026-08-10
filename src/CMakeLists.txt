@@ -7,7 +7,6 @@ add_library(core_lib STATIC
     rewrite/pattern.cpp
     rewrite/matcher.cpp
     rewrite/rewriter.cpp
-    extract/cost_storage.cpp
     extract/extractor.cpp
     prune/pruner.cpp
     analysis/property_table.cpp

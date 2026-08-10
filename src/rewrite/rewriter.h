@@ -1,5 +1,4 @@
 #pragma once
-#include "cost_storage.h"
 #include "e_graph.h"
 #include "pattern.h"
 #include <algorithm>

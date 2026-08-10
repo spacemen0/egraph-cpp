@@ -1,6 +1,5 @@
 #pragma once
 
-#include "cost_storage.h"
 #include "e_graph.h"
 #include <cstddef>
 #include <unordered_map>
@@ -17,7 +16,7 @@ struct ExtractionResult {
 class Extractor {
   public:
     explicit Extractor(
-        EGraph &egraph, CostStorage &cost_storage, bool enable_logging = false, size_t max_depth = 40,
+        EGraph &egraph, bool enable_logging = false, size_t max_depth = 40,
         size_t node_visit_limit = 10000000);
 
     ExtractionResult extract(Id class_id, const SizeBindings &size_bindings = {}) const;
@@ -25,6 +24,8 @@ class Extractor {
     extract(Id class_id, size_t max_results, const SizeBindings &size_bindings = {}) const;
 
     ExtractionResult tree_extract(Id class_id, const SizeBindings &size_bindings = {}) const;
+
+    ExtractionResult ilp_extract(Id class_id, const SizeBindings &size_bindings = {}) const;
 
     std::vector<ExtractionResult> extract_symbolic(Id class_id, bool build_expressions = true) const;
     bool collect_selected_nodes_for_binding(
@@ -44,7 +45,6 @@ class Extractor {
     };
 
     EGraph &egraph;
-    CostStorage &cost_storage;
     bool enable_logging = false;
     mutable size_t nodes_visited = 0;
     size_t max_depth;

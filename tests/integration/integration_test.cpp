@@ -1,5 +1,4 @@
 #include "basic_types.h"
-#include "cost_storage.h"
 #include "e_graph.h"
 #include "extractor.h"
 #include "property_table.h"
@@ -22,8 +21,7 @@ TEST(Integration, MatrixPartialSet) {
 
     Rewriter rewriter(egraph, rules, 1000);
     rewriter.apply_rewrites(4);
-    CostStorage cost_storage(egraph);
-    Extractor extractor(egraph, cost_storage);
+    Extractor extractor(egraph);
     auto result = extractor.extract(id);
     EXPECT_EQ(result.cost, Cost(0.0));
     EXPECT_TRUE(std::holds_alternative<uint32_t>(result.expr.atom));
@@ -46,8 +44,7 @@ TEST(Integration, SimplifyComplexMatrixChain) {
     Rewriter rewriter(egraph, rules, 1000);
     rewriter.apply_rewrites(8);
 
-    CostStorage cost_storage(egraph);
-    Extractor extractor(egraph, cost_storage);
+    Extractor extractor(egraph);
     auto results = extractor.extract_symbolic(root_id);
     for (const auto &result : results) {
         std::cout << "Extracted expression: " << result.expr.to_string() << std::endl;
@@ -66,29 +63,34 @@ TEST(Integration, MinimalRealisticExplosionRules) {
         mul_identity_right,
     };
     Rewriter rewriter(egraph, rules, 2000, false, true);
-    CostStorage cost_storage(egraph);
-    Extractor extractor(egraph, cost_storage);
+    Extractor extractor(egraph);
     Pruner pruner(egraph, extractor);
 
     constexpr int outer_iterations = 8;
     constexpr int rewrite_steps_per_iteration = 6;
     constexpr size_t prune_samples_per_iteration = 20;
-    const std::vector<std::string> size_keys = {"A", "B"};
 
-    std::cout << "Initial nodes: " << egraph.num_nodes() << std::endl;
-    for (int iteration = 0; iteration < outer_iterations; ++iteration) {
-        const bool changed = rewriter.apply_rewrites(rewrite_steps_per_iteration);
-        std::cout << "Iteration " << (iteration + 1) << ": rewrites=" << (changed ? "changed" : "stalled")
+    for (int iter = 0; iter < outer_iterations; ++iter) {
+        bool changed = rewriter.apply_rewrites(rewrite_steps_per_iteration);
+
+        std::cout << "Iteration " << iter + 1 << ": " << (changed ? "rewrites=changed" : "rewrites=stalled")
                   << ", nodes before pruning=" << egraph.num_nodes() << std::endl;
 
+        const std::vector<std::string> size_keys = {"A", "B"};
         const auto bindings = sample_size_bindings(prune_samples_per_iteration, 1, 1000, size_keys);
-        const auto prune_result = pruner.prune({root_id}, bindings, 3);
-        std::cout << "Iteration " << (iteration + 1) << ": pruned=" << prune_result.nodes_pruned
-                  << ", nodes after pruning=" << prune_result.nodes_after << std::endl;
+        const auto prune_result = pruner.prune({root_id}, bindings, 1);
+
+        std::cout << "Iteration " << iter + 1 << ": pruned=" << prune_result.nodes_pruned
+                  << ", nodes after pruning=" << egraph.num_nodes() << std::endl;
+
+        if (!changed && prune_result.nodes_pruned == 0) {
+            break;
+        }
     }
 
-    auto result = extractor.extract(root_id);
     std::cout << "Num nodes after iterative rewriting/pruning: " << egraph.num_nodes() << std::endl;
+
+    auto result = extractor.extract(root_id);
     std::cout << "Final extracted expression: " << result.expr.to_string() << std::endl;
     std::cout << "Final extracted cost: " << result.cost << std::endl;
 
@@ -114,8 +116,7 @@ TEST(Integration, CyclicTermsThatDoNotExplode) {
         }
         // egraph.to_img("cyclic_" + std::to_string(20 - i), "svg");
     }
-    CostStorage cost_storage(egraph);
-    Extractor extractor(egraph, cost_storage);
+    Extractor extractor(egraph);
     auto result = extractor.extract(id);
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
 
@@ -133,8 +134,7 @@ TEST(Integration, MatrixChainSymbolicSizes) {
     rewriter.apply_rewrites();
 
     // egraph.to_img("MatrixChain", "svg");
-    CostStorage cost_storage(egraph);
-    Extractor extractor(egraph, cost_storage);
+    Extractor extractor(egraph);
 
     const auto symbolic_results = extractor.extract_symbolic(root_id);
     std::vector<Expression> candidate_expressions;

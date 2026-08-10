@@ -20,8 +20,7 @@ TEST(Integration, OLSPruneConverges) {
 
     size_t total_pruned = 0;
     Rewriter rewriter(egraph, rules, 500, true);
-    CostStorage cost_storage(egraph);
-    Extractor extractor(egraph, cost_storage, true, 20);
+    Extractor extractor(egraph, true, 20);
     Pruner pruner(egraph, extractor);
     Id root_id = egraph.add_expression(Expression("(Inv(Tr(M) * M) * Tr(M)) * n"));
 

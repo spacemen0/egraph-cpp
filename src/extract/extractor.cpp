@@ -12,8 +12,8 @@ constexpr size_t kExtractorProgressLogEvery = 1000000;
 }
 
 Extractor::Extractor(
-    EGraph &egraph, CostStorage &cost_storage, bool enable_logging, size_t max_depth, size_t node_visit_limit)
-    : egraph(egraph), cost_storage(cost_storage), enable_logging(enable_logging), max_depth(max_depth),
+    EGraph &egraph, bool enable_logging, size_t max_depth, size_t node_visit_limit)
+    : egraph(egraph), enable_logging(enable_logging), max_depth(max_depth),
       node_visit_limit(node_visit_limit) {}
 
 void Extractor::reset() const {
@@ -30,11 +30,6 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
     }
 
     Id root = egraph.find_class_id(root_class_id);
-    if (!size_bindings && max_results == 1) {
-        if (auto cached = cost_storage.cached_root_extraction(root); cached.has_value()) {
-            return {NumericSearchResult{cached->cost, cached->choices}};
-        }
-    }
 
     initial_tree_search_pass(size_bindings);
 
@@ -98,10 +93,6 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
         best_results.begin(), best_results.end(), [](const NumericSearchResult &lhs, const NumericSearchResult &rhs) {
         return lhs.cost < rhs.cost;
     });
-
-    if (!size_bindings && max_results == 1) {
-        cost_storage.store_root_extraction(root, best_results.front().cost, best_results.front().choices);
-    }
 
     return best_results;
 }

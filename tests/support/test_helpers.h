@@ -56,8 +56,7 @@ class EGraphTest : public ::testing::Test {
 
 class ExtractorTest : public EGraphTest {
   protected:
-    CostStorage cost_storage{egraph};
-    Extractor extractor{egraph, cost_storage};
+    Extractor extractor{egraph};
 };
 
 const static ENode sym_a = make_symbol("A");

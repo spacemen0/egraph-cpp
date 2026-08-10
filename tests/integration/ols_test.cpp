@@ -26,11 +26,10 @@ TEST(Integration, OLSNumeric) {
     auto alternative_expression = Expression("Sol(Get(QR(J),1), Tr(Get(QR(J),0)) * k)");
     auto alternative_id = egraph.add_expression(alternative_expression);
     ASSERT_TRUE(egraph.find_class_id(alternative_id) == egraph.find_class_id(id));
-    CostStorage cost_storage(egraph);
     egraph.to_img("OLS_numeric", "svg");
     Pruner::prune_symbolic_when_kernel_available(egraph);
     std::cout << "Doing extraction, num of nodes: " << egraph.num_nodes() << std::endl;
-    Extractor extractor(egraph, cost_storage, true, 20);
+    Extractor extractor(egraph, true, 20);
 
     auto result = extractor.extract(id);
     std::cout << "Candidate expression: " << result.expr.to_string(false) << std::endl;
@@ -68,8 +67,7 @@ TEST(Integration, OLSSymbolic) {
     rewriter.apply_rewrites(10);
     auto end_rewrite = std::chrono::high_resolution_clock::now();
 
-    CostStorage cost_storage(egraph);
-    Extractor extractor(egraph, cost_storage, true, 20);
+    Extractor extractor(egraph, true, 20);
     Rewriter kernel_rewriter(egraph, build_rewrite_sets({"lowering"}), 50000);
     kernel_rewriter.apply_rewrites();
     Pruner::prune_symbolic_when_kernel_available(egraph);

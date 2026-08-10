@@ -1,7 +1,6 @@
 #pragma once
 
 #include "basic_types.h"
-#include "cost_storage.h"
 #include "e_class.h"
 #include "e_graph_visualization.h"
 #include "e_node.h"
