@@ -15,10 +15,10 @@ TEST(Integration, GLSNumeric) {
     auto id = egraph.add_expression(Expression("(Inv(Tr(X) * Inv(M) * X) * (Tr(X) * Inv(M))) * y"));
 
     std::vector<Rewrite> rules = build_rewrite_sets({"complete"});
-    Rewriter rewriter(egraph, rules, 1000, true);
+    Rewriter rewriter(egraph, rules, EGraphConfig{.node_limit = 1000, .enable_backoff = true});
     while (rewriter.apply_rewrites(10))
         ;
-    Extractor extractor(egraph, true);
+    Extractor extractor(egraph, EGraphConfig{.enable_logging = true});
     Pruner::prune_symbolic_when_kernel_available(egraph);
     auto result = extractor.extract(id, 10);
     for (const auto &r : result) {
@@ -38,10 +38,10 @@ TEST(Integration, GLSSymbolic) {
     auto id = egraph.add_expression(Expression("(Inv(Tr(X) * Inv(M) * X) * (Tr(X) * Inv(M))) * y"));
 
     std::vector<Rewrite> rules = build_rewrite_sets({"complete"});
-    Rewriter rewriter(egraph, rules, 1000, true);
+    Rewriter rewriter(egraph, rules, EGraphConfig{.node_limit = 1000, .enable_backoff = true});
     while (rewriter.apply_rewrites(10))
         ;
-    Extractor extractor(egraph, true);
+    Extractor extractor(egraph, EGraphConfig{.enable_logging = true});
     auto result = extractor.extract(id, 10, {{"A", 100}, {"B", 20}});
     for (const auto &r : result) {
         std::cout << "Candidate expression: " << r.expr.to_string(true) << std::endl;

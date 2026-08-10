@@ -32,7 +32,7 @@ TEST_F(ExtractorTest, RewriteAndExtract) {
     Rewrite r2{"add_zero", p2_lhs, p2_rhs};
 
     std::vector<Rewrite> rules = {r1, r2};
-    Rewriter rewriter(egraph, rules, 1000);
+    Rewriter rewriter(egraph, rules, EGraphConfig{.node_limit = 1000});
     rewriter.apply_rewrites();
 
     ExtractionResult result = extractor.extract(root_id);

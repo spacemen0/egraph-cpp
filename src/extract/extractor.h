@@ -16,9 +16,7 @@ struct ExtractionResult {
 
 class Extractor {
   public:
-    explicit Extractor(
-        EGraph &egraph, bool enable_logging = false, size_t max_depth = 40, size_t node_visit_limit = 10000000);
-    explicit Extractor(EGraph &egraph, const EGraphConfig &config);
+    explicit Extractor(EGraph &egraph, const EGraphConfig &config = EGraphConfig());
 
     ExtractionResult extract(Id class_id, const SizeBindings &size_bindings = {}) const;
     std::vector<ExtractionResult>

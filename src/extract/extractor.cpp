@@ -49,9 +49,6 @@ static std::vector<const ENode *> choices_to_vector(const std::shared_ptr<const 
 }
 } // namespace
 
-Extractor::Extractor(EGraph &egraph, bool enable_logging, size_t max_depth, size_t node_visit_limit)
-    : egraph(egraph), enable_logging(enable_logging), max_depth(max_depth), node_visit_limit(node_visit_limit) {}
-
 Extractor::Extractor(EGraph &egraph, const EGraphConfig &config)
     : egraph(egraph), enable_logging(config.enable_logging), max_depth(config.max_depth),
       node_visit_limit(config.node_visit_limit) {}
