@@ -21,10 +21,10 @@ struct Rewrite {
 
 class Rewriter {
   public:
-    Rewriter(EGraph &egraph, std::vector<Rewrite> rewrites, const RewriteConfig &config = RewriteConfig())
-        : egraph(egraph), config(config), enable_backoff(config.enable_backoff),
-          enable_node_match_limit(config.enable_node_match_limit), rewrites(std::move(rewrites)),
-          max_nodes(config.node_limit) {
+    Rewriter(EGraph &egraph, std::vector<Rewrite> rewrites, const EGraphConfig &config = EGraphConfig())
+        : egraph(egraph), config(config), enable_backoff(config.rewrite.enable_backoff),
+          enable_node_match_limit(config.rewrite.enable_node_match_limit), rewrites(std::move(rewrites)),
+          max_nodes(config.rewrite.node_limit) {
         current_match_limits.resize(this->rewrites.size());
         rewrite_application_counts.resize(this->rewrites.size(), 0);
         ban_iterations_remaining.resize(this->rewrites.size(), 0);
@@ -35,17 +35,14 @@ class Rewriter {
         });
     }
 
-    Rewriter(EGraph &egraph, std::vector<Rewrite> rewrites, const EGraphConfig &config)
-        : Rewriter(egraph, std::move(rewrites), config.rewrite) {}
-
-    void set_config(const RewriteConfig &cfg) {
+    void set_config(const EGraphConfig &cfg) {
         config = cfg;
-        enable_backoff = cfg.enable_backoff;
-        enable_node_match_limit = cfg.enable_node_match_limit;
-        max_nodes = cfg.node_limit;
+        enable_backoff = cfg.rewrite.enable_backoff;
+        enable_node_match_limit = cfg.rewrite.enable_node_match_limit;
+        max_nodes = cfg.rewrite.node_limit;
     }
 
-    const RewriteConfig &get_config() const { return config; }
+    const EGraphConfig &get_config() const { return config; }
     bool apply_one_iteration(size_t node_match_limit = 0);
     bool apply_rewrites(int max_iterations);
     bool apply_rewrites();
@@ -67,7 +64,7 @@ class Rewriter {
     bool apply_matches(const std::vector<Match> &matches);
 
     EGraph &egraph;
-    RewriteConfig config;
+    EGraphConfig config;
     bool enable_backoff;
     bool enable_node_match_limit;
     std::vector<Rewrite> rewrites;

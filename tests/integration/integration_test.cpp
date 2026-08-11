@@ -19,7 +19,7 @@ TEST(Integration, MatrixPartialSet) {
     auto id = egraph.add_expression(Expression("Inv(A * Z) * A * Z * X"));
     std::vector<Rewrite> rules = {mul_assoc, invert_cancel_left, mul_identity_right};
 
-    Rewriter rewriter(egraph, rules, RewriteConfig{.node_limit = 1000});
+    Rewriter rewriter(egraph, rules, EGraphConfig{.rewrite = {.node_limit = 1000}});
     rewriter.apply_rewrites(4);
     Extractor extractor(egraph);
     auto result = extractor.extract(id);
@@ -41,7 +41,7 @@ TEST(Integration, SimplifyComplexMatrixChain) {
         invert_cancel_right,
         mul_assoc,
     };
-    Rewriter rewriter(egraph, rules, RewriteConfig{.node_limit = 1000});
+    Rewriter rewriter(egraph, rules, EGraphConfig{.rewrite = {.node_limit = 1000}});
     rewriter.apply_rewrites(8);
 
     Extractor extractor(egraph);
@@ -63,7 +63,8 @@ TEST(Integration, MinimalRealisticExplosionRules) {
         mul_identity_right,
     };
     Rewriter rewriter(
-        egraph, rules, RewriteConfig{.node_limit = 2000, .enable_backoff = false, .enable_node_match_limit = true});
+        egraph, rules,
+        EGraphConfig{.rewrite = {.node_limit = 2000, .enable_backoff = false, .enable_node_match_limit = true}});
     Extractor extractor(egraph);
     Pruner pruner(egraph, extractor);
 
@@ -109,7 +110,7 @@ TEST(Integration, CyclicTermsThatDoNotExplode) {
         invert_cancel_right,
         mul_identity_right,
     };
-    Rewriter rewriter(egraph, rules, RewriteConfig{.node_limit = 200});
+    Rewriter rewriter(egraph, rules, EGraphConfig{.rewrite = {.node_limit = 200}});
     int i = 20;
     while (i-- > 0) {
         if (!rewriter.apply_one_iteration()) {
@@ -131,7 +132,7 @@ TEST(Integration, MatrixChainSymbolicSizes) {
 
     const Expression root_expr("A * B * C * D * E * F * G");
     const Id root_id = egraph.add_expression(root_expr);
-    Rewriter rewriter(egraph, {mul_assoc}, RewriteConfig{.node_limit = 1000});
+    Rewriter rewriter(egraph, {mul_assoc}, EGraphConfig{.rewrite = {.node_limit = 1000}});
     rewriter.apply_rewrites();
 
     // egraph.to_img("MatrixChain", "svg");
@@ -181,7 +182,7 @@ TEST(Integration, SimpleDiagram) {
     EGraph egraph(pt);
     egraph.add_expression(Expression("(A + B) * (C + D)"));
     std::vector<Rewrite> rules = {commute_add, mul_distribute_left, mul_distribute_right};
-    Rewriter rewriter = Rewriter(egraph, rules, RewriteConfig{.node_limit = 1000});
+    Rewriter rewriter = Rewriter(egraph, rules, EGraphConfig{.rewrite = {.node_limit = 1000}});
     rewriter.apply_rewrites();
     egraph.to_dot_file("simple_diagram.dot");
     egraph.to_img("simple_diagram", "svg");
@@ -204,7 +205,8 @@ TEST(Integration, ExpressionMapToManyKernelSequences) {
     EGraph egraph(get_property_table());
     egraph.add_expression(Expression("Sol(Get(QR(X),1), Tr(Get(QR(X),0)) * y)"));
     Rewriter rewriter(
-        egraph, build_rewrite_sets({"lowering"}), RewriteConfig{.node_limit = 1000, .enable_backoff = true});
+        egraph, build_rewrite_sets({"lowering"}),
+        EGraphConfig{.rewrite = {.node_limit = 1000, .enable_backoff = true}});
     rewriter.apply_rewrites();
     Pruner::prune_symbolic_when_kernel_available(egraph);
     egraph.to_img("many_kernels", "svg");

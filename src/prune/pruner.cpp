@@ -80,9 +80,6 @@ void Pruner::rewrite_and_prune(
     const std::vector<Id> &roots, Rewriter &rewriter, const PrunerConfig &config,
     std::function<void(int iteration)> onIterationStart,
     std::function<void(int iteration, const PruneResult &)> onIterationFinish) const {
-    if (config.rewrite_config.has_value()) {
-        rewriter.set_config(config.rewrite_config.value());
-    }
     for (int i = 0; i < config.num_iterations; ++i) {
         if (onIterationStart) {
             onIterationStart(i);

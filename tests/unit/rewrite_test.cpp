@@ -20,7 +20,7 @@ TEST(Rewrite, SimpleRewrite) {
     EXPECT_NE(id_mul, id0);
     std::vector<Rewrite> rules = {make_rewrite("mul_zero", "?x * ?z", "?z", false, is_zero_cond("z"), nullptr)};
 
-    Rewriter rewriter(egraph, rules, RewriteConfig{.node_limit = 100});
+    Rewriter rewriter(egraph, rules, EGraphConfig{.rewrite = {.node_limit = 100}});
     bool changed = rewriter.apply_rewrites();
     EXPECT_TRUE(changed);
     EXPECT_EQ(egraph.find_class_id(id_mul), egraph.find_class_id(id0));
@@ -39,7 +39,7 @@ TEST(Rewrite, Commutativity) {
     EXPECT_NE(id_add, egraph.add_expression(Expression("Z + A")));
 
     std::vector<Rewrite> rules = {{"commute_add", lhs, rhs}};
-    Rewriter rewriter(egraph, rules, RewriteConfig{.node_limit = 100});
+    Rewriter rewriter(egraph, rules, EGraphConfig{.rewrite = {.node_limit = 100}});
     bool changed = rewriter.apply_rewrites();
     EXPECT_TRUE(changed);
 
@@ -59,7 +59,7 @@ TEST(Rewrite, NoMatch) {
 
     std::vector<Rewrite> rules = {{"add_zero", lhs, rhs}};
 
-    Rewriter rewriter(egraph, rules, RewriteConfig{.node_limit = 100});
+    Rewriter rewriter(egraph, rules, EGraphConfig{.rewrite = {.node_limit = 100}});
     bool changed = rewriter.apply_rewrites();
     EXPECT_FALSE(changed);
 }
@@ -80,7 +80,7 @@ TEST(Rewrite, NewNodes) {
         return std::make_pair(make_identity_for(g, s, "a"), false);
     })};
 
-    Rewriter rewriter(egraph, rules, RewriteConfig{.node_limit = 100});
+    Rewriter rewriter(egraph, rules, EGraphConfig{.rewrite = {.node_limit = 100}});
     bool changed = rewriter.apply_rewrites();
     EXPECT_TRUE(changed);
 
@@ -107,7 +107,7 @@ TEST(Rewrite, SolveRule) {
 
     Id id_expr = egraph.add_expression(Expression("Inv(a) * b"));
 
-    Rewriter rewriter(egraph, {solver_left}, RewriteConfig{.node_limit = 100});
+    Rewriter rewriter(egraph, {solver_left}, EGraphConfig{.rewrite = {.node_limit = 100}});
     bool changed = rewriter.apply_rewrites();
     EXPECT_TRUE(changed);
 
@@ -136,7 +136,7 @@ TEST(Rewrite, SolR_RightSolve) {
 
     Id id_expr = egraph.add_expression(Expression("b * Inv(a)"));
 
-    Rewriter rewriter(egraph, {solver_right, trsm_rn}, RewriteConfig{.node_limit = 100});
+    Rewriter rewriter(egraph, {solver_right, trsm_rn}, EGraphConfig{.rewrite = {.node_limit = 100}});
     bool changed = rewriter.apply_rewrites();
     EXPECT_TRUE(changed);
 
@@ -155,7 +155,7 @@ TEST(Rewrite, LLtRewrite) {
 
     Id id_expr = egraph.add_expression(Expression("Inv(V)"));
 
-    Rewriter rewriter(egraph, {llt_invert}, RewriteConfig{.node_limit = 100});
+    Rewriter rewriter(egraph, {llt_invert}, EGraphConfig{.rewrite = {.node_limit = 100}});
     bool changed = rewriter.apply_rewrites();
     EXPECT_TRUE(changed);
 
@@ -168,7 +168,7 @@ TEST(Rewrite, LLtToUtURewrite) {
 
     Id id_llt = egraph.add_expression(Expression("Get(LLt(V), 0)"));
 
-    Rewriter rewriter(egraph, {llt_to_utu}, RewriteConfig{.node_limit = 100});
+    Rewriter rewriter(egraph, {llt_to_utu}, EGraphConfig{.rewrite = {.node_limit = 100}});
     bool changed = rewriter.apply_rewrites();
     EXPECT_TRUE(changed);
 
@@ -196,7 +196,7 @@ TEST(Rewrite, BackoffScheduler) {
 
     std::vector<Rewrite> rules = {make_rewrite("inv_inv", "Inv(Inv(?x))", "?x", false, nullptr, nullptr, 2)};
 
-    Rewriter rewriter(egraph, rules, RewriteConfig{.node_limit = 1000, .enable_backoff = true});
+    Rewriter rewriter(egraph, rules, EGraphConfig{.rewrite = {.node_limit = 1000, .enable_backoff = true}});
 
     bool changed1 = rewriter.apply_one_iteration();
     EXPECT_TRUE(changed1);

@@ -16,7 +16,7 @@ TEST(Integration, OLSNumeric) {
     auto id = egraph.add_expression(
         inverse(transpose(Expression("J")) * Expression("J")) * transpose(Expression("J")) * Expression("k"));
     std::vector<Rewrite> rules = build_rewrite_sets({"complete"});
-    Rewriter rewriter(egraph, rules, RewriteConfig{.node_limit = 50000, .enable_backoff = true});
+    Rewriter rewriter(egraph, rules, EGraphConfig{.rewrite = {.node_limit = 50000, .enable_backoff = true}});
     constexpr int max_iterations = 10;
     for (int iteration = 0; iteration < max_iterations; ++iteration) {
         if (!rewriter.apply_one_iteration()) {
@@ -29,7 +29,7 @@ TEST(Integration, OLSNumeric) {
     // egraph.to_img("OLS_numeric", "svg");
     Pruner::prune_symbolic_when_kernel_available(egraph);
     std::cout << "Doing extraction, num of nodes: " << egraph.num_nodes() << std::endl;
-    Extractor extractor(egraph, ExtractorConfig{.max_depth = 20, .enable_logging = true});
+    Extractor extractor(egraph, EGraphConfig{.extractor = {.max_depth = 20}, .enable_logging = true});
 
     auto result = extractor.extract(id);
     std::cout << "Candidate expression: " << result.expr.to_string(false) << std::endl;
@@ -62,14 +62,15 @@ TEST(Integration, OLSSymbolic) {
     std::vector<Rewrite> rules = build_rewrite_sets({"complete"});
     auto end_rules = std::chrono::high_resolution_clock::now();
 
-    Rewriter rewriter(egraph, rules, RewriteConfig{.node_limit = 50000, .enable_backoff = true});
+    Rewriter rewriter(egraph, rules, EGraphConfig{.rewrite = {.node_limit = 50000, .enable_backoff = true}});
     auto start_rewrite = std::chrono::high_resolution_clock::now();
     rewriter.apply_rewrites(10);
     auto end_rewrite = std::chrono::high_resolution_clock::now();
 
-    Extractor extractor(egraph, ExtractorConfig{.max_depth = 20, .enable_logging = true});
+    Extractor extractor(egraph, EGraphConfig{.extractor = {.max_depth = 20}, .enable_logging = true});
     Rewriter kernel_rewriter(
-        egraph, build_rewrite_sets({"lowering"}), RewriteConfig{.node_limit = 50000, .enable_backoff = false});
+        egraph, build_rewrite_sets({"lowering"}),
+        EGraphConfig{.rewrite = {.node_limit = 50000, .enable_backoff = false}});
     kernel_rewriter.apply_rewrites();
     Pruner::prune_symbolic_when_kernel_available(egraph);
     auto start_extract = std::chrono::high_resolution_clock::now();

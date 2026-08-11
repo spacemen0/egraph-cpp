@@ -73,7 +73,7 @@ class Context {
     Id add(const Expression &expr) { return egraph.add_expression(expr); }
 
     void rewrite(const std::vector<std::string> &rulesets = {"complete"}) {
-        if (config.extractor.enable_logging) {
+        if (config.enable_logging) {
             std::cout << "[API] Running rewrite with rulesets: ";
             for (const auto &rs : rulesets)
                 std::cout << rs << " ";
@@ -81,7 +81,7 @@ class Context {
         }
         std::vector<Rewrite> rewrites = build_rewrite_sets(rulesets);
 
-        Rewriter rewriter(egraph, rewrites, config.rewrite);
+        Rewriter rewriter(egraph, rewrites, config);
         if (config.rewrite.max_iterations > 0) {
             rewriter.apply_rewrites(config.rewrite.max_iterations);
         } else {
@@ -90,18 +90,18 @@ class Context {
     }
 
     void prune_symbolic_when_kernel_available() {
-        if (config.extractor.enable_logging) {
+        if (config.enable_logging) {
             std::cout << "[API] Pruning symbolic nodes\n";
         }
         auto res = Pruner::prune_symbolic_when_kernel_available(egraph);
-        if (config.extractor.enable_logging) {
+        if (config.enable_logging) {
             std::cout << "[Pruner] Symbolic prune removed " << res.nodes_pruned << " nodes.\n";
         }
     }
 
     void rewrite_and_prune(
         const std::vector<Id> &target_ids, const std::vector<std::string> &rulesets = {"everything_but_lowering"}) {
-        if (config.extractor.enable_logging) {
+        if (config.enable_logging) {
             std::cout << "[API] Starting rewrite_and_prune...\n";
         }
 
@@ -111,14 +111,13 @@ class Context {
         }
 
         std::vector<Rewrite> rewrites = build_rewrite_sets(rulesets);
-        RewriteConfig rw_cfg = pruner_cfg.rewrite_config.value_or(config.rewrite);
-        Rewriter rewriter(egraph, rewrites, rw_cfg);
-        Extractor extractor(egraph, config.extractor);
+        Rewriter rewriter(egraph, rewrites, config);
+        Extractor extractor(egraph, config);
         Pruner pruner(egraph, extractor);
 
         pruner.rewrite_and_prune(
             target_ids, rewriter, pruner_cfg, nullptr, [this](int iteration, const PruneResult &result) {
-            if (config.extractor.enable_logging) {
+            if (config.enable_logging) {
                 std::cout << "[Pruner] Iteration " << iteration + 1 << " finished. Pruned " << result.nodes_pruned
                           << " nodes.\n";
             }
@@ -126,22 +125,22 @@ class Context {
     }
 
     void lower_to_kernels() {
-        if (config.extractor.enable_logging) {
+        if (config.enable_logging) {
             std::cout << "[API] Lowering to kernels...\n";
         }
         std::vector<Rewrite> rewrites = build_rewrite_sets({"lowering"});
 
-        Rewriter rewriter(egraph, rewrites, config.rewrite);
+        Rewriter rewriter(egraph, rewrites, config);
         rewriter.apply_rewrites();
         prune_symbolic_when_kernel_available();
     }
 
     ExtractionResult extract(Id target_id, const SizeBindings &bindings = {}) {
-        if (config.extractor.enable_logging) {
+        if (config.enable_logging) {
             std::cout << "[API] Extracting concrete expression for target " << target_id << "...\n";
         }
 
-        Extractor extractor(egraph, config.extractor);
+        Extractor extractor(egraph, config);
         if (bindings.empty()) {
             return extractor.extract(target_id);
         } else {
@@ -150,29 +149,29 @@ class Context {
     }
 
     ExtractionResult extract_greedy(Id target_id, const SizeBindings &bindings = {}) {
-        if (config.extractor.enable_logging) {
+        if (config.enable_logging) {
             std::cout << "[API] Fast greedy extraction for target " << target_id << "...\n";
         }
 
-        Extractor extractor(egraph, config.extractor);
+        Extractor extractor(egraph, config);
         return extractor.tree_extract(target_id, bindings);
     }
 
     std::vector<ExtractionResult> extract_symbolic() { return extract_symbolic(target_id); }
 
     std::vector<ExtractionResult> extract_symbolic(Id target_id) {
-        if (config.extractor.enable_logging) {
+        if (config.enable_logging) {
             std::cout << "[API] Extracting symbolic expressions for target " << target_id << "...\n";
         }
 
-        Extractor extractor(egraph, config.extractor);
+        Extractor extractor(egraph, config);
         return extractor.extract_symbolic(target_id);
     }
 
     Expression optimize_concrete(
         const Expression &target_expr, const std::vector<Expression> &background_exprs = {},
         const std::vector<std::string> &rulesets = {"complete"}) {
-        if (config.extractor.enable_logging) {
+        if (config.enable_logging) {
             std::cout << "[API] Optimizing concrete expression: " << target_expr.to_string() << "\n";
         }
         Id target_id = add(target_expr);
@@ -191,18 +190,25 @@ class Context {
     std::vector<double>
     evaluate_concrete(Id target_id, const SizeBindings &size_bindings, const DataBindings &bindings = {}) {
         auto result = extract(target_id, size_bindings);
-        if (config.extractor.enable_logging) {
+        if (config.enable_logging) {
             std::cout << "[API] Extracted expression: " << result.expr.to_string() << "\n";
             std::cout << "[API] Evaluating concrete expression...\n";
         }
+        auto start_evaluate = std::chrono::high_resolution_clock::now();
         Evaluator evaluator(egraph, result, &size_bindings, bindings);
-        return evaluator.evaluate();
+        auto result_eval = evaluator.evaluate();
+        auto end_evaluate = std::chrono::high_resolution_clock::now();
+        if (config.enable_logging) {
+            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_evaluate - start_evaluate);
+            std::cout << "[API] Evaluation time: " << duration.count() << " microseconds\n";
+        }
+        return result_eval;
     }
 
     void optimize_symbolic(
         const Expression &target_expr, const std::vector<Expression> &background_exprs = {},
         const std::vector<std::string> &rulesets = {"everything_but_lowering"}) {
-        if (config.extractor.enable_logging) {
+        if (config.enable_logging) {
             std::cout << "[API] Optimizing symbolic expression: " << target_expr.to_string() << "\n";
         }
         target_id = add(target_expr);

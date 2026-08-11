@@ -6,7 +6,7 @@
 
 int main() {
     EGraphRunner::Context ctx;
-
+    ctx.get_config().enable_logging = true;
     Expression X = ctx.define_matrix_symbolic("X", "a", "b", {"full_rank", "tall"});
     Expression y = ctx.define_matrix_symbolic("y", "a", 1);
     Expression target_math = (inverse(transpose(X) * X) * transpose(X)) * y;

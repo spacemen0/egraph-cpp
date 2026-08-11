@@ -10,7 +10,7 @@ TEST(ScaleRewrite, ScaleCollapseDoubles) {
     // Scale(Scale(A, 1.5), 2.0) -> Scale(A, 3)
     Id id = egraph.add_expression(Expression("Scale(Scale(A, 1.5), 2.0)"));
 
-    Rewriter rewriter(egraph, {scale_collapse}, RewriteConfig{.node_limit = 100});
+    Rewriter rewriter(egraph, {scale_collapse}, EGraphConfig{.rewrite = {.node_limit = 100}});
     rewriter.apply_rewrites();
 
     Id id_expected = egraph.add_expression(Expression("Scale(A, 3)"));
@@ -23,7 +23,7 @@ TEST(ScaleRewrite, ScaleCombineDoubles) {
     // Scale(A, 0.5) + Scale(A, 0.5) -> Scale(A, 1) -> A
     Id id = egraph.add_expression(Expression("Scale(A, 0.5) + Scale(A, 0.5)"));
 
-    Rewriter rewriter(egraph, {scale_combine, scale_one}, RewriteConfig{.node_limit = 100});
+    Rewriter rewriter(egraph, {scale_combine, scale_one}, EGraphConfig{.rewrite = {.node_limit = 100}});
     rewriter.apply_rewrites();
 
     Id id_expected = egraph.add_expression(Expression("A"));
@@ -36,7 +36,7 @@ TEST(ScaleRewrite, ScaleCombineImplicitDoubles) {
     // Scale(A, 0.5) + A -> Scale(A, 1.5)
     Id id = egraph.add_expression(Expression("Scale(A, 0.5) + A"));
 
-    Rewriter rewriter(egraph, {scale_combine_implicit}, RewriteConfig{.node_limit = 100});
+    Rewriter rewriter(egraph, {scale_combine_implicit}, EGraphConfig{.rewrite = {.node_limit = 100}});
     rewriter.apply_rewrites();
 
     Id id_expected = egraph.add_expression(Expression("Scale(A, 1.5)"));
@@ -49,7 +49,7 @@ TEST(ScaleRewrite, ScaleInverse) {
     // Inv(Scale(A, 2.0)) -> Scale(Inv(A), 0.5)
     Id id = egraph.add_expression(Expression("Inv(Scale(A, 2.0))"));
 
-    Rewriter rewriter(egraph, {scale_inverse}, RewriteConfig{.node_limit = 100});
+    Rewriter rewriter(egraph, {scale_inverse}, EGraphConfig{.rewrite = {.node_limit = 100}});
     rewriter.apply_rewrites();
 
     Id id_expected = egraph.add_expression(Expression("Scale(Inv(A), 0.5)"));
@@ -65,7 +65,7 @@ TEST(ScaleRewrite, ComplexScaleProduct) {
 
     Rewriter rewriter(
         egraph, {scale_inverse, scale_mul_distribute_left, scale_mul_distribute_right, scale_collapse, scale_one},
-        RewriteConfig{.node_limit = 100});
+        EGraphConfig{.rewrite = {.node_limit = 100}});
     rewriter.apply_rewrites();
 
     Id id_expected = egraph.add_expression(Expression("Inv(A) * Z"));
