@@ -178,7 +178,7 @@ TEST(Integration, SimpleDiagram) {
     pt.add_or_update_property_entry("C", {.shape = std::make_pair(3, 3)});
     pt.add_or_update_property_entry("D", {.shape = std::make_pair(3, 3)});
     EGraph egraph(pt);
-    auto id = egraph.add_expression(Expression("(A + B) * (C + D)"));
+    egraph.add_expression(Expression("(A + B) * (C + D)"));
     std::vector<Rewrite> rules = {commute_add, mul_distribute_left, mul_distribute_right};
     Rewriter rewriter = Rewriter(egraph, rules, RewriteConfig{.node_limit = 1000});
     rewriter.apply_rewrites();

@@ -848,7 +848,6 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
     case SolR:
         return analyze_solve_right(egraph, children);
     case Det:
-        return AnalysisData{};
     case Log:
         return AnalysisData{};
     case Scale:

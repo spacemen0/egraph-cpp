@@ -191,8 +191,8 @@ TEST(Rewrite, BackoffScheduler) {
 
     EGraph egraph(std::move(pt));
 
-    Id id1 = egraph.add_expression(Expression("Inv(Inv(Inv(a)))"));
-    Id id2 = egraph.add_expression(Expression("Inv(Inv(Inv(b)))"));
+    egraph.add_expression(Expression("Inv(Inv(Inv(a)))"));
+    egraph.add_expression(Expression("Inv(Inv(Inv(b)))"));
 
     std::vector<Rewrite> rules = {make_rewrite("inv_inv", "Inv(Inv(?x))", "?x", false, nullptr, nullptr, 2)};
 
