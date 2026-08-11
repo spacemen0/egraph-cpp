@@ -33,7 +33,7 @@ def generate_matrix(rows: int, cols: int, prop_type: str = "general") -> np.ndar
         U, _ = np.linalg.qr(np.random.randn(rows, k), mode="reduced")
         vt, _ = np.linalg.qr(np.random.randn(cols, k), mode="reduced")
         singular_values = np.linspace(1.0, 10.0, k)
-        return U @ np.diag(singular_values) @ vt
+        return U @ np.diag(singular_values) @ vt.T
 
     elif prop in ["lower_triangular", "lower", "tril"]:
         A = np.random.randn(rows, cols)

@@ -42,5 +42,6 @@ int main() {
 
     std::string out_path = "examples/data/gls_result.csv";
     write_matrix(out_path, row, col, out);
+    std::cout << "GLS Evaluated result shape (" << row << "x" << col << ") saved to " << out_path << "\n";
     return 0;
 }
