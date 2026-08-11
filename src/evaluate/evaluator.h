@@ -2,10 +2,22 @@
 #include "e_graph.h"
 #include "extractor.h"
 
+#include <memory>
+
 struct MatrixNode {
-    std::vector<double> raw_data_vector;
-    int rows;
-    int cols;
+    std::shared_ptr<std::vector<double>> data_ptr;
+    int rows = 0;
+    int cols = 0;
+
+    MatrixNode() = default;
+    MatrixNode(int r, int c) : data_ptr(std::make_shared<std::vector<double>>(r * c)), rows(r), cols(c) {}
+    MatrixNode(int r, int c, std::vector<double> vec)
+        : data_ptr(std::make_shared<std::vector<double>>(std::move(vec))), rows(r), cols(c) {}
+
+    const double *data() const { return data_ptr ? data_ptr->data() : nullptr; }
+    double *data() { return data_ptr ? data_ptr->data() : nullptr; }
+    const std::vector<double> &vec() const { return *data_ptr; }
+    std::vector<double> &vec() { return *data_ptr; }
 };
 
 struct TupleNode {
