@@ -1,4 +1,4 @@
-#include "ReadMatrix.h"
+#include "MatrixIO.h"
 #include "api.h"
 #include "utils.h"
 #include <iostream>
@@ -12,8 +12,8 @@ int main() {
     Expression target_math = (inverse(transpose(X) * X) * transpose(X)) * y;
 
     ctx.optimize_symbolic(target_math);
-    auto [x_sizes, x_data] = read_matrix("examples/data/ols_x.txt");
-    auto [y_sizes, y_data] = read_matrix("examples/data/ols_y.txt");
+    auto [x_sizes, x_data] = read_matrix("examples/data/ols_x.csv");
+    auto [y_sizes, y_data] = read_matrix("examples/data/ols_y.csv");
 
     if (x_sizes.first <= 0 || x_sizes.second <= 0) {
         std::cerr << "Size error: X must be non-empty.\n";
@@ -39,11 +39,8 @@ int main() {
     auto out_shape = bind_shape(ctx.get_property().shape, &concrete_sizes);
     int row = std::get<int>(out_shape.first);
     int col = std::get<int>(out_shape.second);
-    for (int i = 0; i < row; ++i) {
-        for (int j = 0; j < col; ++j) {
-            std::cout << out[i * col + j] << " ";
-        }
-        std::cout << "\n";
-    }
+
+    std::string out_path = "examples/data/ols_result.csv";
+    write_matrix(out_path, row, col, out);
     return 0;
 }

@@ -1,4 +1,4 @@
-#include "ReadMatrix.h"
+#include "MatrixIO.h"
 #include "api.h"
 #include <iostream>
 
@@ -11,9 +11,9 @@ int main() {
     Expression target_math = inverse(transpose(X) * inverse(M) * X) * transpose(X) * inverse(M) * y;
 
     ctx.optimize_symbolic(target_math);
-    auto [m_sizes, m_data] = read_matrix("examples/data/gls_m.txt");
-    auto [x_sizes, x_data] = read_matrix("examples/data/gls_x.txt");
-    auto [y_sizes, y_data] = read_matrix("examples/data/gls_y.txt");
+    auto [m_sizes, m_data] = read_matrix("examples/data/gls_m.csv");
+    auto [x_sizes, x_data] = read_matrix("examples/data/gls_x.csv");
+    auto [y_sizes, y_data] = read_matrix("examples/data/gls_y.csv");
 
     if (m_sizes.first != m_sizes.second) {
         std::cerr << "Size error: M must be square.\n";
@@ -39,11 +39,8 @@ int main() {
     auto out_shape = bind_shape(ctx.get_property().shape, &concrete_sizes);
     int row = std::get<int>(out_shape.first);
     int col = std::get<int>(out_shape.second);
-    for (int i = 0; i < row; ++i) {
-        for (int j = 0; j < col; ++j) {
-            std::cout << out[i * col + j] << " ";
-        }
-        std::cout << "\n";
-    }
-    std::cout << "\n";
+
+    std::string out_path = "examples/data/gls_result.csv";
+    write_matrix(out_path, row, col, out);
+    return 0;
 }

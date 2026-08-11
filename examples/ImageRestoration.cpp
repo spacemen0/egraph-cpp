@@ -1,26 +1,27 @@
-#include "ReadMatrix.h"
+#include "MatrixIO.h"
 #include "api.h"
+#include "utils.h"
 #include <iostream>
-#include <vector>
+#include <utility>
 
 int main() {
     EGraphRunner::Context ctx;
-    Expression H = ctx.define_matrix_symbolic("H", "a", "b", {"full_rank", "wide"});
+
     Expression y = ctx.define_matrix_symbolic("y", "a", 1);
+    Expression H = ctx.define_matrix_symbolic("H", "a", "b", {"full_rank", "wide"});
     Expression I = ctx.define_matrix_symbolic("I", "b", "b", {"identity"});
     Expression x = ctx.define_matrix_symbolic("x", "b", 1);
 
-    Expression math_1 = transpose(H) * inverse(H * transpose(H));
-    Expression math_2 = math_1 * y + (I - math_1 * H) * x;
+    Expression math_1 = inverse(transpose(H) * H + I) * (transpose(H) * y + x);
+    Expression math_2 = inverse(transpose(H) * H) * (transpose(H) * y + x);
+
     auto id_1 = ctx.add(math_1);
     auto id_2 = ctx.add(math_2);
-    // ctx.rewrite_and_prune({id_1, id_2});
-    // ctx.lower_to_kernels();
     ctx.rewrite();
     ctx.prune_symbolic_when_kernel_available();
-    auto [h_sizes, h_data] = read_matrix("examples/data/image_h.txt");
-    auto [y_sizes, y_data] = read_matrix("examples/data/image_y.txt");
-    auto [x_sizes, x_data] = read_matrix("examples/data/image_x.txt");
+    auto [h_sizes, h_data] = read_matrix("examples/data/image_h.csv");
+    auto [y_sizes, y_data] = read_matrix("examples/data/image_y.csv");
+    auto [x_sizes, x_data] = read_matrix("examples/data/image_x.csv");
 
     if (h_sizes.first >= h_sizes.second) {
         std::cerr << "Size error: H must be wide (rows < cols).\n";
@@ -48,23 +49,17 @@ int main() {
         auto out_shape = bind_shape(ctx.get_property(id_2).shape, &concrete_sizes);
         int row = std::get<int>(out_shape.first);
         int col = std::get<int>(out_shape.second);
-        for (int i = 0; i < row; ++i) {
-            for (int j = 0; j < col; ++j) {
-                std::cout << out2[i * col + j] << " ";
-            }
-            std::cout << "\n";
-        }
+        std::string out_path2 = "examples/data/image_result_2.csv";
+        write_matrix(out_path2, row, col, out2);
     }
+
     auto out1 = ctx.evaluate_concrete(id_1, concrete_sizes, concrete_data);
     {
         auto out_shape = bind_shape(ctx.get_property(id_1).shape, &concrete_sizes);
         int row = std::get<int>(out_shape.first);
         int col = std::get<int>(out_shape.second);
-        for (int i = 0; i < row; ++i) {
-            for (int j = 0; j < col; ++j) {
-                std::cout << out1[i * col + j] << " ";
-            }
-            std::cout << "\n";
-        }
+        std::string out_path1 = "examples/data/image_result_1.csv";
+        write_matrix(out_path1, row, col, out1);
     }
+    return 0;
 }
