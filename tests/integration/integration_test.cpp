@@ -62,7 +62,8 @@ TEST(Integration, MinimalRealisticExplosionRules) {
         invert_cancel_left,
         mul_identity_right,
     };
-    Rewriter rewriter(egraph, rules, RewriteConfig{.node_limit = 2000, .enable_backoff = false, .enable_node_match_limit = true});
+    Rewriter rewriter(
+        egraph, rules, RewriteConfig{.node_limit = 2000, .enable_backoff = false, .enable_node_match_limit = true});
     Extractor extractor(egraph);
     Pruner pruner(egraph, extractor);
 
@@ -202,7 +203,8 @@ TEST(Integration, VerySimpleDiagram) {
 TEST(Integration, ExpressionMapToManyKernelSequences) {
     EGraph egraph(get_property_table());
     egraph.add_expression(Expression("Sol(Get(QR(X),1), Tr(Get(QR(X),0)) * y)"));
-    Rewriter rewriter(egraph, build_rewrite_sets({"lowering"}), RewriteConfig{.node_limit = 1000, .enable_backoff = true});
+    Rewriter rewriter(
+        egraph, build_rewrite_sets({"lowering"}), RewriteConfig{.node_limit = 1000, .enable_backoff = true});
     rewriter.apply_rewrites();
     Pruner::prune_symbolic_when_kernel_available(egraph);
     egraph.to_img("many_kernels", "svg");

@@ -11,7 +11,6 @@ struct Expression {
     explicit Expression(const Atom &atom, std::vector<Expression> children)
         : atom(atom), children(std::move(children)) {};
 
-
     explicit Expression(const ENode &node, const EGraph &egraph);
     Atom atom;
     std::vector<Expression> children;
@@ -27,5 +26,3 @@ inline Expression transpose(const Expression &e) { return Expression(Op::Tr, {e}
 inline Expression inverse(const Expression &e) { return Expression(Op::Inv, {e}); }
 inline Expression determinant(const Expression &e) { return Expression(Op::Det, {e}); }
 inline Expression log(const Expression &e) { return Expression(Op::Log, {e}); }
-
-

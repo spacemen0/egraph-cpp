@@ -20,8 +20,8 @@ static const auto gemv_without_c =
     auto gemv_node = ENode{{a_id, b_id, zero}, Op::Gemv_N};
     return std::make_pair(g.add_node(gemv_node), false);
 });
-static const auto gemv_with_c =
-    make_rewrite("gemv_with_c", "?a * ?b + ?c", "Gemv_N(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
+static const auto gemv_with_c = make_rewrite(
+    "gemv_with_c", "?a * ?b + ?c", "Gemv_N(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
     return is_matrix("a")(g, s) && is_vector("b")(g, s) && is_vector("c")(g, s) && is_not_op("a", Op::Tr)(g, s);
 });
 static const auto gemv_t_without_c =
@@ -71,8 +71,10 @@ static const auto syrk_without_c_right = make_rewrite(
     auto syrk_node = ENode{{a_id, zero}, Op::Syrk_T};
     return std::make_pair(g.add_node(syrk_node), false);
 });
-static const auto syrk_with_c_left = make_rewrite("syrk_with_c_left", "?a * Tr(?a) + ?c", "Syrk_N(?a, ?c)", false, is_symmetric("c"));
-static const auto syrk_with_c_right = make_rewrite("syrk_with_c_right", "Tr(?a) * ?a + ?c", "Syrk_T(?a, ?c)", false, is_symmetric("c"));
+static const auto syrk_with_c_left =
+    make_rewrite("syrk_with_c_left", "?a * Tr(?a) + ?c", "Syrk_N(?a, ?c)", false, is_symmetric("c"));
+static const auto syrk_with_c_right =
+    make_rewrite("syrk_with_c_right", "Tr(?a) * ?a + ?c", "Syrk_T(?a, ?c)", false, is_symmetric("c"));
 static const auto trsm =
     make_rewrite("trsm", "Sol(?a, ?b)", "Trsm_LN(?a, ?b)", false, [](const EGraph &g, const Substitution &s) {
     return is_square("a")(g, s) && is_triangular("a")(g, s);
@@ -86,7 +88,8 @@ static const auto gemm_tt = make_rewrite("gemm_tt", "Gemm_NN(Tr(?a), Tr(?b), ?c)
 
 static const auto syrk_t = make_rewrite("syrk_t", "Syrk_N(Tr(?a), ?c)", "Syrk_T(?a, ?c)", false);
 
-static const auto trsm_lt = make_rewrite("trsm_lt", "Trsm_LN(Tr(?a), ?b)", "Trsm_LT(?a, ?b)", false, is_triangular("a"));
+static const auto trsm_lt =
+    make_rewrite("trsm_lt", "Trsm_LN(Tr(?a), ?b)", "Trsm_LT(?a, ?b)", false, is_triangular("a"));
 
 static const auto trsm_rn = make_rewrite(
     "trsm_rn_direct", "SolR(?a, ?b)", "Trsm_RN(?a, ?b)", false, [](const EGraph &g, const Substitution &s) {
@@ -101,10 +104,14 @@ static const auto potrf_l = make_rewrite("potrf_l", "LLt(?a)", "Potrf_L(?a)", fa
 static const auto potrf_u = make_rewrite("potrf_u", "UtU(?a)", "Potrf_U(?a)", false);
 static const auto geqrf = make_rewrite("geqrf", "QR(?a)", "Geqrf(?a)", false);
 static const auto get_orgqr = make_rewrite("get_orgqr", "Get(Geqrf(?a), 0)", "Orgqr(Geqrf(?a))", false);
-static const auto fuse_ormqr_ln = make_rewrite("fuse_ormqr_ln", "Get(Geqrf(?a), 0) * ?b", "Ormqr_LN(Geqrf(?a), ?b)", false);
-static const auto fuse_ormqr_lt = make_rewrite("fuse_ormqr_lt", "Tr(Get(Geqrf(?a), 0)) * ?b", "Ormqr_LT(Geqrf(?a), ?b)", false);
-static const auto fuse_ormqr_rn = make_rewrite("fuse_ormqr_rn", "?b * Get(Geqrf(?a), 0)", "Ormqr_RN(Geqrf(?a), ?b)", false);
-static const auto fuse_ormqr_rt = make_rewrite("fuse_ormqr_rt", "?b * Tr(Get(Geqrf(?a), 0))", "Ormqr_RT(Geqrf(?a), ?b)", false);
+static const auto fuse_ormqr_ln =
+    make_rewrite("fuse_ormqr_ln", "Get(Geqrf(?a), 0) * ?b", "Ormqr_LN(Geqrf(?a), ?b)", false);
+static const auto fuse_ormqr_lt =
+    make_rewrite("fuse_ormqr_lt", "Tr(Get(Geqrf(?a), 0)) * ?b", "Ormqr_LT(Geqrf(?a), ?b)", false);
+static const auto fuse_ormqr_rn =
+    make_rewrite("fuse_ormqr_rn", "?b * Get(Geqrf(?a), 0)", "Ormqr_RN(Geqrf(?a), ?b)", false);
+static const auto fuse_ormqr_rt =
+    make_rewrite("fuse_ormqr_rt", "?b * Tr(Get(Geqrf(?a), 0))", "Ormqr_RT(Geqrf(?a), ?b)", false);
 
 static const auto trtri = make_rewrite("trtri", "Inv(?a)", "Trtri(?a)", false, is_triangular("a"));
 

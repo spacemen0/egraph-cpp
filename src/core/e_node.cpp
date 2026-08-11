@@ -1,7 +1,7 @@
 #include "e_node.h"
-#include "op_costs.h"
 #include "basic_types.h"
 #include "e_graph.h"
+#include "op_costs.h"
 #include "types.h"
 #include "utils.h"
 #include <algorithm>
@@ -68,8 +68,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
     if (is_leaf()) {
         return 0.0;
     }
-    
-    
+
     if (auto op = std::get_if<Op>(&atom)) {
         switch (*op) {
             using enum Op;
