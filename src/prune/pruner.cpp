@@ -87,7 +87,8 @@ void Pruner::rewrite_and_prune(
         rewriter.reset();
         rewriter.apply_rewrites(config.rewrite_steps_per_iteration);
 
-        const auto bindings = sample_size_bindings(config.prune_samples_per_iteration, 1, 1000, config.size_keys);
+        const auto bindings =
+            sample_size_bindings(config.prune_samples_per_iteration, 1, 1000, config.size_keys, config.seed + i);
         const auto prune_result = prune(roots, bindings, config.max_results_per_binding);
 
         if (onIterationFinish) {

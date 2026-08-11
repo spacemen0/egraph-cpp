@@ -280,12 +280,13 @@ inline bool is_numeric(const Shape &shape) {
     return std::holds_alternative<int>(shape.first) && std::holds_alternative<int>(shape.second);
 }
 
-inline SizeBindings sample_size_bindings(int lower_bound, int upper_bound, std::span<const std::string_view> keys) {
+inline SizeBindings
+sample_size_bindings(int lower_bound, int upper_bound, std::span<const std::string_view> keys, uint32_t seed = 42) {
     if (lower_bound > upper_bound) {
         throw std::invalid_argument("sample_size_bindings: lower_bound cannot be greater than upper_bound");
     }
 
-    static thread_local std::mt19937 gen(std::random_device{}());
+    static thread_local std::mt19937 gen(seed);
     std::uniform_int_distribution<int> dist(lower_bound, upper_bound);
 
     SizeBindings bindings;
@@ -296,12 +297,13 @@ inline SizeBindings sample_size_bindings(int lower_bound, int upper_bound, std::
     return bindings;
 }
 
-inline SizeBindings sample_size_bindings(int lower_bound, int upper_bound, std::vector<std::string> keys) {
+inline SizeBindings
+sample_size_bindings(int lower_bound, int upper_bound, std::vector<std::string> keys, uint32_t seed = 42) {
     if (lower_bound > upper_bound) {
         throw std::invalid_argument("sample_size_bindings: lower_bound cannot be greater than upper_bound");
     }
 
-    static thread_local std::mt19937 gen(std::random_device{}());
+    static thread_local std::mt19937 gen(seed);
     std::uniform_int_distribution<int> dist(lower_bound, upper_bound);
 
     SizeBindings bindings;
@@ -312,12 +314,19 @@ inline SizeBindings sample_size_bindings(int lower_bound, int upper_bound, std::
     return bindings;
 }
 
-inline std::vector<SizeBindings>
-sample_size_bindings(size_t k, int lower_bound, int upper_bound, const std::vector<std::string> &keys) {
+inline std::vector<SizeBindings> sample_size_bindings(
+    size_t k, int lower_bound, int upper_bound, const std::vector<std::string> &keys, uint32_t seed = 42) {
+    std::mt19937 gen(seed);
+    std::uniform_int_distribution<int> dist(lower_bound, upper_bound);
     std::vector<SizeBindings> samples;
     samples.reserve(k);
     for (size_t i = 0; i < k; ++i) {
-        samples.push_back(sample_size_bindings(lower_bound, upper_bound, keys));
+        SizeBindings bindings;
+        bindings.reserve(keys.size());
+        for (const std::string &key : keys) {
+            bindings[key] = dist(gen);
+        }
+        samples.push_back(bindings);
     }
     return samples;
 }

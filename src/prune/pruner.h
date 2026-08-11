@@ -4,7 +4,6 @@
 #include "extractor.h"
 #include "rewriter.h"
 #include <functional>
-#include <string>
 #include <vector>
 
 #include "egraph_config.h"

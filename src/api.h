@@ -106,9 +106,7 @@ class Context {
         }
 
         PrunerConfig pruner_cfg = config.pruner;
-        if (pruner_cfg.size_keys.empty()) {
-            pruner_cfg.size_keys = size_keys;
-        }
+        pruner_cfg.size_keys = size_keys;
 
         std::vector<Rewrite> rewrites = build_rewrite_sets(rulesets);
         Rewriter rewriter(egraph, rewrites, config);
@@ -194,8 +192,8 @@ class Context {
             std::cout << "[API] Extracted expression: " << result.expr.to_string() << "\n";
             std::cout << "[API] Evaluating concrete expression...\n";
         }
-        auto start_evaluate = std::chrono::high_resolution_clock::now();
         Evaluator evaluator(egraph, result, &size_bindings, bindings);
+        auto start_evaluate = std::chrono::high_resolution_clock::now();
         auto result_eval = evaluator.evaluate();
         auto end_evaluate = std::chrono::high_resolution_clock::now();
         if (config.enable_logging) {

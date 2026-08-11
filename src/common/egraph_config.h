@@ -21,6 +21,7 @@ struct PrunerConfig {
     int rewrite_steps_per_iteration = 6;
     int prune_samples_per_iteration = 5;
     int max_results_per_binding = 5;
+    uint32_t seed = 42;
     std::vector<std::string> size_keys;
 };
 
