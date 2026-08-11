@@ -18,9 +18,27 @@ int main() {
     // ctx.lower_to_kernels();
     ctx.rewrite();
     ctx.prune_symbolic_when_kernel_available();
-    auto [h_sizes, h_data] = read_matrix("data/image_h.txt");
-    auto [y_sizes, y_data] = read_matrix("data/image_y.txt");
-    auto [x_sizes, x_data] = read_matrix("data/image_x.txt");
+    auto [h_sizes, h_data] = read_matrix("examples/data/image_h.txt");
+    auto [y_sizes, y_data] = read_matrix("examples/data/image_y.txt");
+    auto [x_sizes, x_data] = read_matrix("examples/data/image_x.txt");
+
+    if (h_sizes.first >= h_sizes.second) {
+        std::cerr << "Size error: H must be wide (rows < cols).\n";
+        return 1;
+    }
+    if (y_sizes.second != 1 || x_sizes.second != 1) {
+        std::cerr << "Size error: y and x must be column vectors.\n";
+        return 1;
+    }
+    if (h_sizes.first != y_sizes.first) {
+        std::cerr << "Size error: H and y must have the same number of rows.\n";
+        return 1;
+    }
+    if (h_sizes.second != x_sizes.first) {
+        std::cerr << "Size error: H and x must agree on the inner dimension.\n";
+        return 1;
+    }
+
     SizeBindings concrete_sizes = {{"a", h_sizes.first}, {"b", h_sizes.second}};
     DataBindings concrete_data = {
         {"y", y_data}, {"H", h_data}, {"I", generate_identity_matrix(h_sizes.second)}, {"x", x_data}};

@@ -11,9 +11,26 @@ int main() {
     Expression target_math = inverse(transpose(X) * inverse(M) * X) * transpose(X) * inverse(M) * y;
 
     ctx.optimize_symbolic(target_math);
-    auto [m_sizes, m_data] = read_matrix("data/gls_m.txt");
-    auto [x_sizes, x_data] = read_matrix("data/gls_x.txt");
-    auto [y_sizes, y_data] = read_matrix("data/gls_y.txt");
+    auto [m_sizes, m_data] = read_matrix("examples/data/gls_m.txt");
+    auto [x_sizes, x_data] = read_matrix("examples/data/gls_x.txt");
+    auto [y_sizes, y_data] = read_matrix("examples/data/gls_y.txt");
+
+    if (m_sizes.first != m_sizes.second) {
+        std::cerr << "Size error: M must be square.\n";
+        return 1;
+    }
+    if (y_sizes.second != 1) {
+        std::cerr << "Size error: y must be column vectors.\n";
+        return 1;
+    }
+    if (x_sizes.first != y_sizes.first) {
+        std::cerr << "Size error: X and y must have the same number of rows.\n";
+        return 1;
+    }
+    if (m_sizes.first != x_sizes.first) {
+        std::cerr << "Size error: M and X must have the same number of rows.\n";
+        return 1;
+    }
 
     SizeBindings concrete_sizes = {{"a", x_sizes.first}, {"b", x_sizes.second}};
     DataBindings concrete_data = {{"X", x_data}, {"M", m_data}, {"y", y_data}};
