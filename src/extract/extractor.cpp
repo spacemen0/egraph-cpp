@@ -56,7 +56,6 @@ Extractor::Extractor(EGraph &egraph, const EGraphConfig &config)
 void Extractor::reset() const {
     tree_cost.clear();
     minimal_possible_sub_tree_costs.clear();
-    min_local_cost.clear();
     minimal_possible_sizes.clear();
     greedy_choices.clear();
     nodes_visited = 0;
@@ -228,7 +227,6 @@ Extractor::convert_to_map(const std::vector<const ENode *> &choices, const std::
 void Extractor::initial_tree_search_pass(const SizeBindings *size_bindings) const {
     tree_cost.clear();
     minimal_possible_sub_tree_costs.clear();
-    min_local_cost.clear();
     minimal_possible_sizes.clear();
     greedy_choices.clear();
 
@@ -236,7 +234,6 @@ void Extractor::initial_tree_search_pass(const SizeBindings *size_bindings) cons
     for (Id id : all_class_ids) {
         tree_cost[id] = std::numeric_limits<double>::infinity();
         minimal_possible_sub_tree_costs[id] = std::numeric_limits<double>::infinity();
-        min_local_cost[id] = std::numeric_limits<double>::infinity();
         minimal_possible_sizes[id] = std::numeric_limits<double>::infinity();
     }
 
@@ -250,7 +247,6 @@ void Extractor::initial_tree_search_pass(const SizeBindings *size_bindings) cons
                     continue;
                 }
                 double local = std::get<double>(local_cost);
-                min_local_cost[class_id] = std::min(min_local_cost[class_id], local);
 
                 // Lower bounds for dag cost and size
                 double max_child_cost = 0;

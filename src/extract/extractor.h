@@ -49,7 +49,6 @@ class Extractor {
 
     mutable std::unordered_map<Id, double> tree_cost;                       // Tree cost (Heuristic)
     mutable std::unordered_map<Id, double> minimal_possible_sub_tree_costs; // Max-path cost (Safe LB)
-    mutable std::unordered_map<Id, double> min_local_cost;                  // Minimum node local cost per class
     mutable std::unordered_map<Id, size_t> minimal_possible_sizes;          // Max-path size (Safe LB)
     mutable std::unordered_map<Id, const ENode *> greedy_choices;
 
