@@ -83,7 +83,7 @@ inline std::pair<std::pair<int, int>, std::vector<double>> read_matrix(const std
  * @param precision Number of decimal places for formatting (default: 6)
  */
 inline void write_matrix(
-    const std::string &filename, int rows, int cols, const std::vector<double> &col_major_data, int precision = 6) {
+    const std::string &filename, int rows, int cols, const std::vector<double> &col_major_data, int precision = 17) {
     if (static_cast<size_t>(rows * cols) > col_major_data.size()) {
         throw std::invalid_argument(
             "Data buffer size (" + std::to_string(col_major_data.size()) + ") smaller than matrix dimensions (" +
@@ -95,7 +95,7 @@ inline void write_matrix(
         throw std::runtime_error("Could not open file for writing: " + filename);
     }
 
-    file << std::fixed << std::setprecision(precision);
+    file << std::setprecision(precision);
 
     for (int r = 0; r < rows; ++r) {
         for (int c = 0; c < cols; ++c) {

@@ -10,7 +10,7 @@ from random_matrix import generate_matrix
 def generate_all_example_matrices(output_dir: str, seed: int = 42, fmt: str = "%.6f"):
     """
     Generates all sample datasets required by the project examples:
-      - OLS: ols_x.csv (40x30 tall), ols_y.csv (40x1)
+      - OLS: ols_x.csv (2000x500 tall), ols_y.csv (2000x1)
       - GLS: gls_m.csv (3000x3000 SPD), gls_x.csv (3000x500 tall), gls_y.csv (3000x1)
       - ImageRestoration: image_h.csv (1000x3000 wide), image_y.csv (1000x1), image_x.csv (3000x1)
     """
@@ -21,8 +21,8 @@ def generate_all_example_matrices(output_dir: str, seed: int = 42, fmt: str = "%
 
     datasets = [
         # OLS Example Datasets
-        ("ols_x.csv", 40, 30, "fullrank", "OLS Tall Matrix X (40x30)"),
-        ("ols_y.csv", 40, 1, "general", "OLS Column Vector y (40x1)"),
+        ("ols_x.csv", 2000, 500, "fullrank", "OLS Tall Matrix X (2000x500)"),
+        ("ols_y.csv", 2000, 1, "general", "OLS Column Vector y (2000x1)"),
 
         # GLS Example Datasets
         ("gls_m.csv", 3000, 3000, "spd", "GLS Symmetric Positive-Definite Covariance Matrix M (3000x3000)"),
