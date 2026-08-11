@@ -1,3 +1,4 @@
+#include "ReadMatrix.h"
 #include "api.h"
 #include <iostream>
 #include <vector>
@@ -17,25 +18,35 @@ int main() {
     // ctx.lower_to_kernels();
     ctx.rewrite();
     ctx.prune_symbolic_when_kernel_available();
-    SizeBindings concrete_sizes = {{"a", 1000}, {"b", 5000}};
+    auto [h_sizes, h_data] = read_matrix("data/image_h.txt");
+    auto [y_sizes, y_data] = read_matrix("data/image_y.txt");
+    auto [x_sizes, x_data] = read_matrix("data/image_x.txt");
+    SizeBindings concrete_sizes = {{"a", h_sizes.first}, {"b", h_sizes.second}};
     DataBindings concrete_data = {
-        {"y", generate_random_vector(1000)},
-        {"x", generate_random_vector(5000)},
-        {"H", generate_random_vector(1000 * 5000)},
-        {"I", generate_identity_matrix(5000)}};
+        {"y", y_data}, {"H", h_data}, {"I", generate_identity_matrix(h_sizes.second)}, {"x", x_data}};
 
     auto out2 = ctx.evaluate_concrete(id_2, concrete_sizes, concrete_data);
-    std::cout << "Evaluated out2, first 5 elements: \n";
-    for (int i = 0; i < std::min((int)out2.size(), 5); ++i) {
-        std::cout << out2[i] << " ";
+    {
+        auto out_shape = bind_shape(ctx.get_property(id_2).shape, &concrete_sizes);
+        int row = std::get<int>(out_shape.first);
+        int col = std::get<int>(out_shape.second);
+        for (int i = 0; i < row; ++i) {
+            for (int j = 0; j < col; ++j) {
+                std::cout << out2[i * col + j] << " ";
+            }
+            std::cout << "\n";
+        }
     }
-    std::cout << "\n";
     auto out1 = ctx.evaluate_concrete(id_1, concrete_sizes, concrete_data);
-    // ideally this result can be read directly from the
-    // intermediate results from out2 evaluation
-    std::cout << "Evaluated out1, first 5 elements: \n";
-    for (int i = 0; i < std::min((int)out1.size(), 5); ++i) {
-        std::cout << out1[i] << " ";
+    {
+        auto out_shape = bind_shape(ctx.get_property(id_1).shape, &concrete_sizes);
+        int row = std::get<int>(out_shape.first);
+        int col = std::get<int>(out_shape.second);
+        for (int i = 0; i < row; ++i) {
+            for (int j = 0; j < col; ++j) {
+                std::cout << out1[i * col + j] << " ";
+            }
+            std::cout << "\n";
+        }
     }
-    std::cout << "\n";
 }

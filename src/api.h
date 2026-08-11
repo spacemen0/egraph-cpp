@@ -221,6 +221,14 @@ class Context {
     std::optional<Id> find_expr(const Expression &expr) const { return egraph.find_expression_id(expr); }
 
     void clear() { egraph = EGraph(); }
+    Id get_target_id() const { return target_id; }
+    EGraph &get_egraph() { return egraph; }
+    MatrixProperty get_property() const {
+        return std::get<MatrixProperty>(egraph.get_class_analysis_data(target_id).property);
+    }
+    MatrixProperty get_property(Id id) const {
+        return std::get<MatrixProperty>(egraph.get_class_analysis_data(id).property);
+    }
 
   private:
     EGraph egraph;

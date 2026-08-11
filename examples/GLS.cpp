@@ -1,3 +1,4 @@
+#include "ReadMatrix.h"
 #include "api.h"
 #include <iostream>
 
@@ -10,27 +11,22 @@ int main() {
     Expression target_math = inverse(transpose(X) * inverse(M) * X) * transpose(X) * inverse(M) * y;
 
     ctx.optimize_symbolic(target_math);
+    auto [m_sizes, m_data] = read_matrix("data/gls_m.txt");
+    auto [x_sizes, x_data] = read_matrix("data/gls_x.txt");
+    auto [y_sizes, y_data] = read_matrix("data/gls_y.txt");
 
-    SizeBindings concrete_sizes = {{"a", 3}, {"b", 2}};
-    DataBindings concrete_data = {
-        {"X", std::vector<double>{2.0, 1.0, 0.0, 1.0, 3.0, 1.0}},
-        {"M",
-         std::vector<double>{
-             1.0,
-             0.0,
-             0.0,
-             1.0,
-             2.0,
-             3.0,
-             5.0,
-             1.5,
-             1.0,
-         }},
-        {"y", std::vector<double>{5.0, 10.0, 3.0}}};
+    SizeBindings concrete_sizes = {{"a", x_sizes.first}, {"b", x_sizes.second}};
+    DataBindings concrete_data = {{"X", x_data}, {"M", m_data}, {"y", y_data}};
 
-    auto out1 = ctx.evaluate_concrete(concrete_sizes, concrete_data);
-    for (int i = 0; i < 2; ++i) {
-        std::cout << out1[i] << (i == 1 ? "" : " ");
+    auto out = ctx.evaluate_concrete(concrete_sizes, concrete_data);
+    auto out_shape = bind_shape(ctx.get_property().shape, &concrete_sizes);
+    int row = std::get<int>(out_shape.first);
+    int col = std::get<int>(out_shape.second);
+    for (int i = 0; i < row; ++i) {
+        for (int j = 0; j < col; ++j) {
+            std::cout << out[i * col + j] << " ";
+        }
+        std::cout << "\n";
     }
     std::cout << "\n";
 }

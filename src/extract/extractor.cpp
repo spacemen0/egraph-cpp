@@ -53,8 +53,7 @@ Extractor::Extractor(EGraph &egraph, const ExtractorConfig &config)
     : egraph(egraph), enable_logging(config.enable_logging), max_depth(config.max_depth),
       node_visit_limit(config.node_visit_limit) {}
 
-Extractor::Extractor(EGraph &egraph, const EGraphConfig &config)
-    : Extractor(egraph, config.extractor) {}
+Extractor::Extractor(EGraph &egraph, const EGraphConfig &config) : Extractor(egraph, config.extractor) {}
 
 void Extractor::reset() const {
     tree_cost.clear();
@@ -190,7 +189,7 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
     }
 
     if (enable_logging) {
-        std::cout << "[Extractor] Visited " << nodes_visited << " nodes during A* numeric extraction." << std::endl;
+        std::cout << "[Extractor] Visited " << nodes_visited << " nodes during numeric extraction." << std::endl;
     }
 
     if (best_results.empty()) {

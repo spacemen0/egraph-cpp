@@ -7,8 +7,20 @@
 #include "pattern.h"
 #include "utils.h"
 #include <cassert>
+#include <filesystem>
 #include <iostream>
 #include <optional>
+
+namespace {
+std::string make_dot_output_path(const std::string &filename) {
+    std::filesystem::path output_path(filename);
+    std::filesystem::path dot_dir = std::filesystem::path("dot_files");
+    std::filesystem::path destination =
+        dot_dir / (output_path.has_filename() ? output_path.filename() : std::filesystem::path("output"));
+    std::filesystem::create_directories(destination.parent_path());
+    return destination.string();
+}
+} // namespace
 
 /// @brief Canonicalize the children of a node.
 /// @param node
@@ -465,8 +477,10 @@ void EGraph::register_or_update_property(const std::string &name, const MatrixPr
 
 std::string EGraph::to_dot() const { return EGraphVisualization::to_dot(*this); }
 
-void EGraph::to_dot_file(const std::string &filename) const { EGraphVisualization::to_dot_file(*this, filename); }
+void EGraph::to_dot_file(const std::string &filename) const {
+    EGraphVisualization::to_dot_file(*this, make_dot_output_path(filename));
+}
 
 void EGraph::to_img(const std::string &filename, const std::string &format) const {
-    EGraphVisualization::to_img(*this, filename, format);
+    EGraphVisualization::to_img(*this, make_dot_output_path(filename), format);
 }
