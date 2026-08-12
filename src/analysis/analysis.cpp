@@ -22,7 +22,7 @@ AnalysisData MatrixAnalysis::make(const EGraph &egraph, const ENode &node) {
         }
         throw AnalysisError("Variable has no property: " + s);
     } else {
-        return AnalysisData{std::get<double>(atom)};
+        return {};
     }
 }
 

@@ -151,18 +151,17 @@ struct MatrixProperty {
 using TupleProperty = std::vector<MatrixProperty>;
 
 struct AnalysisData {
-    std::variant<MatrixProperty, TupleProperty, double> property;
+    std::variant<MatrixProperty, TupleProperty> property;
     bool operator==(const AnalysisData &other) const {
         if (property.index() != other.property.index())
             return false;
         if (const auto *p1 = std::get_if<MatrixProperty>(&property)) {
             const auto *p2 = std::get_if<MatrixProperty>(&other.property);
             return *p1 == *p2;
-        } else if (const auto *p3 = std::get_if<TupleProperty>(&property)) {
+        } else {
+            const auto *p3 = std::get_if<TupleProperty>(&property);
             const auto *p2 = std::get_if<TupleProperty>(&other.property);
             return *p3 == *p2;
-        } else {
-            return std::get<double>(property) == std::get<double>(other.property);
         }
     }
 };

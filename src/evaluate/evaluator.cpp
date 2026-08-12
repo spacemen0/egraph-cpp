@@ -115,7 +115,7 @@ std::vector<double> Evaluator::evaluate() {
                         Id tuple_id = node->get_children()[0];
                         Id index_id = node->get_children()[1];
                         const TupleNode &input_tuple = std::get<TupleNode>(data_storage.at(tuple_id));
-                        int index = static_cast<int>(std::get<MatrixNode>(data_storage.at(index_id)).data()[0]);
+                        int index = static_cast<int>(get_double_from_eclass(egraph, index_id).value());
                         dispatch_get(input_tuple, index, output);
                     } else if (std::holds_alternative<TupleNode>(it->second)) {
                         TupleNode &output = std::get<TupleNode>(it->second);

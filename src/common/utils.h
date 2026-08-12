@@ -348,3 +348,13 @@ inline std::vector<double> generate_identity_matrix(int size) {
     }
     return vec;
 }
+
+inline std::optional<double> get_double_from_eclass(const EGraph &egraph, Id id) {
+    for (const auto &node : egraph.get_class_nodes(id)) {
+        Atom atom = node->get_atom();
+        if (const double *d = std::get_if<double>(&atom)) {
+            return *d;
+        }
+    }
+    return std::nullopt;
+}

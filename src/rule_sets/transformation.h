@@ -38,9 +38,9 @@ static const auto scale_transpose = make_rewrite("scale_transpose", "Tr(Scale(?a
 
 static const auto scale_inverse = make_rewrite(
     "scale_inverse", "Inv(Scale(?a, ?s))", "Dynamic", true, nullptr, [](EGraph &g, const Substitution &s, Id _) {
-    auto s_val = g.get_class_analysis_data(s.at("s"));
-    if (std::holds_alternative<double>(s_val.property)) {
-        double val = std::get<double>(s_val.property);
+    auto s_val = get_double_from_eclass(g, s.at("s"));
+    if (s_val) {
+        double val = *s_val;
         if (val == 0.0)
             throw AnalysisError("Division by zero in scale_inverse");
 
