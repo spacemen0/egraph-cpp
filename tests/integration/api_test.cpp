@@ -84,6 +84,8 @@ TEST(ApiTest, KernelMapping) {
     Expression target_math = inverse(transpose(X) * X) * transpose(X) * y;
     Expression best_ast = ctx.optimize_concrete(target_math);
     EXPECT_EQ(best_ast.to_string(true), "Trsm_LN(R(X), Ormqr_LT(Geqrf(X), y))");
+    ctx.evaluate_concrete(
+        {}, {{"X", std::vector<double>{1.0, 0.0, 0.0, 0.0, 1.0, 0.0}}, {"y", std::vector<double>{5.0, -3.0, 42.0}}});
 }
 
 TEST(ApiTest, OptimizeSymbolic) {

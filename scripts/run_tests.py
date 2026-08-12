@@ -27,7 +27,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    repo_root = pathlib.Path(__file__).resolve().parent
+    repo_root = pathlib.Path(__file__).resolve().parent.parent
 
     print("Cleaning up old data...")
     shutil.rmtree(repo_root / "coverage_report", ignore_errors=True)

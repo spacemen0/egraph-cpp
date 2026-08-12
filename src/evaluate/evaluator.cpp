@@ -166,17 +166,23 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
     case Gemv_N:
     case Gemv_T: {
         CBLAS_TRANSPOSE trans = (op == Op::Gemv_T) ? CblasTrans : CblasNoTrans;
+        const auto &analysis = egraph.get_class_analysis_data(node->get_children()[1]);
+        const auto *matrix_property = std::get_if<MatrixProperty>(&analysis.property);
+        int beta = (matrix_property && matrix_property->flags.is_zero) ? 0 : 1;
         cblas_dgemv(
             CblasColMajor, trans, inputs[0]->rows, inputs[0]->cols, 1.0, inputs[0]->data(), inputs[0]->rows,
-            inputs[1]->data(), 1, 0.0, output.data(), 1);
+            inputs[1]->data(), 1, beta, output.data(), 1);
         break;
     }
     case Syrk_N:
     case Syrk_T: {
         CBLAS_TRANSPOSE trans = (op == Op::Syrk_T) ? CblasTrans : CblasNoTrans;
         int k = (trans == CblasNoTrans) ? inputs[0]->cols : inputs[0]->rows;
+        const auto &analysis = egraph.get_class_analysis_data(node->get_children()[1]);
+        const auto *matrix_property = std::get_if<MatrixProperty>(&analysis.property);
+        int beta = (matrix_property && matrix_property->flags.is_zero) ? 0 : 1;
         cblas_dsyrk(
-            CblasColMajor, CblasUpper, trans, output.rows, k, 1.0, inputs[0]->data(), inputs[0]->rows, 0.0,
+            CblasColMajor, CblasUpper, trans, output.rows, k, 1.0, inputs[0]->data(), inputs[0]->rows, beta,
             output.data(), output.rows);
         break;
     }
