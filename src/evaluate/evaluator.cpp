@@ -77,12 +77,12 @@ Evaluator::Evaluator(
                 data_storage[class_id] = tuple_data;
             }
         }
-        for (Id class_id : result.execution_order) {
-            const ENode *node = result.choices.at(class_id);
-            if (node) {
-                for (Id child_id : node->get_children()) {
-                    use_counts[child_id]++;
-                }
+    }
+    for (Id class_id : result.execution_order) {
+        const ENode *node = result.choices.at(class_id);
+        if (node) {
+            for (Id child_id : node->get_children()) {
+                use_counts[child_id]++;
             }
         }
     }
@@ -166,9 +166,12 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
     case Gemv_N:
     case Gemv_T: {
         CBLAS_TRANSPOSE trans = (op == Op::Gemv_T) ? CblasTrans : CblasNoTrans;
-        const auto &analysis = egraph.get_class_analysis_data(node->get_children()[1]);
-        const auto *matrix_property = std::get_if<MatrixProperty>(&analysis.property);
-        int beta = (matrix_property && matrix_property->flags.is_zero) ? 0 : 1;
+        bool c_is_zero =
+            std::get<MatrixProperty>(egraph.get_class_analysis_data(node->get_children()[1]).property).flags.is_zero;
+        double beta = c_is_zero ? 0.0 : 1.0;
+        if (!c_is_zero) {
+            setup_in_place_output(node->get_children()[1], output);
+        }
         cblas_dgemv(
             CblasColMajor, trans, inputs[0]->rows, inputs[0]->cols, 1.0, inputs[0]->data(), inputs[0]->rows,
             inputs[1]->data(), 1, beta, output.data(), 1);
@@ -178,9 +181,12 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
     case Syrk_T: {
         CBLAS_TRANSPOSE trans = (op == Op::Syrk_T) ? CblasTrans : CblasNoTrans;
         int k = (trans == CblasNoTrans) ? inputs[0]->cols : inputs[0]->rows;
-        const auto &analysis = egraph.get_class_analysis_data(node->get_children()[1]);
-        const auto *matrix_property = std::get_if<MatrixProperty>(&analysis.property);
-        int beta = (matrix_property && matrix_property->flags.is_zero) ? 0 : 1;
+        bool c_is_zero =
+            std::get<MatrixProperty>(egraph.get_class_analysis_data(node->get_children()[1]).property).flags.is_zero;
+        double beta = c_is_zero ? 0.0 : 1.0;
+        if (!c_is_zero) {
+            setup_in_place_output(node->get_children()[1], output);
+        }
         cblas_dsyrk(
             CblasColMajor, CblasUpper, trans, output.rows, k, 1.0, inputs[0]->data(), inputs[0]->rows, beta,
             output.data(), output.rows);
@@ -219,7 +225,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         const TupleNode &geqrf_tuple = std::get<TupleNode>(data_storage.at(geqrf_id));
         const MatrixNode &q_node = geqrf_tuple.matrices[0];
         int k = std::min(q_node.rows, q_node.cols);
-        setup_in_place_output(node->get_children()[0], output);
+        output = q_node; // always overwrite q_node with the result of orgqr (which is Q)
         LAPACKE_dorgqr(
             LAPACK_COL_MAJOR, output.rows, output.cols, k, output.data(), output.rows, geqrf_tuple.tau.data());
         break;
@@ -306,7 +312,7 @@ void Evaluator::dispatch_factorization(Op op, const MatrixNode &input, TupleNode
     }
     case Geqrf: {
         setup_in_place_output(node->get_children()[0], output.matrices[0]);
-        const auto &a_copy = output.matrices[0].vec();
+        auto &a_data = output.matrices[0].vec();
         LAPACKE_dgeqrf(
             LAPACK_COL_MAJOR, input.rows, input.cols, output.matrices[0].data(), input.rows, output.tau.data());
 
@@ -319,19 +325,18 @@ void Evaluator::dispatch_factorization(Op op, const MatrixNode &input, TupleNode
                     if (i > j) {
                         r_node.vec()[i + j * r_node.rows] = 0.0;
                     } else {
-                        r_node.vec()[i + j * r_node.rows] = a_copy[i + j * input.rows];
+                        r_node.vec()[i + j * r_node.rows] = a_data[i + j * input.rows];
                     }
                 }
             }
         }
         if (!output.matrices.empty()) {
-            MatrixNode &q_node = output.matrices[0];
             int k = std::min(input.rows, input.cols);
             // Copy the reflectors part of a_copy to q_node before generating Q or using it in Ormqr
             // upper triangular part of q_node will be overwritten anyway
             for (int j = 0; j < k; ++j) {
-                for (int i = 0; i < q_node.rows; ++i) {
-                    q_node.vec()[i + j * q_node.rows] = a_copy[i + j * input.rows];
+                for (int i = 0; i < output.matrices[0].rows; ++i) {
+                    a_data[i + j * output.matrices[0].rows] = a_data[i + j * input.rows];
                 }
             }
         }
