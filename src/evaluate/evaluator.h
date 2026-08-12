@@ -37,8 +37,10 @@ class Evaluator {
   private:
     void dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *node) const;
     void dispatch_factorization(Op op, const MatrixNode &input, TupleNode &output, const ENode *node) const;
+    void setup_in_place_output(Id child_id, MatrixNode &output) const;
     void dispatch_get(const TupleNode &input_tuple, int index, MatrixNode &output) const;
     EGraph &egraph;
     ExtractionResult result;
     std::unordered_map<Id, DataStorage> data_storage;
+    mutable std::unordered_map<Id, int> use_counts;
 };

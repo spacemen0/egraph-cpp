@@ -77,6 +77,28 @@ Evaluator::Evaluator(
                 data_storage[class_id] = tuple_data;
             }
         }
+        for (Id class_id : result.execution_order) {
+            const ENode *node = result.choices.at(class_id);
+            if (node) {
+                for (Id child_id : node->get_children()) {
+                    use_counts[child_id]++;
+                }
+            }
+        }
+    }
+}
+
+void Evaluator::setup_in_place_output(Id child_id, MatrixNode &output) const {
+    auto &child_node = std::get<MatrixNode>(data_storage.at(child_id));
+    auto it = use_counts.find(child_id);
+    if (it != use_counts.end() && it->second == 1) {
+        output.data_ptr = std::move(child_node.data_ptr);
+        it->second = 0;
+    } else {
+        output.data_ptr = std::make_shared<std::vector<double>>(*child_node.data_ptr);
+        if (it != use_counts.end() && it->second > 0) {
+            it->second--;
+        }
     }
 }
 
@@ -128,7 +150,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
     case Trsm_LT:
     case Trsm_RN:
     case Trsm_RT: {
-        std::copy(inputs[1]->data(), inputs[1]->data() + (output.rows * output.cols), output.data());
+        setup_in_place_output(node->get_children()[1], output);
         auto is_lower = egraph.get_class_analysis_data(node->get_children()[0]);
         CBLAS_UPLO uplo =
             std::get<MatrixProperty>(is_lower.property).flags.is_lower_triangular ? CblasLower : CblasUpper;
@@ -160,7 +182,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
     }
     case Trtri: {
         int n = output.rows;
-        std::copy(inputs[0]->data(), inputs[0]->data() + n * n, output.data());
+        setup_in_place_output(node->get_children()[0], output);
         auto is_lower = egraph.get_class_analysis_data(node->get_children()[0]);
         char uplo = std::get<MatrixProperty>(is_lower.property).flags.is_lower_triangular ? 'L' : 'U';
         LAPACKE_dtrtri(LAPACK_COL_MAJOR, uplo, 'N', n, output.data(), n);
@@ -181,7 +203,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
 
     case Scale: {
         double scalar = inputs[1]->data()[0];
-        std::copy(inputs[0]->data(), inputs[0]->data() + inputs[0]->rows * inputs[0]->cols, output.vec().begin());
+        setup_in_place_output(node->get_children()[0], output);
         cblas_dscal(output.rows * output.cols, scalar, output.data(), 1);
         break;
     }
@@ -191,7 +213,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         const TupleNode &geqrf_tuple = std::get<TupleNode>(data_storage.at(geqrf_id));
         const MatrixNode &q_node = geqrf_tuple.matrices[0];
         int k = std::min(q_node.rows, q_node.cols);
-        std::copy(q_node.data(), q_node.data() + q_node.rows * q_node.cols, output.vec().begin());
+        setup_in_place_output(node->get_children()[0], output);
         LAPACKE_dorgqr(
             LAPACK_COL_MAJOR, output.rows, output.cols, k, output.data(), output.rows, geqrf_tuple.tau.data());
         break;
@@ -213,10 +235,9 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         int k = std::min(a_node.rows, a_node.cols);
 
         // dormqr requires C to be m x n and overwrites it.
-        // We reuse output as the temporary buffer by assigning c_node to it.
         int out_rows = output.rows;
         int out_cols = output.cols;
-        output.vec().assign(c_node.data(), c_node.data() + m * n);
+        setup_in_place_output(node->get_children()[1], output);
 
         LAPACKE_dormqr(
             LAPACK_COL_MAJOR, side, trans, m, n, k, a_node.data(), a_node.rows, geqrf_tuple.tau.data(), output.data(),
@@ -240,7 +261,6 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
     case Gemm_TT: {
         const MatrixNode &a_node = *inputs[0];
         const MatrixNode &b_node = *inputs[1];
-        const MatrixNode &c_node = *inputs[2];
 
         CBLAS_TRANSPOSE transA = (op == Op::Gemm_TN || op == Op::Gemm_TT) ? CblasTrans : CblasNoTrans;
         CBLAS_TRANSPOSE transB = (op == Op::Gemm_NT || op == Op::Gemm_TT) ? CblasTrans : CblasNoTrans;
@@ -251,7 +271,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
             std::get<MatrixProperty>(egraph.get_class_analysis_data(node->get_children()[2]).property).flags.is_zero;
         double beta = c_is_zero ? 0.0 : 1.0;
         if (!c_is_zero) {
-            std::copy(c_node.data(), c_node.data() + c_node.rows * c_node.cols, output.vec().begin());
+            setup_in_place_output(node->get_children()[2], output);
         }
         cblas_dgemm(
             CblasColMajor, transA, transB, output.rows, output.cols, k, 1.0, a_node.data(), a_node.rows, b_node.data(),
@@ -268,22 +288,24 @@ void Evaluator::dispatch_factorization(Op op, const MatrixNode &input, TupleNode
     switch (op) {
     case Potrf_U: {
         MatrixNode &res = output.matrices[0];
-        std::copy(input.data(), input.data() + (res.rows * res.cols), res.data());
+        setup_in_place_output(node->get_children()[0], res);
         LAPACKE_dpotrf(LAPACK_COL_MAJOR, 'U', res.rows, res.data(), res.rows);
         break;
     }
     case Potrf_L: {
         MatrixNode &res = output.matrices[0];
-        std::copy(input.data(), input.data() + (res.rows * res.cols), res.data());
+        setup_in_place_output(node->get_children()[0], res);
         LAPACKE_dpotrf(LAPACK_COL_MAJOR, 'L', res.rows, res.data(), res.rows);
         break;
     }
     case Geqrf: {
-        std::vector<double> a_copy(input.rows * input.cols);
-        std::copy(input.data(), input.data() + (input.rows * input.cols), a_copy.data());
-        LAPACKE_dgeqrf(LAPACK_COL_MAJOR, input.rows, input.cols, a_copy.data(), input.rows, output.tau.data());
+        setup_in_place_output(node->get_children()[0], output.matrices[0]);
+        const auto &a_copy = output.matrices[0].vec();
+        LAPACKE_dgeqrf(
+            LAPACK_COL_MAJOR, input.rows, input.cols, output.matrices[0].data(), input.rows, output.tau.data());
 
-        // Fill the R matrix (upper triangular) in the output tuple, should be handled by storage format in the future
+        // Fill the R matrix (upper triangular) in the output tuple, should be handled by storage format in the
+        // future
         if (output.matrices.size() > 1) {
             MatrixNode &r_node = output.matrices[1];
             for (int j = 0; j < r_node.cols; ++j) {
