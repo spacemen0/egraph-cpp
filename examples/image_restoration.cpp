@@ -1,10 +1,12 @@
 #include "MatrixIO.h"
 #include "api.h"
+#include "examples.h"
 #include "utils.h"
 #include <iostream>
 #include <utility>
 
-int main() {
+int run_image() {
+    std::cout << "=== Running Image Restoration Example ===\n";
     EGraphRunner::Context ctx;
     ctx.get_config().enable_logging = true;
     Expression y = ctx.define_matrix_symbolic("y", "a", 1);
@@ -61,7 +63,7 @@ int main() {
         int col = std::get<int>(out_shape.second);
         std::string out_path1 = "examples/data/image_result_1.csv";
         write_matrix(out_path1, row, col, out1);
-        std::cout << "IMAGE Evaluated result 1 shape (" << row << "x" << col << ") saved to " << out_path1 << "\n";
+        std::cout << "IMAGE Evaluated result 1 shape (" << row << "x" << col << ") saved to " << out_path1 << "\n\n";
     }
     return 0;
 }

@@ -1,10 +1,12 @@
 #include "MatrixIO.h"
+#include "examples.h"
 #include <chrono>
 #include <iostream>
 #include <lapacke.h>
 #include <vector>
 
-int main() {
+int run_ols_dgels() {
+    std::cout << "=== Running OLS Direct LAPACK dgels Benchmark Example ===\n";
     auto [x_sizes, x_data] = read_matrix("examples/data/ols_x.csv");
     auto [y_sizes, y_data] = read_matrix("examples/data/ols_y.csv");
 
@@ -38,7 +40,7 @@ int main() {
 
     std::string out_path = "examples/data/ols_dgels_result.csv";
     write_matrix(out_path, n, 1, beta);
-    std::cout << "OLS dgels result shape (" << n << "x1) saved to " << out_path << "\n";
+    std::cout << "OLS dgels result shape (" << n << "x1) saved to " << out_path << "\n\n";
 
     return 0;
 }

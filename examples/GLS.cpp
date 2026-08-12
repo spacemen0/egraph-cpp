@@ -1,8 +1,10 @@
 #include "MatrixIO.h"
 #include "api.h"
+#include "examples.h"
 #include <iostream>
 
-int main() {
+int run_gls() {
+    std::cout << "=== Running GLS Example ===\n";
     EGraphRunner::Context ctx;
     ctx.get_config().enable_logging = true;
     Expression X = ctx.define_matrix_symbolic("X", "a", "b", {"full_rank", "tall"});
@@ -42,6 +44,6 @@ int main() {
 
     std::string out_path = "examples/data/gls_result.csv";
     write_matrix(out_path, row, col, out);
-    std::cout << "GLS Evaluated result shape (" << row << "x" << col << ") saved to " << out_path << "\n";
+    std::cout << "GLS Evaluated result shape (" << row << "x" << col << ") saved to " << out_path << "\n\n";
     return 0;
 }
