@@ -94,5 +94,3 @@ endif()
 
 add_executable(egraph_cli cli.cpp)
 target_link_libraries(egraph_cli PRIVATE core_lib)
-add_executable(tester tester.cpp)
-target_link_libraries(tester PRIVATE core_lib)

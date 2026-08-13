@@ -26,6 +26,7 @@ AnalysisData MatrixAnalysis::make(const EGraph &egraph, const ENode &node) {
     }
 }
 
+// return true if the analysis data has changed after merging
 bool MatrixAnalysis::merge(AnalysisData &data1, const AnalysisData &data2) {
     if (data1 != data2) // has a custom operator ==
     {
@@ -65,6 +66,8 @@ bool MatrixAnalysis::merge(AnalysisData &data1, const AnalysisData &data2) {
     return changed;
 }
 
+// enforce the hierarchy of matrix properties, e.g., if a matrix is orthogonal, it must also be non-singular and
+// full-rank
 void MatrixAnalysis::enforce_hierarchy(MatrixProperty &p) {
     if (p.flags.is_permutation) {
         p.flags.is_orthogonal = true;
@@ -129,6 +132,7 @@ void MatrixAnalysis::enforce_hierarchy(MatrixProperty &p) {
     }
 }
 
+// check if arity matches the operation
 static void check_arity(const std::vector<Id> &children, size_t expected, const char *op_name) {
     if (children.size() != expected) {
         throw AnalysisError(
@@ -137,12 +141,12 @@ static void check_arity(const std::vector<Id> &children, size_t expected, const 
     }
 }
 
-static AnalysisData matrix_property_data(MatrixProperty prop) {
+static AnalysisData make_matrix_property_data(MatrixProperty prop) {
     MatrixAnalysis::enforce_hierarchy(prop);
     return AnalysisData{prop};
 }
 
-static AnalysisData tuple_property_data(std::vector<MatrixProperty> &props) {
+static AnalysisData make_tuple_property_data(std::vector<MatrixProperty> &props) {
     for (auto &prop : props) {
         MatrixAnalysis::enforce_hierarchy(prop);
     }
@@ -163,14 +167,9 @@ static AnalysisData analyze_add(const EGraph &egraph, const std::vector<Id> &chi
             prop.flags.is_lower_triangular = data1->flags.is_lower_triangular && data2->flags.is_lower_triangular;
             prop.flags.is_diagonal = data1->flags.is_diagonal && data2->flags.is_diagonal;
             prop.flags.is_zero = data1->flags.is_zero && data2->flags.is_zero;
-
-            if (data1->flags.is_positive_definite && data2->flags.is_positive_definite) {
-                prop.flags.is_positive_definite = true;
-                prop.flags.is_non_singular = true;
-                prop.flags.is_full_rank = true;
-            }
+            prop.flags.is_positive_definite = data1->flags.is_positive_definite && data2->flags.is_positive_definite;
             prop.flags.is_full_rank = data1->flags.is_full_rank && data2->flags.is_full_rank;
-            return matrix_property_data(prop);
+            return make_matrix_property_data(prop);
         }
     }
     throw AnalysisError("+ expects Matrix inputs");
@@ -195,7 +194,7 @@ static AnalysisData analyze_mul(const EGraph &egraph, const std::vector<Id> &chi
             prop.flags.is_upper_triangular = data1->flags.is_upper_triangular && data2->flags.is_upper_triangular;
             prop.flags.is_orthogonal = data1->flags.is_orthogonal && data2->flags.is_orthogonal;
             prop.flags.is_diagonal = data1->flags.is_diagonal && data2->flags.is_diagonal;
-            return matrix_property_data(prop);
+            return make_matrix_property_data(prop);
         }
     }
     throw AnalysisError("* expects Matrix inputs");
@@ -210,7 +209,7 @@ static AnalysisData analyze_transpose(const EGraph &egraph, const std::vector<Id
         prop.shape = std::make_pair(child_size.second, child_size.first);
         prop.flags.is_lower_triangular = data->flags.is_upper_triangular;
         prop.flags.is_upper_triangular = data->flags.is_lower_triangular;
-        return matrix_property_data(prop);
+        return make_matrix_property_data(prop);
     }
     throw AnalysisError("Tr expects a Matrix input");
 }
@@ -218,7 +217,7 @@ static AnalysisData analyze_transpose(const EGraph &egraph, const std::vector<Id
 static AnalysisData analyze_invert(const EGraph &egraph, const std::vector<Id> &children) {
     check_arity(children, 1, "Inv");
     if (auto data = get_matrix_data(egraph, children.at(0))) {
-        if (data->shape.first != data->shape.second) {
+        if (!data->is_square()) {
             throw InvalidOperationError("Inv operation on non-square matrix");
         }
         if (!data->flags.is_non_singular) {
@@ -226,7 +225,7 @@ static AnalysisData analyze_invert(const EGraph &egraph, const std::vector<Id> &
         }
 
         MatrixProperty prop = *data;
-        return matrix_property_data(prop);
+        return make_matrix_property_data(prop);
     }
     throw AnalysisError("Inv expects a Matrix input");
 }
@@ -245,7 +244,7 @@ static AnalysisData analyze_minus(const EGraph &egraph, const std::vector<Id> &c
             prop.flags.is_lower_triangular = data1->flags.is_lower_triangular && data2->flags.is_lower_triangular;
             prop.flags.is_diagonal = data1->flags.is_diagonal && data2->flags.is_diagonal;
             prop.flags.is_zero = data1->flags.is_zero && data2->flags.is_zero;
-            return matrix_property_data(prop);
+            return make_matrix_property_data(prop);
         }
     }
     throw AnalysisError("- expects Matrix inputs");
@@ -286,16 +285,12 @@ static AnalysisData analyze_qr(const EGraph &egraph, const std::vector<Id> &chil
             throw InvalidOperationError("QR operation on symbolic matrix with ambiguous shape");
         }
 
-        if (data->flags.is_identity) {
-            Q.flags.is_identity = true;
-            R.flags.is_identity = true;
-        }
-        if (data->flags.is_zero) {
-            R.flags.is_zero = true;
+        if (data->flags.is_identity || data->flags.is_zero) {
+            throw InvalidOperationError("QR operation on identity or zero matrix is meaningless");
         }
 
         auto props = std::vector{Q, R};
-        return tuple_property_data(props);
+        return make_tuple_property_data(props);
     }
     throw AnalysisError("QR expects a Matrix input");
 }
@@ -338,7 +333,7 @@ static AnalysisData analyze_solve(const EGraph &egraph, const std::vector<Id> &c
             prop.shape = {data1->shape.first, data2->shape.second};
             prop.flags.is_full_rank = data2->flags.is_full_rank;
             prop.flags.is_non_singular = data2->flags.is_non_singular;
-            return matrix_property_data(prop);
+            return make_matrix_property_data(prop);
         }
     }
     throw AnalysisError("Sol expects Matrix inputs");
@@ -360,7 +355,7 @@ static AnalysisData analyze_solve_right(const EGraph &egraph, const std::vector<
             prop.shape = {data2->shape.first, data1->shape.second};
             prop.flags.is_full_rank = data2->flags.is_full_rank;
             prop.flags.is_non_singular = data2->flags.is_non_singular;
-            return matrix_property_data(prop);
+            return make_matrix_property_data(prop);
         }
     }
     throw AnalysisError("SolR expects Matrix inputs");
@@ -391,7 +386,7 @@ static AnalysisData analyze_lu(const EGraph &egraph, const std::vector<Id> &chil
         P.flags.is_permutation = true;
         auto props = std::vector{L, U, P};
 
-        return tuple_property_data(props);
+        return make_tuple_property_data(props);
     }
     throw AnalysisError("LU expects a Matrix input");
 }
@@ -413,7 +408,7 @@ static AnalysisData analyze_llt(const EGraph &egraph, const std::vector<Id> &chi
         L.flags.is_lower_triangular = true;
         L.flags.is_non_singular = true;
         auto props = std::vector{L};
-        return tuple_property_data(props);
+        return make_tuple_property_data(props);
     }
     throw AnalysisError("LLt expects a Matrix input");
 }
@@ -435,7 +430,7 @@ static AnalysisData analyze_utu(const EGraph &egraph, const std::vector<Id> &chi
         U.flags.is_upper_triangular = true;
         U.flags.is_non_singular = true;
         auto props = std::vector{U};
-        return tuple_property_data(props);
+        return make_tuple_property_data(props);
     }
     throw AnalysisError("UtU expects a Matrix input");
 }
@@ -452,7 +447,7 @@ static AnalysisData analyze_gemm_nn(const EGraph &egraph, const std::vector<Id> 
 
                 MatrixProperty prop;
                 prop.shape = std::make_pair(data->shape.first, data3->shape.second);
-                return matrix_property_data(prop);
+                return make_matrix_property_data(prop);
             }
         }
     }
@@ -470,7 +465,7 @@ static AnalysisData analyze_gemm_tn(const EGraph &egraph, const std::vector<Id> 
                 }
                 MatrixProperty prop;
                 prop.shape = std::make_pair(data->shape.second, data2->shape.second);
-                return matrix_property_data(prop);
+                return make_matrix_property_data(prop);
             }
         }
     }
@@ -488,7 +483,7 @@ static AnalysisData analyze_gemm_nt(const EGraph &egraph, const std::vector<Id> 
                 }
                 MatrixProperty prop;
                 prop.shape = std::make_pair(data->shape.first, data2->shape.first);
-                return matrix_property_data(prop);
+                return make_matrix_property_data(prop);
             }
         }
     }
@@ -506,7 +501,7 @@ static AnalysisData analyze_gemm_tt(const EGraph &egraph, const std::vector<Id> 
                 }
                 MatrixProperty prop;
                 prop.shape = std::make_pair(data->shape.second, data2->shape.first);
-                return matrix_property_data(prop);
+                return make_matrix_property_data(prop);
             }
         }
     }
@@ -528,7 +523,7 @@ static AnalysisData analyze_syrk_n(const EGraph &egraph, const std::vector<Id> &
                 prop.flags.is_full_rank = true;
                 prop.flags.is_non_singular = true;
             }
-            return matrix_property_data(prop);
+            return make_matrix_property_data(prop);
         }
     }
     throw AnalysisError("Syrk_N expects Matrix inputs");
@@ -549,7 +544,7 @@ static AnalysisData analyze_syrk_t(const EGraph &egraph, const std::vector<Id> &
                 prop.flags.is_full_rank = true;
                 prop.flags.is_non_singular = true;
             }
-            return matrix_property_data(prop);
+            return make_matrix_property_data(prop);
         }
     }
     throw AnalysisError("Syrk_T expects Matrix inputs");
@@ -569,7 +564,7 @@ static AnalysisData analyze_trsm_ln(const EGraph &egraph, const std::vector<Id> 
             prop.shape = std::make_pair(dataA->shape.first, dataB->shape.second);
             prop.flags.is_full_rank = dataB->flags.is_full_rank;
             prop.flags.is_non_singular = dataB->flags.is_non_singular;
-            return matrix_property_data(prop);
+            return make_matrix_property_data(prop);
         }
     }
     throw AnalysisError("Trsm_LN expects Matrix inputs");
@@ -589,7 +584,7 @@ static AnalysisData analyze_trsm_lt(const EGraph &egraph, const std::vector<Id> 
             prop.shape = std::make_pair(dataA->shape.second, dataB->shape.second);
             prop.flags.is_full_rank = dataB->flags.is_full_rank;
             prop.flags.is_non_singular = dataB->flags.is_non_singular;
-            return matrix_property_data(prop);
+            return make_matrix_property_data(prop);
         }
     }
     throw AnalysisError("Trsm_LT expects Matrix inputs");
@@ -609,7 +604,7 @@ static AnalysisData analyze_trsm_rn(const EGraph &egraph, const std::vector<Id> 
             prop.shape = std::make_pair(dataB->shape.first, dataA->shape.second);
             prop.flags.is_full_rank = dataB->flags.is_full_rank;
             prop.flags.is_non_singular = dataB->flags.is_non_singular;
-            return matrix_property_data(prop);
+            return make_matrix_property_data(prop);
         }
     }
     throw AnalysisError("Trsm_RN expects Matrix inputs");
@@ -629,7 +624,7 @@ static AnalysisData analyze_trsm_rt(const EGraph &egraph, const std::vector<Id> 
             prop.shape = std::make_pair(dataB->shape.first, dataA->shape.first);
             prop.flags.is_full_rank = dataB->flags.is_full_rank;
             prop.flags.is_non_singular = dataB->flags.is_non_singular;
-            return matrix_property_data(prop);
+            return make_matrix_property_data(prop);
         }
     }
     throw AnalysisError("Trsm_RT expects Matrix inputs");
@@ -656,7 +651,7 @@ static AnalysisData analyze_potrf_u(const EGraph &egraph, const std::vector<Id> 
         U.flags.is_upper_triangular = true;
         U.flags.is_non_singular = true;
         auto props = std::vector{U};
-        return tuple_property_data(props);
+        return make_tuple_property_data(props);
     }
     throw AnalysisError("Potrf_U expects a Matrix input");
 }
@@ -684,7 +679,7 @@ static AnalysisData analyze_trtri(const EGraph &egraph, const std::vector<Id> &c
         prop.flags.is_lower_triangular = data->flags.is_lower_triangular;
         prop.flags.is_non_singular = true;
         prop.flags.is_full_rank = true;
-        return matrix_property_data(prop);
+        return make_matrix_property_data(prop);
     }
     throw AnalysisError("Trtri expects a Matrix input");
 }
@@ -708,7 +703,7 @@ static AnalysisData analyze_gemv_n(const EGraph &egraph, const std::vector<Id> &
 
                 MatrixProperty prop;
                 prop.shape = std::make_pair(data1->shape.first, 1);
-                return matrix_property_data(prop);
+                return make_matrix_property_data(prop);
             }
         }
     }
@@ -736,7 +731,7 @@ static AnalysisData analyze_gemv_t(const EGraph &egraph, const std::vector<Id> &
 
                 MatrixProperty prop;
                 prop.shape = std::make_pair(dataA->shape.second, 1); // Result is n x 1
-                return matrix_property_data(prop);
+                return make_matrix_property_data(prop);
             }
         }
     }
@@ -764,7 +759,7 @@ static AnalysisData analyze_ormqr_ln(const EGraph &egraph, const std::vector<Id>
             prop.flags.is_full_rank = C->flags.is_full_rank;
             prop.flags.is_non_singular = C->flags.is_non_singular;
             prop.flags.is_orthogonal = (*props)[0].flags.is_orthogonal && C->flags.is_orthogonal;
-            return matrix_property_data(prop);
+            return make_matrix_property_data(prop);
         }
     }
     throw AnalysisError("Ormqr_LN expects Geqrf output and a matrix");
@@ -780,7 +775,7 @@ static AnalysisData analyze_ormqr_lt(const EGraph &egraph, const std::vector<Id>
             prop.flags.is_full_rank = C->flags.is_full_rank;
             prop.flags.is_non_singular = C->flags.is_non_singular;
             prop.flags.is_orthogonal = (*props)[0].flags.is_orthogonal && C->flags.is_orthogonal;
-            return matrix_property_data(prop);
+            return make_matrix_property_data(prop);
         }
     }
     throw AnalysisError("Ormqr_LT expects Geqrf output and a matrix");
@@ -796,7 +791,7 @@ static AnalysisData analyze_ormqr_rn(const EGraph &egraph, const std::vector<Id>
             prop.flags.is_full_rank = C->flags.is_full_rank;
             prop.flags.is_non_singular = C->flags.is_non_singular;
             prop.flags.is_orthogonal = (*props)[0].flags.is_orthogonal && C->flags.is_orthogonal;
-            return matrix_property_data(prop);
+            return make_matrix_property_data(prop);
         }
     }
     throw AnalysisError("Ormqr_RN expects Geqrf output and a matrix");
@@ -812,7 +807,7 @@ static AnalysisData analyze_ormqr_rt(const EGraph &egraph, const std::vector<Id>
             prop.flags.is_full_rank = C->flags.is_full_rank;
             prop.flags.is_non_singular = C->flags.is_non_singular;
             prop.flags.is_orthogonal = (*props)[0].flags.is_orthogonal && C->flags.is_orthogonal;
-            return matrix_property_data(prop);
+            return make_matrix_property_data(prop);
         }
     }
     throw AnalysisError("Ormqr_RT expects Geqrf output and a matrix");
@@ -851,7 +846,7 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
     case Log:
         return AnalysisData{};
     case Scale:
-        return matrix_property_data(*get_matrix_data(egraph, children.at(0)));
+        return make_matrix_property_data(*get_matrix_data(egraph, children.at(0)));
 
     case Gemm_NN: {
         return analyze_gemm_nn(egraph, children);
