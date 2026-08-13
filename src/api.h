@@ -8,6 +8,7 @@
 #include "pruner.h"
 #include "rewrite_sets.h"
 #include "rewriter.h"
+#include <chrono>
 #include <iostream>
 #include <stdexcept>
 #include <string>
