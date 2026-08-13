@@ -7,7 +7,7 @@
 
 namespace parser {
 
-enum class TokenType { Eof, Plus, Minus, Star, LParen, RParen, Comma, Ident, Num, Error };
+enum class TokenType { Eof, Plus, Minus, Star, Slash, LParen, RParen, Comma, Ident, Num, Error };
 
 struct Token {
     TokenType type;
@@ -44,6 +44,10 @@ class Lexer {
         if (c == '*') {
             pos++;
             return {TokenType::Star, s.substr(pos - 1, 1)};
+        }
+        if (c == '/') {
+            pos++;
+            return {TokenType::Slash, s.substr(pos - 1, 1)};
         }
         if (c == '(') {
             pos++;
@@ -151,12 +155,12 @@ struct ASTNode {
             return res;
         } else if (std::holds_alternative<uint32_t>(atom)) {
             return get_string_from_lookup(std::get<uint32_t>(atom));
-        } else {
-            double v = std::get<double>(atom);
-            if (v == static_cast<long long>(v))
-                return std::to_string(static_cast<long long>(v));
-            return std::to_string(v);
+        } else if (std::holds_alternative<int>(atom)) {
+            return std::to_string(std::get<int>(atom));
+        } else if (std::holds_alternative<ScalarExpr>(atom)) {
+            return std::get<ScalarExpr>(atom).to_string();
         }
+        throw std::runtime_error("Unknown atom type in ASTNode");
     }
 };
 
@@ -192,7 +196,11 @@ class Parser {
                 throw ParseError("Invalid number: " + std::string(curr.text));
             }
             auto node = std::make_unique<ASTNode>();
-            node->atom = v;
+            if (v == static_cast<int>(v) && curr.text.find('.') == std::string_view::npos) {
+                node->atom = static_cast<int>(v);
+            } else {
+                node->atom = ScalarExpr(v);
+            }
             advance();
             return node;
         }
@@ -207,18 +215,24 @@ class Parser {
                     throw ParseError("Invalid number: " + std::string(curr.text));
                 }
                 auto node = std::make_unique<ASTNode>();
-                node->atom = -v;
+                // index can only be positive integer
+                // if (-v == static_cast<int>(-v) && curr.text.find('.') == std::string_view::npos) {
+                //     node->atom = static_cast<int>(-v);
+                // }
+
+                node->atom = ScalarExpr(-v);
+
                 advance();
                 return node;
             }
             auto expr = parse_expr(30);
             auto node = std::make_unique<ASTNode>();
-            node->atom = Op::Minus;
+            node->atom = Op::Scale;
 
-            auto zero = std::make_unique<ASTNode>();
-            zero->atom = 0.0;
-            node->children.push_back(std::move(zero));
+            auto neg_one = std::make_unique<ASTNode>();
+            neg_one->atom = ScalarExpr(-1.0);
             node->children.push_back(std::move(expr));
+            node->children.push_back(std::move(neg_one));
             return node;
         }
 
@@ -247,6 +261,28 @@ class Parser {
                 advance();
                 auto node = std::make_unique<ASTNode>();
                 node->atom = op;
+
+                if (op == Op::Get) {
+                    if (curr.type == TokenType::RParen)
+                        throw ParseError("Get requires arguments");
+                    node->children.push_back(parse_expr(0));
+                    if (curr.type != TokenType::Comma)
+                        throw ParseError("Expected comma in Get(Tuple, Index)");
+                    advance();
+                    if (curr.type == TokenType::Num) {
+                        int idx = static_cast<int>(std::stod(std::string(curr.text)));
+                        auto idx_node = std::make_unique<ASTNode>();
+                        idx_node->atom = idx;
+                        node->children.push_back(std::move(idx_node));
+                        advance();
+                    } else {
+                        throw ParseError("Get index must be an integer literal");
+                    }
+                    if (curr.type != TokenType::RParen)
+                        throw ParseError("Expected closing parenthesis after Get index");
+                    advance();
+                    return node;
+                }
 
                 if (curr.type != TokenType::RParen) {
                     while (true) {
@@ -321,6 +357,85 @@ ParsedAtom parse_expression(std::string_view s) {
         res.children_strings.push_back(child->to_string());
     }
     return res;
+}
+
+class ScalarParser {
+    Lexer lexer;
+    Token curr;
+
+    void advance() { curr = lexer.next(); }
+
+    ScalarExpr parse_primary() {
+        if (curr.type == TokenType::Num) {
+            double val = std::stod(std::string(curr.text));
+            advance();
+            return ScalarExpr(val);
+        } else if (curr.type == TokenType::Ident) {
+            char var = curr.text.empty() ? '\0' : curr.text[0];
+            advance();
+            return ScalarExpr(var);
+        } else if (curr.type == TokenType::Minus) {
+            advance();
+            return {ScalarOp::Neg, {parse_primary()}};
+        } else if (curr.type == TokenType::LParen) {
+            advance();
+            ScalarExpr expr = parse_expr();
+            if (curr.type == TokenType::RParen) {
+                advance();
+            } else {
+                throw ParseError("Expected closing parenthesis in scalar expression");
+            }
+            return expr;
+        }
+        throw ParseError("Unexpected token in scalar expression: " + std::string(curr.text));
+    }
+
+    ScalarExpr parse_term() {
+        ScalarExpr left = parse_primary();
+        while (curr.type == TokenType::Star || curr.type == TokenType::Slash) {
+            TokenType op = curr.type;
+            advance();
+            ScalarExpr right = parse_primary();
+            if (op == TokenType::Star) {
+                left = {ScalarOp::Mul, {left, right}};
+            } else {
+                left = {ScalarOp::Div, {left, right}};
+            }
+        }
+        return left;
+    }
+
+    ScalarExpr parse_expr() {
+        ScalarExpr left = parse_term();
+        while (curr.type == TokenType::Plus || curr.type == TokenType::Minus) {
+            TokenType op = curr.type;
+            advance();
+            ScalarExpr right = parse_term();
+            if (op == TokenType::Plus) {
+                left = {ScalarOp::Add, {left, right}};
+            } else {
+                left = {ScalarOp::Sub, {left, right}};
+            }
+        }
+        return left;
+    }
+
+  public:
+    ScalarParser(std::string_view s) : lexer(s) { advance(); }
+
+    ScalarExpr parse() {
+        if (curr.type == TokenType::Eof)
+            throw ParseError("Empty scalar expression");
+        auto node = parse_expr();
+        if (curr.type != TokenType::Eof)
+            throw ParseError("Unexpected token after scalar expression: " + std::string(curr.text));
+        return node;
+    }
+};
+
+ScalarExpr parse_scalar(std::string_view s) {
+    ScalarParser parser(s);
+    return parser.parse();
 }
 
 } // namespace parser

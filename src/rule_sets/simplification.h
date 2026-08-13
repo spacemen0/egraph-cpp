@@ -64,7 +64,7 @@ static const auto scale_collapse = make_rewrite(
         double v = *s1 * *s2;
         std::vector<Expression> children;
         children.push_back(Expression("?a"));
-        children.push_back(Expression(Atom(v), {}));
+        children.push_back(Expression(ScalarExpr(v)));
         return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), children), s), false);
     }
     throw InvalidOperationError("scale_collapse requires both scale factors to be numbers");
@@ -78,7 +78,7 @@ static const auto scale_combine = make_rewrite(
         double v = *s1 + *s2;
         std::vector<Expression> children;
         children.push_back(Expression("?a"));
-        children.push_back(Expression(Atom(v), {}));
+        children.push_back(Expression(ScalarExpr(v)));
         return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), children), s), false);
     }
     throw std::runtime_error("scale_add: Expected both properties to be numbers");
@@ -91,7 +91,7 @@ static const auto scale_combine_implicit = make_rewrite(
         double v = *s1 + 1.0;
         std::vector<Expression> children;
         children.push_back(Expression("?a"));
-        children.push_back(Expression(Atom(v), {}));
+        children.push_back(Expression(ScalarExpr(v)));
         return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), children), s), false);
     }
     throw std::runtime_error("scale_add_implicit: Expected scale factor to be a number");

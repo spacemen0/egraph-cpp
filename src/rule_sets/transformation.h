@@ -51,7 +51,7 @@ static const auto scale_inverse = make_rewrite(
 
         std::vector<Expression> scale_children;
         scale_children.push_back(inv_node);
-        scale_children.push_back(Expression(Atom(1.0 / val), {}));
+        scale_children.push_back(Expression(ScalarExpr(1.0 / val)));
 
         return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), scale_children), s), false);
     }

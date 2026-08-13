@@ -6,6 +6,7 @@
 #include "rewriter.h"
 #include "types.h"
 #include <magic_enum.hpp>
+#include <optional>
 #include <random>
 #include <span>
 #include <stdexcept>
@@ -88,11 +89,10 @@ inline std::string atom_to_string(const Atom &atom) {
         return std::string(magic_enum::enum_name(op));
     } else if (std::holds_alternative<uint32_t>(atom)) {
         return get_string_from_lookup(std::get<uint32_t>(atom));
-    } else if (std::holds_alternative<double>(atom)) {
-        double v = std::get<double>(atom);
-        if (v == static_cast<long long>(v))
-            return std::to_string(static_cast<long long>(v));
-        return std::to_string(v);
+    } else if (std::holds_alternative<int>(atom)) {
+        return std::to_string(std::get<int>(atom));
+    } else if (std::holds_alternative<ScalarExpr>(atom)) {
+        return std::get<ScalarExpr>(atom).to_string();
     }
     return "UnknownAtom";
 }
@@ -349,11 +349,23 @@ inline std::vector<double> generate_identity_matrix(int size) {
     return vec;
 }
 
+inline std::optional<int> get_int_from_eclass(const EGraph &egraph, Id id) {
+    for (const auto &node : egraph.get_class_nodes(id)) {
+        Atom atom = node->get_atom();
+        if (const int *i_val = std::get_if<int>(&atom)) {
+            return *i_val;
+        }
+    }
+    return std::nullopt;
+}
+
 inline std::optional<double> get_double_from_eclass(const EGraph &egraph, Id id) {
     for (const auto &node : egraph.get_class_nodes(id)) {
         Atom atom = node->get_atom();
-        if (const double *d = std::get_if<double>(&atom)) {
-            return *d;
+        if (const ScalarExpr *s = std::get_if<ScalarExpr>(&atom)) {
+            if (s->op == ScalarOp::Value) {
+                return s->val;
+            }
         }
     }
     return std::nullopt;

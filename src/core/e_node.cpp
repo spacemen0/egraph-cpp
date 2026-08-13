@@ -53,9 +53,12 @@ size_t ENode::hash() const {
         const auto &s = std::get<uint32_t>(atom);
         size_t hp = std::hash<uint32_t>()(s);
         seed ^= hp + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
-    } else if (std::holds_alternative<double>(atom)) {
-        double d = std::get<double>(atom);
-        size_t hp = std::hash<double>()(d);
+    } else if (std::holds_alternative<int>(atom)) {
+        int v = std::get<int>(atom);
+        size_t hp = std::hash<int>()(v);
+        seed ^= hp + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+    } else if (std::holds_alternative<ScalarExpr>(atom)) {
+        size_t hp = std::hash<std::string>()(std::get<ScalarExpr>(atom).to_string());
         seed ^= hp + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
     }
 

@@ -18,7 +18,7 @@
 Evaluator::Evaluator(
     EGraph &egraph, const ExtractionResult &result, const SizeBindings *size_bindings,
     const DataBindings &data_bindings)
-    : egraph(egraph), result(result) {
+    : egraph(egraph), result(result), data_bindings(data_bindings) {
 
     for (Id class_id : result.execution_order) {
         const ENode *node = result.choices.at(class_id);
@@ -56,9 +56,13 @@ Evaluator::Evaluator(
                     }
                 }
                 data_storage[class_id] = node_data;
-            } else if (std::holds_alternative<double>(atom)) {
+            } else if (const ScalarExpr *s = std::get_if<ScalarExpr>(&atom)) {
                 MatrixNode node_data(1, 1);
-                node_data.vec()[0] = std::get<double>(atom);
+                node_data.vec()[0] = s->evaluate(data_bindings);
+                data_storage[class_id] = node_data;
+            } else if (const int *i_val = std::get_if<int>(&atom)) {
+                MatrixNode node_data(1, 1);
+                node_data.vec()[0] = static_cast<double>(*i_val);
                 data_storage[class_id] = node_data;
             } else if (auto data = get_tuple_data(egraph, class_id)) {
                 TupleNode tuple_data;
@@ -115,7 +119,10 @@ std::vector<double> Evaluator::evaluate() {
                         Id tuple_id = node->get_children()[0];
                         Id index_id = node->get_children()[1];
                         const TupleNode &input_tuple = std::get<TupleNode>(data_storage.at(tuple_id));
-                        int index = static_cast<int>(get_double_from_eclass(egraph, index_id).value());
+                        int index = 0;
+                        if (auto idx_opt = get_int_from_eclass(egraph, index_id); idx_opt.has_value()) {
+                            index = idx_opt.value();
+                        }
                         dispatch_get(input_tuple, index, output);
                     } else if (std::holds_alternative<TupleNode>(it->second)) {
                         TupleNode &output = std::get<TupleNode>(it->second);
@@ -214,9 +221,19 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
     }
 
     case Scale: {
-        double scalar = inputs[1]->data()[0];
         setup_in_place_output(node->get_children()[0], output);
-        cblas_dscal(output.rows * output.cols, scalar, output.data(), 1);
+        double scalar_val = 1.0;
+        Id scalar_id = node->get_children()[1];
+        auto choice_it = result.choices.find(scalar_id);
+        if (choice_it != result.choices.end() && choice_it->second) {
+            const Atom &atom = choice_it->second->get_atom();
+            if (const ScalarExpr *s = std::get_if<ScalarExpr>(&atom)) {
+                scalar_val = s->evaluate(data_bindings);
+            }
+        } else {
+            throw std::runtime_error("Scale operation requires a scalar value as the second child.");
+        }
+        cblas_dscal(output.rows * output.cols, scalar_val, output.data(), 1);
         break;
     }
 

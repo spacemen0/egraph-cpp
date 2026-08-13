@@ -5,17 +5,30 @@
 Matcher::Matcher(EGraph &egraph) : egraph(egraph) {}
 
 bool Matcher::atoms_match(const Atom &pat_atom, const Atom &enode_atom) const {
-    if (pat_atom.index() != enode_atom.index())
-        return false;
+    if (pat_atom.index() == enode_atom.index()) {
+        if (const auto op1 = std::get_if<Op>(&pat_atom))
+            return *op1 == std::get<Op>(enode_atom);
 
-    if (const auto op1 = std::get_if<Op>(&pat_atom))
-        return *op1 == std::get<Op>(enode_atom);
+        if (const auto s1 = std::get_if<uint32_t>(&pat_atom))
+            return *s1 == std::get<uint32_t>(enode_atom);
 
-    if (const auto s1 = std::get_if<uint32_t>(&pat_atom))
-        return *s1 == std::get<uint32_t>(enode_atom);
+        if (const auto i1 = std::get_if<int>(&pat_atom))
+            return *i1 == std::get<int>(enode_atom);
 
-    if (const auto i1 = std::get_if<double>(&pat_atom))
-        return *i1 == std::get<double>(enode_atom);
+        if (const auto s1 = std::get_if<ScalarExpr>(&pat_atom))
+            return *s1 == std::get<ScalarExpr>(enode_atom);
+    }
+
+    if (const auto i1 = std::get_if<int>(&pat_atom)) {
+        if (const auto s2 = std::get_if<ScalarExpr>(&enode_atom)) {
+            return s2->op == ScalarOp::Value && s2->val == static_cast<double>(*i1);
+        }
+    }
+    if (const auto s1 = std::get_if<ScalarExpr>(&pat_atom)) {
+        if (const auto i2 = std::get_if<int>(&enode_atom)) {
+            return s1->op == ScalarOp::Value && s1->val == static_cast<double>(*i2);
+        }
+    }
 
     return false;
 }

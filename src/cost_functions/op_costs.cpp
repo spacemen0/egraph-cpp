@@ -238,9 +238,9 @@ Cost compute_get_cost(Op op, const ENode &node, const EGraph &egraph, const Size
     if (is_geqrf) {
         for (const auto *index_enode : egraph.get_class_nodes(index_id)) {
             Atom index_atom = index_enode->get_atom();
-            if (auto val = std::get_if<double>(&index_atom)) {
-                if (*val == 0.0) {
-                    return 1e12; // effectively infinite
+            if (auto val = std::get_if<int>(&index_atom)) {
+                if (*val == 0) {
+                    return compute_orgqr_cost(Op::Orgqr, node, egraph, size_bindings) * 1.2;
                 }
             }
         }

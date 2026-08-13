@@ -75,39 +75,41 @@ std::string Expression::render(const Expression &expr, bool readable, int parent
                parenthesize(expr.children[1], readable, precedence(expr));
     }
     case Get: {
-        if (readable && expr.children.size() == 2 && std::holds_alternative<double>(expr.children[1].atom)) {
-            int index = static_cast<int>(std::get<double>(expr.children[1].atom));
-            const Expression &tuple_expr = expr.children[0];
-            if (std::holds_alternative<Op>(tuple_expr.atom)) {
-                Op tuple_op = std::get<Op>(tuple_expr.atom);
-                std::string factor_name;
-                if (tuple_op == Op::QR || tuple_op == Op::Geqrf) {
-                    if (index == 0)
-                        factor_name = "Q";
-                    else if (index == 1)
-                        factor_name = "R";
-                } else if (tuple_op == Op::LU) {
-                    if (index == 0)
-                        factor_name = "L";
-                    else if (index == 1)
-                        factor_name = "U";
-                    else if (index == 2)
-                        factor_name = "P";
-                } else if (tuple_op == Op::LLt || tuple_op == Op::Potrf_L || tuple_op == Op::Potrf_U) {
-                    if (index == 0)
-                        factor_name = "LLt";
-                }
-
-                if (!factor_name.empty()) {
-                    std::stringstream ss;
-                    ss << factor_name << "(";
-                    for (size_t i = 0; i < tuple_expr.children.size(); ++i) {
-                        if (i > 0)
-                            ss << ", ";
-                        ss << render(tuple_expr.children[i], readable);
+        if (readable && expr.children.size() == 2) {
+            if (const int *idx_ptr = std::get_if<int>(&expr.children[1].atom)) {
+                int index = *idx_ptr;
+                const Expression &tuple_expr = expr.children[0];
+                if (std::holds_alternative<Op>(tuple_expr.atom)) {
+                    Op tuple_op = std::get<Op>(tuple_expr.atom);
+                    std::string factor_name;
+                    if (tuple_op == Op::QR || tuple_op == Op::Geqrf) {
+                        if (index == 0)
+                            factor_name = "Q";
+                        else if (index == 1)
+                            factor_name = "R";
+                    } else if (tuple_op == Op::LU) {
+                        if (index == 0)
+                            factor_name = "L";
+                        else if (index == 1)
+                            factor_name = "U";
+                        else if (index == 2)
+                            factor_name = "P";
+                    } else if (tuple_op == Op::LLt || tuple_op == Op::Potrf_L || tuple_op == Op::Potrf_U) {
+                        if (index == 0)
+                            factor_name = "LLt";
                     }
-                    ss << ")";
-                    return ss.str();
+
+                    if (!factor_name.empty()) {
+                        std::stringstream ss;
+                        ss << factor_name << "(";
+                        for (size_t i = 0; i < tuple_expr.children.size(); ++i) {
+                            if (i > 0)
+                                ss << ", ";
+                            ss << render(tuple_expr.children[i], readable);
+                        }
+                        ss << ")";
+                        return ss.str();
+                    }
                 }
             }
         }
@@ -135,6 +137,11 @@ std::string Expression::render(const Expression &expr, bool readable, int parent
 Expression::Expression(std::string_view string) {
     auto parsed = string_to_parsed_atom(string);
     atom = parsed.atom;
+    if (std::holds_alternative<Op>(atom) && std::get<Op>(atom) == Op::Scale && parsed.children_strings.size() == 2) {
+        children.push_back(Expression(parsed.children_strings[0]));
+        children.push_back(Expression(parser::parse_scalar(parsed.children_strings[1])));
+        return;
+    }
     std::ranges::transform(parsed.children_strings, std::back_inserter(children), [](const std::string &str) {
         return Expression(str);
     });

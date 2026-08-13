@@ -8,6 +8,8 @@
 struct Expression {
     explicit Expression() = default;
     explicit Expression(std::string_view string);
+    explicit Expression(int i) : atom(i) {}
+    explicit Expression(const ScalarExpr &s) : atom(s) {}
     explicit Expression(const Atom &atom, std::vector<Expression> children)
         : atom(atom), children(std::move(children)) {};
 
@@ -21,6 +23,7 @@ struct Expression {
 
 inline Expression operator+(const Expression &lhs, const Expression &rhs) { return Expression(Op::Add, {lhs, rhs}); }
 inline Expression operator-(const Expression &lhs, const Expression &rhs) { return Expression(Op::Minus, {lhs, rhs}); }
+inline Expression operator-(const Expression &e) { return Expression(Op::Scale, {e, Expression(-1.0)}); }
 inline Expression operator*(const Expression &lhs, const Expression &rhs) { return Expression(Op::Mul, {lhs, rhs}); }
 inline Expression transpose(const Expression &e) { return Expression(Op::Tr, {e}); }
 inline Expression inverse(const Expression &e) { return Expression(Op::Inv, {e}); }

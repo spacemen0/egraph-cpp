@@ -41,6 +41,7 @@ class Evaluator {
     void dispatch_get(const TupleNode &input_tuple, int index, MatrixNode &output) const;
     EGraph &egraph;
     ExtractionResult result;
+    const DataBindings &data_bindings;
     std::unordered_map<Id, DataStorage> data_storage;
     mutable std::unordered_map<Id, int> use_counts;
 };

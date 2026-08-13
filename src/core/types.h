@@ -47,6 +47,18 @@ inline SymbolicCost operator+(const SymbolicCost &a, const SymbolicCost &b) {
     return result;
 }
 
+inline Cost operator*(const Cost &lhs, double rhs) {
+    if (std::holds_alternative<double>(lhs)) {
+        return std::get<double>(lhs) * rhs;
+    } else {
+        SymbolicCost result;
+        for (const auto &[monomial, coeff] : std::get<SymbolicCost>(lhs)) {
+            result[monomial] = coeff * rhs;
+        }
+        return result;
+    }
+}
+
 inline Cost &operator+=(Cost &lhs, const Cost &rhs) {
     if (lhs.index() != rhs.index()) {
         if (std::holds_alternative<double>(lhs) && std::get<double>(lhs) == 0.0) {

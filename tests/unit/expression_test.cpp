@@ -77,15 +77,15 @@ TEST(Expression, ParseQRNode) {
     ASSERT_EQ(get_q.children.size(), 2);
     EXPECT_TRUE(std::holds_alternative<Op>(get_q.children[0].atom));
     EXPECT_EQ(std::get<Op>(get_q.children[0].atom), Op::QR);
-    EXPECT_TRUE(std::holds_alternative<double>(get_q.children[1].atom));
-    EXPECT_EQ(std::get<double>(get_q.children[1].atom), 0.0);
+    EXPECT_TRUE(std::holds_alternative<int>(get_q.children[1].atom));
+    EXPECT_EQ(std::get<int>(get_q.children[1].atom), 0);
     const Expression &get_r = p.children[1];
     EXPECT_EQ(std::get<Op>(get_r.atom), Op::Get);
     ASSERT_EQ(get_r.children.size(), 2);
     EXPECT_TRUE(std::holds_alternative<Op>(get_r.children[0].atom));
     EXPECT_EQ(std::get<Op>(get_r.children[0].atom), Op::QR);
-    EXPECT_TRUE(std::holds_alternative<double>(get_r.children[1].atom));
-    EXPECT_EQ(std::get<double>(get_r.children[1].atom), 1.0);
+    EXPECT_TRUE(std::holds_alternative<int>(get_r.children[1].atom));
+    EXPECT_EQ(std::get<int>(get_r.children[1].atom), 1);
 }
 
 TEST(Expression, ParsingErrors) {
