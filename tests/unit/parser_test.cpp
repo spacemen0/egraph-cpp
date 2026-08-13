@@ -155,12 +155,12 @@ TEST(ParserTest, ScalarExprParsing) {
 
 TEST(ParserTest, ScaleWithScalarExprStringAndCpp) {
     // 1. Plain string with scalar expression in Scale
-    Expression scale_str("Scale(A, k - 1.0)");
+    Expression scale_str("Scale(A, k / 1.0)");
     EXPECT_TRUE(std::holds_alternative<Op>(scale_str.atom));
     EXPECT_EQ(std::get<Op>(scale_str.atom), Op::Scale);
     ASSERT_EQ(scale_str.children.size(), 2);
     EXPECT_TRUE(std::holds_alternative<ScalarExpr>(scale_str.children[1].atom));
-    EXPECT_EQ(std::get<ScalarExpr>(scale_str.children[1].atom).to_string(), "(k - 1)");
+    EXPECT_EQ(std::get<ScalarExpr>(scale_str.children[1].atom).to_string(), "(k / 1)");
 
     // 2. Mixing C++ ScalarExpr directly into matrix Expression via Scale
     ScalarExpr k('k');

@@ -17,7 +17,7 @@ static const auto mul_distribute_left =
     make_rewrite("mul-distribute-over-add-left", "?a * (?b + ?c)", "?a * ?b + ?a * ?c", true);
 static const auto mul_distribute_right =
     make_rewrite("mul-distribute-over-add-right", "(?a + ?b) * ?c", "?a * ?c + ?b * ?c", true);
-static const auto sub_to_add_scale = make_rewrite("sub_to_add_scale", "?a - ?b", "?a + Scale(?b, -1)");
+static const auto sub_to_add_scale = make_rewrite("sub_to_add_scale", "?a - ?b", "?a + Scale(?b, -1.0)");
 static const auto scale_add_distribute =
     make_rewrite("scale_add_distribute", "Scale(?a + ?b, ?s)", "Scale(?a, ?s) + Scale(?b, ?s)", true);
 static const auto scale_mul_distribute_left =

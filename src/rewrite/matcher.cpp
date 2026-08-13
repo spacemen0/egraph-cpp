@@ -19,17 +19,6 @@ bool Matcher::atoms_match(const Atom &pat_atom, const Atom &enode_atom) const {
             return *s1 == std::get<ScalarExpr>(enode_atom);
     }
 
-    if (const auto i1 = std::get_if<int>(&pat_atom)) {
-        if (const auto s2 = std::get_if<ScalarExpr>(&enode_atom)) {
-            return s2->op == ScalarOp::Value && s2->val == static_cast<double>(*i1);
-        }
-    }
-    if (const auto s1 = std::get_if<ScalarExpr>(&pat_atom)) {
-        if (const auto i2 = std::get_if<int>(&enode_atom)) {
-            return s1->op == ScalarOp::Value && s1->val == static_cast<double>(*i2);
-        }
-    }
-
     return false;
 }
 

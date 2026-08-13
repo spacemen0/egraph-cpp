@@ -9,6 +9,7 @@ struct Expression {
     explicit Expression() = default;
     explicit Expression(std::string_view string);
     explicit Expression(int i) : atom(i) {}
+    explicit Expression(double v) : atom(ScalarExpr(v)) {}
     explicit Expression(const ScalarExpr &s) : atom(s) {}
     explicit Expression(const Atom &atom, std::vector<Expression> children)
         : atom(atom), children(std::move(children)) {};
@@ -29,3 +30,5 @@ inline Expression transpose(const Expression &e) { return Expression(Op::Tr, {e}
 inline Expression inverse(const Expression &e) { return Expression(Op::Inv, {e}); }
 inline Expression determinant(const Expression &e) { return Expression(Op::Det, {e}); }
 inline Expression log(const Expression &e) { return Expression(Op::Log, {e}); }
+inline Expression scale(const Expression &e, const ScalarExpr &s) { return Expression(Op::Scale, {e, Expression(s)}); }
+inline Expression scale(const Expression &e, double v) { return Expression(Op::Scale, {e, Expression(ScalarExpr(v))}); }

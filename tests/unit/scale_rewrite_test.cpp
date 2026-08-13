@@ -13,7 +13,7 @@ TEST(ScaleRewrite, ScaleCollapseDoubles) {
     Rewriter rewriter(egraph, {scale_collapse}, EGraphConfig{.rewrite = {.node_limit = 100}});
     rewriter.apply_rewrites();
 
-    Id id_expected = egraph.add_expression(Expression("Scale(A, 3)"));
+    Id id_expected = egraph.add_expression(Expression("Scale(A, 3.0)"));
     EXPECT_EQ(egraph.find_class_id(id), egraph.find_class_id(id_expected));
 }
 

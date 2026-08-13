@@ -284,6 +284,40 @@ class Parser {
                     return node;
                 }
 
+                if (op == Op::Scale) {
+                    if (curr.type == TokenType::RParen)
+                        throw ParseError("Scale requires arguments");
+                    node->children.push_back(parse_expr(0));
+                    if (curr.type != TokenType::Comma)
+                        throw ParseError("Expected comma in Scale(Matrix, Scalar)");
+                    advance();
+                    std::string scalar_text;
+                    int paren_depth = 0;
+                    while (curr.type != TokenType::Eof) {
+                        if (curr.type == TokenType::LParen) {
+                            paren_depth++;
+                        } else if (curr.type == TokenType::RParen) {
+                            if (paren_depth == 0)
+                                break;
+                            paren_depth--;
+                        }
+                        scalar_text += std::string(curr.text);
+                        advance();
+                    }
+                    if (curr.type != TokenType::RParen)
+                        throw ParseError("Expected closing parenthesis after Scale arguments");
+                    advance();
+
+                    auto scalar_ast = std::make_unique<ASTNode>();
+                    if (scalar_text.length() > 1 && scalar_text[0] == '?') {
+                        scalar_ast->atom = register_string_in_lookup(scalar_text);
+                    } else {
+                        scalar_ast->atom = parse_scalar(scalar_text);
+                    }
+                    node->children.push_back(std::move(scalar_ast));
+                    return node;
+                }
+
                 if (curr.type != TokenType::RParen) {
                     while (true) {
                         node->children.push_back(parse_expr(0));

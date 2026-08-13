@@ -25,7 +25,7 @@ static const auto mul_zero_right = make_rewrite(
     return std::make_pair(make_zero_of_shape(g, {a_prop->shape.first, z_prop->shape.second}), false);
 });
 static const auto scale_zero_scalar = make_rewrite(
-    "scale_zero_scalar", "Scale(?a, 0)", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s, Id _) {
+    "scale_zero_scalar", "Scale(?a, 0.0)", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s, Id _) {
     const auto *a_prop = get_matrix_data(g, s.at("a"));
     return std::make_pair(make_zero_of_shape(g, a_prop->shape), false);
 });
@@ -37,7 +37,7 @@ static const auto mul_identity_left = make_rewrite("mul-identity-left", "?a * ?i
 static const auto mul_identity_right =
     make_rewrite("mul-identity-right", "?i * ?a", "?a", false, is_identity_cond("i"));
 static const auto solve_by_id = make_rewrite("solve_by_id", "Sol(?b, ?a)", "?a", false, is_identity_cond("b"), nullptr);
-static const auto scale_one = make_rewrite("scale_one", "Scale(?a, 1)", "?a");
+static const auto scale_one = make_rewrite("scale_one", "Scale(?a, 1.0)", "?a");
 static const auto tr_tr_cancel = make_rewrite("tr-tr-cancel", "Tr(Tr(?a))", "?a");
 /// Cancellations
 /// ----------------------------------------------------------
@@ -56,8 +56,9 @@ static const auto solve_identity = make_rewrite(
     return std::make_pair(make_identity_for(g, s, "a"), false);
 });
 static const auto scale_collapse = make_rewrite(
-    "scale-collapse", "Scale(Scale(?a, ?s1), ?s2)", "Dynamic", false, nullptr,
-    [](EGraph &g, const Substitution &s, Id _) {
+    "scale-collapse", "Scale(Scale(?a, ?s1), ?s2)", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
+    return get_double_from_eclass(g, s.at("s1")).has_value() && get_double_from_eclass(g, s.at("s2")).has_value();
+}, [](EGraph &g, const Substitution &s, Id _) {
     auto s1 = get_double_from_eclass(g, s.at("s1"));
     auto s2 = get_double_from_eclass(g, s.at("s2"));
     if (s1 && s2) {
@@ -70,8 +71,9 @@ static const auto scale_collapse = make_rewrite(
     throw InvalidOperationError("scale_collapse requires both scale factors to be numbers");
 });
 static const auto scale_combine = make_rewrite(
-    "scale_combine", "Scale(?a,?s1)+Scale(?a,?s2)", "Dynamic", false, nullptr,
-    [](EGraph &g, const Substitution &s, Id _) {
+    "scale_combine", "Scale(?a,?s1)+Scale(?a,?s2)", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
+    return get_double_from_eclass(g, s.at("s1")).has_value() && get_double_from_eclass(g, s.at("s2")).has_value();
+}, [](EGraph &g, const Substitution &s, Id _) {
     auto s1 = get_double_from_eclass(g, s.at("s1"));
     auto s2 = get_double_from_eclass(g, s.at("s2"));
     if (s1 && s2) {
@@ -81,11 +83,12 @@ static const auto scale_combine = make_rewrite(
         children.push_back(Expression(ScalarExpr(v)));
         return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), children), s), false);
     }
-    throw std::runtime_error("scale_add: Expected both properties to be numbers");
+    throw InvalidOperationError("scale_collapse requires both scale factors to be numbers");
 });
 static const auto scale_combine_implicit = make_rewrite(
-    "scale_combine_implicit", "Scale(?a,?s1)+?a", "Dynamic", false, nullptr,
-    [](EGraph &g, const Substitution &s, Id _) {
+    "scale_combine_implicit", "Scale(?a,?s1)+?a", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
+    return get_double_from_eclass(g, s.at("s1")).has_value();
+}, [](EGraph &g, const Substitution &s, Id _) {
     auto s1 = get_double_from_eclass(g, s.at("s1"));
     if (s1) {
         double v = *s1 + 1.0;
@@ -94,7 +97,7 @@ static const auto scale_combine_implicit = make_rewrite(
         children.push_back(Expression(ScalarExpr(v)));
         return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), children), s), false);
     }
-    throw std::runtime_error("scale_add_implicit: Expected scale factor to be a number");
+    throw InvalidOperationError("scale_collapse requires both scale factors to be numbers");
 });
 
 /// Property-Based Simplifications
