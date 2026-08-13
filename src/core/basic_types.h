@@ -10,6 +10,7 @@ enum class Op {
     Add,
     Mul,
     Minus,
+    Div,
     Tr,
     Inv,
     QR,       // output: [Q, R] reduced QR
@@ -45,10 +46,12 @@ enum class Op {
     Ormqr_RT, // Ormqr(A, B) - Multiply B by implicit Q from right, transposed
 };
 
+struct ScalarExpr;
+
 using Id = size_t;
 using Children = std::vector<Id>;
 using LookupTable = std::unordered_map<std::string, uint32_t>; // maps string to unique integer id for storage in ENode
-using Atom = std::variant<Op, uint32_t, double>; // double for indexes in Get operations and scalars in Scale
+using Atom = std::variant<Op, uint32_t, double, ScalarExpr>; // double for indexes in Get operations and numeric scalars
 using Size = std::variant<int, std::string>;
 using Shape = std::pair<Size, Size>;
 using SizeBindings = std::unordered_map<std::string, int>;
