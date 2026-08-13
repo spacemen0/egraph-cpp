@@ -4,5 +4,6 @@ add_executable(examples
     gls.cpp
     image_restoration.cpp
     ols_dgels.cpp
+    stochastic_newton.cpp
 )
 target_link_libraries(examples PRIVATE core_lib)
