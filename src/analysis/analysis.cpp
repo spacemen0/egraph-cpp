@@ -167,7 +167,10 @@ static AnalysisData analyze_add(const EGraph &egraph, const std::vector<Id> &chi
             prop.flags.is_lower_triangular = data1->flags.is_lower_triangular && data2->flags.is_lower_triangular;
             prop.flags.is_diagonal = data1->flags.is_diagonal && data2->flags.is_diagonal;
             prop.flags.is_zero = data1->flags.is_zero && data2->flags.is_zero;
-            prop.flags.is_positive_definite = data1->flags.is_positive_definite && data2->flags.is_positive_definite;
+            prop.flags.is_positive_definite =
+                (data1->flags.is_positive_definite && data2->flags.is_positive_definite) ||
+                (data1->flags.is_positive_definite && data2->flags.is_symmetric) ||
+                (data2->flags.is_positive_definite && data1->flags.is_symmetric);
             prop.flags.is_full_rank = data1->flags.is_full_rank && data2->flags.is_full_rank;
             return make_matrix_property_data(prop);
         }

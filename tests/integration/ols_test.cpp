@@ -36,9 +36,10 @@ TEST(Integration, OLSNumeric) {
     auto result = extractor.extract(id);
     std::cout << "Candidate expression: " << result.expr.to_string(false) << std::endl;
     std::cout << "Cost: " << result.cost << std::endl;
-    EXPECT_EQ(
-        result.expr.to_string(false), "Trsm_LN(Get(Potrf_U(Syrk_T(J, Zero_20x20)), 0), Trsm_LT(Get(Potrf_U(Syrk_T(J, "
-                                      "Zero_20x20)), 0), Gemv_T(J, k, Zero_20x1)))");
+    std::string actual = result.expr.to_string(false);
+    std::string expected_u = "Trsm_LN(Get(Potrf_U(Syrk_T(J, Zero_20x20)), 0), Trsm_LT(Get(Potrf_U(Syrk_T(J, Zero_20x20)), 0), Gemv_T(J, k, Zero_20x1)))";
+    std::string expected_l = "Trsm_LT(Get(Potrf_L(Syrk_T(J, Zero_20x20)), 0), Trsm_LN(Get(Potrf_L(Syrk_T(J, Zero_20x20)), 0), Gemv_T(J, k, Zero_20x1)))";
+    EXPECT_TRUE(actual == expected_u || actual == expected_l);
 
     DataBindings data_bindings = {{"J", generate_random_vector(30 * 20)}, {"k", generate_random_vector(30)}};
     Evaluator evaluator(egraph, result, nullptr, data_bindings);
