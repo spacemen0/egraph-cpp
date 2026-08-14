@@ -22,15 +22,9 @@ TEST(Integration, OLSPruneConverges) {
     Rewriter rewriter(egraph, rules, EGraphConfig{.rewrite = {.node_limit = 500, .enable_backoff = true}});
     Extractor extractor(egraph, EGraphConfig{.extractor = {.max_depth = 20}, .enable_logging = true});
     Pruner pruner(egraph, extractor);
-    Id root_id = egraph.add_expression(Expression("(Inv(Tr(M) * M) * Tr(M)) * n"));
-
-    PruneOptions options{
-        .num_iterations = 8,
-        .rewrite_steps_per_iteration = 20,
-        .prune_samples_per_iteration = 20,
-        .max_results_per_binding = 5,
-        .size_keys = {"A", "B"},
-    };
+    auto root_expr = Expression("(Inv(Tr(M) * M) * Tr(M)) * n");
+    Id root_id = egraph.add_expression(root_expr);
+    auto config = initialize_config_for_expression(root_expr);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     auto pre_iteration = [&](int i) {
@@ -45,8 +39,8 @@ TEST(Integration, OLSPruneConverges) {
                   << ", pruned=" << prune_result.nodes_pruned << ", time=" << duration.count() << "s" << std::endl;
     };
 
-    pruner.rewrite_and_prune({root_id}, rewriter, options, pre_iteration, post_iteration);
-    Rewriter kernel_rewriter(egraph, build_rewrite_sets({"lowering"}), EGraphConfig{.rewrite = {.node_limit = 500}});
+    pruner.rewrite_and_prune({root_id}, rewriter, config.pruner, {"A", "B"}, pre_iteration, post_iteration);
+    Rewriter kernel_rewriter(egraph, build_rewrite_sets({"lowering"}), config);
     kernel_rewriter.apply_rewrites();
     egraph.to_img("egraph_after_pruning", "svg");
     Pruner::prune_symbolic_when_kernel_available(egraph);

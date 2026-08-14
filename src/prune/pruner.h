@@ -8,8 +8,6 @@
 
 #include "egraph_config.h"
 
-using PruneOptions = PrunerConfig;
-
 class Pruner {
   public:
     Pruner(EGraph &egraph, Extractor &extractor) : egraph(egraph), extractor(extractor) {}
@@ -19,7 +17,7 @@ class Pruner {
 
     void rewrite_and_prune(
         const std::vector<Id> &roots, Rewriter &rewriter, const PrunerConfig &config,
-        std::function<void(int iteration)> onIterationStart = nullptr,
+        std::vector<std::string> size_keys, std::function<void(int iteration)> onIterationStart = nullptr,
         std::function<void(int iteration, const PruneResult &)> onIterationFinish = nullptr) const;
 
   private:

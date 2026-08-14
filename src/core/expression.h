@@ -19,6 +19,8 @@ struct Expression {
     std::vector<Expression> children;
     std::string to_string(bool readable = false) const;
     bool operator==(const Expression &other) const;
+    size_t depth() const;
+    size_t node_count() const;
     static std::string render(const Expression &expr, bool readable, int parent_precedence = 0);
 };
 

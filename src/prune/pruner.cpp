@@ -77,7 +77,7 @@ PruneResult Pruner::prune_symbolic_when_kernel_available(EGraph &egraph) {
 }
 
 void Pruner::rewrite_and_prune(
-    const std::vector<Id> &roots, Rewriter &rewriter, const PrunerConfig &config,
+    const std::vector<Id> &roots, Rewriter &rewriter, const PrunerConfig &config, std::vector<std::string> size_keys,
     std::function<void(int iteration)> onIterationStart,
     std::function<void(int iteration, const PruneResult &)> onIterationFinish) const {
     for (int i = 0; i < config.num_iterations; ++i) {
@@ -88,7 +88,7 @@ void Pruner::rewrite_and_prune(
         rewriter.apply_rewrites(config.rewrite_steps_per_iteration);
 
         const auto bindings =
-            sample_size_bindings(config.prune_samples_per_iteration, 1, 1000, config.size_keys, config.seed + i);
+            sample_size_bindings(config.prune_samples_per_iteration, 1, 1000, size_keys, config.seed + i);
         const auto prune_result = prune(roots, bindings, config.max_results_per_binding);
 
         if (onIterationFinish) {

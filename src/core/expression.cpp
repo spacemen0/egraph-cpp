@@ -172,3 +172,19 @@ bool Expression::operator==(const Expression &other) const {
     }
     return true;
 }
+
+size_t Expression::depth() const {
+    size_t max_child_depth = 0;
+    for (const auto &child : children) {
+        max_child_depth = std::max(max_child_depth, child.depth());
+    }
+    return 1 + max_child_depth;
+}
+
+size_t Expression::node_count() const {
+    size_t count = 1;
+    for (const auto &child : children) {
+        count += child.node_count();
+    }
+    return count;
+}

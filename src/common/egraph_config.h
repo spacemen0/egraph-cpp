@@ -1,14 +1,13 @@
 #pragma once
 
 #include <cstddef>
-#include <string>
-#include <vector>
+#include <cstdint>
 
 struct RewriteConfig {
     size_t node_limit = 5000;
     size_t max_iterations = 10;
     bool enable_backoff = true;
-    bool enable_node_match_limit = false;
+    bool enable_node_match_limit = true;
 };
 
 struct ExtractorConfig {
@@ -22,7 +21,6 @@ struct PrunerConfig {
     int prune_samples_per_iteration = 5;
     int max_results_per_binding = 5;
     uint32_t seed = 42;
-    std::vector<std::string> size_keys;
 };
 
 struct EGraphConfig {
@@ -31,3 +29,9 @@ struct EGraphConfig {
     PrunerConfig pruner;
     bool enable_logging = false;
 };
+
+struct Expression;
+
+void initialize_config_for_expression(EGraphConfig &config, const Expression &expr);
+
+EGraphConfig initialize_config_for_expression(const Expression &expr);

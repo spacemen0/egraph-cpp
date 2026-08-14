@@ -107,7 +107,6 @@ class Context {
         }
 
         PrunerConfig pruner_cfg = config.pruner;
-        pruner_cfg.size_keys = size_keys;
 
         std::vector<Rewrite> rewrites = build_rewrite_sets(rulesets);
         Rewriter rewriter(egraph, rewrites, config);
@@ -115,7 +114,7 @@ class Context {
         Pruner pruner(egraph, extractor);
 
         pruner.rewrite_and_prune(
-            target_ids, rewriter, pruner_cfg, nullptr, [this](int iteration, const PruneResult &result) {
+            target_ids, rewriter, pruner_cfg, size_keys, nullptr, [this](int iteration, const PruneResult &result) {
             if (config.enable_logging) {
                 std::cout << "[Pruner] Iteration " << iteration + 1 << " finished. Pruned " << result.nodes_pruned
                           << " nodes.\n";
@@ -173,6 +172,7 @@ class Context {
         if (config.enable_logging) {
             std::cout << "[API] Optimizing concrete expression: " << target_expr.to_string() << "\n";
         }
+        initialize_config_for_expression(config, target_expr);
         Id target_id = add(target_expr);
         for (const auto &bg_expr : background_exprs) {
             add(bg_expr);
@@ -210,6 +210,7 @@ class Context {
         if (config.enable_logging) {
             std::cout << "[API] Optimizing symbolic expression: " << target_expr.to_string() << "\n";
         }
+        initialize_config_for_expression(config, target_expr);
         target_id = add(target_expr);
 
         for (const auto &bg_expr : background_exprs) {
