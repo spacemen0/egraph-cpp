@@ -32,7 +32,6 @@ Evaluator::Evaluator(
                 Shape shape = bind_shape(data->shape, size_bindings);
                 int rows = *std::get_if<int>(&shape.first);
                 int cols = *std::get_if<int>(&shape.second);
-                MatrixNode node_data(rows, cols);
 
                 if (std::holds_alternative<uint32_t>(atom)) // input matrices
                 {
@@ -43,6 +42,7 @@ Evaluator::Evaluator(
                         if (data->flags.is_identity == false && data->flags.is_zero == false)
                             throw std::runtime_error("Data binding for matrix " + matrix_name + " not provided.");
                         else {
+                            MatrixNode node_data(rows, cols);
                             for (int i = 0; i < rows * cols; ++i) {
                                 if (data->flags.is_identity) {
                                     node_data.vec()[i] = (i / rows == i % cols) ? 1.0 : 0.0;
@@ -50,12 +50,17 @@ Evaluator::Evaluator(
                                     node_data.vec()[i] = 0.0;
                                 }
                             }
+                            data_storage[class_id] = node_data;
                         }
                     } else {
-                        node_data = MatrixNode(rows, cols, data_bindings.at(matrix_name));
+                        MatrixNode node_data(rows, cols, data_bindings.at(matrix_name));
+                        data_storage[class_id] = node_data;
                     }
+                } else { // Ops, Intermediate matrices, initialize with default
+                    MatrixNode node_data(rows, cols);
+                    data_storage[class_id] = node_data;
                 }
-                data_storage[class_id] = node_data;
+
             } else if (const ScalarExpr *s = std::get_if<ScalarExpr>(&atom)) {
                 MatrixNode node_data(1, 1);
                 node_data.vec()[0] = s->evaluate(data_bindings);
@@ -174,10 +179,10 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
     case Gemv_T: {
         CBLAS_TRANSPOSE trans = (op == Op::Gemv_T) ? CblasTrans : CblasNoTrans;
         bool c_is_zero =
-            std::get<MatrixProperty>(egraph.get_class_analysis_data(node->get_children()[1]).property).flags.is_zero;
+            std::get<MatrixProperty>(egraph.get_class_analysis_data(node->get_children()[2]).property).flags.is_zero;
         double beta = c_is_zero ? 0.0 : 1.0;
         if (!c_is_zero) {
-            setup_in_place_output(node->get_children()[1], output);
+            setup_in_place_output(node->get_children()[2], output);
         }
         cblas_dgemv(
             CblasColMajor, trans, inputs[0]->rows, inputs[0]->cols, 1.0, inputs[0]->data(), inputs[0]->rows,

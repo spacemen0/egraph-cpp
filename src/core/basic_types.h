@@ -66,6 +66,7 @@ struct ScalarExpr {
         return op == other.op && val == other.val && var == other.var && children == other.children;
     }
 
+    // Ordering
     bool operator<(const ScalarExpr &other) const {
         if (op != other.op)
             return op < other.op;

@@ -34,7 +34,11 @@ size_t EGraph::num_nodes() const noexcept { return memo.size(); }
 
 const AnalysisData &EGraph::get_class_analysis_data(Id class_id) const {
     Id root = uf.find_root(class_id);
-    return classes.at(root)->get_analysis_data();
+    auto it = classes.find(root);
+    if (it != classes.end()) {
+        return it->second->get_analysis_data();
+    }
+    throw std::runtime_error("EClass ID not found in classes when getting analysis data.");
 }
 
 const PropertyTable &EGraph::get_property_table() const noexcept { return property_table; }
