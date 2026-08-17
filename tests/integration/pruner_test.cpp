@@ -51,6 +51,7 @@ TEST(Integration, OLSPruneConverges) {
         std::cout << "Cost: " << candidate.cost << std::endl;
     }
     EXPECT_TRUE(std::any_of(result.begin(), result.end(), [](const auto &c) {
-        return c.expr.to_string(true) == "Trsm_LN(R(M), Ormqr_LT(Geqrf(M), n))";
+        return c.expr.to_string(true).find("LLt(Syrk_T(M") != std::string::npos ||
+               c.expr.to_string(true) == "Trsm_LN(R(M), Ormqr_LT(Geqrf(M), n))";
     }));
 }

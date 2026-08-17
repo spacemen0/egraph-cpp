@@ -7,7 +7,7 @@ struct RewriteConfig {
     size_t node_limit = 5000;
     size_t max_iterations = 10;
     bool enable_backoff = true;
-    bool enable_node_match_limit = true;
+    bool enable_node_match_limit = false;
 };
 
 struct ExtractorConfig {

@@ -315,7 +315,8 @@ sample_size_bindings(int lower_bound, int upper_bound, std::vector<std::string> 
 }
 
 inline std::vector<SizeBindings> sample_size_bindings(
-    size_t k, int lower_bound, int upper_bound, const std::vector<std::string> &keys, uint32_t seed = 42) {
+    size_t k, int lower_bound, int upper_bound, const std::vector<std::string> &keys, uint32_t seed = 42,
+    const PropertyTable *pt = nullptr) {
     std::mt19937 gen(seed);
     std::uniform_int_distribution<int> dist(lower_bound, upper_bound);
     std::vector<SizeBindings> samples;
@@ -325,6 +326,24 @@ inline std::vector<SizeBindings> sample_size_bindings(
         bindings.reserve(keys.size());
         for (const std::string &key : keys) {
             bindings[key] = dist(gen);
+        }
+        if (pt) {
+            for (const auto &[name, mp] : pt->get_properties()) {
+                if (mp.flags.is_tall) {
+                    if (const auto *r_str = std::get_if<std::string>(&mp.shape.first)) {
+                        if (const auto *c_str = std::get_if<std::string>(&mp.shape.second)) {
+                            if (bindings.contains(*r_str) && bindings.contains(*c_str)) {
+                                if (bindings[*r_str] <= bindings[*c_str]) {
+                                    std::swap(bindings[*r_str], bindings[*c_str]);
+                                    if (bindings[*r_str] == bindings[*c_str]) {
+                                        bindings[*r_str] += 1;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
         samples.push_back(bindings);
     }

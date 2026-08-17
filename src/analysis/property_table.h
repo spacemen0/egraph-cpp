@@ -176,6 +176,7 @@ class PropertyTable {
     void print_all_properties() const;
 
     bool has_property(const std::string &name) const;
+    const std::unordered_map<std::string, MatrixProperty> &get_properties() const { return properties; }
 
   private:
     bool insert_property(const std::string &name, MatrixProperty property);
