@@ -220,8 +220,6 @@ class Context {
         lower_to_kernels();
     }
 
-    EGraphConfig config;
-
     void print_properties() const { egraph.get_property_table().print_all_properties(); }
 
     std::optional<Id> find_expr(const Expression &expr) const { return egraph.find_expression_id(expr); }
@@ -235,6 +233,8 @@ class Context {
     MatrixProperty get_property(Id id) const {
         return std::get<MatrixProperty>(egraph.get_class_analysis_data(id).property);
     }
+    void initialize_config(const Expression &expr) { initialize_config_for_expression(config, expr); }
+    EGraphConfig config;
 
   private:
     EGraph egraph;

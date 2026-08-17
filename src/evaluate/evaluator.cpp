@@ -100,6 +100,8 @@ Evaluator::Evaluator(
 void Evaluator::setup_in_place_output(Id child_id, MatrixNode &output) const {
     auto &child_node = std::get<MatrixNode>(data_storage.at(child_id));
     auto it = use_counts.find(child_id);
+    // the child is only used once, and by the time of calling this function, the child is guaranteed to be evaluated
+    // already
     if (it != use_counts.end() && it->second == 1) {
         output.data_ptr = std::move(child_node.data_ptr);
         it->second = 0;
@@ -234,6 +236,8 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
             const Atom &atom = choice_it->second->get_atom();
             if (const ScalarExpr *s = std::get_if<ScalarExpr>(&atom)) {
                 scalar_val = s->evaluate(data_bindings);
+            } else {
+                throw std::runtime_error("Scale operation requires a scalar value as the second child.");
             }
         } else {
             throw std::runtime_error("Scale operation requires a scalar value as the second child.");

@@ -14,12 +14,13 @@ int run_image() {
     Expression I = ctx.define_matrix_symbolic("I", "b", "b", {"identity"});
     Expression x = ctx.define_matrix_symbolic("x", "b", 1);
 
-    Expression math_1 = inverse(transpose(H) * H + I) * (transpose(H) * y + x);
-    Expression math_2 = inverse(transpose(H) * H) * (transpose(H) * y + x);
+    Expression math_1 = transpose(H) * inverse(H * transpose(H));
+    Expression math_2 = math_1 * y + (I - math_1 * H) * x;
 
     auto id_1 = ctx.add(math_1);
     auto id_2 = ctx.add(math_2);
     ctx.rewrite();
+    ctx.initialize_config(math_2);
     ctx.prune_symbolic_when_kernel_available();
     auto [h_sizes, h_data] = read_matrix("examples/data/image_h.csv");
     auto [y_sizes, y_data] = read_matrix("examples/data/image_y.csv");
