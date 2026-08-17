@@ -68,6 +68,9 @@ static const auto inverse_solve =
     return is_square("a")(g, s) && is_square("b")(g, s);
 });
 
+static const auto sym_mul_t = make_rewrite("sym_mul_t", "Tr(?a) * ?a", "SymMul(?a)", true);
+static const auto sym_mul_n = make_rewrite("sym_mul_n", "?a * Tr(?a)", "SymMul(Tr(?a))", true, is_not_transpose("a"));
+
 static const std::vector<Rewrite> transformation_set = {
     mul_assoc,
     commute_add,
@@ -84,4 +87,6 @@ static const std::vector<Rewrite> transformation_set = {
     scale_inverse,
     solve_composition,
     inverse_solve,
+    sym_mul_t,
+    sym_mul_n,
 };

@@ -55,16 +55,8 @@ static const auto gemm_without_c = make_rewrite(
 });
 static const auto gemm_with_c =
     make_rewrite("gemm_with_c", "?a * ?b + ?c", "Gemm_NN(?a, ?b, ?c)", false, is_not_vector("b"));
-static const auto syrk_without_c_left = make_rewrite(
-    "syrk_without_c_left", "?a * Tr(?a)", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s, Id _) {
-    Id a_id = s.at("a");
-    const auto *a_prop = get_matrix_data(g, a_id);
-    auto zero = make_zero_of_shape(g, {a_prop->shape.first, a_prop->shape.first});
-    auto syrk_node = ENode{{a_id, zero}, Op::Syrk_N};
-    return std::make_pair(g.add_node(syrk_node), false);
-});
-static const auto syrk_without_c_right = make_rewrite(
-    "syrk_without_c_right", "Tr(?a) * ?a", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s, Id _) {
+static const auto sym_mul_to_syrk_t = make_rewrite(
+    "sym_mul_to_syrk_t", "SymMul(?a)", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s, Id _) {
     Id a_id = s.at("a");
     const auto *a_prop = get_matrix_data(g, a_id);
     auto zero = make_zero_of_shape(g, {a_prop->shape.second, a_prop->shape.second});
@@ -72,9 +64,9 @@ static const auto syrk_without_c_right = make_rewrite(
     return std::make_pair(g.add_node(syrk_node), false);
 });
 static const auto syrk_with_c_left =
-    make_rewrite("syrk_with_c_left", "?a * Tr(?a) + ?c", "Syrk_N(?a, ?c)", false, is_symmetric("c"));
+    make_rewrite("syrk_with_c_left", "SymMul(Tr(?a)) + ?c", "Syrk_N(?a, ?c)", false, is_symmetric("c"));
 static const auto syrk_with_c_right =
-    make_rewrite("syrk_with_c_right", "Tr(?a) * ?a + ?c", "Syrk_T(?a, ?c)", false, is_symmetric("c"));
+    make_rewrite("syrk_with_c_right", "SymMul(?a) + ?c", "Syrk_T(?a, ?c)", false, is_symmetric("c"));
 static const auto trsm =
     make_rewrite("trsm", "Sol(?a, ?b)", "Trsm_LN(?a, ?b)", false, [](const EGraph &g, const Substitution &s) {
     return is_square("a")(g, s) && is_triangular("a")(g, s);
@@ -87,6 +79,7 @@ static const auto gemm_nt = make_rewrite("gemm_nt", "Gemm_NN(?a, Tr(?b), ?c)", "
 static const auto gemm_tt = make_rewrite("gemm_tt", "Gemm_NN(Tr(?a), Tr(?b), ?c)", "Gemm_TT(?a, ?b, ?c)", false);
 
 static const auto syrk_t = make_rewrite("syrk_t", "Syrk_N(Tr(?a), ?c)", "Syrk_T(?a, ?c)", false);
+static const auto syrk_n = make_rewrite("syrk_n", "Syrk_T(Tr(?a), ?c)", "Syrk_N(?a, ?c)", false);
 
 static const auto trsm_lt =
     make_rewrite("trsm_lt", "Trsm_LN(Tr(?a), ?b)", "Trsm_LT(?a, ?b)", false, is_triangular("a"));
@@ -145,8 +138,7 @@ static const std::vector<Rewrite> lowering_set = {
     gemm_with_c,
     gemv_t_without_c,
     gemv_t_with_c,
-    syrk_without_c_left,
-    syrk_without_c_right,
+    sym_mul_to_syrk_t,
     syrk_with_c_left,
     syrk_with_c_right,
     trsm,
@@ -161,6 +153,7 @@ static const std::vector<Rewrite> lowering_set = {
     gemm_nt,
     gemm_tt,
     syrk_t,
+    syrk_n,
     trsm_lt,
     trsm_rn,
     trsm_rt,

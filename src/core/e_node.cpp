@@ -101,6 +101,8 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
             return compute_solr_cost(*op, *this, egraph, size_bindings);
         case Scale:
             return compute_scale_cost(*op, *this, egraph, size_bindings);
+        case SymMul:
+            return compute_sym_mul_cost(*op, *this, egraph, size_bindings);
         case Det:
             return compute_det_cost(*op, *this, egraph, size_bindings);
         case Log:

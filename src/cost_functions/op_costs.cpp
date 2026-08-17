@@ -332,6 +332,25 @@ Cost compute_scale_cost(Op op, const ENode &node, const EGraph &egraph, const Si
     return 0.0;
 }
 
+Cost compute_sym_mul_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
+    auto shape = get_one_shape(egraph, size_bindings, node.get_children().at(0));
+    Size N_dim = shape.second;
+    Size K_dim = shape.first;
+
+    if (is_numeric(shape)) {
+        int n_val = std::get<int>(N_dim);
+        int k_val = std::get<int>(K_dim);
+        return 1.0 * n_val * (n_val + 1.0) * k_val;
+    } else {
+        Monomial n2k = {{size_to_symbol(N_dim), size_to_symbol(N_dim), size_to_symbol(K_dim)}};
+        Monomial nk = {{size_to_symbol(N_dim), size_to_symbol(K_dim)}};
+        SymbolicCost sc;
+        sc[n2k] = 1.0;
+        sc[nk] = 1.0;
+        return sc;
+    }
+}
+
 Cost compute_det_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) { return 5.0; }
 
 Cost compute_log_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) { return 1.0; }

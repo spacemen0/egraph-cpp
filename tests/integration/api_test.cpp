@@ -71,7 +71,7 @@ TEST(ApiTest, OLSSymbolic) {
     SizeBindings bindings = {{"A", 30}, {"B", 10}};
     ExtractionResult best_result = ctx.extract(target_id, bindings);
 
-    EXPECT_EQ(best_result.expr.to_string(true), "Sol(R(M), Q(M)ᵀ * n)");
+    EXPECT_EQ(best_result.expr.to_string(true), "Sol(LLt(SymMul(M))ᵀ, Sol(LLt(SymMul(M)), Mᵀ * n))");
 }
 
 TEST(ApiTest, KernelMapping) {
@@ -102,8 +102,8 @@ TEST(ApiTest, OptimizeSymbolic) {
     auto results = ctx.extract_symbolic();
 
     bool found = std::any_of(results.begin(), results.end(), [](const auto &c) {
-        std::cout << "CANDIDATE: " << c.expr.to_string(false) << std::endl;
-        return c.expr.to_string(false) == "Trsm_LN(Get(Geqrf(M), 1), Ormqr_LT(Geqrf(M), n))";
+        return c.expr.to_string(false) ==
+               "Trsm_LT(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Trsm_LN(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Gemv_T(M, n, Zero_Bx1)))";
     });
     EXPECT_TRUE(found);
 

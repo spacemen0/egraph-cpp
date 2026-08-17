@@ -23,6 +23,18 @@ static auto is_not_vector = [](std::string_view var) {
     };
 };
 
+static auto is_not_transpose = [](std::string_view var) {
+    return [var = std::string(var)](const EGraph &g, const Substitution &s) {
+        Id id = s.at(var);
+        for (const auto *node : g.get_class_nodes(id)) {
+            if (std::holds_alternative<Op>(node->get_atom()) && std::get<Op>(node->get_atom()) == Op::Tr) {
+                return false;
+            }
+        }
+        return true;
+    };
+};
+
 static auto is_not_factorized = [](std::string_view var) {
     return [var = std::string(var)](const EGraph &g, const Substitution &s) {
         Id id = s.at(var);

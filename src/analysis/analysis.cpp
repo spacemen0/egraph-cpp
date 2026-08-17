@@ -553,6 +553,22 @@ static AnalysisData analyze_syrk_t(const EGraph &egraph, const std::vector<Id> &
     throw AnalysisError("Syrk_T expects Matrix inputs");
 }
 
+static AnalysisData analyze_sym_mul(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 1, "SymMul");
+    if (auto data = get_matrix_data(egraph, children.at(0))) {
+        MatrixProperty prop;
+        prop.shape = std::make_pair(data->shape.second, data->shape.second);
+        prop.flags.is_symmetric = true;
+        if (data->flags.is_full_rank || data->flags.is_positive_definite || data->flags.is_tall) {
+            prop.flags.is_positive_definite = true;
+            prop.flags.is_full_rank = true;
+            prop.flags.is_non_singular = true;
+        }
+        return make_matrix_property_data(prop);
+    }
+    throw AnalysisError("SymMul expects Matrix inputs");
+}
+
 static AnalysisData analyze_trsm_ln(const EGraph &egraph, const std::vector<Id> &children) {
     check_arity(children, 2, "Trsm_LN");
     if (auto dataA = get_matrix_data(egraph, children.at(0))) {
@@ -897,6 +913,9 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
     }
     case Trtri: {
         return analyze_trtri(egraph, children);
+    }
+    case SymMul: {
+        return analyze_sym_mul(egraph, children);
     }
     case Gemv_N: {
         return analyze_gemv_n(egraph, children);

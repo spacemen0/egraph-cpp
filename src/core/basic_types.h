@@ -23,6 +23,7 @@ enum class Op {
     Det,      // [A] computing det(A)
     Log,      // [A] computing log(A)
     Scale,    // [A, int] representing scalar * A
+    SymMul,   // [A] representing A^T * A (Symmetric Product)
     Geqrf,    // QR factorization
     Trtri,    // Inverse of a triangular matrix
     Gemv_N,   // Gemv(A, x, y) - General Matrix-Vector Multiply
