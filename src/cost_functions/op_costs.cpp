@@ -581,3 +581,7 @@ Cost compute_ormqr_cost(Op op, const ENode &node, const EGraph &egraph, const Si
         return sc;
     }
 }
+
+Cost compute_axpy_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
+    return compute_add_cost(op, node, egraph, size_bindings);
+}

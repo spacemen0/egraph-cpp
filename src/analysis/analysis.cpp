@@ -816,6 +816,11 @@ static AnalysisData analyze_ormqr_rt(const EGraph &egraph, const std::vector<Id>
     throw AnalysisError("Ormqr_RT expects Geqrf output and a matrix");
 }
 
+static AnalysisData analyze_axpy(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 2, "Axpy");
+    return analyze_add(egraph, children);
+}
+
 AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode &node, Op op) {
     const auto &children = node.get_children();
 
@@ -909,6 +914,8 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
         return analyze_ormqr_rn(egraph, children);
     case Ormqr_RT:
         return analyze_ormqr_rt(egraph, children);
+    case Axpy:
+        return analyze_axpy(egraph, children);
     default:
         throw AnalysisError(std::string("Unknown operation in analysis: ") + std::string(magic_enum::enum_name(op)));
     }

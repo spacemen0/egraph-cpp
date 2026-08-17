@@ -31,3 +31,4 @@ Cost compute_gemv_n_cost(Op op, const ENode &node, const EGraph &egraph, const S
 Cost compute_gemv_t_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);
 Cost compute_orgqr_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);
 Cost compute_ormqr_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);
+Cost compute_axpy_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);

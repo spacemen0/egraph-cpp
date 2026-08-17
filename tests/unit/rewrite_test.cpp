@@ -207,3 +207,31 @@ TEST(Rewrite, BackoffScheduler) {
     bool changed3 = rewriter.apply_one_iteration();
     EXPECT_TRUE(changed3);
 }
+
+TEST(Rewrite, LowerAxpy) {
+    PropertyTable pt;
+    MatrixProperty vec_prop;
+    vec_prop.shape = {3, 1};
+    pt.add_or_update_property_entry("x", vec_prop);
+    pt.add_or_update_property_entry("y", vec_prop);
+
+    MatrixProperty mat_prop;
+    mat_prop.shape = {2, 2};
+    pt.add_or_update_property_entry("A", mat_prop);
+    pt.add_or_update_property_entry("B", mat_prop);
+
+    EGraph egraph(std::move(pt));
+    Id vec_add_id = egraph.add_expression(Expression("x + y"));
+    Id mat_add_id = egraph.add_expression(Expression("A + B"));
+
+    std::vector<Rewrite> rules = build_rewrite_sets({"lowering"});
+    Rewriter rewriter(egraph, rules, EGraphConfig{.rewrite = {.node_limit = 100}});
+    rewriter.apply_rewrites(5);
+
+    // Verify Axpy expressions exist for both vector and matrix addition
+    Id vec_axpy_id = egraph.add_expression(Expression("Axpy(x, y)"));
+    Id mat_axpy_id = egraph.add_expression(Expression("Axpy(A, B)"));
+
+    EXPECT_EQ(egraph.find_class_id(vec_add_id), egraph.find_class_id(vec_axpy_id));
+    EXPECT_EQ(egraph.find_class_id(mat_add_id), egraph.find_class_id(mat_axpy_id));
+}

@@ -137,6 +137,8 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
         case Ormqr_RN:
         case Ormqr_RT:
             return compute_ormqr_cost(*op, *this, egraph, size_bindings);
+        case Axpy:
+            return compute_axpy_cost(*op, *this, egraph, size_bindings);
         default:
             throw std::invalid_argument("Unknown Op in compute_local_cost");
         }

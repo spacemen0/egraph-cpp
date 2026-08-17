@@ -44,6 +44,7 @@ enum class Op {
     Ormqr_LT, // Ormqr(A, B) - Multiply B by implicit Q from left, transposed
     Ormqr_RN, // Ormqr(A, B) - Multiply B by implicit Q from right, no transpose
     Ormqr_RT, // Ormqr(A, B) - Multiply B by implicit Q from right, transposed
+    Axpy,     // Axpy(x, y) - Addition (y = x + y)
 };
 
 using SizeBindings = std::unordered_map<std::string, int>;
@@ -152,5 +153,5 @@ static inline bool is_kernel_op(Op op) {
     return op == Geqrf || op == Gemv_N || op == Gemv_T || op == Trtri || op == Gemm_NN || op == Gemm_TN ||
            op == Gemm_NT || op == Gemm_TT || op == Syrk_N || op == Syrk_T || op == Trsm_LN || op == Trsm_LT ||
            op == Trsm_RN || op == Trsm_RT || op == Potrf_L || op == Potrf_U || op == Orgqr || op == Ormqr_LN ||
-           op == Ormqr_LT || op == Ormqr_RN || op == Ormqr_RT;
+           op == Ormqr_LT || op == Ormqr_RN || op == Ormqr_RT || op == Axpy;
 }
