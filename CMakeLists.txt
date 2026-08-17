@@ -52,6 +52,16 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(magic_enum)
 
+FetchContent_Declare(
+  mimalloc
+  URL https://github.com/microsoft/mimalloc/archive/refs/tags/v2.1.2.zip
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+set(MI_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(MI_BUILD_SHARED ON CACHE BOOL "" FORCE)
+set(MI_BUILD_OBJECTS OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(mimalloc)
+
 enable_testing()
 include(GoogleTest)
 

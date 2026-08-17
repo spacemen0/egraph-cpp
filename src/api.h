@@ -211,6 +211,7 @@ class Context {
             std::cout << "[API] Optimizing symbolic expression: " << target_expr.to_string() << "\n";
         }
         initialize_config_for_expression(config, target_expr);
+        config.print_config();
         target_id = add(target_expr);
 
         for (const auto &bg_expr : background_exprs) {

@@ -28,6 +28,7 @@ struct EGraphConfig {
     ExtractorConfig extractor;
     PrunerConfig pruner;
     bool enable_logging = false;
+    void print_config();
 };
 
 struct Expression;
