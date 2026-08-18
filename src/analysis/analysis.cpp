@@ -302,15 +302,11 @@ static AnalysisData analyze_get(const EGraph &egraph, const std::vector<Id> &chi
     check_arity(children, 2, "Get");
     auto tuple_data = egraph.get_class_analysis_data(children.at(0));
 
-    const auto &index_nodes = egraph.get_class_nodes(children.at(1));
-    if (index_nodes.empty())
-        throw AnalysisError("Get index has no nodes");
-
-    const Atom &index_atom = index_nodes[0]->get_atom();
-    if (const int *idx_ptr = std::get_if<int>(&index_atom)) {
-        int idx = *idx_ptr;
+    auto idx_opt = get_int_from_eclass(egraph, children.at(1));
+    if (idx_opt.has_value()) {
+        int idx = *idx_opt;
         if (auto *props = std::get_if<TupleProperty>(&tuple_data.property)) {
-            if (idx >= 0 && idx < props->size()) {
+            if (idx >= 0 && static_cast<size_t>(idx) < props->size()) {
                 return AnalysisData{(*props)[idx]};
             }
             throw AnalysisError("Get index out of bounds");
