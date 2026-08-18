@@ -6,7 +6,6 @@
 #include <utility>
 
 int run_ols() {
-    std::cout << "=== Running OLS Example ===\n";
     EGraphRunner::Context ctx;
     ctx.get_config().enable_logging = true;
     Expression X = ctx.define_matrix_symbolic("X", "a", "b", {"full_rank", "tall"});
@@ -44,6 +43,5 @@ int run_ols() {
 
     std::string out_path = "examples/data/ols_result.csv";
     write_matrix(out_path, row, col, out);
-    std::cout << "OLS Evaluated result shape (" << row << "x" << col << ") saved to " << out_path << "\n\n";
     return 0;
 }

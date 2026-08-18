@@ -6,7 +6,6 @@
 #include <utility>
 
 int run_image() {
-    std::cout << "=== Running Image Restoration Example ===\n";
     EGraphRunner::Context ctx;
     ctx.get_config().enable_logging = true;
     Expression y = ctx.define_matrix_symbolic("y", "a", 1);
@@ -54,7 +53,6 @@ int run_image() {
         int col = std::get<int>(out_shape.second);
         std::string out_path2 = "examples/data/image_result_2.csv";
         write_matrix(out_path2, row, col, out2);
-        std::cout << "IMAGE Evaluated result 2 shape (" << row << "x" << col << ") saved to " << out_path2 << "\n";
     }
 
     auto out1 = ctx.evaluate_concrete(id_1, concrete_sizes, concrete_data);
@@ -64,7 +62,6 @@ int run_image() {
         int col = std::get<int>(out_shape.second);
         std::string out_path1 = "examples/data/image_result_1.csv";
         write_matrix(out_path1, row, col, out1);
-        std::cout << "IMAGE Evaluated result 1 shape (" << row << "x" << col << ") saved to " << out_path1 << "\n\n";
     }
     return 0;
 }

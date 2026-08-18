@@ -5,11 +5,11 @@
 void print_usage(const char *prog_name) {
     std::cout << "Usage: " << prog_name << " <case_name>\n";
     std::cout << "Available case names:\n";
-    std::cout << "  - OLS          : Ordinary Least Squares optimization example\n";
-    std::cout << "  - GLS          : Generalized Least Squares optimization example\n";
-    std::cout << "  - Image        : Image Restoration Tikhonov regularization example\n";
-    std::cout << "  - Sto : Stochastic Newton optimization example\n";
-    std::cout << "  - all          : Run all example cases sequentially\n";
+    std::cout << "  - OLS          : Ordinary Least Squares example\n";
+    std::cout << "  - GLS          : Generalized Least Squares example\n";
+    std::cout << "  - Image        : Image Restoration example\n";
+    std::cout << "  - Sto : Stochastic Newton example\n";
+    std::cout << "  - all          : Run all example cases\n";
 }
 
 int main(int argc, char *argv[]) {

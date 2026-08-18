@@ -6,7 +6,6 @@
 #include <utility>
 
 int run_stochastic_newton() {
-    std::cout << "=== Running Stochastic Newton Example ===\n";
     EGraphRunner::Context ctx;
     ctx.get_config().enable_logging = true;
 
@@ -26,7 +25,6 @@ int run_stochastic_newton() {
     Expression inner_term = In - transpose(A) * W_k * inner_inv * transpose(W_k) * A * B;
     Expression target_math = scale(B * inner_term, scale_factor);
 
-    std::cout << "Optimizing symbolic expression...\n";
     ctx.optimize_symbolic(target_math);
 
     // Read concrete matrix files
@@ -62,7 +60,6 @@ int run_stochastic_newton() {
     DataBindings concrete_data = {{"B", b_data},   {"In", in_data}, {"A", a_data},
                                   {"W_k", w_data}, {"Il", il_data}, {"k", std::vector<double>{10.0}}};
 
-    std::cout << "Evaluating concrete expression...\n";
     auto out = ctx.evaluate_concrete(concrete_sizes, concrete_data);
     auto out_shape = bind_shape(ctx.get_property().shape, &concrete_sizes);
     int row = std::get<int>(out_shape.first);
@@ -70,7 +67,5 @@ int run_stochastic_newton() {
 
     std::string out_path = "examples/data/stochastic_newton_result.csv";
     write_matrix(out_path, row, col, out);
-    std::cout << "Stochastic Newton Evaluated result shape (" << row << "x" << col << ") saved to " << out_path
-              << "\n\n";
     return 0;
 }
