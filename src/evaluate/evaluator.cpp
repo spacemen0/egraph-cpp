@@ -20,7 +20,23 @@ Evaluator::Evaluator(
     const DataBindings &data_bindings)
     : egraph(egraph), result(result), data_bindings(data_bindings) {
 
+    size_t N = result.execution_order.size();
+    data_storage.resize(N);
+    use_counts.resize(N, 0);
+
+    Id max_id = 0;
     for (Id class_id : result.execution_order) {
+        max_id = std::max(max_id, class_id);
+    }
+    slot_map.assign(max_id + 1, -1);
+
+    for (size_t slot = 0; slot < N; ++slot) {
+        Id class_id = result.execution_order[slot];
+        slot_map[class_id] = static_cast<int>(slot);
+    }
+
+    for (size_t slot = 0; slot < N; ++slot) {
+        Id class_id = result.execution_order[slot];
         const ENode *node = result.choices.at(class_id);
         if (node) {
             const Atom &atom = node->get_atom();
@@ -50,25 +66,25 @@ Evaluator::Evaluator(
                                     node_data.vec()[i] = 0.0;
                                 }
                             }
-                            data_storage[class_id] = node_data;
+                            data_storage[slot] = node_data;
                         }
                     } else {
                         MatrixNode node_data(rows, cols, data_bindings.at(matrix_name));
-                        data_storage[class_id] = node_data;
+                        data_storage[slot] = node_data;
                     }
                 } else { // Ops, Intermediate matrices, initialize with default
                     MatrixNode node_data(rows, cols);
-                    data_storage[class_id] = node_data;
+                    data_storage[slot] = node_data;
                 }
 
             } else if (const ScalarExpr *s = std::get_if<ScalarExpr>(&atom)) {
                 MatrixNode node_data(1, 1);
                 node_data.vec()[0] = s->evaluate(data_bindings);
-                data_storage[class_id] = node_data;
+                data_storage[slot] = node_data;
             } else if (const int *i_val = std::get_if<int>(&atom)) {
                 MatrixNode node_data(1, 1);
                 node_data.vec()[0] = static_cast<double>(*i_val);
-                data_storage[class_id] = node_data;
+                data_storage[slot] = node_data;
             } else if (auto data = get_tuple_data(egraph, class_id)) {
                 TupleNode tuple_data;
                 for (const auto &matrix_data : *data) {
@@ -83,70 +99,88 @@ Evaluator::Evaluator(
                         tuple_data.tau = std::vector<double>(min_dim);
                     }
                 }
-                data_storage[class_id] = tuple_data;
+                data_storage[slot] = tuple_data;
             }
         }
     }
-    for (Id class_id : result.execution_order) {
+    for (size_t slot = 0; slot < N; ++slot) {
+        Id class_id = result.execution_order[slot];
         const ENode *node = result.choices.at(class_id);
         if (node) {
             for (Id child_id : node->get_children()) {
-                use_counts[child_id]++;
+                if (child_id < slot_map.size() && slot_map[child_id] != -1) {
+                    use_counts[slot_map[child_id]]++;
+                }
             }
         }
     }
 }
 
 void Evaluator::setup_in_place_output(Id child_id, MatrixNode &output) const {
-    auto &child_node = std::get<MatrixNode>(data_storage.at(child_id));
-    auto it = use_counts.find(child_id);
+    int child_slot = slot_map[child_id];
+    auto &child_node = std::get<MatrixNode>(data_storage[child_slot]);
+    int count = use_counts[child_slot];
     // the child is only used once, and by the time of calling this function, the child is guaranteed to be evaluated
     // already
-    if (it != use_counts.end() && it->second == 1) {
+    if (count == 1) {
         output.data_ptr = std::move(child_node.data_ptr);
-        it->second = 0;
+        use_counts[child_slot] = 0;
     } else {
-        output.data_ptr = std::make_shared<std::vector<double>>(*child_node.data_ptr);
-        if (it != use_counts.end() && it->second > 0) {
-            it->second--;
+        output.data_ptr = MatrixBufferPool::instance().acquire(child_node.rows * child_node.cols);
+        std::copy(child_node.data(), child_node.data() + (child_node.rows * child_node.cols), output.data());
+        if (count > 0) {
+            use_counts[child_slot]--;
         }
     }
 }
 
 std::vector<double> Evaluator::evaluate() {
-    for (Id class_id : result.execution_order) {
+    size_t N = result.execution_order.size();
+    for (size_t slot = 0; slot < N; ++slot) {
+        Id class_id = result.execution_order[slot];
         const ENode *node = result.choices.at(class_id);
         if (node) {
             const Atom &atom = node->get_atom();
             if (const auto *op = std::get_if<Op>(&atom)) {
-                auto it = data_storage.find(class_id);
-                if (it != data_storage.end()) {
-                    if (*op == Op::Get) {
-                        MatrixNode &output = std::get<MatrixNode>(it->second);
-                        Id tuple_id = node->get_children()[0];
-                        Id index_id = node->get_children()[1];
-                        const TupleNode &input_tuple = std::get<TupleNode>(data_storage.at(tuple_id));
-                        int index = 0;
-                        if (auto idx_opt = get_int_from_eclass(egraph, index_id); idx_opt.has_value()) {
-                            index = idx_opt.value();
-                        }
-                        dispatch_get(input_tuple, index, output);
-                    } else if (std::holds_alternative<TupleNode>(it->second)) {
-                        TupleNode &output = std::get<TupleNode>(it->second);
-                        Id input_id = node->get_children()[0];
-                        const MatrixNode &input = std::get<MatrixNode>(data_storage.at(input_id));
-                        dispatch_factorization(*op, input, output, node);
-                    } else {
-                        MatrixNode &output = std::get<MatrixNode>(it->second);
-                        dispatch_matrix_kernel(*op, output, node);
+                auto &storage = data_storage[slot];
+                if (*op == Op::Get) {
+                    MatrixNode &output = std::get<MatrixNode>(storage);
+                    Id tuple_id = node->get_children()[0];
+                    Id index_id = node->get_children()[1];
+                    const TupleNode &input_tuple = std::get<TupleNode>(data_storage[slot_map[tuple_id]]);
+                    int index = 0;
+                    if (auto idx_opt = get_int_from_eclass(egraph, index_id); idx_opt.has_value()) {
+                        index = idx_opt.value();
                     }
+                    dispatch_get(input_tuple, index, output);
+                } else if (std::holds_alternative<TupleNode>(storage)) {
+                    TupleNode &output = std::get<TupleNode>(storage);
+                    Id input_id = node->get_children()[0];
+                    const MatrixNode &input = std::get<MatrixNode>(data_storage[slot_map[input_id]]);
+                    dispatch_factorization(*op, input, output, node);
+                } else {
+                    MatrixNode &output = std::get<MatrixNode>(storage);
+                    dispatch_matrix_kernel(*op, output, node);
                 }
             }
         }
     }
     // root node should be a MatrixNode
-    const MatrixNode &res_node = std::get<MatrixNode>(data_storage.at(result.execution_order.back()));
-    return res_node.vec();
+    size_t root_slot = N - 1;
+    const MatrixNode &res_node = std::get<MatrixNode>(data_storage[root_slot]);
+    std::vector<double> res = res_node.vec();
+
+    for (size_t slot = 0; slot < N; ++slot) {
+        if (slot != root_slot) {
+            if (auto *m = std::get_if<MatrixNode>(&data_storage[slot])) {
+                if (m->data_ptr) {
+                    MatrixBufferPool::instance().release(m->rows * m->cols, std::move(m->data_ptr));
+                }
+            }
+        }
+    }
+
+    return res;
 }
 
 void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *node) const {
@@ -154,9 +188,11 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
 
     std::vector<const MatrixNode *> inputs;
     for (Id child_id : node->get_children()) {
-        auto it = data_storage.find(child_id);
-        if (it != data_storage.end() && std::holds_alternative<MatrixNode>(it->second)) {
-            inputs.push_back(&std::get<MatrixNode>(it->second));
+        if (child_id < slot_map.size() && slot_map[child_id] != -1) {
+            int slot = slot_map[child_id];
+            if (std::holds_alternative<MatrixNode>(data_storage[slot])) {
+                inputs.push_back(&std::get<MatrixNode>(data_storage[slot]));
+            }
         }
     }
     switch (op) {
@@ -255,7 +291,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
 
     case Orgqr: {
         Id geqrf_id = node->get_children()[0];
-        const TupleNode &geqrf_tuple = std::get<TupleNode>(data_storage.at(geqrf_id));
+        const TupleNode &geqrf_tuple = std::get<TupleNode>(data_storage[slot_map[geqrf_id]]);
         const MatrixNode &q_node = geqrf_tuple.matrices[0];
         int k = std::min(q_node.rows, q_node.cols);
         output = q_node; // always overwrite q_node with the result of orgqr (which is Q)
@@ -269,8 +305,8 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
     case Ormqr_RT: {
         Id geqrf_id = node->get_children()[0];
         Id c_id = node->get_children()[1];
-        const TupleNode &geqrf_tuple = std::get<TupleNode>(data_storage.at(geqrf_id));
-        const MatrixNode &c_node = std::get<MatrixNode>(data_storage.at(c_id));
+        const TupleNode &geqrf_tuple = std::get<TupleNode>(data_storage[slot_map[geqrf_id]]);
+        const MatrixNode &c_node = std::get<MatrixNode>(data_storage[slot_map[c_id]]);
         const MatrixNode &a_node = geqrf_tuple.matrices[0]; // householder
 
         char side = (op == Ormqr_LN || op == Ormqr_LT) ? 'L' : 'R';
