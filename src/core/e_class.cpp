@@ -9,6 +9,9 @@ AnalysisData &EClass::get_analysis_data() { return analysis_data; }
 
 // remove duplicates
 void EClass::clean_up_nodes() {
+    if (nodes.size() <= 1)
+        return;
+
     std::sort(nodes.begin(), nodes.end(), [](const ENode *a, const ENode *b) {
         if (a->get_atom() != b->get_atom()) {
             return a->get_atom() < b->get_atom();
