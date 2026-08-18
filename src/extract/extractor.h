@@ -41,6 +41,10 @@ class Extractor {
         std::unordered_map<Id, const ENode *> choices;
     };
 
+    static bool is_unique_result(
+        const std::vector<NumericSearchResult> &best_results,
+        const std::unordered_map<Id, const ENode *> &choices_map);
+
     EGraph &egraph;
     bool enable_logging = false;
     mutable size_t nodes_visited = 0;

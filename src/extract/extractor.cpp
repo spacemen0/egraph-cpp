@@ -47,7 +47,19 @@ static std::vector<const ENode *> choices_to_vector(const std::shared_ptr<const 
     }
     return vec;
 }
+
 } // namespace
+
+bool Extractor::is_unique_result(
+    const std::vector<NumericSearchResult> &best_results,
+    const std::unordered_map<Id, const ENode *> &choices_map) {
+    for (const auto &existing : best_results) {
+        if (existing.choices == choices_map) {
+            return false;
+        }
+    }
+    return true;
+}
 
 Extractor::Extractor(EGraph &egraph, const EGraphConfig &config)
     : egraph(egraph), enable_logging(config.enable_logging), max_depth(config.extractor.max_depth),
@@ -111,15 +123,9 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
         auto choices_vec = choices_to_vector(top.choices_head, max_id);
 
         if (top.pending.empty()) {
-            bool is_unique = true;
-            for (const auto &existing : best_results) {
-                if (std::abs(existing.cost - top.g_cost) < 1e-9) {
-                    is_unique = false;
-                    break;
-                }
-            }
-            if (is_unique) {
-                best_results.push_back(NumericSearchResult{top.g_cost, convert_to_map(choices_vec, {root})});
+            auto choices_map = convert_to_map(choices_vec, {root});
+            if (is_unique_result(best_results, choices_map)) {
+                best_results.push_back(NumericSearchResult{top.g_cost, std::move(choices_map)});
             }
             continue;
         }
