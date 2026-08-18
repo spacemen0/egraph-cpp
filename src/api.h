@@ -188,13 +188,14 @@ class Context {
 
     std::vector<double>
     evaluate_concrete(Id target_id, const SizeBindings &size_bindings, const DataBindings &bindings = {}) {
+        auto start_evaluate = std::chrono::high_resolution_clock::now();
         auto result = extract(target_id, size_bindings);
         if (config.enable_logging) {
             std::cout << "[API] Extracted expression: " << result.expr.to_string() << "\n";
             std::cout << "[API] Evaluating concrete expression...\n";
         }
         Evaluator evaluator(egraph, result, &size_bindings, bindings);
-        auto start_evaluate = std::chrono::high_resolution_clock::now();
+
         auto result_eval = evaluator.evaluate();
         auto end_evaluate = std::chrono::high_resolution_clock::now();
         if (config.enable_logging) {
