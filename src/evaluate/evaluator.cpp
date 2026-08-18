@@ -204,6 +204,13 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         cblas_dsyrk(
             CblasColMajor, CblasUpper, trans, output.rows, k, 1.0, inputs[0]->data(), inputs[0]->rows, beta,
             output.data(), output.rows);
+
+        // Fill the lower triangular part of the output matrix to make it symmetric
+        for (int i = 0; i < output.rows; ++i) {
+            for (int j = 0; j < i; ++j) {
+                output.data()[i + j * output.rows] = output.data()[j + i * output.rows];
+            }
+        }
         break;
     }
     case Trtri: {
