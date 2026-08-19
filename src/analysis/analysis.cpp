@@ -833,6 +833,41 @@ static AnalysisData analyze_axpy(const EGraph &egraph, const std::vector<Id> &ch
     return analyze_add(egraph, children);
 }
 
+static AnalysisData analyze_scale(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 2, "Scale");
+    if (auto data = get_matrix_data(egraph, children.at(0))) {
+        auto prop = *data;
+        auto scalar_opt = get_double_from_eclass(egraph, children.at(1));
+        if (scalar_opt) {
+            double s = *scalar_opt;
+            if (s == 0.0) {
+                prop.flags.is_zero = true;
+                prop.flags.is_identity = false;
+                prop.flags.is_orthogonal = false;
+                prop.flags.has_orthonormal_columns = false;
+                prop.flags.is_diagonal = true;
+                prop.flags.is_lower_triangular = true;
+                prop.flags.is_upper_triangular = true;
+                prop.flags.is_symmetric = true;
+            } else {
+                if (s != 1.0) {
+                    prop.flags.is_identity = false;
+                }
+                if (std::abs(s) != 1.0) {
+                    prop.flags.is_orthogonal = false;
+                    prop.flags.has_orthonormal_columns = false;
+                }
+            }
+        } else {
+            prop.flags.is_identity = false;
+            prop.flags.is_orthogonal = false;
+            prop.flags.has_orthonormal_columns = false;
+        }
+        return make_matrix_property_data(prop);
+    }
+    throw AnalysisError("Scale expects a Matrix input");
+}
+
 AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode &node, Op op) {
     const auto &children = node.get_children();
 
@@ -865,8 +900,9 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
     case Det:
     case Log:
         return AnalysisData{};
-    case Scale:
-        return make_matrix_property_data(*get_matrix_data(egraph, children.at(0)));
+    case Scale: {
+        return analyze_scale(egraph, children);
+    }
 
     case Gemm_NN: {
         return analyze_gemm_nn(egraph, children);
