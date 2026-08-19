@@ -131,6 +131,7 @@ void Evaluator::setup_in_place_output(Id child_id, MatrixNode &output) const {
             use_counts[child_slot]--;
         }
     }
+    output.format = child_node.format;
 }
 
 std::vector<double> Evaluator::evaluate() {
@@ -188,6 +189,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
     case Trsm_RN:
     case Trsm_RT: {
         setup_in_place_output(node->get_children()[1], output);
+        output.ensure_general();
         auto is_lower = egraph.get_class_analysis_data(node->get_children()[0]);
         CBLAS_UPLO uplo =
             std::get<MatrixProperty>(is_lower.property).flags.is_lower_triangular ? CblasLower : CblasUpper;
@@ -202,12 +204,15 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
     }
     case Gemv_N:
     case Gemv_T: {
+        inputs[0]->ensure_general();
+        inputs[1]->ensure_general();
         CBLAS_TRANSPOSE trans = (op == Op::Gemv_T) ? CblasTrans : CblasNoTrans;
         bool c_is_zero =
             std::get<MatrixProperty>(egraph.get_class_analysis_data(node->get_children()[2]).property).flags.is_zero;
         double beta = c_is_zero ? 0.0 : 1.0;
         if (!c_is_zero) {
             setup_in_place_output(node->get_children()[2], output);
+            output.ensure_general();
         }
         cblas_dgemv(
             CblasColMajor, trans, inputs[0]->rows, inputs[0]->cols, 1.0, inputs[0]->data(), inputs[0]->rows,
@@ -216,6 +221,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
     }
     case Syrk_N:
     case Syrk_T: {
+        inputs[0]->ensure_general();
         CBLAS_TRANSPOSE trans = (op == Op::Syrk_T) ? CblasTrans : CblasNoTrans;
         int k = (trans == CblasNoTrans) ? inputs[0]->cols : inputs[0]->rows;
         bool c_is_zero =
@@ -225,15 +231,10 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
             setup_in_place_output(node->get_children()[1], output);
         }
         cblas_dsyrk(
-            CblasColMajor, CblasUpper, trans, output.rows, k, 1.0, inputs[0]->data(), inputs[0]->rows, beta,
+            CblasColMajor, CblasLower, trans, output.rows, k, 1.0, inputs[0]->data(), inputs[0]->rows, beta,
             output.data(), output.rows);
 
-        // Fill the lower triangular part of the output matrix to make it symmetric
-        for (int i = 0; i < output.rows; ++i) {
-            for (int j = 0; j < i; ++j) {
-                output.data()[i + j * output.rows] = output.data()[j + i * output.rows];
-            }
-        }
+        output.format = StorageFormat::SymmetricLower;
         break;
     }
     case Trtri: {
@@ -247,6 +248,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
 
         // normally should be consumed as kernel parameters but explicit transpose might be needed sometimes
     case Tr: {
+        inputs[0]->ensure_general();
         int rows = inputs[0]->rows;
         int cols = inputs[0]->cols;
         for (int i = 0; i < rows; ++i) {
@@ -306,6 +308,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         int out_rows = output.rows;
         int out_cols = output.cols;
         setup_in_place_output(node->get_children()[1], output);
+        output.ensure_general();
 
         LAPACKE_dormqr(
             LAPACK_COL_MAJOR, side, trans, m, n, k, a_node.data(), a_node.rows, geqrf_tuple.tau.data(), output.data(),
@@ -328,6 +331,8 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
     case Gemm_NT:
     case Gemm_TN:
     case Gemm_TT: {
+        inputs[0]->ensure_general();
+        inputs[1]->ensure_general();
         const MatrixNode &a_node = *inputs[0];
         const MatrixNode &b_node = *inputs[1];
 
@@ -341,6 +346,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         double beta = c_is_zero ? 0.0 : 1.0;
         if (!c_is_zero) {
             setup_in_place_output(node->get_children()[2], output);
+            output.ensure_general();
         }
         cblas_dgemm(
             CblasColMajor, transA, transB, output.rows, output.cols, k, 1.0, a_node.data(), a_node.rows, b_node.data(),
@@ -366,17 +372,22 @@ void Evaluator::dispatch_factorization(Op op, const MatrixNode &input, TupleNode
     case Potrf_U: {
         MatrixNode &res = output.matrices[0];
         setup_in_place_output(node->get_children()[0], res);
+        if (res.format != StorageFormat::SymmetricUpper) res.ensure_general();
         LAPACKE_dpotrf(LAPACK_COL_MAJOR, 'U', res.rows, res.data(), res.rows);
+        res.format = StorageFormat::TriangularUpper;
         break;
     }
     case Potrf_L: {
         MatrixNode &res = output.matrices[0];
         setup_in_place_output(node->get_children()[0], res);
+        if (res.format != StorageFormat::SymmetricLower) res.ensure_general();
         LAPACKE_dpotrf(LAPACK_COL_MAJOR, 'L', res.rows, res.data(), res.rows);
+        res.format = StorageFormat::TriangularLower;
         break;
     }
     case Geqrf: {
         setup_in_place_output(node->get_children()[0], output.matrices[0]);
+        output.matrices[0].ensure_general();
         double *a_data = output.matrices[0].data();
         LAPACKE_dgeqrf(
             LAPACK_COL_MAJOR, input.rows, input.cols, output.matrices[0].data(), input.rows, output.tau.data());
@@ -396,16 +407,7 @@ void Evaluator::dispatch_factorization(Op op, const MatrixNode &input, TupleNode
                 }
             }
         }
-        if (!output.matrices.empty()) {
-            int k = std::min(input.rows, input.cols);
-            // Copy the reflectors part of a_copy to q_node before generating Q or using it in Ormqr
-            // upper triangular part of q_node will be overwritten anyway
-            for (int j = 0; j < k; ++j) {
-                for (int i = 0; i < output.matrices[0].rows; ++i) {
-                    a_data[i + j * output.matrices[0].rows] = a_data[i + j * input.rows];
-                }
-            }
-        }
+
         break;
     }
     default:
