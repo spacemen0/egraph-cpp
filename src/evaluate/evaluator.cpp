@@ -107,6 +107,14 @@ Evaluator::Evaluator(
         Id class_id = result.execution_order[slot];
         const ENode *node = result.choices.at(class_id);
         if (node) {
+            const Atom &atom = node->get_atom();
+            if (const auto *op = std::get_if<Op>(&atom)) {
+                if (*op == Op::Potrf_L) {
+                    prefer_upper_triangular[node->get_children()[0]] = false;
+                } else if (*op == Op::Potrf_U) {
+                    prefer_upper_triangular[node->get_children()[0]] = true;
+                }
+            }
             for (Id child_id : node->get_children()) {
                 if (child_id < slot_map.size() && slot_map[child_id] != -1) {
                     use_counts[slot_map[child_id]]++;
@@ -160,7 +168,7 @@ std::vector<double> Evaluator::evaluate() {
                     dispatch_factorization(*op, input, output, node);
                 } else {
                     MatrixNode &output = std::get<MatrixNode>(storage);
-                    dispatch_matrix_kernel(*op, output, node);
+                    dispatch_matrix_kernel(*op, output, node, class_id);
                 }
             }
         }
@@ -171,7 +179,7 @@ std::vector<double> Evaluator::evaluate() {
     return res_node.vec();
 }
 
-void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *node) const {
+void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *node, Id class_id) const {
     using enum Op;
 
     std::vector<const MatrixNode *> inputs;
@@ -230,11 +238,17 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         if (!c_is_zero) {
             setup_in_place_output(node->get_children()[1], output);
         }
-        cblas_dsyrk(
-            CblasColMajor, CblasLower, trans, output.rows, k, 1.0, inputs[0]->data(), inputs[0]->rows, beta,
-            output.data(), output.rows);
 
-        output.format = StorageFormat::SymmetricLower;
+        CBLAS_UPLO uplo;
+        if (prefer_upper_triangular.count(class_id)) {
+            uplo = prefer_upper_triangular.at(class_id) ? CblasUpper : CblasLower;
+        }
+
+        cblas_dsyrk(
+            CblasColMajor, uplo, trans, output.rows, k, 1.0, inputs[0]->data(), inputs[0]->rows, beta, output.data(),
+            output.rows);
+
+        output.format = (uplo == CblasUpper) ? StorageFormat::SymmetricUpper : StorageFormat::SymmetricLower;
         break;
     }
     case Trtri: {
@@ -372,7 +386,8 @@ void Evaluator::dispatch_factorization(Op op, const MatrixNode &input, TupleNode
     case Potrf_U: {
         MatrixNode &res = output.matrices[0];
         setup_in_place_output(node->get_children()[0], res);
-        if (res.format != StorageFormat::SymmetricUpper) res.ensure_general();
+        if (res.format != StorageFormat::SymmetricUpper)
+            res.ensure_general();
         LAPACKE_dpotrf(LAPACK_COL_MAJOR, 'U', res.rows, res.data(), res.rows);
         res.format = StorageFormat::TriangularUpper;
         break;
@@ -380,7 +395,8 @@ void Evaluator::dispatch_factorization(Op op, const MatrixNode &input, TupleNode
     case Potrf_L: {
         MatrixNode &res = output.matrices[0];
         setup_in_place_output(node->get_children()[0], res);
-        if (res.format != StorageFormat::SymmetricLower) res.ensure_general();
+        if (res.format != StorageFormat::SymmetricLower)
+            res.ensure_general();
         LAPACKE_dpotrf(LAPACK_COL_MAJOR, 'L', res.rows, res.data(), res.rows);
         res.format = StorageFormat::TriangularLower;
         break;

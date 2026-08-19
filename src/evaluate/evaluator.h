@@ -4,13 +4,7 @@
 
 #include <memory>
 
-enum class StorageFormat {
-    General,
-    SymmetricUpper,
-    SymmetricLower,
-    TriangularUpper,
-    TriangularLower
-};
+enum class StorageFormat { General, SymmetricUpper, SymmetricLower, TriangularUpper, TriangularLower };
 
 struct MatrixNode {
     std::shared_ptr<std::vector<double>> data_ptr;
@@ -31,11 +25,13 @@ struct MatrixNode {
     std::vector<double> &vec() { return *data_ptr; }
 
     void ensure_general() const {
-        if (format == StorageFormat::General) return;
-        
+        if (format == StorageFormat::General)
+            return;
+
         // Use non-const data pointer to fill the matrix
-        double* mut_data = data_ptr ? data_ptr->data() : nullptr;
-        if (!mut_data) return;
+        double *mut_data = data_ptr ? data_ptr->data() : nullptr;
+        if (!mut_data)
+            return;
 
         if (format == StorageFormat::SymmetricUpper) {
             for (int i = 0; i < rows; ++i) {
@@ -81,7 +77,7 @@ class Evaluator {
     std::vector<double> evaluate();
 
   private:
-    void dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *node) const;
+    void dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *node, Id class_id) const;
     void dispatch_factorization(Op op, const MatrixNode &input, TupleNode &output, const ENode *node) const;
     void setup_in_place_output(Id child_id, MatrixNode &output) const;
     void dispatch_get(const TupleNode &input_tuple, int index, MatrixNode &output) const;
@@ -91,4 +87,5 @@ class Evaluator {
     std::vector<DataStorage> data_storage;
     std::vector<int> slot_map;
     mutable std::vector<int> use_counts;
+    std::unordered_map<Id, bool> prefer_upper_triangular;
 };
