@@ -61,9 +61,9 @@ Evaluator::Evaluator(
                             MatrixNode node_data(rows, cols);
                             for (int i = 0; i < rows * cols; ++i) {
                                 if (data->flags.is_identity) {
-                                    node_data.vec()[i] = (i / rows == i % cols) ? 1.0 : 0.0;
+                                    node_data.data()[i] = (i / rows == i % cols) ? 1.0 : 0.0;
                                 } else if (data->flags.is_zero) {
-                                    node_data.vec()[i] = 0.0;
+                                    node_data.data()[i] = 0.0;
                                 }
                             }
                             data_storage[slot] = node_data;
@@ -79,11 +79,11 @@ Evaluator::Evaluator(
 
             } else if (const ScalarExpr *s = std::get_if<ScalarExpr>(&atom)) {
                 MatrixNode node_data(1, 1);
-                node_data.vec()[0] = s->evaluate(data_bindings);
+                node_data.data()[0] = s->evaluate(data_bindings);
                 data_storage[slot] = node_data;
             } else if (const int *i_val = std::get_if<int>(&atom)) {
                 MatrixNode node_data(1, 1);
-                node_data.vec()[0] = static_cast<double>(*i_val);
+                node_data.data()[0] = static_cast<double>(*i_val);
                 data_storage[slot] = node_data;
             } else if (auto data = get_tuple_data(egraph, class_id)) {
                 TupleNode tuple_data;
@@ -126,8 +126,7 @@ void Evaluator::setup_in_place_output(Id child_id, MatrixNode &output) const {
         output.data_ptr = std::move(child_node.data_ptr);
         use_counts[child_slot] = 0;
     } else {
-        output.data_ptr = MatrixBufferPool::instance().acquire(child_node.rows * child_node.cols);
-        std::copy(child_node.data(), child_node.data() + (child_node.rows * child_node.cols), output.data());
+        output.data_ptr = std::make_shared<std::vector<double>>(*child_node.data_ptr);
         if (count > 0) {
             use_counts[child_slot]--;
         }
@@ -168,19 +167,7 @@ std::vector<double> Evaluator::evaluate() {
     // root node should be a MatrixNode
     size_t root_slot = N - 1;
     const MatrixNode &res_node = std::get<MatrixNode>(data_storage[root_slot]);
-    std::vector<double> res = res_node.vec();
-
-    for (size_t slot = 0; slot < N; ++slot) {
-        if (slot != root_slot) {
-            if (auto *m = std::get_if<MatrixNode>(&data_storage[slot])) {
-                if (m->data_ptr) {
-                    MatrixBufferPool::instance().release(m->rows * m->cols, std::move(m->data_ptr));
-                }
-            }
-        }
-    }
-
-    return res;
+    return res_node.vec();
 }
 
 void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *node) const {
@@ -264,7 +251,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         int cols = inputs[0]->cols;
         for (int i = 0; i < rows; ++i) {
             for (int j = 0; j < cols; ++j) {
-                output.vec()[j + i * cols] = inputs[0]->data()[i + j * rows];
+                output.data()[j + i * cols] = inputs[0]->data()[i + j * rows];
             }
         }
         break;
@@ -326,9 +313,10 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
 
         // Extract the relevant part into output in-place
         if (out_rows != m) {
+            double *out_data = output.data();
             for (int j = 0; j < out_cols; ++j) {
                 for (int i = 0; i < out_rows; ++i) {
-                    output.vec()[i + j * out_rows] = output.vec()[i + j * m];
+                    out_data[i + j * out_rows] = out_data[i + j * m];
                 }
             }
             output.vec().resize(out_rows * out_cols);
@@ -389,7 +377,7 @@ void Evaluator::dispatch_factorization(Op op, const MatrixNode &input, TupleNode
     }
     case Geqrf: {
         setup_in_place_output(node->get_children()[0], output.matrices[0]);
-        auto &a_data = output.matrices[0].vec();
+        double *a_data = output.matrices[0].data();
         LAPACKE_dgeqrf(
             LAPACK_COL_MAJOR, input.rows, input.cols, output.matrices[0].data(), input.rows, output.tau.data());
 
@@ -397,12 +385,13 @@ void Evaluator::dispatch_factorization(Op op, const MatrixNode &input, TupleNode
         // future
         if (output.matrices.size() > 1) {
             MatrixNode &r_node = output.matrices[1];
+            double *r_data = r_node.data();
             for (int j = 0; j < r_node.cols; ++j) {
                 for (int i = 0; i < r_node.rows; ++i) {
                     if (i > j) {
-                        r_node.vec()[i + j * r_node.rows] = 0.0;
+                        r_data[i + j * r_node.rows] = 0.0;
                     } else {
-                        r_node.vec()[i + j * r_node.rows] = a_data[i + j * input.rows];
+                        r_data[i + j * r_node.rows] = a_data[i + j * input.rows];
                     }
                 }
             }

@@ -1,7 +1,6 @@
 #pragma once
 #include "e_graph.h"
 #include "extractor.h"
-#include "matrix_buffer_pool.h"
 
 #include <memory>
 
@@ -11,8 +10,7 @@ struct MatrixNode {
     int cols = 0;
 
     MatrixNode() = default;
-    MatrixNode(int r, int c)
-        : data_ptr(MatrixBufferPool::instance().acquire(r * c)), rows(r), cols(c) {}
+    MatrixNode(int r, int c) : data_ptr(std::make_shared<std::vector<double>>(r * c)), rows(r), cols(c) {}
     MatrixNode(int r, int c, std::vector<double> vec)
         : data_ptr(std::make_shared<std::vector<double>>(std::move(vec))), rows(r), cols(c) {}
 
