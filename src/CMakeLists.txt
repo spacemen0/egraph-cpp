@@ -33,6 +33,7 @@ target_include_directories(core_lib PUBLIC
 
 # Find system BLAS and LAPACKE, or fetch OpenBLAS on Windows
 if(APPLE)
+    set(BLA_VENDOR "Apple")
     list(APPEND CMAKE_PREFIX_PATH 
         "/opt/homebrew/opt/lapack"
         "/opt/homebrew/opt/openblas"

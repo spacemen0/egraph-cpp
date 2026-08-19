@@ -9,10 +9,15 @@
 #include "rewrite_sets.h"
 #include "rewriter.h"
 #include <chrono>
+#include <dlfcn.h>
 #include <iostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
+
+extern "C" void cblas_dgemm(
+    const int Order, const int TransA, const int TransB, const int M, const int N, const int K, const double alpha,
+    const double *A, const int lda, const double *B, const int ldb, const double beta, double *C, const int ldc);
 
 namespace EGraphRunner {
 
@@ -193,6 +198,10 @@ class Context {
         if (config.enable_logging) {
             std::cout << "[API] Extracted expression: " << result.expr.to_string() << "\n";
             std::cout << "[API] Evaluating concrete expression...\n";
+            Dl_info info;
+            if (dladdr(reinterpret_cast<void *>(cblas_dgemm), &info)) {
+                std::cout << "[API] Active BLAS Kernel:   " << info.dli_fname << "\n";
+            }
         }
         Evaluator evaluator(egraph, result, &size_bindings, bindings);
 
