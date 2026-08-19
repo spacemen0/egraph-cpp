@@ -49,13 +49,18 @@ def generate_matrix(rows: int, cols: int, prop_type: str = "general") -> np.ndar
             np.fill_diagonal(U, np.abs(np.diag(U)) + 1.0)
         return U
 
+    elif prop in ["identity", "eye"]:
+        if rows != cols:
+            raise ValueError(f"Identity matrix must be square, got {rows}x{cols}")
+        return np.eye(rows)
+
     elif prop in ["general", "default", "rand"]:
         return np.random.rand(rows, cols)
 
     else:
         raise ValueError(
             f"Unknown matrix property: '{prop_type}'. "
-            "Supported types: general, fullrank, symmetric, spd (positive_definite), lower, upper."
+            "Supported types: general, fullrank, symmetric, spd (positive_definite), lower, upper, identity."
         )
 
 def main():
@@ -69,8 +74,8 @@ def main():
         "--type", "-t",
         type=str,
         default="general",
-        choices=["general", "fullrank", "symmetric", "spd", "positive_definite", "lower", "upper"],
-        help="Matrix property type: general, fullrank, symmetric, spd, lower, upper (default: general)"
+        choices=["general", "fullrank", "symmetric", "spd", "positive_definite", "lower", "upper", "identity"],
+        help="Matrix property type: general, fullrank, symmetric, spd, lower, upper, identity (default: general)"
     )
     parser.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility")
     parser.add_argument("--fmt", type=str, default="%.6f", help="Output format specifier (default: %%.6f)")

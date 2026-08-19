@@ -21,18 +21,25 @@ def generate_all_example_matrices(output_dir: str, seed: int = 42, fmt: str = "%
 
     datasets = [
         # OLS Example Datasets
-        ("ols_x.csv", 2000, 500, "fullrank", "OLS Tall Matrix X (2000x500)"),
-        ("ols_y.csv", 2000, 1, "general", "OLS Column Vector y (2000x1)"),
+        ("ols_x.csv", 4000, 1000, "fullrank", "OLS Tall Matrix X (4000x1000)"),
+        ("ols_y.csv", 4000, 1, "general", "OLS Column Vector y (4000x1)"),
 
         # GLS Example Datasets
-        ("gls_m.csv", 3000, 3000, "spd", "GLS Symmetric Positive-Definite Covariance Matrix M (3000x3000)"),
-        ("gls_x.csv", 3000, 500, "fullrank", "GLS Tall Design Matrix X (3000x500)"),
-        ("gls_y.csv", 3000, 1, "general", "GLS Column Vector y (3000x1)"),
+        ("gls_m.csv", 4000, 4000, "spd", "GLS Symmetric Positive-Definite Covariance Matrix M (4000x4000)"),
+        ("gls_x.csv", 4000, 1000, "fullrank", "GLS Tall Design Matrix X (4000x1000)"),
+        ("gls_y.csv", 4000, 1, "general", "GLS Column Vector y (4000x1)"),
 
         # Image Restoration Example Datasets
-        ("image_h.csv", 1000, 3000, "fullrank", "Image Restoration Wide Matrix H (1000x3000)"),
-        ("image_y.csv", 1000, 1, "general", "Image Restoration Column Vector y (1000x1)"),
-        ("image_x.csv", 3000, 1, "general", "Image Restoration Column Vector x (3000x1)"),
+        ("image_h.csv", 2000, 6000, "fullrank", "Image Restoration Wide Matrix H (2000x6000)"),
+        ("image_y.csv", 2000, 1, "general", "Image Restoration Column Vector y (2000x1)"),
+        ("image_x.csv", 6000, 1, "general", "Image Restoration Column Vector x (6000x1)"),
+
+        # Stochastic Newton Example Datasets
+        ("stochastic_newton_b.csv", 2000, 2000, "spd", "StoNewton SPD Matrix B (2000x2000)"),
+        ("stochastic_newton_in.csv", 2000, 2000, "identity", "StoNewton Identity Matrix In (2000x2000)"),
+        ("stochastic_newton_a.csv", 4000, 2000, "fullrank", "StoNewton Tall Matrix A (4000x2000)"),
+        ("stochastic_newton_w.csv", 4000, 500, "fullrank", "StoNewton Tall Matrix W_k (4000x500)"),
+        ("stochastic_newton_il.csv", 500, 500, "identity", "StoNewton Identity Matrix Il (500x500)"),
     ]
 
     print(f"Generating example matrices in directory: {output_dir}\n" + "=" * 60)
