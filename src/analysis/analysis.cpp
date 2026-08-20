@@ -118,9 +118,12 @@ void MatrixAnalysis::enforce_hierarchy(MatrixProperty &p) {
     }
 
     if (p.flags.is_diagonal) {
-        p.flags.is_upper_triangular = true;
-        p.flags.is_lower_triangular = true;
-        p.flags.is_symmetric = true;
+
+        if (p.is_square()) {
+            p.flags.is_symmetric = true;
+            p.flags.is_upper_triangular = true;
+            p.flags.is_lower_triangular = true;
+        }
     }
 
     if (p.is_square() && p.flags.is_full_rank) {
@@ -846,9 +849,12 @@ static AnalysisData analyze_scale(const EGraph &egraph, const std::vector<Id> &c
                 prop.flags.is_orthogonal = false;
                 prop.flags.has_orthonormal_columns = false;
                 prop.flags.is_diagonal = true;
-                prop.flags.is_lower_triangular = true;
-                prop.flags.is_upper_triangular = true;
-                prop.flags.is_symmetric = true;
+
+                if (prop.is_square()) {
+                    prop.flags.is_symmetric = true;
+                    prop.flags.is_lower_triangular = true;
+                    prop.flags.is_upper_triangular = true;
+                }
             } else {
                 if (s != 1.0) {
                     prop.flags.is_identity = false;

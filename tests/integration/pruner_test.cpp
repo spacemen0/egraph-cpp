@@ -13,7 +13,7 @@ TEST(Integration, OLSPruneConverges) {
     EGraph egraph(get_property_table());
     egraph.register_or_update_property(
         "M",
-        MatrixProperty{.shape = std::make_pair("A", "B"), .flags = {.is_positive_definite = true, .is_tall = true}});
+        MatrixProperty{.shape = std::make_pair("A", "B"), .flags = {.is_full_rank = true, .is_tall = true}});
     std::vector<Rewrite> rules = build_rewrite_sets({"complete"});
 
     std::vector<size_t> nodes_after_iteration;

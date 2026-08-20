@@ -130,6 +130,20 @@ static auto is_full_rank = [](std::string_view var) {
     };
 };
 
+static auto is_full_column_rank = [](std::string_view var) {
+    return [var = std::string(var)](const EGraph &g, const Substitution &s) {
+        const auto *prop = get_matrix_data(g, s.at(var));
+        return prop && prop->flags.is_full_rank && (prop->is_square() || prop->is_tall_matrix());
+    };
+};
+
+static auto is_full_row_rank = [](std::string_view var) {
+    return [var = std::string(var)](const EGraph &g, const Substitution &s) {
+        const auto *prop = get_matrix_data(g, s.at(var));
+        return prop && prop->flags.is_full_rank && (prop->is_square() || prop->is_wide_matrix());
+    };
+};
+
 static auto is_vector = [](std::string_view var) {
     return [var = std::string(var)](const EGraph &g, const Substitution &s) {
         const auto *prop = get_matrix_data(g, s.at(var));
