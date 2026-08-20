@@ -411,8 +411,15 @@ Cost compute_syrk_n_syrk_t_cost(Op op, const ENode &node, const EGraph &egraph, 
 
 Cost compute_trmm_ln_group_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
     auto shapeB = get_one_shape(egraph, size_bindings, node.get_children().at(1));
-    Size M_dim, N_dim;
+    
+    // Check if C is zero
+    auto c_prop = egraph.get_class_analysis_data(node.get_children().at(2));
+    bool is_c_zero = false;
+    if (auto p = std::get_if<MatrixProperty>(&c_prop.property)) {
+        is_c_zero = p->flags.is_zero;
+    }
 
+    Size M_dim, N_dim;
     bool is_left_solve = (op == Trmm_LN || op == Trmm_LT);
 
     M_dim = shapeB.first;
@@ -421,23 +428,27 @@ Cost compute_trmm_ln_group_cost(Op op, const ENode &node, const EGraph &egraph, 
     if (std::holds_alternative<int>(M_dim) && std::holds_alternative<int>(N_dim)) {
         double M = std::get<int>(M_dim);
         double N = std::get<int>(N_dim);
-        if (is_left_solve) {
-            return Cost(M * M * N);
-        } else {
-            return Cost(M * N * N);
+        double cost = is_left_solve ? (M * M * N) : (M * N * N);
+        if (!is_c_zero) {
+            cost += M * N; // cost of daxpy
         }
+        return Cost(cost);
     }
+    
+    SymbolicCost sc;
     if (is_left_solve) {
         Monomial m = {{size_to_symbol(M_dim), size_to_symbol(M_dim), size_to_symbol(N_dim)}};
-        SymbolicCost sc;
         sc[m] = 1.0;
-        return sc;
     } else {
         Monomial m = {{size_to_symbol(M_dim), size_to_symbol(N_dim), size_to_symbol(N_dim)}};
-        SymbolicCost sc;
         sc[m] = 1.0;
-        return sc;
     }
+    
+    if (!is_c_zero) {
+        Monomial m_add = {{size_to_symbol(M_dim), size_to_symbol(N_dim)}};
+        sc[m_add] += 1.0; // cost of daxpy
+    }
+    return sc;
 }
 
 Cost compute_symm_group_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
