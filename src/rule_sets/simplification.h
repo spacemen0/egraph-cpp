@@ -39,6 +39,7 @@ static const auto mul_identity_right =
 static const auto solve_by_id = make_rewrite("solve_by_id", "Sol(?b, ?a)", "?a", false, is_identity_cond("b"), nullptr);
 static const auto scale_one = make_rewrite("scale_one", "Scale(?a, 1.0)", "?a");
 static const auto tr_tr_cancel = make_rewrite("tr-tr-cancel", "Tr(Tr(?a))", "?a");
+static const auto tr_symmetric = make_rewrite("tr_symmetric", "Tr(?a)", "?a", false, is_symmetric("a"));
 /// Cancellations
 /// ----------------------------------------------------------
 static const auto invert_cancel_left = make_rewrite(
@@ -116,7 +117,7 @@ static const auto orthonormal_transpose = make_rewrite(
 static const std::vector<Rewrite> simplification_set = {
     minus_cancel,          add_comm_zero,     mul_zero_left,          mul_zero_right,
     scale_zero_scalar,     scale_zero_matrix, mul_identity_left,      mul_identity_right,
-    solve_by_id,           scale_one,         tr_tr_cancel,           invert_cancel_left,
+    solve_by_id,           scale_one,         tr_tr_cancel,           tr_symmetric,           invert_cancel_left,
     invert_cancel_right,   solve_cancel_left, solve_cancel_right,     solve_identity,
     scale_collapse,        scale_combine,     scale_combine_implicit, orthogonal_transpose,
     orthonormal_transpose,
