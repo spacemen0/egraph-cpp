@@ -568,6 +568,132 @@ static AnalysisData analyze_sym_mul(const EGraph &egraph, const std::vector<Id> 
     throw AnalysisError("SymMul expects Matrix inputs");
 }
 
+static AnalysisData analyze_trmm_ln(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 3, "Trmm_LN");
+    if (auto dataA = get_matrix_data(egraph, children.at(0))) {
+        if (auto dataB = get_matrix_data(egraph, children.at(1))) {
+            if (auto dataC = get_matrix_data(egraph, children.at(2))) {
+                if (!dataA->is_square()) throw InvalidOperationError("Trmm_LN expects square A");
+                if (!dataA->flags.is_lower_triangular && !dataA->flags.is_upper_triangular) {
+                    throw InvalidOperationError("Trmm_LN operation on non-triangular matrix A");
+                }
+                if (dataA->shape.second != dataB->shape.first || dataA->shape.first != dataC->shape.first || dataB->shape.second != dataC->shape.second) {
+                    throw ShapeMismatchError("Trmm_LN operation with incompatible sizes");
+                }
+                MatrixProperty prop;
+                prop.shape = dataC->shape;
+                prop.flags.is_full_rank = dataB->flags.is_full_rank && dataA->flags.is_full_rank;
+                prop.flags.is_non_singular = prop.flags.is_full_rank && prop.is_square();
+                return make_matrix_property_data(prop);
+            }
+        }
+    }
+    throw AnalysisError("Trmm_LN expects Matrix inputs");
+}
+
+static AnalysisData analyze_trmm_lt(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 3, "Trmm_LT");
+    if (auto dataA = get_matrix_data(egraph, children.at(0))) {
+        if (auto dataB = get_matrix_data(egraph, children.at(1))) {
+            if (auto dataC = get_matrix_data(egraph, children.at(2))) {
+                if (!dataA->is_square()) throw InvalidOperationError("Trmm_LT expects square A");
+                if (!dataA->flags.is_lower_triangular && !dataA->flags.is_upper_triangular) {
+                    throw InvalidOperationError("Trmm_LT operation on non-triangular matrix A");
+                }
+                if (dataA->shape.first != dataB->shape.first || dataA->shape.second != dataC->shape.first || dataB->shape.second != dataC->shape.second) {
+                    throw ShapeMismatchError("Trmm_LT operation with incompatible sizes");
+                }
+                MatrixProperty prop;
+                prop.shape = dataC->shape;
+                prop.flags.is_full_rank = dataB->flags.is_full_rank && dataA->flags.is_full_rank;
+                prop.flags.is_non_singular = prop.flags.is_full_rank && prop.is_square();
+                return make_matrix_property_data(prop);
+            }
+        }
+    }
+    throw AnalysisError("Trmm_LT expects Matrix inputs");
+}
+
+static AnalysisData analyze_trmm_rn(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 3, "Trmm_RN");
+    if (auto dataA = get_matrix_data(egraph, children.at(0))) {
+        if (auto dataB = get_matrix_data(egraph, children.at(1))) {
+            if (auto dataC = get_matrix_data(egraph, children.at(2))) {
+                if (!dataA->is_square()) throw InvalidOperationError("Trmm_RN expects square A");
+                if (!dataA->flags.is_lower_triangular && !dataA->flags.is_upper_triangular) {
+                    throw InvalidOperationError("Trmm_RN operation on non-triangular matrix A");
+                }
+                if (dataB->shape.second != dataA->shape.first || dataB->shape.first != dataC->shape.first || dataA->shape.second != dataC->shape.second) {
+                    throw ShapeMismatchError("Trmm_RN operation with incompatible sizes");
+                }
+                MatrixProperty prop;
+                prop.shape = dataC->shape;
+                prop.flags.is_full_rank = dataB->flags.is_full_rank && dataA->flags.is_full_rank;
+                prop.flags.is_non_singular = prop.flags.is_full_rank && prop.is_square();
+                return make_matrix_property_data(prop);
+            }
+        }
+    }
+    throw AnalysisError("Trmm_RN expects Matrix inputs");
+}
+
+static AnalysisData analyze_trmm_rt(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 3, "Trmm_RT");
+    if (auto dataA = get_matrix_data(egraph, children.at(0))) {
+        if (auto dataB = get_matrix_data(egraph, children.at(1))) {
+            if (auto dataC = get_matrix_data(egraph, children.at(2))) {
+                if (!dataA->is_square()) throw InvalidOperationError("Trmm_RT expects square A");
+                if (!dataA->flags.is_lower_triangular && !dataA->flags.is_upper_triangular) {
+                    throw InvalidOperationError("Trmm_RT operation on non-triangular matrix A");
+                }
+                if (dataB->shape.second != dataA->shape.second || dataB->shape.first != dataC->shape.first || dataA->shape.first != dataC->shape.second) {
+                    throw ShapeMismatchError("Trmm_RT operation with incompatible sizes");
+                }
+                MatrixProperty prop;
+                prop.shape = dataC->shape;
+                prop.flags.is_full_rank = dataB->flags.is_full_rank && dataA->flags.is_full_rank;
+                prop.flags.is_non_singular = prop.flags.is_full_rank && prop.is_square();
+                return make_matrix_property_data(prop);
+            }
+        }
+    }
+    throw AnalysisError("Trmm_RT expects Matrix inputs");
+}
+
+static AnalysisData analyze_symm_l(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 3, "Symm_L");
+    if (auto dataA = get_matrix_data(egraph, children.at(0))) {
+        if (auto dataB = get_matrix_data(egraph, children.at(1))) {
+            if (auto dataC = get_matrix_data(egraph, children.at(2))) {
+                if (!dataA->flags.is_symmetric) throw InvalidOperationError("Symm_L expects A to be symmetric");
+                if (dataA->shape.second != dataB->shape.first || dataA->shape.first != dataC->shape.first || dataB->shape.second != dataC->shape.second) {
+                    throw ShapeMismatchError("Symm_L sizes mismatch");
+                }
+                MatrixProperty prop; prop.shape = dataC->shape;
+                return make_matrix_property_data(prop);
+            }
+        }
+    }
+    throw AnalysisError("Symm_L inputs missing");
+}
+
+static AnalysisData analyze_symm_r(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 3, "Symm_R");
+    if (auto dataA = get_matrix_data(egraph, children.at(0))) {
+        if (auto dataB = get_matrix_data(egraph, children.at(1))) {
+            if (auto dataC = get_matrix_data(egraph, children.at(2))) {
+                if (!dataA->flags.is_symmetric) throw InvalidOperationError("Symm_R expects A to be symmetric");
+                if (dataB->shape.second != dataA->shape.first || dataB->shape.first != dataC->shape.first || dataA->shape.second != dataC->shape.second) {
+                    throw ShapeMismatchError("Symm_R sizes mismatch");
+                }
+                MatrixProperty prop; prop.shape = dataC->shape;
+                return make_matrix_property_data(prop);
+            }
+        }
+    }
+    throw AnalysisError("Symm_R inputs missing");
+}
+
 static AnalysisData analyze_trsm_ln(const EGraph &egraph, const std::vector<Id> &children) {
     check_arity(children, 2, "Trsm_LN");
     if (auto dataA = get_matrix_data(egraph, children.at(0))) {
@@ -928,6 +1054,12 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
     case Syrk_T: {
         return analyze_syrk_t(egraph, children);
     }
+    case Trmm_LN: return analyze_trmm_ln(egraph, children);
+    case Trmm_LT: return analyze_trmm_lt(egraph, children);
+    case Trmm_RN: return analyze_trmm_rn(egraph, children);
+    case Trmm_RT: return analyze_trmm_rt(egraph, children);
+    case Symm_L: return analyze_symm_l(egraph, children);
+    case Symm_R: return analyze_symm_r(egraph, children);
     case Trsm_LN: {
         return analyze_trsm_ln(egraph, children);
     }

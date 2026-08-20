@@ -192,6 +192,60 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         }
     }
     switch (op) {
+    case Symm_L:
+    case Symm_R: {
+        auto c_prop = egraph.get_class_analysis_data(node->get_children()[2]);
+        bool is_c_zero;
+        if (auto p = std::get_if<MatrixProperty>(&c_prop.property)) {
+            is_c_zero = p->flags.is_zero;
+        }
+        if (!is_c_zero) {
+            setup_in_place_output(node->get_children()[2], output);
+            output.ensure_general();
+        }
+        CBLAS_SIDE side = (op == Op::Symm_L) ? CblasLeft : CblasRight;
+        auto a_prop = egraph.get_class_analysis_data(node->get_children()[0]);
+        char uplo = std::get<MatrixProperty>(a_prop.property).flags.is_lower_triangular ? 'L' : 'U';
+        cblas_dsymm(
+            CblasColMajor, side, uplo == 'L' ? CblasLower : CblasUpper, output.rows, output.cols, 1.0,
+            inputs[0]->data(), inputs[0]->rows, inputs[1]->data(), inputs[1]->rows, is_c_zero ? 0.0 : 1.0,
+            output.data(), output.rows);
+        break;
+    }
+    case Trmm_LN:
+    case Trmm_LT:
+    case Trmm_RN:
+    case Trmm_RT: {
+        auto c_prop = egraph.get_class_analysis_data(node->get_children()[2]);
+        bool is_c_zero = false;
+        if (auto p = std::get_if<MatrixProperty>(&c_prop.property)) {
+            is_c_zero = p->flags.is_zero;
+        }
+
+        auto a_prop = egraph.get_class_analysis_data(node->get_children()[0]);
+        CBLAS_UPLO uplo = std::get<MatrixProperty>(a_prop.property).flags.is_lower_triangular ? CblasLower : CblasUpper;
+        CBLAS_SIDE side = (op == Op::Trmm_LN || op == Op::Trmm_LT) ? CblasLeft : CblasRight;
+        CBLAS_TRANSPOSE trans = (op == Op::Trmm_LN || op == Op::Trmm_RN) ? CblasNoTrans : CblasTrans;
+
+        if (is_c_zero) {
+            setup_in_place_output(node->get_children()[1], output);
+            output.ensure_general();
+            cblas_dtrmm(
+                CblasColMajor, side, uplo, trans, CblasNonUnit, output.rows, output.cols, 1.0, inputs[0]->data(),
+                inputs[0]->rows, output.data(), output.rows);
+        } else {
+            setup_in_place_output(node->get_children()[2], output);
+            output.ensure_general();
+            MatrixNode tempB;
+            setup_in_place_output(node->get_children()[1], tempB);
+            tempB.ensure_general();
+            cblas_dtrmm(
+                CblasColMajor, side, uplo, trans, CblasNonUnit, tempB.rows, tempB.cols, 1.0, inputs[0]->data(),
+                inputs[0]->rows, tempB.data(), tempB.rows);
+            cblas_daxpy(output.rows * output.cols, 1.0, tempB.data(), 1, output.data(), 1);
+        }
+        break;
+    }
     case Trsm_LN:
     case Trsm_LT:
     case Trsm_RN:

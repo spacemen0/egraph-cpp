@@ -25,6 +25,8 @@ Cost compute_log_cost(Op op, const ENode &node, const EGraph &egraph, const Size
 Cost compute_gemm_nn_group_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);
 Cost compute_syrk_n_syrk_t_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);
 Cost compute_trsm_ln_group_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);
+Cost compute_trmm_ln_group_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);
+Cost compute_symm_group_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);
 Cost compute_potrf_l_potrf_u_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);
 Cost compute_geqrf_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);
 Cost compute_trtri_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);

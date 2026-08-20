@@ -409,6 +409,62 @@ Cost compute_syrk_n_syrk_t_cost(Op op, const ENode &node, const EGraph &egraph, 
     }
 }
 
+Cost compute_trmm_ln_group_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
+    auto shapeB = get_one_shape(egraph, size_bindings, node.get_children().at(1));
+    Size M_dim, N_dim;
+
+    bool is_left_solve = (op == Trmm_LN || op == Trmm_LT);
+
+    M_dim = shapeB.first;
+    N_dim = shapeB.second;
+
+    if (std::holds_alternative<int>(M_dim) && std::holds_alternative<int>(N_dim)) {
+        double M = std::get<int>(M_dim);
+        double N = std::get<int>(N_dim);
+        if (is_left_solve) {
+            return Cost(M * M * N);
+        } else {
+            return Cost(M * N * N);
+        }
+    }
+    if (is_left_solve) {
+        Monomial m = {{size_to_symbol(M_dim), size_to_symbol(M_dim), size_to_symbol(N_dim)}};
+        SymbolicCost sc;
+        sc[m] = 1.0;
+        return sc;
+    } else {
+        Monomial m = {{size_to_symbol(M_dim), size_to_symbol(N_dim), size_to_symbol(N_dim)}};
+        SymbolicCost sc;
+        sc[m] = 1.0;
+        return sc;
+    }
+}
+
+Cost compute_symm_group_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
+    auto shapeB = get_one_shape(egraph, size_bindings, node.get_children().at(1));
+    Size M, N;
+    M = shapeB.first;
+    N = shapeB.second;
+
+    if (op == Symm_L) {
+        if (std::holds_alternative<int>(M) && std::holds_alternative<int>(N)) {
+            return Cost(2.0 * std::get<int>(M) * std::get<int>(M) * std::get<int>(N));
+        }
+        Monomial m = {{size_to_symbol(M), size_to_symbol(M), size_to_symbol(N)}};
+        SymbolicCost sc;
+        sc[m] = 2.0;
+        return sc;
+    } else {
+        if (std::holds_alternative<int>(M) && std::holds_alternative<int>(N)) {
+            return Cost(2.0 * std::get<int>(M) * std::get<int>(N) * std::get<int>(N));
+        }
+        Monomial m = {{size_to_symbol(M), size_to_symbol(N), size_to_symbol(N)}};
+        SymbolicCost sc;
+        sc[m] = 2.0;
+        return sc;
+    }
+}
+
 Cost compute_trsm_ln_group_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
     auto shapeA = get_one_shape(egraph, size_bindings, node.get_children().at(0));
     auto shapeB = get_one_shape(egraph, size_bindings, node.get_children().at(1));

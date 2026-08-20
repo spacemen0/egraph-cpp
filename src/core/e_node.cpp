@@ -115,6 +115,14 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
         case Syrk_N:
         case Syrk_T:
             return compute_syrk_n_syrk_t_cost(*op, *this, egraph, size_bindings);
+        case Symm_L:
+        case Symm_R:
+            return compute_symm_group_cost(*op, *this, egraph, size_bindings);
+        case Trmm_LN:
+        case Trmm_LT:
+        case Trmm_RN:
+        case Trmm_RT:
+            return compute_trmm_ln_group_cost(*op, *this, egraph, size_bindings);
         case Trsm_LN:
         case Trsm_LT:
         case Trsm_RN:

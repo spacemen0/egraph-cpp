@@ -74,6 +74,12 @@ static const auto trsm =
 
 /// Transition Rules
 /// ----------------------------------------------------------
+static const auto gemm_to_symm_l = make_rewrite("gemm_to_symm_l", "Gemm_NN(?a, ?b, ?c)", "Symm_L(?a, ?b, ?c)", false, is_symmetric("a"));
+static const auto gemm_to_symm_r = make_rewrite("gemm_to_symm_r", "Gemm_NN(?b, ?a, ?c)", "Symm_R(?a, ?b, ?c)", false, is_symmetric("a"));
+static const auto gemm_to_trmm_ln = make_rewrite("gemm_to_trmm_ln", "Gemm_NN(?a, ?b, ?c)", "Trmm_LN(?a, ?b, ?c)", false, is_triangular("a"));
+static const auto gemm_to_trmm_lt = make_rewrite("gemm_to_trmm_lt", "Gemm_TN(?a, ?b, ?c)", "Trmm_LT(?a, ?b, ?c)", false, is_triangular("a"));
+static const auto gemm_to_trmm_rn = make_rewrite("gemm_to_trmm_rn", "Gemm_NN(?b, ?a, ?c)", "Trmm_RN(?a, ?b, ?c)", false, is_triangular("a"));
+static const auto gemm_to_trmm_rt = make_rewrite("gemm_to_trmm_rt", "Gemm_NT(?b, ?a, ?c)", "Trmm_RT(?a, ?b, ?c)", false, is_triangular("a"));
 static const auto gemm_tn = make_rewrite("gemm_tn", "Gemm_NN(Tr(?a), ?b, ?c)", "Gemm_TN(?a, ?b, ?c)", false);
 static const auto gemm_nt = make_rewrite("gemm_nt", "Gemm_NN(?a, Tr(?b), ?c)", "Gemm_NT(?a, ?b, ?c)", false);
 static const auto gemm_tt = make_rewrite("gemm_tt", "Gemm_NN(Tr(?a), Tr(?b), ?c)", "Gemm_TT(?a, ?b, ?c)", false);
@@ -149,6 +155,12 @@ static const std::vector<Rewrite> lowering_set = {
     fuse_ormqr_rn,
     fuse_ormqr_rt,
     trtri,
+    gemm_to_symm_l,
+    gemm_to_symm_r,
+    gemm_to_trmm_ln,
+    gemm_to_trmm_lt,
+    gemm_to_trmm_rn,
+    gemm_to_trmm_rt,
     gemm_tn,
     gemm_nt,
     gemm_tt,
