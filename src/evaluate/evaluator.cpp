@@ -418,12 +418,11 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         break;
     }
     case Axpy: {
-        // const MatrixNode &x_node = *inputs[0];
-        // setup_in_place_output(node->get_children()[1], output);
-        // cblas_daxpy(x_node.rows * x_node.cols, 1.0, x_node.data(), 1, output.data(), 1);
-        // break;
-
-        throw std::runtime_error("Axpy operation is not implemented in the evaluator.");
+        inputs[0]->ensure_general();
+        setup_in_place_output(node->get_children()[1], output);
+        output.ensure_general();
+        cblas_daxpy(inputs[0]->rows * inputs[0]->cols, 1.0, inputs[0]->data(), 1, output.data(), 1);
+        break;
     }
     default:
         throw std::runtime_error("Kernel not implemented for this operation: " + atom_to_string(op));
