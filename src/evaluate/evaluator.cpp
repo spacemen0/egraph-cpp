@@ -33,10 +33,6 @@ Evaluator::Evaluator(
     for (size_t slot = 0; slot < N; ++slot) {
         Id class_id = result.execution_order[slot];
         slot_map[class_id] = static_cast<int>(slot);
-    }
-
-    for (size_t slot = 0; slot < N; ++slot) {
-        Id class_id = result.execution_order[slot];
         const ENode *node = result.choices.at(class_id);
         if (node) {
             const Atom &atom = node->get_atom();

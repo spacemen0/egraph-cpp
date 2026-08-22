@@ -84,8 +84,12 @@ class Evaluator {
     EGraph &egraph;
     ExtractionResult result;
     const DataBindings &data_bindings;
+
+    // element 0 stores the data for the first node in execution_order, and so on.
     std::vector<DataStorage> data_storage;
+    // A mapping from class_id to the index in execution_order
     std::vector<int> slot_map;
+    // index is also the slot in execution_order
     mutable std::vector<int> use_counts;
     std::unordered_map<Id, bool> prefer_upper_triangular;
 };
