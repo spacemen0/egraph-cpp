@@ -11,6 +11,7 @@
 #include <chrono>
 #include <dlfcn.h>
 #include <iostream>
+#include <ostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -207,10 +208,8 @@ class Context {
 
         auto result_eval = evaluator.evaluate();
         auto end_evaluate = std::chrono::high_resolution_clock::now();
-        if (config.enable_logging) {
-            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_evaluate - start_evaluate);
-            std::cout << "[API] Evaluation time: " << duration.count() << " microseconds\n";
-        }
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_evaluate - start_evaluate);
+        std::cout << duration.count() << std::endl;
         return result_eval;
     }
 
@@ -219,9 +218,10 @@ class Context {
         const std::vector<std::string> &rulesets = {"everything_but_lowering"}) {
         if (config.enable_logging) {
             std::cout << "[API] Optimizing symbolic expression: " << target_expr.to_string() << "\n";
+            config.print_config();
         }
         initialize_config_for_expression(config, target_expr);
-        config.print_config();
+
         target_id = add(target_expr);
 
         for (const auto &bg_expr : background_exprs) {
