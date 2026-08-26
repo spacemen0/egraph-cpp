@@ -4,6 +4,8 @@
 
 #include <memory>
 
+
+namespace egraph {
 enum class StorageFormat { General, SymmetricUpper, SymmetricLower, TriangularUpper, TriangularLower };
 
 struct MatrixNode {
@@ -93,3 +95,4 @@ class Evaluator {
     mutable std::vector<int> use_counts;
     std::unordered_map<Id, bool> prefer_upper_triangular;
 };
+} // namespace egraph

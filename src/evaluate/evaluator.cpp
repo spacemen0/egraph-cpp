@@ -6,15 +6,15 @@
 #include <vector>
 
 #ifdef __APPLE__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#include <lapacke.h>
+#include "lapacke_accelerate.h"
 #include <vecLib/cblas.h>
 #else
 #include <cblas.h>
 #include <lapacke.h>
 #endif
 
+
+namespace egraph {
 Evaluator::Evaluator(
     EGraph &egraph, const ExtractionResult &result, const SizeBindings *size_bindings,
     const DataBindings &data_bindings)
@@ -487,3 +487,5 @@ void Evaluator::dispatch_get(const TupleNode &input_tuple, int index, MatrixNode
     const MatrixNode &source = input_tuple.matrices[index];
     output = source;
 }
+
+} // namespace egraph
