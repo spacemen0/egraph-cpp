@@ -1,6 +1,9 @@
 #include "e_graph.h"
 #include "test_helpers.h"
 #include <gtest/gtest.h>
+using namespace egraph;
+
+
 
 TEST_F(EGraphTest, AddAndLookUpNode) {
 

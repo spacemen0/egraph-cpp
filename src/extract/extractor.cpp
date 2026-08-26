@@ -8,6 +8,8 @@
 #include <queue>
 #include <unordered_set>
 
+
+namespace egraph {
 namespace {
 constexpr size_t kExtractorProgressLogEvery = 1000000;
 
@@ -591,3 +593,5 @@ bool Extractor::collect_selected_nodes_for_binding(
 
     return any_root_succeeded;
 }
+
+} // namespace egraph

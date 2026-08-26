@@ -2,8 +2,29 @@
 #include "examples.h"
 #include <chrono>
 #include <iostream>
-#include <lapacke.h>
+#include <Accelerate/Accelerate.h>
+#define LAPACK_COL_MAJOR 102
+
+#ifdef __APPLE__
+
+extern "C" void dgels_(const char* trans, const int* m, const int* n, const int* nrhs, double* a, const int* lda, double* b, const int* ldb, double* work, const int* lwork, int* info);
+
+inline int LAPACKE_dgels(int matrix_layout, char trans, int m, int n, int nrhs, double* a, int lda, double* b, int ldb) {
+    if (matrix_layout != LAPACK_COL_MAJOR) return -1;
+    int info = 0;
+    int lwork = -1;
+    double wkopt = 0.0;
+    dgels_(&trans, &m, &n, &nrhs, a, &lda, b, &ldb, &wkopt, &lwork, &info);
+    lwork = (int)wkopt;
+    double* work = new double[lwork];
+    dgels_(&trans, &m, &n, &nrhs, a, &lda, b, &ldb, work, &lwork, &info);
+    delete[] work;
+    return info;
+}
+#endif
 #include <vector>
+
+
 
 int run_ols_dgels() {
     std::cout << "=== Running OLS Direct LAPACK dgels Benchmark Example ===\n";

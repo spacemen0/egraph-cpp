@@ -11,6 +11,8 @@
 #include <iostream>
 #include <optional>
 
+
+namespace egraph {
 namespace {
 std::string make_dot_output_path(const std::string &filename) {
     std::filesystem::path output_path(filename);
@@ -488,3 +490,5 @@ void EGraph::to_dot_file(const std::string &filename) const {
 void EGraph::to_img(const std::string &filename, const std::string &format) const {
     EGraphVisualization::to_img(*this, make_dot_output_path(filename), format);
 }
+
+} // namespace egraph

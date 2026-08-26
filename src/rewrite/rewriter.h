@@ -1,11 +1,14 @@
 #pragma once
 #include "e_graph.h"
 #include "pattern.h"
+#include "egraph_config.h"
 #include <algorithm>
 #include <functional>
 #include <string>
 #include <vector>
 
+
+namespace egraph {
 struct Rewrite {
     std::string name;
     Pattern lhs;
@@ -17,7 +20,6 @@ struct Rewrite {
     size_t initial_match_limit = 30;
 };
 
-#include "egraph_config.h"
 
 class Rewriter {
   public:
@@ -75,3 +77,5 @@ class Rewriter {
     std::vector<size_t> ban_duration_next;          // Duration for next ban (starts at 1, doubles)
     size_t max_nodes;
 };
+
+} // namespace egraph

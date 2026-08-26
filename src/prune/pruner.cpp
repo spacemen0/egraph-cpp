@@ -1,6 +1,8 @@
 #include "pruner.h"
 #include "utils.h"
 
+
+namespace egraph {
 PruneResult
 Pruner::prune(const std::vector<Id> &roots, const std::vector<SizeBindings> &bindings, int max_results) const {
     PruneResult result;
@@ -96,3 +98,5 @@ void Pruner::rewrite_and_prune(
         }
     }
 }
+
+} // namespace egraph

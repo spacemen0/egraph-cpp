@@ -4,6 +4,8 @@
 #include <set>
 #include <vector>
 
+
+namespace egraph {
 class EGraph;
 class ENode;
 
@@ -21,3 +23,5 @@ class Matcher {
         Id eclass_id, const Pattern &pattern, const Substitution &initial_subst, size_t limit = 0) const;
     std::vector<const ENode *> ordered_nodes(Id eclass_id, size_t limit = 0) const;
 };
+
+} // namespace egraph

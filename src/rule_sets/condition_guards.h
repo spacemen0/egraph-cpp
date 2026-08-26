@@ -5,6 +5,8 @@
 #include <string>
 #include <string_view>
 
+
+namespace egraph {
 static auto is_leaf = [](std::string_view var) {
     return [var = std::string(var)](const EGraph &g, const Substitution &s) {
         Id id = s.at(var);
@@ -170,3 +172,4 @@ static auto is_not_op = [](std::string_view var, Op op) {
         return !std::holds_alternative<Op>(node.get_atom()) || std::get<Op>(node.get_atom()) != op;
     };
 };
+} // namespace egraph

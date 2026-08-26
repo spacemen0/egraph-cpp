@@ -8,6 +8,8 @@
 
 /// BLAS Level 2
 /// ----------------------------------------------------------
+
+namespace egraph {
 static const auto gemv_without_c =
     make_rewrite("gemv_without_c", "?a * ?b", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
     return is_matrix("a")(g, s) && is_vector("b")(g, s) && is_not_op("a", Op::Tr)(g, s);
@@ -177,3 +179,4 @@ static const std::vector<Rewrite> lowering_set = {
     solr_qr,
     axpy,
 };
+} // namespace egraph

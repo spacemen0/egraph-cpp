@@ -4,6 +4,8 @@
 #include "property_table.h"
 #include <vector>
 
+
+namespace egraph {
 class EClass {
   public:
     explicit EClass(Id id, const ENode *initial_node, AnalysisData data) : analysis_data(std::move(data)) {
@@ -21,3 +23,4 @@ class EClass {
     std::vector<Id> parents;
     AnalysisData analysis_data;
 };
+} // namespace egraph

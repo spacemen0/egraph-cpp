@@ -2,6 +2,8 @@
 #include "e_graph.h"
 #include "utils.h"
 
+
+namespace egraph {
 Matcher::Matcher(EGraph &egraph) : egraph(egraph) {}
 
 bool Matcher::atoms_match(const Atom &pat_atom, const Atom &enode_atom) const {
@@ -98,3 +100,5 @@ std::vector<Substitution> Matcher::search_eclass_for_pattern(
 
     return results;
 }
+
+} // namespace egraph

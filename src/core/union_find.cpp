@@ -1,6 +1,8 @@
 #include "union_find.h"
 #include <stdexcept>
 
+
+namespace egraph {
 Id UnionFind::find_root(Id current) const {
     if (current >= parents.size()) {
         throw std::out_of_range("Index out of range in UnionFind::find");
@@ -36,3 +38,5 @@ Id UnionFind::make_set() {
     parents.push_back(newIndex);
     return newIndex;
 }
+
+} // namespace egraph

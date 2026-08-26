@@ -6,6 +6,8 @@
 #include <iostream>
 #include <sstream>
 
+
+namespace egraph {
 namespace EGraphVisualization {
 std::string to_dot(const EGraph &egraph) {
     std::ostringstream oss;
@@ -117,3 +119,5 @@ void to_img(const EGraph &egraph, const std::string &filename, const std::string
     // std::remove(dot_filename.c_str());
 }
 } // namespace EGraphVisualization
+
+} // namespace egraph

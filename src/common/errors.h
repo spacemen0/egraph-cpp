@@ -3,6 +3,8 @@
 #include <stdexcept>
 #include <string>
 
+
+namespace egraph {
 class ShapeMismatchError : public std::runtime_error {
   public:
     explicit ShapeMismatchError(const std::string &msg) : std::runtime_error("Shape mismatch: " + msg) {}
@@ -22,3 +24,5 @@ class ParseError : public std::runtime_error {
   public:
     explicit ParseError(const std::string &msg) : std::runtime_error("Parse error: " + msg) {}
 };
+
+} // namespace egraph

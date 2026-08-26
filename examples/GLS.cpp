@@ -2,6 +2,9 @@
 #include "api.h"
 #include "examples.h"
 #include <iostream>
+using namespace egraph;
+
+
 
 int run_gls() {
     EGraphRunner::Context ctx;

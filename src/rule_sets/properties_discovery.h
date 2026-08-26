@@ -8,6 +8,8 @@
 #include <string_view>
 #include <variant>
 
+
+namespace egraph {
 static const auto transpose_spd = make_rewrite(
     "transpose_spd", "?a * Tr(?a)", "Dynamic", false, is_full_row_rank("a"),
 
@@ -77,3 +79,4 @@ static const std::vector<Rewrite> property_discovery_set = {
     sandwich_spd_left,
     sandwich_spd_right,
 };
+} // namespace egraph

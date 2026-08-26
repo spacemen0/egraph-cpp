@@ -1,6 +1,9 @@
 #include "e_node.h"
 #include "test_helpers.h"
 #include <gtest/gtest.h>
+using namespace egraph;
+
+
 
 using enum Op;
 

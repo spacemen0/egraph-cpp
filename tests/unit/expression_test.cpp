@@ -2,6 +2,9 @@
 #include "expression.h"
 #include "utils.h"
 #include <gtest/gtest.h>
+using namespace egraph;
+
+
 
 TEST(Expression, ParseVariable) {
     Expression p("X");

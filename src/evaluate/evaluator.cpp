@@ -13,7 +13,6 @@
 #include <lapacke.h>
 #endif
 
-
 namespace egraph {
 Evaluator::Evaluator(
     EGraph &egraph, const ExtractionResult &result, const SizeBindings *size_bindings,

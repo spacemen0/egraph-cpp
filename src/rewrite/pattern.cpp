@@ -5,6 +5,8 @@
 
 /// @brief Construct a Pattern from a string representation (usually for rewrite rules)
 /// @param s
+
+namespace egraph {
 Pattern::Pattern(std::string_view s) {
     auto parsed = string_to_parsed_atom(s);
     atom = parsed.atom;
@@ -23,3 +25,4 @@ Pattern::Pattern(std::string_view s) {
         return Pattern(str);
     });
 }
+} // namespace egraph

@@ -1,5 +1,8 @@
 #include "union_find.h"
 #include <gtest/gtest.h>
+using namespace egraph;
+
+
 
 TEST(UnionFind, ParentsLayoutAfterCompression) {
     UnionFind uf;

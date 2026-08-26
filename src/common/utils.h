@@ -15,6 +15,8 @@
 #include <unordered_set>
 #include <vector>
 
+
+namespace egraph {
 inline LookupTable &get_lookup_table() {
     static LookupTable table;
     return table;
@@ -389,3 +391,4 @@ inline std::optional<double> get_double_from_eclass(const EGraph &egraph, Id id)
     }
     return std::nullopt;
 }
+} // namespace egraph

@@ -4,6 +4,8 @@
 #include "e_node.h"
 #include "types.h"
 
+
+namespace egraph {
 std::string size_to_symbol(const Size &size);
 
 Cost compute_add_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);
@@ -35,3 +37,5 @@ Cost compute_gemv_t_cost(Op op, const ENode &node, const EGraph &egraph, const S
 Cost compute_orgqr_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);
 Cost compute_ormqr_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);
 Cost compute_axpy_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);
+
+} // namespace egraph

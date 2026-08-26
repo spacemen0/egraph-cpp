@@ -3,6 +3,9 @@
 #include "rewriter.h"
 #include "test_helpers.h"
 #include <gtest/gtest.h>
+using namespace egraph;
+
+
 
 TEST_F(ExtractorTest, CheaperExtraction) {
     // Expr: A * Identity

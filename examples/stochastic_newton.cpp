@@ -4,6 +4,9 @@
 #include "utils.h"
 #include <iostream>
 #include <utility>
+using namespace egraph;
+
+
 
 int run_stochastic_newton() {
     EGraphRunner::Context ctx;

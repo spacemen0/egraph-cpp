@@ -8,6 +8,8 @@
 
 /// Commutativity and Associativity
 /// ----------------------------------------------------------
+
+namespace egraph {
 static const auto mul_assoc = make_rewrite("mul-assoc-left", "?a * (?b * ?c)", "(?a * ?b) * ?c", true);
 static const auto commute_add = make_rewrite("commute-add", "?a + ?b", "?b + ?a");
 
@@ -90,3 +92,4 @@ static const std::vector<Rewrite> transformation_set = {
     sym_mul_t,
     sym_mul_n,
 };
+} // namespace egraph

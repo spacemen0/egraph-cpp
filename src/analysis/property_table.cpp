@@ -5,6 +5,8 @@
 #include "utils.h"
 #include <charconv>
 
+
+namespace egraph {
 MatrixProperty MatrixProperty::from_string(std::string_view text) {
     auto parse_size = [](std::string_view token) -> Size {
         int v = 0;
@@ -126,3 +128,4 @@ bool PropertyTable::has_property(const std::string &name) const { return propert
 bool PropertyTable::add_or_update_property_entry(const std::string &name, MatrixProperty property) {
     return insert_property(name, property);
 }
+} // namespace egraph

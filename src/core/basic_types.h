@@ -6,6 +6,8 @@
 #include <variant>
 #include <vector>
 
+
+namespace egraph {
 enum class Op {
     Add,
     Mul,
@@ -162,3 +164,5 @@ static inline bool is_kernel_op(Op op) {
            op == Trsm_RN || op == Trsm_RT || op == Potrf_L || op == Potrf_U || op == Orgqr || op == Ormqr_LN ||
            op == Ormqr_LT || op == Ormqr_RN || op == Ormqr_RT || op == Axpy;
 }
+
+} // namespace egraph

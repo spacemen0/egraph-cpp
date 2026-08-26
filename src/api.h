@@ -16,6 +16,8 @@
 #include <string>
 #include <vector>
 
+
+namespace egraph {
 extern "C" void cblas_dgemm(
     const int Order, const int TransA, const int TransB, const int M, const int N, const int K, const double alpha,
     const double *A, const int lda, const double *B, const int ldb, const double beta, double *C, const int ldc);
@@ -270,3 +272,5 @@ class Context {
 };
 
 } // namespace EGraphRunner
+
+} // namespace egraph

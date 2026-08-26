@@ -5,6 +5,8 @@
 #include <memory>
 #include <vector>
 
+
+namespace egraph {
 namespace parser {
 
 enum class TokenType { Eof, Plus, Minus, Star, Slash, LParen, RParen, Comma, Ident, Num, Error };
@@ -473,3 +475,5 @@ ScalarExpr parse_scalar(std::string_view s) {
 }
 
 } // namespace parser
+
+} // namespace egraph

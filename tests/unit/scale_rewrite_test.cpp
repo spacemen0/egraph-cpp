@@ -3,6 +3,9 @@
 #include "rewriter.h"
 #include "test_helpers.h"
 #include <gtest/gtest.h>
+using namespace egraph;
+
+
 
 TEST(ScaleRewrite, ScaleCollapseDoubles) {
     EGraph egraph(get_property_table());

@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+
+namespace egraph {
 struct Expression {
     explicit Expression() = default;
     explicit Expression(std::string_view string);
@@ -34,3 +36,5 @@ inline Expression determinant(const Expression &e) { return Expression(Op::Det, 
 inline Expression log(const Expression &e) { return Expression(Op::Log, {e}); }
 inline Expression scale(const Expression &e, const ScalarExpr &s) { return Expression(Op::Scale, {e, Expression(s)}); }
 inline Expression scale(const Expression &e, double v) { return Expression(Op::Scale, {e, Expression(ScalarExpr(v))}); }
+
+} // namespace egraph

@@ -4,6 +4,9 @@
 #include <gtest/gtest.h>
 #include <iostream>
 #include <random>
+using namespace egraph;
+
+
 
 using namespace EGraphRunner;
 

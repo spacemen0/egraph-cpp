@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <stdexcept>
 
+
+namespace egraph {
 using enum Op;
 
 std::string size_to_symbol(const Size &size) {
@@ -671,3 +673,5 @@ Cost compute_ormqr_cost(Op op, const ENode &node, const EGraph &egraph, const Si
 Cost compute_axpy_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
     return compute_add_cost(op, node, egraph, size_bindings);
 }
+
+} // namespace egraph

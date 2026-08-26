@@ -5,6 +5,9 @@
 #include "property_table.h"
 #include "utils.h"
 #include <gtest/gtest.h>
+using namespace egraph;
+
+
 
 static ENode make_symbol(const std::string &name) { return ENode(Children{}, register_string_in_lookup(name)); }
 

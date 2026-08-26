@@ -3,6 +3,9 @@
 #include "extractor.h"
 #include "test_helpers.h"
 #include <gtest/gtest.h>
+using namespace egraph;
+
+
 
 TEST(EGraph, ErrorConditions) {
     EGraph egraph(get_property_table());

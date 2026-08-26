@@ -4,6 +4,8 @@
 #include <string>
 #include <variant>
 
+
+namespace egraph {
 class EGraph;
 
 class ENode {
@@ -46,3 +48,4 @@ struct ENodePtrHash {
 struct ENodePtrEqual {
     bool operator()(const ENode *a, const ENode *b) const noexcept { return *a == *b; }
 };
+} // namespace egraph

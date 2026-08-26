@@ -6,6 +6,8 @@
 #include "utils.h"
 #include <variant>
 
+
+namespace egraph {
 AnalysisData MatrixAnalysis::make(const EGraph &egraph, const ENode &node) {
     const auto atom = node.get_atom();
 
@@ -1109,3 +1111,4 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
         throw AnalysisError(std::string("Unknown operation in analysis: ") + std::string(magic_enum::enum_name(op)));
     }
 }
+} // namespace egraph

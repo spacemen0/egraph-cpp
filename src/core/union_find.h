@@ -3,6 +3,8 @@
 #include "basic_types.h"
 #include <vector>
 
+
+namespace egraph {
 class UnionFind {
   public:
     UnionFind() = default;
@@ -18,3 +20,5 @@ class UnionFind {
   private:
     std::vector<Id> parents;
 };
+
+} // namespace egraph

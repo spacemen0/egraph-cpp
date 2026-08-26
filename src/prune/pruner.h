@@ -8,6 +8,8 @@
 
 #include "egraph_config.h"
 
+
+namespace egraph {
 class Pruner {
   public:
     Pruner(EGraph &egraph, Extractor &extractor) : egraph(egraph), extractor(extractor) {}
@@ -24,3 +26,5 @@ class Pruner {
     EGraph &egraph;
     Extractor &extractor;
 };
+
+} // namespace egraph

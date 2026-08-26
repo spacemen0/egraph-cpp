@@ -8,6 +8,8 @@
 
 /// Solver Lowering
 /// ----------------------------------------------------------
+
+namespace egraph {
 static const auto solver_left = make_rewrite("solver_left", "Inv(?a) * ?b", "Sol(?a, ?b)");
 static const auto solver_right = make_rewrite("solver_right", "?b * Inv(?a)", "SolR(?a, ?b)");
 static const auto solver_right_to_left =
@@ -60,3 +62,4 @@ static const std::vector<Rewrite> expansion_set = {
     solver_left, solver_right, solver_right_to_left, solver_left_to_right, qr_invert, qr_leaf, lu_invert, lu_leaf,
     llt_invert,  llt_leaf,     llt_to_utu,
 };
+} // namespace egraph

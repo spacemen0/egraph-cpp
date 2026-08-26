@@ -8,6 +8,8 @@
 #include <unordered_map>
 #include <vector>
 
+
+namespace egraph {
 struct ParsedAtom {
     Atom atom;
     std::vector<std::string> children_strings;
@@ -17,26 +19,29 @@ struct Monomial {
     std::vector<std::string> symbols;
     Monomial(std::vector<std::string> s) : symbols(std::move(s)) { normalize(); }
     void normalize() { std::sort(symbols.begin(), symbols.end()); }
-    bool operator==(const Monomial &other) const { return symbols == other.symbols; }
+    bool operator==(const egraph::Monomial &other) const { return symbols == other.symbols; }
 };
 
+} // namespace egraph
 namespace std {
-template <> struct hash<Monomial> {
-    size_t operator()(const Monomial &m) const {
+template <> struct hash<egraph::Monomial> {
+    size_t operator()(const egraph::Monomial &m) const {
         size_t seed = 0;
         for (const auto &symbol : m.symbols) {
-            seed ^= hash<std::string>()(symbol) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+            seed ^= ::std::hash<std::string>()(symbol) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         }
         return seed;
     }
 };
-
-template <> struct equal_to<Monomial> {
-    bool operator()(const Monomial &a, const Monomial &b) const { return a == b; }
+template <> struct equal_to<egraph::Monomial> {
+    bool operator()(const egraph::Monomial &a, const egraph::Monomial &b) const { return a == b; }
 };
 } // namespace std
+namespace egraph {
 
-using SymbolicCost = std::unordered_map<Monomial, double, std::hash<Monomial>, std::equal_to<Monomial>>;
+
+
+using SymbolicCost = std::unordered_map<Monomial, double, std::hash<egraph::Monomial>, std::equal_to<egraph::Monomial>>;
 using Cost = std::variant<double, SymbolicCost>;
 
 inline SymbolicCost operator+(const SymbolicCost &a, const SymbolicCost &b) {
@@ -145,3 +150,5 @@ struct PruneResult {
     size_t classes_with_removed_nodes = 0;
     bool changed = false;
 };
+} // namespace egraph
+

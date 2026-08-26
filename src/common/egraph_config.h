@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <cstdint>
 
+
+namespace egraph {
 struct RewriteConfig {
     size_t node_limit = 5000;
     size_t max_iterations = 10;
@@ -36,3 +38,5 @@ struct Expression;
 void initialize_config_for_expression(EGraphConfig &config, const Expression &expr);
 
 EGraphConfig initialize_config_for_expression(const Expression &expr);
+
+} // namespace egraph

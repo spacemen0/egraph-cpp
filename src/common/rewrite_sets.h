@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+
+namespace egraph {
 static std::vector<Rewrite> build_complete_rewrite_set() {
     std::vector<Rewrite> rewrites;
     rewrites.insert(rewrites.end(), property_discovery_set.begin(), property_discovery_set.end());
@@ -59,3 +61,5 @@ inline std::vector<Rewrite> build_rewrite_sets(const std::vector<std::string> &s
     }
     return rules;
 }
+
+} // namespace egraph

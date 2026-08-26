@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <sstream>
 
+
+namespace egraph {
 int precedence(const Expression &expr) {
     if (!std::holds_alternative<Op>(expr.atom)) {
         return 100;
@@ -188,3 +190,5 @@ size_t Expression::node_count() const {
     }
     return count;
 }
+
+} // namespace egraph

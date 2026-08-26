@@ -16,6 +16,8 @@
 #include <unordered_set>
 #include <vector>
 
+
+namespace egraph {
 class EGraph {
   public:
     EGraph() = default;
@@ -71,3 +73,4 @@ class EGraph {
     PropertyTable property_table;
     size_t revision = 0;
 };
+} // namespace egraph

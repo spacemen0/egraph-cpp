@@ -10,6 +10,9 @@
 #include <chrono>
 #include <gtest/gtest.h>
 #include <iostream>
+using namespace egraph;
+
+
 
 TEST(Integration, OLSNumeric) {
     EGraph egraph(get_property_table());

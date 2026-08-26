@@ -4,6 +4,8 @@
 #include "types.h"
 #include <string_view>
 
+
+namespace egraph {
 namespace parser {
 
 // Parses an expression string (infix or prefix) into a ParsedAtom.
@@ -15,3 +17,5 @@ ParsedAtom parse_expression(std::string_view s);
 ScalarExpr parse_scalar(std::string_view s);
 
 } // namespace parser
+
+} // namespace egraph

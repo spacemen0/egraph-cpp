@@ -12,6 +12,8 @@
 #endif
 #include <vector>
 
+
+namespace egraph {
 using namespace EGraphRunner;
 
 namespace {
@@ -409,6 +411,10 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
 
 } // namespace
 
+} // namespace egraph
+
+using namespace egraph;
+
 int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
@@ -440,3 +446,4 @@ int main(int argc, char **argv) {
 
     return 0;
 }
+

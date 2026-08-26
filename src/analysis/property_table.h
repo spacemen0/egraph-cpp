@@ -9,6 +9,8 @@
 #include <variant>
 #include <vector>
 
+
+namespace egraph {
 struct MatrixProperty {
     Shape shape; // (rows, cols)
     struct MatrixFlags {
@@ -182,3 +184,5 @@ class PropertyTable {
     bool insert_property(const std::string &name, MatrixProperty property);
     std::unordered_map<std::string, MatrixProperty> properties;
 };
+
+} // namespace egraph

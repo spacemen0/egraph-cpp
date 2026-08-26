@@ -1,6 +1,8 @@
 #include "e_class.h"
 #include <algorithm>
 
+
+namespace egraph {
 std::vector<const ENode *> &EClass::get_nodes() { return nodes; }
 
 std::vector<Id> &EClass::get_parents() { return parents; }
@@ -25,3 +27,5 @@ void EClass::clean_up_nodes() {
 
     nodes.erase(last, nodes.end());
 }
+
+} // namespace egraph

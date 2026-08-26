@@ -12,6 +12,9 @@
 #include <gtest/gtest.h>
 #include <iostream>
 #include <string>
+using namespace egraph;
+
+
 
 TEST(Integration, MatrixPartialSet) {
     EGraph egraph(get_property_table());

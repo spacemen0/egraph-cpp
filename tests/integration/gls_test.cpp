@@ -6,6 +6,9 @@
 #include "rewriter.h"
 #include "test_helpers.h"
 #include <gtest/gtest.h>
+using namespace egraph;
+
+
 
 TEST(Integration, GLSNumeric) {
     EGraph egraph(get_property_table());

@@ -3,6 +3,8 @@
 #include "utils.h"
 
 // Instantiate a pattern into the EGraph
+
+namespace egraph {
 static Id instantiate(EGraph &egraph, const Pattern &pattern, const Substitution &subst) {
     if (const auto *str = std::get_if<uint32_t>(&pattern.atom)) {
         if (get_string_from_lookup(*str).starts_with('?')) {
@@ -186,3 +188,5 @@ void Rewriter::reset() {
         return r.initial_match_limit;
     });
 }
+
+} // namespace egraph

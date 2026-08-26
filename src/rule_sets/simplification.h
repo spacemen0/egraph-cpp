@@ -7,6 +7,8 @@
 
 /// Minus Eliminations
 /// ----------------------------------------------------------
+
+namespace egraph {
 static const auto minus_cancel =
     make_rewrite("minus-cancel", "?a - ?a", "?__dynamic__", false, nullptr, [](EGraph &g, const Substitution &s, Id _) {
     return std::make_pair(make_zero_for(g, s, "a"), false);
@@ -122,3 +124,4 @@ static const std::vector<Rewrite> simplification_set = {
     scale_collapse,        scale_combine,     scale_combine_implicit, orthogonal_transpose,
     orthonormal_transpose,
 };
+} // namespace egraph

@@ -2,6 +2,8 @@
 #include "expression.h"
 #include <algorithm>
 
+
+namespace egraph {
 void initialize_config_for_expression(EGraphConfig &config, const Expression &expr) {
     size_t depth = expr.depth();
     size_t nodes = expr.node_count();
@@ -40,3 +42,5 @@ void EGraphConfig::print_config() {
     std::cout << "    max_results_per_binding: " << pruner.max_results_per_binding << "\n";
     std::cout << "    seed: " << pruner.seed << "\n";
 }
+
+} // namespace egraph

@@ -10,6 +10,8 @@
 #include <stdexcept>
 #include <string>
 
+
+namespace egraph {
 const Children &ENode::get_children() const { return children; }
 Children &ENode::get_children_mut() { return children; }
 
@@ -155,3 +157,5 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
     }
     throw std::invalid_argument("ENode with non-Op atom should not have children");
 }
+
+} // namespace egraph
