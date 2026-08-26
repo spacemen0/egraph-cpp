@@ -6,4 +6,4 @@ add_executable(examples
     ols_dgels.cpp
     stochastic_newton.cpp
 )
-target_link_libraries(examples PRIVATE core_lib)
+target_link_libraries(examples PRIVATE egraph_core_lib)

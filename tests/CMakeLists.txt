@@ -26,7 +26,7 @@ target_include_directories(unit_tests PRIVATE
 target_link_libraries(unit_tests 
     PRIVATE 
     GTest::gtest_main 
-    core_lib
+    egraph_core_lib
 )
 
 target_compile_definitions(unit_tests PRIVATE UNIT_TEST)
