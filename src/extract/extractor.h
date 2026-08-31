@@ -3,6 +3,7 @@
 #include "e_graph.h"
 #include "egraph_config.h"
 #include <cstddef>
+#include <memory>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -13,6 +14,9 @@ struct ExtractionResult {
     Expression expr;
     std::vector<Id> execution_order;
     std::unordered_map<Id, const ENode *> choices;
+    // Owns synthetic kernel nodes created by post-extraction fusion passes (e.g. alpha/beta
+    // folding). The evaluator must keep the result alive for the whole evaluation.
+    std::vector<std::shared_ptr<ENode>> owned_nodes;
 };
 
 class Extractor {

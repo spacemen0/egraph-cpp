@@ -2,6 +2,7 @@
 #include "basic_types.h"
 #include "utils.h"
 #include <cstdint>
+#include <functional>
 #include <variant>
 #include <vector>
 
@@ -14,6 +15,220 @@
 #endif
 
 namespace egraph {
+
+namespace {
+// Does this kernel op accept an alpha (and possibly beta) scale factor directly?
+// - Gemm/Symm/Syrk/Gemv: alpha and beta (C = alpha*op(A)*op(B) + beta*C)
+// - Trsm/Trmm: alpha only
+bool kernel_accepts_alpha(Op op) {
+    using enum Op;
+    switch (op) {
+    case Gemm_NN:
+    case Gemm_TN:
+    case Gemm_NT:
+    case Gemm_TT:
+    case Symm_L:
+    case Symm_R:
+    case Syrk_N:
+    case Syrk_T:
+    case Gemv_N:
+    case Gemv_T:
+    case Trsm_LN:
+    case Trsm_LT:
+    case Trsm_RN:
+    case Trsm_RT:
+    case Trmm_LN:
+    case Trmm_LT:
+    case Trmm_RN:
+    case Trmm_RT:
+        return true;
+    default:
+        return false;
+    }
+}
+
+// Index of the C (accumulator / output) child for kernels that have one, or -1.
+int kernel_c_child_index(Op op) {
+    using enum Op;
+    switch (op) {
+    case Gemm_NN:
+    case Gemm_TN:
+    case Gemm_NT:
+    case Gemm_TT:
+    case Symm_L:
+    case Symm_R:
+    case Trmm_LN:
+    case Trmm_LT:
+    case Trmm_RN:
+    case Trmm_RT:
+    case Gemv_N:
+    case Gemv_T:
+        return 2;
+    case Syrk_N:
+    case Syrk_T:
+        return 1;
+    default:
+        return -1; // Trsm has no C child
+    }
+}
+
+// Rebuilds execution_order (post-order DFS from the root class) after choices were rewritten.
+std::vector<Id> rebuild_execution_order(const EGraph &egraph, Id root_class,
+                                        const std::unordered_map<Id, const ENode *> &choices) {
+    std::vector<Id> order;
+    std::unordered_set<Id> visited;
+    std::function<void(Id)> dfs = [&](Id current_id) {
+        Id current = egraph.find_class_id(current_id);
+        if (visited.count(current)) {
+            return;
+        }
+        visited.insert(current);
+        auto it = choices.find(current);
+        if (it != choices.end() && it->second) {
+            for (Id child : it->second->get_children()) {
+                dfs(child);
+            }
+        }
+        order.push_back(current);
+    };
+    dfs(root_class);
+    return order;
+}
+} // namespace
+
+void fuse_scales_into_kernels(ExtractionResult &result, EGraph &egraph) {
+    using enum Op;
+    auto &choices = result.choices;
+
+    // Count how many nodes reference each class, so we only fold scales into kernels whose
+    // result is consumed exclusively by the Scale node (otherwise other consumers would be
+    // wrongly scaled).
+    std::unordered_map<Id, int> use_count;
+    for (const auto &[cid, node] : choices) {
+        if (!node) {
+            continue;
+        }
+        for (Id child : node->get_children()) {
+            use_count[egraph.find_class_id(child)]++;
+        }
+    }
+
+    // 1) Scale(Axpy(C, K(...)), s) -> fused K with C as accumulator, alpha=beta=s.
+    //    This eliminates the Axpy and the outer Scale entirely.
+    // 2) Scale(K(...), s) -> fused K with trailing alpha (and beta=s when C is non-zero).
+    std::vector<std::pair<Id, const ENode *>> scale_nodes;
+    for (const auto &[cid, node] : choices) {
+        if (!node) {
+            continue;
+        }
+        const Atom &atom = node->get_atom();
+        if (auto op = std::get_if<Op>(&atom); op && *op == Scale) {
+            scale_nodes.push_back({cid, node});
+        }
+    }
+
+    for (const auto &[scale_class, scale_node] : scale_nodes) {
+        const auto &sch = scale_node->get_children();
+        if (sch.size() != 2) {
+            continue;
+        }
+        Id child_id = egraph.find_class_id(sch[0]);
+        Id scalar_id = egraph.find_class_id(sch[1]); // canonicalize to class id
+
+        // The scaled matrix must not be referenced anywhere else.
+        if (use_count[child_id] != 1) {
+            continue;
+        }
+        auto child_it = choices.find(child_id);
+        if (child_it == choices.end() || !child_it->second) {
+            continue;
+        }
+        const ENode *child_node = child_it->second;
+        const Atom &child_atom = child_node->get_atom();
+        auto child_op = std::get_if<Op>(&child_atom);
+        if (!child_op) {
+            continue; // scaling an input matrix, a transpose, etc.
+        }
+
+        auto make_fused = [&](Op op, Children children) -> const ENode * {
+            auto node = std::make_shared<ENode>(children, Atom(op));
+            result.owned_nodes.push_back(node);
+            return node.get();
+        };
+
+        // ---- Pattern 1: Scale(Axpy(C, K), s) -> K(A, B, C, s, s) ----
+        if (*child_op == Axpy && child_node->get_children().size() == 2) {
+            Id acc_id = egraph.find_class_id(child_node->get_children()[0]); // C
+            Id kernel_id = egraph.find_class_id(child_node->get_children()[1]);
+            if (use_count[kernel_id] != 1) {
+                continue;
+            }
+            auto kit = choices.find(kernel_id);
+            if (kit == choices.end() || !kit->second) {
+                continue;
+            }
+            const ENode *knode = kit->second;
+            const Atom &katom = knode->get_atom();
+            auto kop = std::get_if<Op>(&katom);
+            if (!kop || !kernel_accepts_alpha(*kop)) {
+                continue;
+            }
+            int c_idx = kernel_c_child_index(*kop);
+            if (c_idx < 0 || static_cast<int>(knode->get_children().size()) <= c_idx) {
+                continue;
+            }
+            const auto &kch = knode->get_children();
+            // K's own C must be Zero for this rewrite to be valid.
+            Id k_c = egraph.find_class_id(kch[c_idx]);
+            auto c_prop = egraph.get_class_analysis_data(k_c);
+            bool k_c_zero = std::get<MatrixProperty>(c_prop.property).flags.is_zero;
+            if (!k_c_zero) {
+                continue;
+            }
+            Children fused_children = kch;
+            fused_children[c_idx] = acc_id; // accumulate into C
+            if (*kop == Trsm_LN || *kop == Trsm_LT || *kop == Trsm_RN || *kop == Trsm_RT) {
+                fused_children.push_back(scalar_id); // alpha only
+            } else {
+                fused_children.push_back(scalar_id); // alpha
+                fused_children.push_back(scalar_id); // beta
+            }
+            choices[scale_class] = make_fused(*kop, std::move(fused_children));
+            choices.erase(child_id);
+            choices.erase(kernel_id);
+            continue;
+        }
+
+        // ---- Pattern 2: Scale(K(...), s) -> fused K with trailing alpha/beta ----
+        if (!kernel_accepts_alpha(*child_op)) {
+            continue;
+        }
+        const auto &kch = child_node->get_children();
+        int c_idx = kernel_c_child_index(*child_op);
+        Children fused_children = kch;
+        bool has_nonzero_c = false;
+        if (c_idx >= 0 && static_cast<int>(kch.size()) > c_idx) {
+            Id k_c = egraph.find_class_id(kch[c_idx]);
+            auto c_prop = egraph.get_class_analysis_data(k_c);
+            has_nonzero_c = !std::get<MatrixProperty>(c_prop.property).flags.is_zero;
+        }
+        fused_children.push_back(scalar_id); // alpha
+        // Trsm/Trmm have no beta; Gemm/Symm/Syrk/Gemv accumulate with beta=s into non-zero C.
+        if (c_idx >= 0 && has_nonzero_c) {
+            fused_children.push_back(scalar_id); // beta
+        }
+        choices[scale_class] = make_fused(*child_op, std::move(fused_children));
+        choices.erase(child_id);
+    }
+
+    // Rebuild the execution order from the (possibly unchanged) root class, dropping any
+    // classes that were fused away.
+    if (!result.execution_order.empty()) {
+        Id root = egraph.find_class_id(result.execution_order.back());
+        result.execution_order = rebuild_execution_order(egraph, root, choices);
+    }
+}
+
 Evaluator::Evaluator(
     EGraph &egraph, const ExtractionResult &result, const SizeBindings *size_bindings,
     const DataBindings &data_bindings)
@@ -36,7 +251,18 @@ Evaluator::Evaluator(
         if (node) {
             const Atom &atom = node->get_atom();
 
-            if (auto data = get_matrix_data(egraph, class_id)) {
+            // Scalars and integer constants are stored as 1x1 matrices. Check the atom first,
+            // because scalar classes also carry a default (empty) MatrixProperty analysis which
+            // would otherwise route them into the matrix branch with a degenerate shape.
+            if (const ScalarExpr *s = std::get_if<ScalarExpr>(&atom)) {
+                MatrixNode node_data(1, 1);
+                node_data.data()[0] = s->evaluate(data_bindings);
+                data_storage[slot] = node_data;
+            } else if (const int *i_val = std::get_if<int>(&atom)) {
+                MatrixNode node_data(1, 1);
+                node_data.data()[0] = static_cast<double>(*i_val);
+                data_storage[slot] = node_data;
+            } else if (auto data = get_matrix_data(egraph, class_id)) {
                 if (data->has_symbolic_shape() && (data_bindings.empty())) {
                     throw std::runtime_error("Cannot evaluate with symbolic matrices without data bindings.");
                 }
@@ -72,14 +298,6 @@ Evaluator::Evaluator(
                     data_storage[slot] = node_data;
                 }
 
-            } else if (const ScalarExpr *s = std::get_if<ScalarExpr>(&atom)) {
-                MatrixNode node_data(1, 1);
-                node_data.data()[0] = s->evaluate(data_bindings);
-                data_storage[slot] = node_data;
-            } else if (const int *i_val = std::get_if<int>(&atom)) {
-                MatrixNode node_data(1, 1);
-                node_data.data()[0] = static_cast<double>(*i_val);
-                data_storage[slot] = node_data;
             } else if (auto data = get_tuple_data(egraph, class_id)) {
                 TupleNode tuple_data;
                 for (const auto &matrix_data : *data) {
@@ -201,10 +419,19 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         CBLAS_SIDE side = (op == Op::Symm_L) ? CblasLeft : CblasRight;
         auto a_prop = egraph.get_class_analysis_data(node->get_children()[0]);
         char uplo = std::get<MatrixProperty>(a_prop.property).flags.is_lower_triangular ? 'L' : 'U';
+        // Fused alpha/beta from trailing scalar children (fuse_scales_into_kernels).
+        double alpha = 1.0;
+        double beta = is_c_zero ? 0.0 : 1.0;
+        const auto &symm_ch = node->get_children();
+        if (symm_ch.size() > 3 && inputs.size() > 3) {
+            alpha = inputs[3]->data()[0];
+        }
+        if (symm_ch.size() > 4 && inputs.size() > 4) {
+            beta = inputs[4]->data()[0];
+        }
         cblas_dsymm(
-            CblasColMajor, side, uplo == 'L' ? CblasLower : CblasUpper, output.rows, output.cols, 1.0,
-            inputs[0]->data(), inputs[0]->rows, inputs[1]->data(), inputs[1]->rows, is_c_zero ? 0.0 : 1.0,
-            output.data(), output.rows);
+            CblasColMajor, side, uplo == 'L' ? CblasLower : CblasUpper, output.rows, output.cols, alpha,
+            inputs[0]->data(), inputs[0]->rows, inputs[1]->data(), inputs[1]->rows, beta, output.data(), output.rows);
         break;
     }
     case Trmm_LN:
@@ -225,8 +452,14 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         if (is_c_zero) {
             setup_in_place_output(node->get_children()[1], output);
             output.ensure_general();
+            // Fused alpha from trailing scalar child (fuse_scales_into_kernels).
+            double alpha = 1.0;
+            const auto &trmm_ch = node->get_children();
+            if (trmm_ch.size() > 3 && inputs.size() > 3) {
+                alpha = inputs[3]->data()[0];
+            }
             cblas_dtrmm(
-                CblasColMajor, side, uplo, trans, CblasNonUnit, output.rows, output.cols, 1.0, inputs[0]->data(),
+                CblasColMajor, side, uplo, trans, CblasNonUnit, output.rows, output.cols, alpha, inputs[0]->data(),
                 inputs[0]->rows, output.data(), output.rows);
         } else {
             setup_in_place_output(node->get_children()[2], output);
@@ -254,8 +487,14 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         CBLAS_SIDE side = (op == Op::Trsm_LN || op == Op::Trsm_LT) ? CblasLeft : CblasRight;
         CBLAS_TRANSPOSE trans = (op == Op::Trsm_LN || op == Op::Trsm_RN) ? CblasNoTrans : CblasTrans;
 
+        // Fused alpha from trailing scalar child (fuse_scales_into_kernels).
+        double alpha = 1.0;
+        const auto &trsm_ch = node->get_children();
+        if (trsm_ch.size() > 2 && inputs.size() > 2) {
+            alpha = inputs[2]->data()[0];
+        }
         cblas_dtrsm(
-            CblasColMajor, side, uplo, trans, CblasNonUnit, output.rows, output.cols, 1.0, inputs[0]->data(),
+            CblasColMajor, side, uplo, trans, CblasNonUnit, output.rows, output.cols, alpha, inputs[0]->data(),
             inputs[0]->rows, output.data(), output.rows);
         break;
     }
@@ -293,9 +532,18 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
             uplo = prefer_upper_triangular.at(class_id) ? CblasUpper : CblasLower;
         }
 
+        // Fused alpha/beta from trailing scalar children (fuse_scales_into_kernels).
+        double alpha = 1.0;
+        const auto &syrk_ch = node->get_children();
+        if (syrk_ch.size() > 2 && inputs.size() > 2) {
+            alpha = inputs[2]->data()[0];
+        }
+        if (syrk_ch.size() > 3 && inputs.size() > 3) {
+            beta = inputs[3]->data()[0];
+        }
         cblas_dsyrk(
-            CblasColMajor, uplo, trans, output.rows, k, 1.0, inputs[0]->data(), inputs[0]->rows, beta, output.data(),
-            output.rows);
+            CblasColMajor, uplo, trans, output.rows, k, alpha, inputs[0]->data(), inputs[0]->rows, beta,
+            output.data(), output.rows);
 
         output.format = (uplo == CblasUpper) ? StorageFormat::SymmetricUpper : StorageFormat::SymmetricLower;
         break;
@@ -411,9 +659,18 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
             setup_in_place_output(node->get_children()[2], output);
             output.ensure_general();
         }
+        // Fused alpha/beta from trailing scalar children (fuse_scales_into_kernels).
+        double alpha = 1.0;
+        const auto &gemm_ch = node->get_children();
+        if (gemm_ch.size() > 3 && inputs.size() > 3 && inputs[3] && inputs[3]->data()) {
+            alpha = inputs[3]->data()[0];
+        }
+        if (gemm_ch.size() > 4 && inputs.size() > 4 && inputs[4] && inputs[4]->data()) {
+            beta = inputs[4]->data()[0];
+        }
         cblas_dgemm(
-            CblasColMajor, transA, transB, output.rows, output.cols, k, 1.0, a_node.data(), a_node.rows, b_node.data(),
-            b_node.rows, beta, output.data(), output.rows);
+            CblasColMajor, transA, transB, output.rows, output.cols, k, alpha, a_node.data(), a_node.rows,
+            b_node.data(), b_node.rows, beta, output.data(), output.rows);
         break;
     }
     case Axpy: {
