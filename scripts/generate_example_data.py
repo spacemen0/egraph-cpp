@@ -56,20 +56,12 @@ def main():
     parser = argparse.ArgumentParser(
         description="Generate all CSV matrix datasets needed by C++ examples (OLS, GLS, ImageRestoration)."
     )
-    parser.add_argument(
-        "--outdir", "-o",
-        type=str,
-        default=None,
-        help="Target output directory (default: examples/data)"
-    )
     parser.add_argument("--seed", "-s", type=int, default=42, help="Random seed for reproducibility (default: 42)")
     parser.add_argument("--fmt", type=str, default="%.6f", help="Output floating-point format specifier (default: %%.6f)")
 
     args = parser.parse_args()
 
-    outdir = args.outdir
-    if outdir is None:
-        outdir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "examples", "data"))
+    outdir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "examples", "data"))
 
     generate_all_example_matrices(outdir, seed=args.seed, fmt=args.fmt)
 

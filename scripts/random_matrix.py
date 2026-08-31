@@ -79,7 +79,6 @@ def main():
     )
     parser.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility")
     parser.add_argument("--fmt", type=str, default="%.6f", help="Output format specifier (default: %%.6f)")
-    parser.add_argument("--outdir", type=str, default=None, help="Custom output directory (default: examples/data)")
 
     args = parser.parse_args()
 
@@ -92,9 +91,7 @@ def main():
         print(f"Error: {err}", file=sys.stderr)
         sys.exit(1)
 
-    output_dir = args.outdir
-    if output_dir is None:
-        output_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "examples", "data"))
+    output_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "examples", "data"))
     os.makedirs(output_dir, exist_ok=True)
 
     filename = args.filename if (args.filename.endswith(".csv") or args.filename.endswith(".txt")) else args.filename + ".csv"
