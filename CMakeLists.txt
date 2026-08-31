@@ -40,21 +40,21 @@ endif()
 include(FetchContent)
 FetchContent_Declare(
   googletest
-  URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip
+  URL https://github.com/google/googletest/archive/refs/tags/v1.18.0.zip
   DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 FetchContent_MakeAvailable(googletest)
 
 FetchContent_Declare(
   magic_enum
-  URL https://github.com/Neargye/magic_enum/archive/refs/tags/v0.9.6.zip
+  URL https://github.com/Neargye/magic_enum/archive/refs/tags/v0.9.8.zip
   DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 FetchContent_MakeAvailable(magic_enum)
 
 FetchContent_Declare(
   mimalloc
-  URL https://github.com/microsoft/mimalloc/archive/refs/tags/v2.1.2.zip
+  URL https://github.com/microsoft/mimalloc/archive/refs/tags/v3.5.0.zip
   DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 set(MI_BUILD_TESTS OFF CACHE BOOL "" FORCE)

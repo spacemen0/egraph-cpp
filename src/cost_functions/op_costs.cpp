@@ -331,7 +331,19 @@ Cost compute_solr_cost(Op op, const ENode &node, const EGraph &egraph, const Siz
 }
 
 Cost compute_scale_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
-    return 0.0;
+    auto shape = get_one_shape(egraph, size_bindings, node.get_children().at(0));
+    if (is_numeric(shape)) {
+        double rows = std::get<int>(shape.first);
+        double cols = std::get<int>(shape.second);
+        return rows * cols;
+    } else {
+        std::string r = size_to_symbol(shape.first);
+        std::string c = size_to_symbol(shape.second);
+        Monomial rc = {{r, c}};
+        SymbolicCost sc;
+        sc[rc] = 1.0;
+        return sc;
+    }
 }
 
 Cost compute_sym_mul_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {

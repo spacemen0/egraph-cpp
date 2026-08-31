@@ -5,7 +5,7 @@
 #include "parser.h"
 #include "rewriter.h"
 #include "types.h"
-#include <magic_enum.hpp>
+#include <magic_enum/magic_enum.hpp>
 #include <optional>
 #include <random>
 #include <span>
