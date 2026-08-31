@@ -1,8 +1,6 @@
 #pragma once
 
 #include <cstddef>
-#include <cstdint>
-
 
 namespace egraph {
 struct RewriteConfig {
@@ -18,11 +16,10 @@ struct ExtractorConfig {
 };
 
 struct PrunerConfig {
-    int num_iterations = 8;
+    int num_iterations = 5;
     int rewrite_steps_per_iteration = 6;
     int prune_samples_per_iteration = 5;
-    int max_results_per_binding = 5;
-    uint32_t seed = 99;
+    int max_results_per_binding = 10;
 };
 
 struct EGraphConfig {

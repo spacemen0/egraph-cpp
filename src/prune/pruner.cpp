@@ -1,7 +1,6 @@
 #include "pruner.h"
 #include "utils.h"
 
-
 namespace egraph {
 PruneResult
 Pruner::prune(const std::vector<Id> &roots, const std::vector<SizeBindings> &bindings, int max_results) const {
@@ -90,7 +89,8 @@ void Pruner::rewrite_and_prune(
         rewriter.apply_rewrites(config.rewrite_steps_per_iteration);
 
         const auto bindings = sample_size_bindings(
-            config.prune_samples_per_iteration, 10, 1000, size_keys, config.seed + i, &egraph.get_property_table());
+            config.prune_samples_per_iteration, 10, 1000, size_keys, static_cast<unsigned int>(std::random_device{}()),
+            &egraph.get_property_table());
         const auto prune_result = prune(roots, bindings, config.max_results_per_binding);
 
         if (onIterationFinish) {

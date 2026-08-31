@@ -1,6 +1,7 @@
 #include "rewriter.h"
 #include "matcher.h"
 #include "utils.h"
+#include <iostream>
 
 // Instantiate a pattern into the EGraph
 
@@ -136,6 +137,7 @@ bool Rewriter::apply_one_iteration(size_t node_match_limit) {
     }
 
     if (egraph.num_nodes() > max_nodes) {
+        std::cout << "[Rewriter] Node limit exceeded: " << max_nodes << "\n";
         return false;
     }
 

@@ -2,18 +2,16 @@
 #include "expression.h"
 #include <algorithm>
 
-
 namespace egraph {
 void initialize_config_for_expression(EGraphConfig &config, const Expression &expr) {
     size_t depth = expr.depth();
     size_t nodes = expr.node_count();
 
-    config.rewrite.node_limit = std::max(config.rewrite.node_limit, static_cast<size_t>(5000));
+    config.rewrite.node_limit = std::max(nodes * 500, static_cast<size_t>(5000));
 
     // Scale iteration depth based on AST complexity
     config.rewrite.max_iterations =
         std::max(config.rewrite.max_iterations, std::max(static_cast<size_t>(8), depth * 3));
-    config.pruner.num_iterations = std::max(config.pruner.num_iterations, static_cast<int>(depth * 1.5));
     config.pruner.rewrite_steps_per_iteration = std::max(
         config.pruner.rewrite_steps_per_iteration,
         static_cast<int>(std::max(static_cast<size_t>(10), static_cast<size_t>(depth * 1.5))));
@@ -40,7 +38,6 @@ void EGraphConfig::print_config() {
     std::cout << "    rewrite_steps_per_iteration: " << pruner.rewrite_steps_per_iteration << "\n";
     std::cout << "    prune_samples_per_iteration: " << pruner.prune_samples_per_iteration << "\n";
     std::cout << "    max_results_per_binding: " << pruner.max_results_per_binding << "\n";
-    std::cout << "    seed: " << pruner.seed << "\n";
 }
 
 } // namespace egraph
