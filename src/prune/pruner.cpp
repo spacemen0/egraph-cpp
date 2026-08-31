@@ -54,8 +54,7 @@ PruneResult Pruner::prune_symbolic_when_kernel_available(EGraph &egraph) {
                 auto atom = node->get_atom();
                 if (std::holds_alternative<Op>(atom)) {
                     auto op = std::get<Op>(atom);
-                    if (is_kernel_op(op) || op == Op::Get || op == Op::Tr || op == Op::Scale || op == Op::Add ||
-                        op == Op::Minus) {
+                    if (is_kernel_op(op) || op == Op::Get || op == Op::Tr || op == Op::Scale) {
                         keep_choices[class_id].insert(node);
                     }
                 } else {

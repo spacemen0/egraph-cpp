@@ -4,8 +4,6 @@
 #include <iostream>
 using namespace egraph;
 
-
-
 int run_gls() {
     EGraphRunner::Context ctx;
     ctx.get_config().enable_logging = true;

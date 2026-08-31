@@ -4,7 +4,6 @@
 #include <set>
 #include <vector>
 
-
 namespace egraph {
 class EGraph;
 class ENode;

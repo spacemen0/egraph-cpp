@@ -6,8 +6,6 @@
 #include <utility>
 using namespace egraph;
 
-
-
 int run_image() {
     EGraphRunner::Context ctx;
     ctx.get_config().enable_logging = true;

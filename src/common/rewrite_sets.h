@@ -7,7 +7,6 @@
 #include <string>
 #include <vector>
 
-
 namespace egraph {
 static std::vector<Rewrite> build_complete_rewrite_set() {
     std::vector<Rewrite> rewrites;

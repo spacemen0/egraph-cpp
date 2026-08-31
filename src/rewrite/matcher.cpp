@@ -2,7 +2,6 @@
 #include "e_graph.h"
 #include "utils.h"
 
-
 namespace egraph {
 Matcher::Matcher(EGraph &egraph) : egraph(egraph) {}
 

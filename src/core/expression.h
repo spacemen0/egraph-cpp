@@ -5,7 +5,6 @@
 #include <string>
 #include <vector>
 
-
 namespace egraph {
 struct Expression {
     explicit Expression() = default;

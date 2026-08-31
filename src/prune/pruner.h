@@ -8,7 +8,6 @@
 
 #include "egraph_config.h"
 
-
 namespace egraph {
 class Pruner {
   public:

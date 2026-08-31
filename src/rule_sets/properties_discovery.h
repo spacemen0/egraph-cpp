@@ -8,7 +8,6 @@
 #include <string_view>
 #include <variant>
 
-
 namespace egraph {
 static const auto transpose_spd = make_rewrite(
     "transpose_spd", "?a * Tr(?a)", "Dynamic", false, is_full_row_rank("a"),

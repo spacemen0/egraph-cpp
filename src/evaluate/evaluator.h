@@ -4,7 +4,6 @@
 
 #include <memory>
 
-
 namespace egraph {
 enum class StorageFormat { General, SymmetricUpper, SymmetricLower, TriangularUpper, TriangularLower };
 

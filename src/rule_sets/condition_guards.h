@@ -5,7 +5,6 @@
 #include <string>
 #include <string_view>
 
-
 namespace egraph {
 static auto is_leaf = [](std::string_view var) {
     return [var = std::string(var)](const EGraph &g, const Substitution &s) {

@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <sstream>
 
-
 namespace egraph {
 int precedence(const Expression &expr) {
     if (!std::holds_alternative<Op>(expr.atom)) {

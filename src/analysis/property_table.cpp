@@ -5,7 +5,6 @@
 #include "utils.h"
 #include <charconv>
 
-
 namespace egraph {
 MatrixProperty MatrixProperty::from_string(std::string_view text) {
     auto parse_size = [](std::string_view token) -> Size {

@@ -1,12 +1,11 @@
 #pragma once
 #include "e_graph.h"
-#include "pattern.h"
 #include "egraph_config.h"
+#include "pattern.h"
 #include <algorithm>
 #include <functional>
 #include <string>
 #include <vector>
-
 
 namespace egraph {
 struct Rewrite {
@@ -19,7 +18,6 @@ struct Rewrite {
     std::function<std::pair<Id, bool>(EGraph &, const Substitution &, Id)> applier = nullptr;
     size_t initial_match_limit = 30;
 };
-
 
 class Rewriter {
   public:
@@ -43,7 +41,6 @@ class Rewriter {
         enable_node_match_limit = cfg.rewrite.enable_node_match_limit;
         max_nodes = cfg.rewrite.node_limit;
     }
-
     const EGraphConfig &get_config() const { return config; }
     bool apply_one_iteration(size_t node_match_limit = 0);
     bool apply_rewrites(int max_iterations);

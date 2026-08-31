@@ -4,8 +4,6 @@
 #include <gtest/gtest.h>
 using namespace egraph;
 
-
-
 TEST(Expression, ParseVariable) {
     Expression p("X");
     EXPECT_EQ(std::get<uint32_t>(p.atom), register_string_in_lookup("X"));

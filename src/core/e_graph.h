@@ -16,7 +16,6 @@
 #include <unordered_set>
 #include <vector>
 
-
 namespace egraph {
 class EGraph {
   public:

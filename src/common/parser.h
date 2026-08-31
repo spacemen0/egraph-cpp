@@ -4,7 +4,6 @@
 #include "types.h"
 #include <string_view>
 
-
 namespace egraph {
 namespace parser {
 

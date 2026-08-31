@@ -5,8 +5,6 @@
 #include <gtest/gtest.h>
 using namespace egraph;
 
-
-
 TEST_F(ExtractorTest, CheaperExtraction) {
     // Expr: A * Identity
     Id id_a = egraph.add_node(make_symbol("A"));

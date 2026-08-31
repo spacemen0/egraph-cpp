@@ -4,7 +4,6 @@
 #include "e_node.h"
 #include "types.h"
 
-
 namespace egraph {
 std::string size_to_symbol(const Size &size);
 

@@ -3,8 +3,6 @@
 #include <gtest/gtest.h>
 using namespace egraph;
 
-
-
 using enum Op;
 
 TEST(ENode, IsLeaf) {

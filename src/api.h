@@ -16,7 +16,6 @@
 #include <string>
 #include <vector>
 
-
 namespace egraph {
 extern "C" void cblas_dgemm(
     const int Order, const int TransA, const int TransB, const int M, const int N, const int K, const double alpha,
@@ -135,8 +134,9 @@ class Context {
             std::cout << "[API] Lowering to kernels...\n";
         }
         std::vector<Rewrite> rewrites = build_rewrite_sets({"lowering"});
-
-        Rewriter rewriter(egraph, rewrites, config);
+        auto new_config = config;
+        new_config.rewrite.enable_backoff = false;
+        Rewriter rewriter(egraph, rewrites, new_config);
         rewriter.apply_rewrites();
         prune_symbolic_when_kernel_available();
     }

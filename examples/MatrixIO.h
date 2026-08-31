@@ -9,8 +9,6 @@
 #include <utility>
 #include <vector>
 
-
-
 /**
  * Acts like MATLAB's readmatrix().
  * Reads a CSV or text file containing space or comma-separated numbers.

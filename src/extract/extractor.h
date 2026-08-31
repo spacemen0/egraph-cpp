@@ -7,7 +7,6 @@
 #include <unordered_set>
 #include <vector>
 
-
 namespace egraph {
 struct ExtractionResult {
     Cost cost;
@@ -44,8 +43,7 @@ class Extractor {
     };
 
     static bool is_unique_result(
-        const std::vector<NumericSearchResult> &best_results,
-        const std::unordered_map<Id, const ENode *> &choices_map);
+        const std::vector<NumericSearchResult> &best_results, const std::unordered_map<Id, const ENode *> &choices_map);
 
     EGraph &egraph;
     bool enable_logging = false;

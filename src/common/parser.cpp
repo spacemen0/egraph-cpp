@@ -5,7 +5,6 @@
 #include <memory>
 #include <vector>
 
-
 namespace egraph {
 namespace parser {
 

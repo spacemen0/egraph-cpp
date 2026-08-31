@@ -4,8 +4,6 @@
 #include <gtest/gtest.h>
 using namespace egraph;
 
-
-
 TEST(ParserTest, InfixBasic) {
     auto parsed = parser::parse_expression("A + B");
     EXPECT_TRUE(std::holds_alternative<Op>(parsed.atom));

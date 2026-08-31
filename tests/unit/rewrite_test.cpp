@@ -5,8 +5,6 @@
 #include <gtest/gtest.h>
 using namespace egraph;
 
-
-
 TEST(Rewrite, SimpleRewrite) {
     EGraph egraph(get_property_table());
 

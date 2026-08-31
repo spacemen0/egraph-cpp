@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <stdexcept>
 
-
 namespace egraph {
 using enum Op;
 
@@ -425,7 +424,7 @@ Cost compute_syrk_n_syrk_t_cost(Op op, const ENode &node, const EGraph &egraph, 
 
 Cost compute_trmm_ln_group_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
     auto shapeB = get_one_shape(egraph, size_bindings, node.get_children().at(1));
-    
+
     // Check if C is zero
     auto c_prop = egraph.get_class_analysis_data(node.get_children().at(2));
     bool is_c_zero = false;
@@ -448,7 +447,7 @@ Cost compute_trmm_ln_group_cost(Op op, const ENode &node, const EGraph &egraph, 
         }
         return Cost(cost);
     }
-    
+
     SymbolicCost sc;
     if (is_left_solve) {
         Monomial m = {{size_to_symbol(M_dim), size_to_symbol(M_dim), size_to_symbol(N_dim)}};
@@ -457,7 +456,7 @@ Cost compute_trmm_ln_group_cost(Op op, const ENode &node, const EGraph &egraph, 
         Monomial m = {{size_to_symbol(M_dim), size_to_symbol(N_dim), size_to_symbol(N_dim)}};
         sc[m] = 1.0;
     }
-    
+
     if (!is_c_zero) {
         Monomial m_add = {{size_to_symbol(M_dim), size_to_symbol(N_dim)}};
         sc[m_add] += 1.0; // cost of daxpy

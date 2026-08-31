@@ -5,7 +5,6 @@
 #include <string>
 #include <vector>
 
-
 namespace egraph {
 struct Pattern {
     explicit Pattern(const Atom &atom, const std::vector<Pattern> &children) : atom(atom), children(children) {}

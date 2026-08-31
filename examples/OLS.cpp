@@ -6,8 +6,6 @@
 #include <utility>
 using namespace egraph;
 
-
-
 int run_ols() {
     EGraphRunner::Context ctx;
     ctx.get_config().enable_logging = false;

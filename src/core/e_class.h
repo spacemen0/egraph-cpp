@@ -4,7 +4,6 @@
 #include "property_table.h"
 #include <vector>
 
-
 namespace egraph {
 class EClass {
   public:

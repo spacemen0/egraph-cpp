@@ -11,7 +11,6 @@
 #include <iostream>
 #include <optional>
 
-
 namespace egraph {
 namespace {
 std::string make_dot_output_path(const std::string &filename) {

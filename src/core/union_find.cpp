@@ -1,7 +1,6 @@
 #include "union_find.h"
 #include <stdexcept>
 
-
 namespace egraph {
 Id UnionFind::find_root(Id current) const {
     if (current >= parents.size()) {

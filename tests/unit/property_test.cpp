@@ -3,8 +3,6 @@
 #include <gtest/gtest.h>
 using namespace egraph;
 
-
-
 TEST(MatrixPropertyFromString, ParsesNumericShapeAndFlags) {
     MatrixProperty p = MatrixProperty::from_string("Matrix(3x4) [identity] [zero] [diagonal]");
 

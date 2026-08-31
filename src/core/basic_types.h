@@ -6,7 +6,6 @@
 #include <variant>
 #include <vector>
 
-
 namespace egraph {
 enum class Op {
     Add,
@@ -160,7 +159,8 @@ using Shape = std::pair<Size, Size>;
 static inline bool is_kernel_op(Op op) {
     using enum Op;
     return op == Geqrf || op == Gemv_N || op == Gemv_T || op == Trtri || op == Gemm_NN || op == Gemm_TN ||
-           op == Gemm_NT || op == Gemm_TT || op == Syrk_N || op == Syrk_T || op == Trmm_LN || op == Trmm_LT || op == Trmm_RN || op == Trmm_RT || op == Symm_L || op == Symm_R || op == Trsm_LN || op == Trsm_LT ||
+           op == Gemm_NT || op == Gemm_TT || op == Syrk_N || op == Syrk_T || op == Trmm_LN || op == Trmm_LT ||
+           op == Trmm_RN || op == Trmm_RT || op == Symm_L || op == Symm_R || op == Trsm_LN || op == Trsm_LT ||
            op == Trsm_RN || op == Trsm_RT || op == Potrf_L || op == Potrf_U || op == Orgqr || op == Ormqr_LN ||
            op == Ormqr_LT || op == Ormqr_RN || op == Ormqr_RT || op == Axpy || op == Scale;
 }

@@ -15,7 +15,6 @@
 #include <unordered_set>
 #include <vector>
 
-
 namespace egraph {
 inline LookupTable &get_lookup_table() {
     static LookupTable table;

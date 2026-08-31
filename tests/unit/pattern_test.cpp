@@ -3,8 +3,6 @@
 #include <gtest/gtest.h>
 using namespace egraph;
 
-
-
 TEST_F(EGraphTest, PatternMatchingSimple) {
     Id expr_id = egraph.add_expression(Expression("X * Y"));
 

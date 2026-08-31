@@ -6,8 +6,6 @@
 #include <random>
 using namespace egraph;
 
-
-
 using namespace EGraphRunner;
 
 TEST(ApiTest, VariableConstruction) {
@@ -107,8 +105,8 @@ TEST(ApiTest, OptimizeSymbolic) {
     auto results = ctx.extract_symbolic();
 
     bool found = std::any_of(results.begin(), results.end(), [](const auto &c) {
-        return c.expr.to_string(false) ==
-               "Trsm_LT(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Trsm_LN(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Gemv_T(M, n, Zero_Bx1)))";
+        return c.expr.to_string(false) == "Trsm_LT(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Trsm_LN(Get(Potrf_L(Syrk_T(M, "
+                                          "Zero_BxB)), 0), Gemv_T(M, n, Zero_Bx1)))";
     });
     EXPECT_TRUE(found);
 

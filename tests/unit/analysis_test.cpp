@@ -5,8 +5,6 @@
 #include <gtest/gtest.h>
 using namespace egraph;
 
-
-
 TEST(EGraph, ErrorConditions) {
     EGraph egraph(get_property_table());
 

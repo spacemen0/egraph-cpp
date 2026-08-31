@@ -9,7 +9,6 @@
 #include <variant>
 #include <vector>
 
-
 namespace egraph {
 struct MatrixProperty {
     Shape shape; // (rows, cols)

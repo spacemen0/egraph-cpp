@@ -2,8 +2,6 @@
 #include <gtest/gtest.h>
 using namespace egraph;
 
-
-
 TEST(UnionFind, ParentsLayoutAfterCompression) {
     UnionFind uf;
     const Id n = 10;

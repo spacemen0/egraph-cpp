@@ -1,7 +1,6 @@
 #include "e_class.h"
 #include <algorithm>
 
-
 namespace egraph {
 std::vector<const ENode *> &EClass::get_nodes() { return nodes; }
 

@@ -3,7 +3,6 @@
 #include <stdexcept>
 #include <string>
 
-
 namespace egraph {
 class ShapeMismatchError : public std::runtime_error {
   public:

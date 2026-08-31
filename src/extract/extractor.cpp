@@ -8,7 +8,6 @@
 #include <queue>
 #include <unordered_set>
 
-
 namespace egraph {
 namespace {
 constexpr size_t kExtractorProgressLogEvery = 1000000;
@@ -53,8 +52,7 @@ static std::vector<const ENode *> choices_to_vector(const std::shared_ptr<const 
 } // namespace
 
 bool Extractor::is_unique_result(
-    const std::vector<NumericSearchResult> &best_results,
-    const std::unordered_map<Id, const ENode *> &choices_map) {
+    const std::vector<NumericSearchResult> &best_results, const std::unordered_map<Id, const ENode *> &choices_map) {
     for (const auto &existing : best_results) {
         if (existing.choices == choices_map) {
             return false;

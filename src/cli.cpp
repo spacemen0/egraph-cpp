@@ -12,7 +12,6 @@
 #endif
 #include <vector>
 
-
 namespace egraph {
 using namespace EGraphRunner;
 
@@ -446,4 +445,3 @@ int main(int argc, char **argv) {
 
     return 0;
 }
-

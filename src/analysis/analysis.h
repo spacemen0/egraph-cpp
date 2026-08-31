@@ -2,7 +2,6 @@
 #include "e_node.h"
 #include "property_table.h"
 
-
 namespace egraph {
 class EGraph;
 

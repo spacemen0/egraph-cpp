@@ -6,7 +6,6 @@
 #include <iostream>
 #include <sstream>
 
-
 namespace egraph {
 namespace EGraphVisualization {
 std::string to_dot(const EGraph &egraph) {

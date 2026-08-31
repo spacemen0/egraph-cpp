@@ -3,7 +3,6 @@
 #include "basic_types.h"
 #include <vector>
 
-
 namespace egraph {
 class UnionFind {
   public:

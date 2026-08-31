@@ -8,8 +8,6 @@
 #include <gtest/gtest.h>
 using namespace egraph;
 
-
-
 TEST(Integration, GLSNumeric) {
     EGraph egraph(get_property_table());
     egraph.register_or_update_property(
@@ -33,7 +31,8 @@ TEST(Integration, GLSNumeric) {
 
 TEST(Integration, GLSSymbolic) {
     PropertyTable pt;
-    pt.add_or_update_property_entry("X", {.shape = std::make_pair("A", "B"), .flags = {.is_full_rank = true, .is_tall = true}});
+    pt.add_or_update_property_entry(
+        "X", {.shape = std::make_pair("A", "B"), .flags = {.is_full_rank = true, .is_tall = true}});
     pt.add_or_update_property_entry(
         "M", {.shape = std::make_pair("A", "A"), .flags = {.is_symmetric = true, .is_positive_definite = true}});
     pt.add_or_update_property_entry("y", {.shape = std::make_pair("A", 1)});

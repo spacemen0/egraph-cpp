@@ -10,7 +10,6 @@
 #include <stdexcept>
 #include <string>
 
-
 namespace egraph {
 const Children &ENode::get_children() const { return children; }
 Children &ENode::get_children_mut() { return children; }

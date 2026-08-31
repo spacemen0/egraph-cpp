@@ -8,7 +8,6 @@
 #include <unordered_map>
 #include <vector>
 
-
 namespace egraph {
 struct ParsedAtom {
     Atom atom;
@@ -38,8 +37,6 @@ template <> struct equal_to<egraph::Monomial> {
 };
 } // namespace std
 namespace egraph {
-
-
 
 using SymbolicCost = std::unordered_map<Monomial, double, std::hash<egraph::Monomial>, std::equal_to<egraph::Monomial>>;
 using Cost = std::variant<double, SymbolicCost>;
@@ -151,4 +148,3 @@ struct PruneResult {
     bool changed = false;
 };
 } // namespace egraph
-
