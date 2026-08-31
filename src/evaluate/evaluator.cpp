@@ -288,7 +288,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
             setup_in_place_output(node->get_children()[1], output);
         }
 
-        CBLAS_UPLO uplo;
+        CBLAS_UPLO uplo = CblasLower;
         if (prefer_upper_triangular.count(class_id)) {
             uplo = prefer_upper_triangular.at(class_id) ? CblasUpper : CblasLower;
         }

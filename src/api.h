@@ -108,25 +108,26 @@ class Context {
     }
 
     void rewrite_and_prune(
-        const std::vector<Id> &target_ids, const std::vector<std::string> &rulesets = {"everything_but_lowering"}) {
+        const std::vector<Id> &target_ids, const std::vector<std::string> &rulesets = {"everything_but_lowering"},
+        std::function<void(int iteration)> onIterationStart = nullptr,
+        std::function<void(int iteration, const PruneResult &)> onIterationFinish = nullptr) {
         if (config.enable_logging) {
             std::cout << "[API] Starting rewrite_and_prune...\n";
         }
 
-        PrunerConfig pruner_cfg = config.pruner;
+        if (!onIterationFinish && config.enable_logging) {
+            onIterationFinish = [](int iteration, const PruneResult &result) {
+                std::cout << "[Pruner] Iteration " << iteration + 1 << " finished. Pruned " << result.nodes_pruned
+                          << " nodes.\n";
+            };
+        }
 
         std::vector<Rewrite> rewrites = build_rewrite_sets(rulesets);
         Rewriter rewriter(egraph, rewrites, config);
         Extractor extractor(egraph, config);
         Pruner pruner(egraph, extractor);
 
-        pruner.rewrite_and_prune(
-            target_ids, rewriter, pruner_cfg, size_keys, nullptr, [this](int iteration, const PruneResult &result) {
-            if (config.enable_logging) {
-                std::cout << "[Pruner] Iteration " << iteration + 1 << " finished. Pruned " << result.nodes_pruned
-                          << " nodes.\n";
-            }
-        });
+        pruner.rewrite_and_prune(target_ids, rewriter, config.pruner, size_keys, onIterationStart, onIterationFinish);
     }
 
     void lower_to_kernels() {
@@ -229,7 +230,16 @@ class Context {
         for (const auto &bg_expr : background_exprs) {
             add(bg_expr);
         }
-        rewrite_and_prune({target_id}, rulesets);
+        rewrite_and_prune({target_id}, rulesets, nullptr, [&](int iteration, const PruneResult &result) {
+            if (config.enable_logging) {
+                std::cout << "[Pruner] Iteration " << iteration + 1 << " finished. Pruned " << result.nodes_pruned
+                          << " nodes.\n";
+            }
+            add(target_expr);
+            for (const auto &bg_expr : background_exprs) {
+                add(bg_expr);
+            }
+        });
         lower_to_kernels();
     }
 

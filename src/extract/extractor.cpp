@@ -580,12 +580,14 @@ bool Extractor::collect_selected_nodes_for_binding(
     bool any_root_succeeded = false;
 
     for (Id root : roots) {
-        auto results = find_top_numeric_dags(root, max_results, &size_bindings);
-        for (const auto &result : results) {
+        try {
+            auto result = tree_extract(root, size_bindings);
             any_root_succeeded = true;
             for (const auto &[class_id, node] : result.choices) {
                 selected_choices[class_id].insert(node);
             }
+        } catch (const std::exception &) {
+            // Skip if no tree found for this root under these bindings
         }
     }
 
