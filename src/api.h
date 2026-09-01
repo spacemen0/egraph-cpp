@@ -197,7 +197,7 @@ class Context {
 
     std::vector<double>
     evaluate_concrete(Id target_id, const SizeBindings &size_bindings, const DataBindings &bindings = {}) {
-        auto start_evaluate = std::chrono::high_resolution_clock::now();
+        auto start_final_extraction = std::chrono::high_resolution_clock::now();
         auto result = extract(target_id, size_bindings);
         if (config.enable_logging) {
             std::cout << "[API] Extracted expression: " << result.expr.to_string() << "\n";
@@ -208,11 +208,14 @@ class Context {
             }
         }
         Evaluator evaluator(egraph, result, &size_bindings, bindings);
-
+        auto start_evaluate = std::chrono::high_resolution_clock::now();
         auto result_eval = evaluator.evaluate();
         auto end_evaluate = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_evaluate - start_evaluate);
-        std::cout << duration.count() << std::endl;
+        auto extraction_duration =
+            std::chrono::duration_cast<std::chrono::microseconds>(start_evaluate - start_final_extraction);
+        auto evaluation_duration = std::chrono::duration_cast<std::chrono::microseconds>(end_evaluate - start_evaluate);
+        std::cout << extraction_duration.count() << std::endl;
+        std::cout << evaluation_duration.count() << std::endl;
         return result_eval;
     }
 
@@ -230,22 +233,19 @@ class Context {
         for (const auto &bg_expr : background_exprs) {
             add(bg_expr);
         }
-        rewrite_and_prune(
-            {target_id}, rulesets,
-            [&](int iteration) {
-                if (iteration > 0) {
-                    add(target_expr);
-                    for (const auto &bg_expr : background_exprs) {
-                        add(bg_expr);
-                    }
+        rewrite_and_prune({target_id}, rulesets, [&](int iteration) {
+            if (iteration > 0) {
+                add(target_expr);
+                for (const auto &bg_expr : background_exprs) {
+                    add(bg_expr);
                 }
-            },
-            [&](int iteration, const PruneResult &result) {
-                if (config.enable_logging) {
-                    std::cout << "[Pruner] Iteration " << iteration + 1 << " finished. Pruned " << result.nodes_pruned
-                              << " nodes.\n";
-                }
-            });
+            }
+        }, [&](int iteration, const PruneResult &result) {
+            if (config.enable_logging) {
+                std::cout << "[Pruner] Iteration " << iteration + 1 << " finished. Pruned " << result.nodes_pruned
+                          << " nodes.\n";
+            }
+        });
         lower_to_kernels();
     }
 
