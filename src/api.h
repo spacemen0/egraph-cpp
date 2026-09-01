@@ -230,16 +230,22 @@ class Context {
         for (const auto &bg_expr : background_exprs) {
             add(bg_expr);
         }
-        rewrite_and_prune({target_id}, rulesets, nullptr, [&](int iteration, const PruneResult &result) {
-            if (config.enable_logging) {
-                std::cout << "[Pruner] Iteration " << iteration + 1 << " finished. Pruned " << result.nodes_pruned
-                          << " nodes.\n";
-            }
-            add(target_expr);
-            for (const auto &bg_expr : background_exprs) {
-                add(bg_expr);
-            }
-        });
+        rewrite_and_prune(
+            {target_id}, rulesets,
+            [&](int iteration) {
+                if (iteration > 0) {
+                    add(target_expr);
+                    for (const auto &bg_expr : background_exprs) {
+                        add(bg_expr);
+                    }
+                }
+            },
+            [&](int iteration, const PruneResult &result) {
+                if (config.enable_logging) {
+                    std::cout << "[Pruner] Iteration " << iteration + 1 << " finished. Pruned " << result.nodes_pruned
+                              << " nodes.\n";
+                }
+            });
         lower_to_kernels();
     }
 

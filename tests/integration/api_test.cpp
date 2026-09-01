@@ -104,7 +104,6 @@ TEST(ApiTest, OptimizeSymbolic) {
     Expression target_math = (inverse(transpose(M) * M) * transpose(M)) * n;
 
     ctx.optimize_symbolic(target_math);
-    ctx.get_config().print_config();
     auto results = ctx.extract_symbolic();
 
     bool found = std::any_of(results.begin(), results.end(), [](const auto &c) {
