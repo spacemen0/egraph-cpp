@@ -292,8 +292,20 @@ static AnalysisData analyze_qr(const EGraph &egraph, const std::vector<Id> &chil
             throw InvalidOperationError("QR operation on symbolic matrix with ambiguous shape");
         }
 
-        if (data->flags.is_identity || data->flags.is_zero) {
-            throw InvalidOperationError("QR operation on identity or zero matrix is meaningless");
+        if (data->flags.is_identity) {
+            Q.shape = data->shape;
+            R.shape = data->shape;
+            Q.flags.is_orthogonal = true;
+            Q.flags.is_identity = true;
+            R.flags.is_upper_triangular = true;
+            R.flags.is_identity = true;
+            R.flags.is_diagonal = true;
+            auto props = std::vector{Q, R};
+            return make_tuple_property_data(props);
+        }
+
+        if (data->flags.is_zero) {
+            throw InvalidOperationError("QR operation on zero matrix is meaningless");
         }
 
         auto props = std::vector{Q, R};
