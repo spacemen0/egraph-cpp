@@ -20,9 +20,9 @@ int run_image() {
     auto id_1 = ctx.add(math_1);
     auto id_2 = ctx.add(math_2);
     ctx.initialize_config(math_2);
+    ctx.get_config().rewrite.enable_backoff = false;
     ctx.rewrite();
-    ctx.initialize_config(math_2);
-    ctx.prune_symbolic_when_kernel_available();
+    ctx.lower_to_kernels();
     auto [h_sizes, h_data] = read_matrix("examples/data/image_h.csv");
     auto [y_sizes, y_data] = read_matrix("examples/data/image_y.csv");
     auto [x_sizes, x_data] = read_matrix("examples/data/image_x.csv");

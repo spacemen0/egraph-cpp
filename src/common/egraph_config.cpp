@@ -7,7 +7,7 @@ void initialize_config_for_expression(EGraphConfig &config, const Expression &ex
     size_t depth = expr.depth();
     size_t nodes = expr.node_count();
 
-    config.rewrite.node_limit = std::max(nodes * 500, static_cast<size_t>(5000));
+    config.rewrite.node_limit = std::max(nodes * 1000, static_cast<size_t>(5000));
 
     // Scale iteration depth based on AST complexity
     config.rewrite.max_iterations =
