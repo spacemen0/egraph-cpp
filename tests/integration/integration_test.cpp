@@ -81,7 +81,7 @@ TEST(Integration, MinimalRealisticExplosionRules) {
 
         const std::vector<std::string> size_keys = {"A", "B"};
         const auto bindings = sample_size_bindings(prune_samples_per_iteration, 1, 1000, size_keys);
-        const auto prune_result = pruner.prune({root_id}, bindings, 1);
+        const auto prune_result = pruner.prune({root_id}, bindings);
 
         std::cout << "Iteration " << iter + 1 << ": pruned=" << prune_result.nodes_pruned
                   << ", nodes after pruning=" << egraph.num_nodes() << std::endl;

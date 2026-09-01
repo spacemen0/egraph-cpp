@@ -97,7 +97,8 @@ class Evaluator {
     std::vector<DataStorage> data_storage;
     // A mapping from class_id to the index in execution_order
     std::vector<int> slot_map;
-    // index is also the slot in execution_order
+    // index is also the slot in execution_order (stores how many times a node will be referenced in the execution
+    // chain.)
     mutable std::vector<int> use_counts;
     std::unordered_map<Id, bool> prefer_upper_triangular;
 };
