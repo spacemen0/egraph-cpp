@@ -25,9 +25,6 @@ static Id instantiate(EGraph &egraph, const Pattern &pattern, const Substitution
 bool Rewriter::is_rewrite_banned(size_t i) {
     if (ban_iterations_remaining[i] > 0 && enable_backoff) {
         ban_iterations_remaining[i]--;
-        if (ban_iterations_remaining[i] == 0) {
-            rewrite_application_counts[i] = 0;
-        }
         return true;
     }
     return false;
@@ -38,6 +35,8 @@ void Rewriter::update_ban_status(size_t i, size_t total_valid_matches, size_t bu
         ban_iterations_remaining[i] = ban_duration_next[i];
         ban_duration_next[i] *= 2;
         current_match_limits[i] *= 2;
+    } else if (enable_backoff) {
+        ban_duration_next[i] = std::max(size_t(1), ban_duration_next[i] / 2);
     }
 }
 
@@ -114,16 +113,27 @@ bool Rewriter::apply_one_iteration(size_t node_match_limit) {
             continue;
         }
 
+        rewrite_application_counts[i] = 0;
         size_t total_valid_matches = 0;
         std::vector<Match> rewrite_matches =
             find_matches_for_rewrite(i, matcher, class_ids, node_match_limit, total_valid_matches);
 
         size_t budget_remaining =
-            enable_backoff ? current_match_limits[i] - rewrite_application_counts[i] : total_valid_matches;
+            enable_backoff ? current_match_limits[i] : total_valid_matches;
         size_t matches_to_apply = std::min(total_valid_matches, budget_remaining);
 
-        for (size_t j = 0; j < matches_to_apply; ++j) {
-            matches.push_back(rewrite_matches[j]);
+        if (total_valid_matches <= budget_remaining) {
+            for (size_t j = 0; j < total_valid_matches; ++j) {
+                matches.push_back(rewrite_matches[j]);
+            }
+        } else {
+            size_t half = budget_remaining / 2;
+            for (size_t j = 0; j < half; ++j) {
+                matches.push_back(rewrite_matches[j]);
+            }
+            for (size_t j = total_valid_matches - (budget_remaining - half); j < total_valid_matches; ++j) {
+                matches.push_back(rewrite_matches[j]);
+            }
         }
         rewrite_application_counts[i] += matches_to_apply;
 
