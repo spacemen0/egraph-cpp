@@ -17,7 +17,6 @@
 namespace egraph {
 
 namespace {
-// Does this kernel op accept an alpha (and possibly beta) scale factor directly?
 // - Gemm/Symm/Syrk/Gemv: alpha and beta (C = alpha*op(A)*op(B) + beta*C)
 // - Trsm/Trmm: alpha only
 bool kernel_accepts_alpha(Op op) {
@@ -73,8 +72,8 @@ int kernel_c_child_index(Op op) {
 }
 
 // Rebuilds execution_order (post-order DFS from the root class) after choices were rewritten.
-std::vector<Id> rebuild_execution_order(const EGraph &egraph, Id root_class,
-                                        const std::unordered_map<Id, const ENode *> &choices) {
+std::vector<Id>
+rebuild_execution_order(const EGraph &egraph, Id root_class, const std::unordered_map<Id, const ENode *> &choices) {
     std::vector<Id> order;
     std::unordered_set<Id> visited;
     std::function<void(Id)> dfs = [&](Id current_id) {
@@ -251,9 +250,7 @@ Evaluator::Evaluator(
         if (node) {
             const Atom &atom = node->get_atom();
 
-            // Scalars and integer constants are stored as 1x1 matrices. Check the atom first,
-            // because scalar classes also carry a default (empty) MatrixProperty analysis which
-            // would otherwise route them into the matrix branch with a degenerate shape.
+            // Scalars and integer constants are stored as 1x1 matrices. Check the atom first
             if (const ScalarExpr *s = std::get_if<ScalarExpr>(&atom)) {
                 MatrixNode node_data(1, 1);
                 node_data.data()[0] = s->evaluate(data_bindings);
@@ -542,8 +539,8 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
             beta = inputs[3]->data()[0];
         }
         cblas_dsyrk(
-            CblasColMajor, uplo, trans, output.rows, k, alpha, inputs[0]->data(), inputs[0]->rows, beta,
-            output.data(), output.rows);
+            CblasColMajor, uplo, trans, output.rows, k, alpha, inputs[0]->data(), inputs[0]->rows, beta, output.data(),
+            output.rows);
 
         output.format = (uplo == CblasUpper) ? StorageFormat::SymmetricUpper : StorageFormat::SymmetricLower;
         break;
