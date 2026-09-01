@@ -87,7 +87,7 @@ void Pruner::rewrite_and_prune(
         rewriter.apply_rewrites(config.rewrite_steps_per_iteration);
 
         const auto bindings = sample_size_bindings(
-            config.prune_samples_per_iteration, 10, 5000, size_keys, static_cast<unsigned int>(42 + i),
+            config.prune_samples_per_iteration, 10, 5000, size_keys, static_cast<unsigned int>(99 + i),
             &egraph.get_property_table());
         const auto prune_result = prune(roots, bindings);
 
