@@ -43,7 +43,8 @@ static auto is_not_factorized = [](std::string_view var) {
         if (const auto *prop = std::get_if<MatrixProperty>(&data.property)) {
             return !(
                 prop->flags.is_upper_triangular || prop->flags.is_lower_triangular || prop->flags.is_diagonal ||
-                prop->flags.is_identity || prop->flags.is_orthogonal || prop->flags.has_orthonormal_columns);
+                prop->flags.is_identity || prop->flags.is_zero || prop->flags.is_orthogonal ||
+                prop->flags.has_orthonormal_columns);
         }
         return true;
     };

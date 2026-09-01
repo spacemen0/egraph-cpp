@@ -19,6 +19,7 @@ int run_image() {
 
     auto id_1 = ctx.add(math_1);
     auto id_2 = ctx.add(math_2);
+    ctx.initialize_config(math_2);
     ctx.rewrite();
     ctx.initialize_config(math_2);
     ctx.prune_symbolic_when_kernel_available();

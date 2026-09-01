@@ -11,6 +11,7 @@
 
 namespace egraph {
 static const auto mul_assoc = make_rewrite("mul-assoc-left", "?a * (?b * ?c)", "(?a * ?b) * ?c", true);
+static const auto add_assoc = make_rewrite("add-assoc", "(?a + ?b) + ?c", "?a + (?b + ?c)", true);
 static const auto commute_add = make_rewrite("commute-add", "?a + ?b", "?b + ?a");
 
 /// Distributions and Normalizations
@@ -85,6 +86,7 @@ static const auto sym_mul_n = make_rewrite("sym_mul_n", "?a * Tr(?a)", "SymMul(T
 
 static const std::vector<Rewrite> transformation_set = {
     mul_assoc,
+    add_assoc,
     commute_add,
     mul_distribute_left,
     mul_distribute_right,
