@@ -281,13 +281,16 @@ inline bool is_numeric(const Shape &shape) {
     return std::holds_alternative<int>(shape.first) && std::holds_alternative<int>(shape.second);
 }
 
+// Note: std::mt19937 is used strictly for non-cryptographic heuristics (compiler size sampling
+// and reproducible test matrix generation), not in any security-sensitive context.
+
 inline SizeBindings
 sample_size_bindings(int lower_bound, int upper_bound, std::span<const std::string_view> keys, uint32_t seed = 42) {
     if (lower_bound > upper_bound) {
         throw std::invalid_argument("sample_size_bindings: lower_bound cannot be greater than upper_bound");
     }
 
-    static thread_local std::mt19937 gen(seed);
+    static thread_local std::mt19937 gen(seed); // NOSONAR: Non-cryptographic compiler size sampling
     std::uniform_int_distribution<int> dist(lower_bound, upper_bound);
 
     SizeBindings bindings;
@@ -304,7 +307,7 @@ sample_size_bindings(int lower_bound, int upper_bound, std::vector<std::string> 
         throw std::invalid_argument("sample_size_bindings: lower_bound cannot be greater than upper_bound");
     }
 
-    static thread_local std::mt19937 gen(seed);
+    static thread_local std::mt19937 gen(seed); // NOSONAR: Non-cryptographic compiler size sampling
     std::uniform_int_distribution<int> dist(lower_bound, upper_bound);
 
     SizeBindings bindings;
@@ -318,7 +321,7 @@ sample_size_bindings(int lower_bound, int upper_bound, std::vector<std::string> 
 inline std::vector<SizeBindings> sample_size_bindings(
     size_t k, int lower_bound, int upper_bound, const std::vector<std::string> &keys, uint32_t seed = 42,
     const PropertyTable *pt = nullptr) {
-    std::mt19937 gen(seed);
+    std::mt19937 gen(seed); // NOSONAR: Non-cryptographic compiler size sampling
     std::uniform_int_distribution<int> dist(lower_bound, upper_bound);
     std::vector<SizeBindings> samples;
     samples.reserve(k);
@@ -353,7 +356,7 @@ inline std::vector<SizeBindings> sample_size_bindings(
 
 inline std::vector<double> generate_random_vector(int size) {
     std::vector<double> vec(size);
-    std::mt19937 gen(99);
+    std::mt19937 gen(99); // NOSONAR: Non-cryptographic test vector generation
     std::uniform_real_distribution<double> dis(-1.0, 1.0);
     for (int i = 0; i < size; ++i) {
         vec[i] = dis(gen);

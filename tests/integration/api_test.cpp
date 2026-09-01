@@ -143,7 +143,7 @@ TEST(ApiTest, EvaluateConcrete) {
     ctx.optimize_symbolic(target_math);
 
     SizeBindings concrete_sizes = {{"A", 30}, {"B", 20}};
-    std::mt19937 gen(42);
+    std::mt19937 gen(42); // NOSONAR: Non-cryptographic synthetic test data
     std::uniform_real_distribution<double> dist(-5.0, 5.0);
 
     DataBindings concrete_data = {
