@@ -144,10 +144,10 @@ void rewrite_e_graph(SessionState &state, std::optional<int> num_iterations) {
         std::cerr << "No rewrites enabled. Use 'add rule-set <name>' to add a rewrite set.\n";
         return;
     }
-    state.ctx.config.rewrite.node_limit = 10000;
-    state.ctx.config.rewrite.enable_backoff = true;
+    state.ctx.get_config().rewrite.node_limit = 10000;
+    state.ctx.get_config().rewrite.enable_backoff = true;
     if (num_iterations.has_value()) {
-        state.ctx.config.rewrite.max_iterations = num_iterations.value();
+        state.ctx.get_config().rewrite.max_iterations = num_iterations.value();
     }
     state.ctx.rewrite(state.rulesets);
 }

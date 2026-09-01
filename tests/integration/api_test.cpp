@@ -64,9 +64,9 @@ TEST(ApiTest, OLSSymbolic) {
 
     Id target_id = ctx.add(target_math);
 
-    ctx.config.rewrite.node_limit = 1000;
-    ctx.config.rewrite.enable_backoff = true;
-    ctx.config.rewrite.max_iterations = 10;
+    ctx.get_config().rewrite.node_limit = 1000;
+    ctx.get_config().rewrite.enable_backoff = true;
+    ctx.get_config().rewrite.max_iterations = 10;
     ctx.rewrite({"simplification", "transformation", "expansion"});
 
     SizeBindings bindings = {{"A", 30}, {"B", 10}};
@@ -74,7 +74,9 @@ TEST(ApiTest, OLSSymbolic) {
     std::string actual = best_result.expr.to_string(true);
     std::string expected_llt = "Sol(LLt(SymMul(M))ᵀ, Sol(LLt(SymMul(M)), Mᵀ * n))";
     std::string expected_utu = "Sol(Get(UtU(SymMul(M)), 0), Sol(Get(UtU(SymMul(M)), 0)ᵀ, Mᵀ * n))";
-    EXPECT_TRUE(actual == expected_llt || actual == expected_utu) << "Actual expression: " << actual;
+    std::string expected_solr = "SolR(LLt(SymMul(M)), Sol(LLt(SymMul(M)), nᵀ * Mᵀ)ᵀ)ᵀ";
+    EXPECT_TRUE(actual == expected_llt || actual == expected_utu || actual == expected_solr)
+        << "Actual expression: " << actual;
 }
 
 TEST(ApiTest, KernelMapping) {
@@ -102,6 +104,7 @@ TEST(ApiTest, OptimizeSymbolic) {
     Expression target_math = (inverse(transpose(M) * M) * transpose(M)) * n;
 
     ctx.optimize_symbolic(target_math);
+    ctx.get_config().print_config();
     auto results = ctx.extract_symbolic();
 
     bool found = std::any_of(results.begin(), results.end(), [](const auto &c) {

@@ -257,9 +257,9 @@ class Context {
         return std::get<MatrixProperty>(egraph.get_class_analysis_data(id).property);
     }
     void initialize_config(const Expression &expr) { initialize_config_for_expression(config, expr); }
-    EGraphConfig config;
 
   private:
+    EGraphConfig config;
     EGraph egraph;
     Id target_id = 0;
     std::vector<std::string> size_keys;
