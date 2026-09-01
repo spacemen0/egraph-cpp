@@ -68,7 +68,6 @@ Extractor::Extractor(EGraph &egraph, const EGraphConfig &config)
 void Extractor::reset() const {
     tree_cost.clear();
     minimal_possible_sub_tree_costs.clear();
-    minimal_possible_sizes.clear();
     greedy_choices.clear();
     nodes_visited = 0;
 }
@@ -233,14 +232,12 @@ Extractor::convert_to_map(const std::vector<const ENode *> &choices, const std::
 void Extractor::initial_tree_search_pass(const SizeBindings *size_bindings) const {
     tree_cost.clear();
     minimal_possible_sub_tree_costs.clear();
-    minimal_possible_sizes.clear();
     greedy_choices.clear();
 
     auto all_class_ids = egraph.get_all_class_ids();
     for (Id id : all_class_ids) {
         tree_cost[id] = std::numeric_limits<double>::infinity();
         minimal_possible_sub_tree_costs[id] = std::numeric_limits<double>::infinity();
-        minimal_possible_sizes[id] = std::numeric_limits<double>::infinity();
     }
 
     bool changed = true;
@@ -273,7 +270,6 @@ void Extractor::initial_tree_search_pass(const SizeBindings *size_bindings) cons
                         // use std::max because this is at least the cost of all children, even all other children are
                         // free by sharing.
                         max_child_cost = std::max(max_child_cost, minimal_possible_sub_tree_costs[child_root]);
-                        max_child_size = std::max(max_child_size, minimal_possible_sizes[child_root]);
                     }
 
                     if (tree_cost[child_root] == std::numeric_limits<double>::infinity()) {
@@ -288,7 +284,6 @@ void Extractor::initial_tree_search_pass(const SizeBindings *size_bindings) cons
                     size_t node_lb_size = 1 + max_child_size;
                     if (node_lb_cost < minimal_possible_sub_tree_costs[class_id]) {
                         minimal_possible_sub_tree_costs[class_id] = node_lb_cost;
-                        minimal_possible_sizes[class_id] = node_lb_size;
                         changed = true;
                     }
                 }

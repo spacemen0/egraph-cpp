@@ -55,9 +55,8 @@ class Extractor {
     size_t max_depth;
     size_t node_visit_limit;
 
-    mutable std::unordered_map<Id, double> tree_cost;                       // Tree cost (Heuristic)
-    mutable std::unordered_map<Id, double> minimal_possible_sub_tree_costs; // Max-path cost (Safe LB)
-    mutable std::unordered_map<Id, size_t> minimal_possible_sizes;          // Max-path size (Safe LB)
+    mutable std::unordered_map<Id, double> tree_cost;                       // local cost + sum(children_costs)
+    mutable std::unordered_map<Id, double> minimal_possible_sub_tree_costs; // local cost + max(children_costs)
     mutable std::unordered_map<Id, const ENode *> greedy_choices;
 
     void initial_tree_search_pass(const SizeBindings *size_bindings) const;
