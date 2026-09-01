@@ -19,7 +19,6 @@ struct PrunerConfig {
     int num_iterations = 5;
     int rewrite_steps_per_iteration = 6;
     int prune_samples_per_iteration = 50;
-    int max_results_per_binding = 10;
 };
 
 struct EGraphConfig {

@@ -2,15 +2,14 @@
 #include "utils.h"
 
 namespace egraph {
-PruneResult
-Pruner::prune(const std::vector<Id> &roots, const std::vector<SizeBindings> &bindings, int max_results) const {
+PruneResult Pruner::prune(const std::vector<Id> &roots, const std::vector<SizeBindings> &bindings) const {
     PruneResult result;
 
     std::unordered_map<Id, std::unordered_set<const ENode *>> keep_choices;
 
     for (const auto &binding : bindings) {
         extractor.reset();
-        extractor.collect_selected_nodes_for_binding(roots, binding, max_results, keep_choices);
+        extractor.collect_selected_nodes_for_binding(roots, binding, keep_choices);
     };
     // Keep all root classes (if multiple roots were passed but only part of them were extractable)
     for (Id root : roots) {
@@ -90,7 +89,7 @@ void Pruner::rewrite_and_prune(
         const auto bindings = sample_size_bindings(
             config.prune_samples_per_iteration, 10, 5000, size_keys, static_cast<unsigned int>(42 + i),
             &egraph.get_property_table());
-        const auto prune_result = prune(roots, bindings, config.max_results_per_binding);
+        const auto prune_result = prune(roots, bindings);
 
         if (onIterationFinish) {
             onIterationFinish(i, prune_result);

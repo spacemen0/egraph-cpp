@@ -575,7 +575,7 @@ std::vector<ExtractionResult> Extractor::extract_symbolic(Id class_id, bool buil
 
 /// Collects the extracted nodes for the given roots and size bindings, storing them in selected_choices. Returns true
 bool Extractor::collect_selected_nodes_for_binding(
-    const std::vector<Id> &roots, const SizeBindings &size_bindings, size_t max_results,
+    const std::vector<Id> &roots, const SizeBindings &size_bindings,
     std::unordered_map<Id, std::unordered_set<const ENode *>> &selected_choices) const {
     bool any_root_succeeded = false;
 

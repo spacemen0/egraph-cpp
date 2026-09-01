@@ -37,7 +37,6 @@ void EGraphConfig::print_config() {
     std::cout << "    num_iterations: " << pruner.num_iterations << "\n";
     std::cout << "    rewrite_steps_per_iteration: " << pruner.rewrite_steps_per_iteration << "\n";
     std::cout << "    prune_samples_per_iteration: " << pruner.prune_samples_per_iteration << "\n";
-    std::cout << "    max_results_per_binding: " << pruner.max_results_per_binding << "\n";
 }
 
 } // namespace egraph
