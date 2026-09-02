@@ -9,8 +9,18 @@
 #include "rewrite_sets.h"
 #include "rewriter.h"
 #include <chrono>
-#include <dlfcn.h>
 #include <iostream>
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#else
+#include <dlfcn.h>
+#endif
 #include <ostream>
 #include <stdexcept>
 #include <string>
@@ -230,10 +240,23 @@ class Context {
             std::cout << "[API] EGraph Size: " << egraph.num_nodes() << "\n";
             std::cout << "[API] Extracted expression: " << result.expr.to_string() << "\n";
             std::cout << "[API] Evaluating concrete expression...\n";
+#ifdef _WIN32
+            HMODULE hModule = NULL;
+            if (GetModuleHandleExA(
+                    GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                    reinterpret_cast<LPCSTR>(reinterpret_cast<void *>(cblas_dgemm)),
+                    &hModule)) {
+                char path[MAX_PATH];
+                if (GetModuleFileNameA(hModule, path, sizeof(path))) {
+                    std::cout << "[API] Active BLAS Kernel:   " << path << "\n";
+                }
+            }
+#else
             Dl_info info;
             if (dladdr(reinterpret_cast<void *>(cblas_dgemm), &info)) {
                 std::cout << "[API] Active BLAS Kernel:   " << info.dli_fname << "\n";
             }
+#endif
         }
         Evaluator evaluator(egraph, result, &size_bindings, bindings);
         auto start_evaluate = std::chrono::high_resolution_clock::now();

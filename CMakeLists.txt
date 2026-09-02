@@ -57,8 +57,10 @@ FetchContent_Declare(
   URL https://github.com/microsoft/mimalloc/archive/refs/tags/v3.5.0.zip
   DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
+set(MI_USE_CXX ON CACHE BOOL "" FORCE)
 set(MI_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(MI_BUILD_SHARED ON CACHE BOOL "" FORCE)
+set(MI_BUILD_OBJECT OFF CACHE BOOL "" FORCE)
 set(MI_BUILD_OBJECTS OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(mimalloc)
 

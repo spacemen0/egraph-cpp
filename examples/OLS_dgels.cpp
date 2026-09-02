@@ -1,11 +1,11 @@
 #include "MatrixIO.h"
 #include "examples.h"
-#include <Accelerate/Accelerate.h>
 #include <chrono>
 #include <iostream>
-#define LAPACK_COL_MAJOR 102
 
 #ifdef __APPLE__
+#include <Accelerate/Accelerate.h>
+#define LAPACK_COL_MAJOR 102
 
 extern "C" void dgels_(
     const char *trans, const int *m, const int *n, const int *nrhs, double *a, const int *lda, double *b,
@@ -25,6 +25,8 @@ LAPACKE_dgels(int matrix_layout, char trans, int m, int n, int nrhs, double *a, 
     delete[] work;
     return info;
 }
+#else
+#include <lapacke.h>
 #endif
 #include <vector>
 
