@@ -199,13 +199,13 @@ TEST(Rewrite, BackoffScheduler) {
 
     Rewriter rewriter(egraph, rules, EGraphConfig{.rewrite = {.node_limit = 1000, .enable_backoff = true}});
 
-    bool changed1 = rewriter.apply_one_iteration();
+    bool changed1 = rewriter.apply_rewrites(1);
     EXPECT_TRUE(changed1);
 
-    bool changed2 = rewriter.apply_one_iteration();
+    bool changed2 = rewriter.apply_rewrites(1);
     EXPECT_FALSE(changed2);
 
-    bool changed3 = rewriter.apply_one_iteration();
+    bool changed3 = rewriter.apply_rewrites(1);
     EXPECT_TRUE(changed3);
 }
 

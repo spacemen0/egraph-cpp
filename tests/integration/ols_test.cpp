@@ -22,7 +22,7 @@ TEST(Integration, OLSNumeric) {
     Rewriter rewriter(egraph, rules, config);
     constexpr int max_iterations = 10;
     for (int iteration = 0; iteration < max_iterations; ++iteration) {
-        if (!rewriter.apply_one_iteration()) {
+        if (!rewriter.apply_rewrites(1)) {
             break;
         }
     }

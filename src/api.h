@@ -137,7 +137,7 @@ class Context {
         std::vector<Rewrite> rewrites = build_rewrite_sets({"lowering"});
         auto new_config = config;
         new_config.rewrite.enable_backoff = false;
-        new_config.rewrite.node_limit = 1000000;
+        new_config.rewrite.enable_node_limit = false;
         Rewriter rewriter(egraph, rewrites, new_config);
         rewriter.apply_rewrites();
         prune_symbolic_when_kernel_available();

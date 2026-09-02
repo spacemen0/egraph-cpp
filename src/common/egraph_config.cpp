@@ -29,7 +29,7 @@ void EGraphConfig::print_config() {
     std::cout << "    node_limit: " << rewrite.node_limit << "\n";
     std::cout << "    max_iterations: " << rewrite.max_iterations << "\n";
     std::cout << "    enable_backoff: " << (rewrite.enable_backoff ? "true" : "false") << "\n";
-    std::cout << "    enable_node_match_limit: " << (rewrite.enable_node_match_limit ? "true" : "false") << "\n";
+    std::cout << "    enable_node_match_limit: " << (rewrite.enable_node_limit ? "true" : "false") << "\n";
     std::cout << "  ExtractorConfig:\n";
     std::cout << "    max_depth: " << extractor.max_depth << "\n";
     std::cout << "    node_visit_limit: " << extractor.node_visit_limit << "\n";

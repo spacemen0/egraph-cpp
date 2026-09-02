@@ -65,7 +65,7 @@ TEST(Integration, MinimalRealisticExplosionRules) {
     };
     Rewriter rewriter(
         egraph, rules,
-        EGraphConfig{.rewrite = {.node_limit = 2000, .enable_backoff = false, .enable_node_match_limit = true}});
+        EGraphConfig{.rewrite = {.node_limit = 2000, .enable_backoff = false, .enable_node_limit = true}});
     Extractor extractor(egraph);
     Pruner pruner(egraph, extractor);
 
@@ -114,7 +114,7 @@ TEST(Integration, CyclicTermsThatDoNotExplode) {
     Rewriter rewriter(egraph, rules, EGraphConfig{.rewrite = {.node_limit = 200}});
     int i = 20;
     while (i-- > 0) {
-        if (!rewriter.apply_one_iteration()) {
+        if (!rewriter.apply_rewrites(1)) {
             break;
         }
         // egraph.to_img("cyclic_" + std::to_string(20 - i), "svg");

@@ -36,13 +36,13 @@ void Rewriter::update_ban_status(size_t i, size_t total_valid_matches, size_t bu
         ban_duration_next[i] *= 2;
         current_match_limits[i] *= 2;
     } else if (enable_backoff) {
+        // if the rewrite was not banned, we reduce the ban duration for next time
         ban_duration_next[i] = std::max(size_t(1), ban_duration_next[i] / 2);
     }
 }
 
 std::vector<Rewriter::Match> Rewriter::find_matches_for_rewrite(
-    size_t i, const Matcher &matcher, const std::vector<Id> &class_ids, size_t node_match_limit,
-    size_t &total_valid_matches) {
+    size_t i, const Matcher &matcher, const std::vector<Id> &class_ids, size_t &total_valid_matches) {
     auto &rewrite = rewrites[i];
     std::vector<Match> rewrite_matches;
     total_valid_matches = 0;
@@ -52,10 +52,10 @@ std::vector<Rewriter::Match> Rewriter::find_matches_for_rewrite(
         if (egraph.find_class_id(class_id) != class_id)
             continue;
 
-        std::set<Substitution> substs = matcher.find_matches_in_eclass(class_id, rewrite.lhs, node_match_limit);
+        std::set<Substitution> substs = matcher.find_matches_in_eclass(class_id, rewrite.lhs);
         std::set<Substitution> reverse_substs;
         if (rewrite.bidirectional) {
-            reverse_substs = matcher.find_matches_in_eclass(class_id, rewrite.rhs, node_match_limit);
+            reverse_substs = matcher.find_matches_in_eclass(class_id, rewrite.rhs);
         }
         for (const auto &subst : substs) {
             if (rewrite.condition && !rewrite.condition(egraph, subst)) {
@@ -96,7 +96,7 @@ bool Rewriter::apply_matches(const std::vector<Match> &matches) {
     return changed;
 }
 
-bool Rewriter::apply_one_iteration(size_t node_match_limit) {
+bool Rewriter::apply_one_iteration() {
     bool changed = false;
 
     Matcher matcher(egraph);
@@ -115,11 +115,9 @@ bool Rewriter::apply_one_iteration(size_t node_match_limit) {
 
         rewrite_application_counts[i] = 0;
         size_t total_valid_matches = 0;
-        std::vector<Match> rewrite_matches =
-            find_matches_for_rewrite(i, matcher, class_ids, node_match_limit, total_valid_matches);
+        std::vector<Match> rewrite_matches = find_matches_for_rewrite(i, matcher, class_ids, total_valid_matches);
 
-        size_t budget_remaining =
-            enable_backoff ? current_match_limits[i] : total_valid_matches;
+        size_t budget_remaining = enable_backoff ? current_match_limits[i] : total_valid_matches;
         size_t matches_to_apply = std::min(total_valid_matches, budget_remaining);
 
         if (total_valid_matches <= budget_remaining) {
@@ -127,6 +125,7 @@ bool Rewriter::apply_one_iteration(size_t node_match_limit) {
                 matches.push_back(rewrite_matches[j]);
             }
         } else {
+            // evenly distribute matches from the beginning and end of the list
             size_t half = budget_remaining / 2;
             for (size_t j = 0; j < half; ++j) {
                 matches.push_back(rewrite_matches[j]);
@@ -146,7 +145,7 @@ bool Rewriter::apply_one_iteration(size_t node_match_limit) {
         egraph.rebuild();
     }
 
-    if (egraph.num_nodes() > max_nodes) {
+    if (enable_node_limit && egraph.num_nodes() > max_nodes) {
         std::cout << "[Rewriter] Node limit exceeded: " << max_nodes << "\n";
         return false;
     }
@@ -158,12 +157,8 @@ bool Rewriter::apply_rewrites(int max_iterations) {
     bool any_changed = false;
 
     for (int i = 0; i < max_iterations; ++i) {
-        size_t node_match_limit = 0;
-        if (enable_node_match_limit) {
-            node_match_limit = (i % 3 == 2) ? 0 : 3;
-        }
 
-        if (!apply_one_iteration(node_match_limit)) {
+        if (!apply_one_iteration()) {
             break;
         }
         any_changed = true;
@@ -178,12 +173,7 @@ bool Rewriter::apply_rewrites() {
     bool changed = false;
     int iteration = 0;
     while (true) {
-        size_t node_match_limit = 0;
-        if (enable_node_match_limit) {
-            node_match_limit = (iteration % 3 == 2) ? 0 : 3;
-        }
-
-        if (!apply_one_iteration(node_match_limit)) {
+        if (!apply_one_iteration()) {
             break;
         }
         changed = true;
