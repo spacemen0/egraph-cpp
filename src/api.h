@@ -78,7 +78,12 @@ class Context {
         return Expression(name);
     }
 
-    Id add(const Expression &expr) { return egraph.add_expression(expr); }
+    Id add(const Expression &expr) {
+        Id id = egraph.add_expression(expr);
+        all_expressions.push_back(id);
+        root_expression = id;
+        return id;
+    }
 
     void rewrite(const std::vector<std::string> &rulesets = {"complete"}) {
         if (config.enable_logging) {
@@ -97,13 +102,22 @@ class Context {
         }
     }
 
-    void prune_symbolic_when_kernel_available() {
+    void prune_symbolic_when_kernel_available(const std::vector<Id> &roots = {}) {
+        std::vector<Id> effective_roots = roots;
+        if (effective_roots.empty()) {
+            if (!all_expressions.empty()) {
+                effective_roots = all_expressions;
+            } else if (root_expression != 0) {
+                effective_roots = {root_expression};
+            }
+        }
         if (config.enable_logging) {
             std::cout << "[API] Pruning symbolic nodes\n";
         }
-        auto res = Pruner::prune_symbolic_when_kernel_available(egraph);
+        auto res = Pruner::prune_symbolic_when_kernel_available(egraph, effective_roots);
         if (config.enable_logging) {
             std::cout << "[Pruner] Symbolic prune removed " << res.nodes_pruned << " nodes.\n";
+            std::cout << "[API] EGraph Size after prune: " << egraph.num_nodes() << "\n";
         }
     }
 
@@ -130,9 +144,21 @@ class Context {
         pruner.rewrite_and_prune(target_ids, rewriter, config.pruner, size_keys, onIterationStart, onIterationFinish);
     }
 
-    void lower_to_kernels() {
+    void lower_to_kernels(const std::vector<Id> &roots = {}) {
+        std::vector<Id> effective_roots = roots;
+        if (effective_roots.empty()) {
+            if (!all_expressions.empty()) {
+                effective_roots = all_expressions;
+            } else if (root_expression != 0) {
+                effective_roots = {root_expression};
+            }
+        }
+        if (!effective_roots.empty()) {
+            Pruner::garbage_collect(egraph, effective_roots);
+        }
         if (config.enable_logging) {
             std::cout << "[API] Lowering to kernels...\n";
+            std::cout << "[API] EGraph Size before lowering: " << egraph.num_nodes() << "\n";
         }
         std::vector<Rewrite> rewrites = build_rewrite_sets({"lowering"});
         auto new_config = config;
@@ -140,7 +166,7 @@ class Context {
         new_config.rewrite.enable_node_limit = false;
         Rewriter rewriter(egraph, rewrites, new_config);
         rewriter.apply_rewrites();
-        prune_symbolic_when_kernel_available();
+        prune_symbolic_when_kernel_available(effective_roots);
     }
 
     ExtractionResult extract(Id target_id, const SizeBindings &bindings = {}) {
@@ -165,7 +191,7 @@ class Context {
         return extractor.tree_extract(target_id, bindings);
     }
 
-    std::vector<ExtractionResult> extract_symbolic() { return extract_symbolic(target_id); }
+    std::vector<ExtractionResult> extract_symbolic() { return extract_symbolic(root_expression); }
 
     std::vector<ExtractionResult> extract_symbolic(Id target_id) {
         if (config.enable_logging) {
@@ -193,7 +219,7 @@ class Context {
     }
 
     std::vector<double> evaluate_concrete(const SizeBindings &size_bindings, const DataBindings &bindings = {}) {
-        return evaluate_concrete(target_id, size_bindings, bindings);
+        return evaluate_concrete(root_expression, size_bindings, bindings);
     }
 
     std::vector<double>
@@ -201,6 +227,7 @@ class Context {
         auto start_final_extraction = std::chrono::high_resolution_clock::now();
         auto result = extract(target_id, size_bindings);
         if (config.enable_logging) {
+            std::cout << "[API] EGraph Size: " << egraph.num_nodes() << "\n";
             std::cout << "[API] Extracted expression: " << result.expr.to_string() << "\n";
             std::cout << "[API] Evaluating concrete expression...\n";
             Dl_info info;
@@ -229,16 +256,20 @@ class Context {
             config.print_config();
         }
 
-        target_id = add(target_expr);
+        Id root_id = egraph.add_expression(target_expr);
+        root_expression = root_id;
+        all_expressions = {root_id};
 
         for (const auto &bg_expr : background_exprs) {
-            add(bg_expr);
+            Id bg_id = egraph.add_expression(bg_expr);
+            all_expressions.push_back(bg_id);
         }
-        rewrite_and_prune({target_id}, rulesets, [&](int iteration) {
+
+        rewrite_and_prune({root_expression}, rulesets, [&](int iteration) {
             if (iteration > 0) {
-                add(target_expr);
+                egraph.add_expression(target_expr);
                 for (const auto &bg_expr : background_exprs) {
-                    add(bg_expr);
+                    egraph.add_expression(bg_expr);
                 }
             }
         }, [&](int iteration, const PruneResult &result) {
@@ -247,18 +278,24 @@ class Context {
                           << " nodes.\n";
             }
         });
-        lower_to_kernels();
+        root_expression = egraph.find_class_id(root_id);
+        all_expressions = {root_expression};
+        lower_to_kernels(all_expressions);
     }
 
     void print_properties() const { egraph.get_property_table().print_all_properties(); }
 
     std::optional<Id> find_expr(const Expression &expr) const { return egraph.find_expression_id(expr); }
 
-    void clear() { egraph = EGraph(); }
-    Id get_target_id() const { return target_id; }
+    void clear() {
+        egraph = EGraph();
+        root_expression = 0;
+        all_expressions.clear();
+    }
+    Id get_target_id() const { return root_expression; }
     EGraph &get_egraph() { return egraph; }
     MatrixProperty get_property() const {
-        return std::get<MatrixProperty>(egraph.get_class_analysis_data(target_id).property);
+        return std::get<MatrixProperty>(egraph.get_class_analysis_data(root_expression).property);
     }
     MatrixProperty get_property(Id id) const {
         return std::get<MatrixProperty>(egraph.get_class_analysis_data(id).property);
@@ -268,7 +305,8 @@ class Context {
   private:
     EGraphConfig config;
     EGraph egraph;
-    Id target_id = 0;
+    Id root_expression = 0;
+    std::vector<Id> all_expressions;
     std::vector<std::string> size_keys;
 
     void apply_flags(MatrixProperty &prop, const std::vector<std::string> &flags) {

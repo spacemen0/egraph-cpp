@@ -425,8 +425,17 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
             output.ensure_general();
         }
         CBLAS_SIDE side = (op == Op::Symm_L) ? CblasLeft : CblasRight;
-        auto a_prop = egraph.get_class_analysis_data(node->get_children()[0]);
-        char uplo = std::get<MatrixProperty>(a_prop.property).flags.is_lower_triangular ? 'L' : 'U';
+        CBLAS_UPLO uplo_cblas = CblasLower;
+        if (inputs[0]->format == StorageFormat::SymmetricUpper || inputs[0]->format == StorageFormat::TriangularUpper) {
+            uplo_cblas = CblasUpper;
+        } else if (inputs[0]->format == StorageFormat::SymmetricLower || inputs[0]->format == StorageFormat::TriangularLower) {
+            uplo_cblas = CblasLower;
+        } else {
+            auto a_prop = egraph.get_class_analysis_data(node->get_children()[0]);
+            if (auto p = std::get_if<MatrixProperty>(&a_prop.property)) {
+                uplo_cblas = (p->flags.is_upper_triangular && !p->flags.is_lower_triangular) ? CblasUpper : CblasLower;
+            }
+        }
         // Fused alpha/beta from trailing scalar children (fuse_scales_into_kernels).
         double alpha = 1.0;
         double beta = is_c_zero ? 0.0 : 1.0;
@@ -438,7 +447,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
             beta = inputs[4]->data()[0];
         }
         cblas_dsymm(
-            CblasColMajor, side, uplo == 'L' ? CblasLower : CblasUpper, output.rows, output.cols, alpha,
+            CblasColMajor, side, uplo_cblas, output.rows, output.cols, alpha,
             inputs[0]->data(), inputs[0]->rows, inputs[1]->data(), inputs[1]->rows, beta, output.data(), output.rows);
         break;
     }
