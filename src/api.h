@@ -223,11 +223,11 @@ class Context {
     void optimize_symbolic(
         const Expression &target_expr, const std::vector<Expression> &background_exprs = {},
         const std::vector<std::string> &rulesets = {"everything_but_lowering"}) {
+        initialize_config_for_expression(config, target_expr);
         if (config.enable_logging) {
             std::cout << "[API] Optimizing symbolic expression: " << target_expr.to_string() << "\n";
             config.print_config();
         }
-        initialize_config_for_expression(config, target_expr);
 
         target_id = add(target_expr);
 
