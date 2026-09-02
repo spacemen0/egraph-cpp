@@ -307,10 +307,29 @@ ExtractionResult Extractor::tree_extract(Id class_id, const SizeBindings &size_b
         throw std::runtime_error("Runtime error: no numeric DAG found for root class under supplied size bindings");
     }
 
+    std::unordered_map<Id, const ENode *> reachable_choices;
+    std::vector<Id> stack = {root};
+    while (!stack.empty()) {
+        Id curr = stack.back();
+        stack.pop_back();
+
+        if (reachable_choices.contains(curr)) {
+            continue;
+        }
+
+        auto it = greedy_choices.find(curr);
+        if (it != greedy_choices.end() && it->second) {
+            reachable_choices[curr] = it->second;
+            for (Id child : it->second->get_children()) {
+                stack.push_back(egraph.find_class_id(child));
+            }
+        }
+    }
+
     std::unordered_set<Id> visiting;
     return ExtractionResult{
-        tree_cost.at(root), build_expression(root, greedy_choices, visiting),
-        build_execution_order(root, greedy_choices), greedy_choices};
+        tree_cost.at(root), build_expression(root, reachable_choices, visiting),
+        build_execution_order(root, reachable_choices), reachable_choices};
 }
 
 std::vector<Extractor::SymbolicSearchResult> Extractor::find_symbolic_dags(Id root_class_id) const {

@@ -14,7 +14,8 @@ class Pruner {
     Pruner(EGraph &egraph, Extractor &extractor) : egraph(egraph), extractor(extractor) {}
 
     PruneResult prune(const std::vector<Id> &roots, const std::vector<SizeBindings> &bindings) const;
-    static PruneResult prune_symbolic_when_kernel_available(EGraph &egraph);
+    static PruneResult prune_symbolic_when_kernel_available(EGraph &egraph, const std::vector<Id> &roots = {});
+    static PruneResult eliminate_unreachable_classes(EGraph &egraph, const std::vector<Id> &roots);
 
     void rewrite_and_prune(
         const std::vector<Id> &roots, Rewriter &rewriter, const PrunerConfig &config,

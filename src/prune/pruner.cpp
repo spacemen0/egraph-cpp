@@ -31,7 +31,76 @@ PruneResult Pruner::prune(const std::vector<Id> &roots, const std::vector<SizeBi
     return result;
 }
 
-PruneResult Pruner::prune_symbolic_when_kernel_available(EGraph &egraph) {
+namespace {
+std::unordered_set<Id> find_reachable_classes(
+    const EGraph &egraph, const std::vector<Id> &roots,
+    const std::unordered_map<Id, std::unordered_set<const ENode *>> *keep_choices = nullptr) {
+    if (roots.empty()) {
+        return {};
+    }
+
+    std::unordered_set<Id> reachable;
+    std::vector<Id> queue;
+    for (Id root : roots) {
+        Id root_class = egraph.find_class_id(root);
+        if (reachable.insert(root_class).second) {
+            queue.push_back(root_class);
+        }
+    }
+
+    while (!queue.empty()) {
+        Id curr = queue.back();
+        queue.pop_back();
+
+        if (keep_choices) {
+            auto it = keep_choices->find(curr);
+            if (it == keep_choices->end()) {
+                continue;
+            }
+            for (const ENode *node : it->second) {
+                for (Id child : node->get_children()) {
+                    Id child_class = egraph.find_class_id(child);
+                    if (reachable.insert(child_class).second) {
+                        queue.push_back(child_class);
+                    }
+                }
+            }
+        } else {
+            for (const ENode *node : egraph.get_class_nodes(curr)) {
+                for (Id child : node->get_children()) {
+                    Id child_class = egraph.find_class_id(child);
+                    if (reachable.insert(child_class).second) {
+                        queue.push_back(child_class);
+                    }
+                }
+            }
+        }
+    }
+    return reachable;
+}
+} // namespace
+
+PruneResult Pruner::eliminate_unreachable_classes(EGraph &egraph, const std::vector<Id> &roots) {
+    if (roots.empty()) {
+        return {};
+    }
+
+    auto reachable = find_reachable_classes(egraph, roots);
+    std::unordered_map<Id, std::unordered_set<const ENode *>> keep_choices;
+    for (Id cid : reachable) {
+        for (const ENode *node : egraph.get_class_nodes(cid)) {
+            keep_choices[cid].insert(node);
+        }
+    }
+
+    auto result = egraph.prune_nodes_except(keep_choices);
+    if (result.changed) {
+        egraph.rebuild();
+    }
+    return result;
+}
+
+PruneResult Pruner::prune_symbolic_when_kernel_available(EGraph &egraph, const std::vector<Id> &roots) {
     std::unordered_map<Id, std::unordered_set<const ENode *>> keep_choices;
 
     for (Id class_id : egraph.get_all_class_ids()) {
@@ -66,6 +135,13 @@ PruneResult Pruner::prune_symbolic_when_kernel_available(EGraph &egraph) {
                 keep_choices[class_id].insert(node);
             }
         }
+    }
+
+    if (!roots.empty()) {
+        auto reachable = find_reachable_classes(egraph, roots, &keep_choices);
+        std::erase_if(keep_choices, [&](const auto &item) {
+            return !reachable.contains(item.first);
+        });
     }
 
     auto result = egraph.prune_nodes_except(keep_choices);

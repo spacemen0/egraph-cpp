@@ -154,7 +154,7 @@ class Context {
             }
         }
         if (!effective_roots.empty()) {
-            Pruner::garbage_collect(egraph, effective_roots);
+            Pruner::eliminate_unreachable_classes(egraph, effective_roots);
         }
         if (config.enable_logging) {
             std::cout << "[API] Lowering to kernels...\n";
