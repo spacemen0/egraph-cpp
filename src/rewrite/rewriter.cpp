@@ -89,7 +89,7 @@ bool Rewriter::apply_matches(const std::vector<Match> &matches) {
             changed |= egraph.union_classes(match.class_id, instantiate(egraph, rewrite.lhs, match.subst));
         }
 
-        if (egraph.num_nodes() > max_nodes) {
+        if (enable_node_limit && egraph.num_nodes() > max_nodes) {
             break; // Break the apply loop to enforce limits but guarantee rebuild
         }
     }
