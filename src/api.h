@@ -237,6 +237,7 @@ class Context {
         auto start_final_extraction = std::chrono::high_resolution_clock::now();
         auto result = extract(target_id, size_bindings);
         if (config.enable_logging) {
+            egraph.to_img("expression_" + std::to_string(target_id), "png");
             std::cout << "[API] EGraph Size: " << egraph.num_nodes() << "\n";
             std::cout << "[API] Extracted expression: " << result.expr.to_string() << "\n";
             std::cout << "[API] Evaluating concrete expression...\n";
@@ -244,8 +245,7 @@ class Context {
             HMODULE hModule = NULL;
             if (GetModuleHandleExA(
                     GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                    reinterpret_cast<LPCSTR>(reinterpret_cast<void *>(cblas_dgemm)),
-                    &hModule)) {
+                    reinterpret_cast<LPCSTR>(reinterpret_cast<void *>(cblas_dgemm)), &hModule)) {
                 char path[MAX_PATH];
                 if (GetModuleFileNameA(hModule, path, sizeof(path))) {
                     std::cout << "[API] Active BLAS Kernel:   " << path << "\n";

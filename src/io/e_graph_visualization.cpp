@@ -1,6 +1,5 @@
 #include "e_graph_visualization.h"
 #include "e_graph.h"
-#include "utils.h"
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -20,7 +19,6 @@ std::string to_dot(const EGraph &egraph) {
         oss << "  subgraph cluster_" << class_id << " {\n";
         oss << "    style=dotted;\n";
 
-        const auto representative = get_representative_expression(egraph, class_id);
         oss << "    label=\" EC-" << class_id << "\";\n";
 
         int i = 0;

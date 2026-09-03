@@ -8,7 +8,7 @@ using namespace egraph;
 
 int run_image() {
     EGraphRunner::Context ctx;
-    ctx.get_config().enable_logging = true;
+    ctx.get_config().enable_logging = false;
     Expression y = ctx.define_matrix_symbolic("y", "a", 1);
     Expression H = ctx.define_matrix_symbolic("H", "a", "b", {"full_rank", "wide"});
     Expression I = ctx.define_matrix_symbolic("I", "b", "b", {"identity"});
@@ -22,6 +22,7 @@ int run_image() {
     ctx.initialize_config(math_2);
     ctx.rewrite({"everything_but_lowering"});
     ctx.lower_to_kernels();
+    // ctx.optimize_symbolic(math_2);
     auto [h_sizes, h_data] = read_matrix("examples/data/image_h.csv");
     auto [y_sizes, y_data] = read_matrix("examples/data/image_y.csv");
     auto [x_sizes, x_data] = read_matrix("examples/data/image_x.csv");
