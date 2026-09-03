@@ -70,13 +70,6 @@ struct TupleNode {
 
 using DataStorage = std::variant<MatrixNode, TupleNode>;
 
-/// Post-extraction kernel fusion pass. Rewrites `result.choices` in place, fusing `Scale`
-/// factors into the alpha/beta parameters of adjacent BLAS kernels (e.g. `Scale(Gemm(A,B,Zero),s)`
-/// becomes a Gemm node with an extra trailing scalar child holding `s`). Synthetic kernel nodes
-/// are owned by `result.owned_nodes`, so `result` must outlive evaluation. The egraph is not
-/// modified. New ops/analysis are not required: the evaluator reads the trailing scalar children.
-void fuse_scales_into_kernels(ExtractionResult &result, EGraph &egraph);
-
 class Evaluator {
   public:
     explicit Evaluator(
