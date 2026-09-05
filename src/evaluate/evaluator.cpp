@@ -377,19 +377,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
 
     case Scale: {
         setup_in_place_output(node->get_children()[0], output);
-        double scalar_val = 1.0;
-        Id scalar_id = node->get_children()[1];
-        auto choice_it = result.choices.find(scalar_id);
-        if (choice_it != result.choices.end() && choice_it->second) {
-            const Atom &atom = choice_it->second->get_atom();
-            if (const ScalarExpr *s = std::get_if<ScalarExpr>(&atom)) {
-                scalar_val = s->evaluate(data_bindings);
-            } else {
-                throw std::runtime_error("Scale operation requires a scalar value as the second child.");
-            }
-        } else {
-            throw std::runtime_error("Scale operation requires a scalar value as the second child.");
-        }
+        double scalar_val = inputs[1]->data()[0];
         cblas_dscal(output.rows * output.cols, scalar_val, output.data(), 1);
         break;
     }
@@ -479,6 +467,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         break;
     }
     case Axpy: {
+        // memory is always allocated in continuous space so that we can use axpy directly
         inputs[0]->ensure_general();
         setup_in_place_output(node->get_children()[1], output);
         output.ensure_general();
