@@ -59,7 +59,7 @@ class Extractor {
     mutable std::unordered_map<Id, double> minimal_possible_sub_tree_costs; // local cost + max(children_costs)
     mutable std::unordered_map<Id, const ENode *> greedy_choices;
 
-    void initial_tree_search_pass(const SizeBindings *size_bindings) const;
+    void initial_analysis_pass(const SizeBindings *size_bindings) const;
 
     std::vector<NumericSearchResult>
     find_top_numeric_dags(Id root_class_id, size_t max_results, const SizeBindings *size_bindings = nullptr) const;

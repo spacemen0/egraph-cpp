@@ -40,17 +40,17 @@ std::unordered_set<Id> find_reachable_classes(
     }
 
     std::unordered_set<Id> reachable;
-    std::vector<Id> queue;
+    std::vector<Id> stack;
     for (Id root : roots) {
         Id root_class = egraph.find_class_id(root);
         if (reachable.insert(root_class).second) {
-            queue.push_back(root_class);
+            stack.push_back(root_class);
         }
     }
 
-    while (!queue.empty()) {
-        Id curr = queue.back();
-        queue.pop_back();
+    while (!stack.empty()) {
+        Id curr = stack.back();
+        stack.pop_back();
 
         if (keep_choices) {
             auto it = keep_choices->find(curr);
@@ -61,7 +61,7 @@ std::unordered_set<Id> find_reachable_classes(
                 for (Id child : node->get_children()) {
                     Id child_class = egraph.find_class_id(child);
                     if (reachable.insert(child_class).second) {
-                        queue.push_back(child_class);
+                        stack.push_back(child_class);
                     }
                 }
             }
@@ -70,7 +70,7 @@ std::unordered_set<Id> find_reachable_classes(
                 for (Id child : node->get_children()) {
                     Id child_class = egraph.find_class_id(child);
                     if (reachable.insert(child_class).second) {
-                        queue.push_back(child_class);
+                        stack.push_back(child_class);
                     }
                 }
             }
@@ -87,9 +87,9 @@ PruneResult Pruner::eliminate_unreachable_classes(EGraph &egraph, const std::vec
 
     auto reachable = find_reachable_classes(egraph, roots);
     std::unordered_map<Id, std::unordered_set<const ENode *>> keep_choices;
-    for (Id cid : reachable) {
-        for (const ENode *node : egraph.get_class_nodes(cid)) {
-            keep_choices[cid].insert(node);
+    for (Id class_id : reachable) {
+        for (const ENode *node : egraph.get_class_nodes(class_id)) {
+            keep_choices[class_id].insert(node);
         }
     }
 

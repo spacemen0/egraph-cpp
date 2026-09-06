@@ -79,7 +79,7 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
 
     Id root = egraph.find_class_id(root_class_id);
 
-    initial_tree_search_pass(size_bindings);
+    initial_analysis_pass(size_bindings);
 
     if (tree_cost[root] == std::numeric_limits<double>::infinity()) {
         return {};
@@ -229,7 +229,7 @@ Extractor::convert_to_map(const std::vector<const ENode *> &choices, const std::
     return result;
 }
 
-void Extractor::initial_tree_search_pass(const SizeBindings *size_bindings) const {
+void Extractor::initial_analysis_pass(const SizeBindings *size_bindings) const {
     tree_cost.clear();
     minimal_possible_sub_tree_costs.clear();
     greedy_choices.clear();
@@ -301,7 +301,7 @@ void Extractor::initial_tree_search_pass(const SizeBindings *size_bindings) cons
 }
 
 ExtractionResult Extractor::tree_extract(Id class_id, const SizeBindings &size_bindings) const {
-    initial_tree_search_pass(size_bindings.empty() ? nullptr : &size_bindings);
+    initial_analysis_pass(size_bindings.empty() ? nullptr : &size_bindings);
     Id root = egraph.find_class_id(class_id);
     if (tree_cost.at(root) == std::numeric_limits<double>::infinity()) {
         throw std::runtime_error("Runtime error: no numeric DAG found for root class under supplied size bindings");
