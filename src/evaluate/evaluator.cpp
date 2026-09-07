@@ -254,16 +254,8 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
                 uplo_cblas = (p->flags.is_upper_triangular && !p->flags.is_lower_triangular) ? CblasUpper : CblasLower;
             }
         }
-        // Fused alpha/beta from trailing scalar children (fuse_scales_into_kernels).
         double alpha = 1.0;
         double beta = is_c_zero ? 0.0 : 1.0;
-        const auto &symm_ch = node->get_children();
-        if (symm_ch.size() > 3 && inputs.size() > 3 && inputs[3] && inputs[3]->data()) {
-            alpha = inputs[3]->data()[0];
-        }
-        if (symm_ch.size() > 4 && inputs.size() > 4 && inputs[4] && inputs[4]->data()) {
-            beta = inputs[4]->data()[0];
-        }
         cblas_dsymm(
             CblasColMajor, side, uplo_cblas, output.rows, output.cols, alpha, inputs[0]->data(), inputs[0]->rows,
             inputs[1]->data(), inputs[1]->rows, beta, output.data(), output.rows);
@@ -287,12 +279,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         if (is_c_zero) {
             setup_in_place_output(node->get_children()[1], output);
             output.ensure_general();
-            // Fused alpha from trailing scalar child (fuse_scales_into_kernels).
             double alpha = 1.0;
-            const auto &trmm_ch = node->get_children();
-            if (trmm_ch.size() > 3 && inputs.size() > 3 && inputs[3] && inputs[3]->data()) {
-                alpha = inputs[3]->data()[0];
-            }
             cblas_dtrmm(
                 CblasColMajor, side, uplo, trans, CblasNonUnit, output.rows, output.cols, alpha, inputs[0]->data(),
                 inputs[0]->rows, output.data(), output.rows);
@@ -322,12 +309,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         CBLAS_SIDE side = (op == Op::Trsm_LN || op == Op::Trsm_LT) ? CblasLeft : CblasRight;
         CBLAS_TRANSPOSE trans = (op == Op::Trsm_LN || op == Op::Trsm_RN) ? CblasNoTrans : CblasTrans;
 
-        // Fused alpha from trailing scalar child (fuse_scales_into_kernels).
         double alpha = 1.0;
-        const auto &trsm_ch = node->get_children();
-        if (trsm_ch.size() > 2 && inputs.size() > 2 && inputs[2] && inputs[2]->data()) {
-            alpha = inputs[2]->data()[0];
-        }
         cblas_dtrsm(
             CblasColMajor, side, uplo, trans, CblasNonUnit, output.rows, output.cols, alpha, inputs[0]->data(),
             inputs[0]->rows, output.data(), output.rows);
@@ -345,15 +327,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
             setup_in_place_output(node->get_children()[2], output);
             output.ensure_general();
         }
-        // Fused alpha/beta from trailing scalar children (fuse_scales_into_kernels).
         double alpha = 1.0;
-        const auto &gemv_ch = node->get_children();
-        if (gemv_ch.size() > 3 && inputs.size() > 3 && inputs[3] && inputs[3]->data()) {
-            alpha = inputs[3]->data()[0];
-        }
-        if (gemv_ch.size() > 4 && inputs.size() > 4 && inputs[4] && inputs[4]->data()) {
-            beta = inputs[4]->data()[0];
-        }
         cblas_dgemv(
             CblasColMajor, trans, inputs[0]->rows, inputs[0]->cols, alpha, inputs[0]->data(), inputs[0]->rows,
             inputs[1]->data(), 1, beta, output.data(), 1);
@@ -376,15 +350,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
             uplo = prefer_upper_triangular.at(class_id) ? CblasUpper : CblasLower;
         }
 
-        // Fused alpha/beta from trailing scalar children (fuse_scales_into_kernels).
         double alpha = 1.0;
-        const auto &syrk_ch = node->get_children();
-        if (syrk_ch.size() > 2 && inputs.size() > 2 && inputs[2] && inputs[2]->data()) {
-            alpha = inputs[2]->data()[0];
-        }
-        if (syrk_ch.size() > 3 && inputs.size() > 3 && inputs[3] && inputs[3]->data()) {
-            beta = inputs[3]->data()[0];
-        }
         cblas_dsyrk(
             CblasColMajor, uplo, trans, output.rows, k, alpha, inputs[0]->data(), inputs[0]->rows, beta, output.data(),
             output.rows);
@@ -491,15 +457,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
             setup_in_place_output(node->get_children()[2], output);
             output.ensure_general();
         }
-        // Fused alpha/beta from trailing scalar children (fuse_scales_into_kernels).
         double alpha = 1.0;
-        const auto &gemm_ch = node->get_children();
-        if (gemm_ch.size() > 3 && inputs.size() > 3 && inputs[3] && inputs[3]->data()) {
-            alpha = inputs[3]->data()[0];
-        }
-        if (gemm_ch.size() > 4 && inputs.size() > 4 && inputs[4] && inputs[4]->data()) {
-            beta = inputs[4]->data()[0];
-        }
         cblas_dgemm(
             CblasColMajor, transA, transB, output.rows, output.cols, k, alpha, a_node.data(), a_node.rows,
             b_node.data(), b_node.rows, beta, output.data(), output.rows);
