@@ -259,6 +259,7 @@ class Context {
 #endif
         }
         Evaluator evaluator(egraph, result, &size_bindings, bindings);
+        evaluator.print_execution_plan();
         auto start_evaluate = std::chrono::high_resolution_clock::now();
         auto result_eval = evaluator.evaluate();
         auto end_evaluate = std::chrono::high_resolution_clock::now();

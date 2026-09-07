@@ -2,6 +2,8 @@
 #include "basic_types.h"
 #include "utils.h"
 #include <cstdint>
+#include <iostream>
+#include <string>
 #include <variant>
 #include <vector>
 
@@ -137,6 +139,43 @@ void Evaluator::setup_in_place_output(Id child_id, MatrixNode &output) const {
         }
     }
     output.format = child_node.format;
+}
+
+void Evaluator::print_execution_plan() const {
+    for (Id class_id : result.execution_order) {
+        auto it = result.choices.find(class_id);
+        const ENode *node = it->second;
+        const Atom &atom = node->get_atom();
+        const auto *op = std::get_if<Op>(&atom);
+        if (!op)
+            continue;
+
+        std::string op_name = atom_to_string(*op);
+        for (char &c : op_name) {
+            c = static_cast<char>(static_cast<unsigned char>(c));
+        }
+
+        std::cout << op_name << "(id: " << class_id << ")(";
+        for (Id child_id : node->get_children()) {
+            auto child_node_it = result.choices.find(child_id);
+            const auto atom = child_node_it->second->get_atom();
+            if (const auto *child_op = std::get_if<Op>(&atom)) {
+                std::string child_op_name = atom_to_string(*child_op);
+                for (char &c : child_op_name) {
+                    c = static_cast<char>(static_cast<unsigned char>(c));
+                }
+                std::cout << child_op_name << "(id: " << child_id << "), ";
+            } else if (const auto *s = std::get_if<ScalarExpr>(&atom)) {
+                std::cout << "Scalar: " << s->evaluate(data_bindings) << ", ";
+            } else if (const auto *i_val = std::get_if<int>(&atom)) {
+                std::cout << "Int: " << *i_val << ", ";
+            } else if (std::holds_alternative<uint32_t>(atom)) {
+                std::string matrix_name = get_string_from_lookup(std::get<uint32_t>(atom));
+                std::cout << "Matrix: " << matrix_name << ", ";
+            }
+        }
+        std::cout << "\b\b)" << std::endl;
+    }
 }
 
 std::vector<double> Evaluator::evaluate() {

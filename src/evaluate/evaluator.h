@@ -76,6 +76,7 @@ class Evaluator {
         EGraph &egraph, const ExtractionResult &result, const SizeBindings *size_bindings,
         const DataBindings &data_bindings);
     std::vector<double> evaluate();
+    void print_execution_plan() const;
 
   private:
     void dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *node, Id class_id) const;
