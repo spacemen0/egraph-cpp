@@ -31,8 +31,6 @@ inline Expression operator-(const Expression &e) { return Expression(Op::Scale, 
 inline Expression operator*(const Expression &lhs, const Expression &rhs) { return Expression(Op::Mul, {lhs, rhs}); }
 inline Expression transpose(const Expression &e) { return Expression(Op::Tr, {e}); }
 inline Expression inverse(const Expression &e) { return Expression(Op::Inv, {e}); }
-inline Expression determinant(const Expression &e) { return Expression(Op::Det, {e}); }
-inline Expression log(const Expression &e) { return Expression(Op::Log, {e}); }
 inline Expression scale(const Expression &e, const ScalarExpr &s) { return Expression(Op::Scale, {e, Expression(s)}); }
 inline Expression scale(const Expression &e, double v) { return Expression(Op::Scale, {e, Expression(ScalarExpr(v))}); }
 

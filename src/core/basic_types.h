@@ -21,8 +21,6 @@ enum class Op {
     Get,      // [tuple, index]
     Sol,      // [A, B] solving AX = B, output X
     SolR,     // [A, B] solving XA = B, output X
-    Det,      // [A] computing det(A)
-    Log,      // [A] computing log(A)
     Scale,    // [A, int] representing scalar * A
     SymMul,   // [A] representing A^T * A (Symmetric Product)
     Geqrf,    // QR factorization
