@@ -47,7 +47,6 @@ class EGraph {
     std::optional<Id> find_class_with_property(const MatrixProperty &prop) const;
     void to_dot_file(const std::string &filename) const;
     void to_img(const std::string &filename, const std::string &format) const;
-    size_t get_revision() const noexcept { return revision; }
     bool is_clean() const noexcept { return pending.empty(); }
 
   private:
@@ -70,6 +69,5 @@ class EGraph {
     // removed
     std::unordered_map<Id, std::unique_ptr<EClass>> classes;
     PropertyTable property_table;
-    size_t revision = 0;
 };
 } // namespace egraph

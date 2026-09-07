@@ -128,7 +128,6 @@ Id EGraph::add_node(ENode node) {
 
     memo[node_ptr] = new_id;
     classes.emplace(new_id, std::move(new_class));
-    ++revision;
     return new_id;
 }
 
@@ -217,7 +216,6 @@ bool EGraph::union_classes(Id id1, Id id2) {
     auto &parents2 = class2_ptr->get_parents();
     parents1.insert(parents1.end(), std::make_move_iterator(parents2.begin()), std::make_move_iterator(parents2.end()));
 
-    ++revision;
     return true;
 }
 
@@ -414,9 +412,6 @@ PruneResult EGraph::prune_nodes_except(const std::unordered_map<Id, std::unorder
     result.classes_with_removed_nodes = changed_classes;
     result.changed = removed_nodes > 0;
 
-    if (result.changed) {
-        ++revision;
-    }
     return result;
 }
 
