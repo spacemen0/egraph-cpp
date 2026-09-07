@@ -49,8 +49,13 @@ Evaluator::Evaluator(
                 node_data.data()[0] = static_cast<double>(*i_val);
                 data_storage[slot] = node_data;
             } else if (auto data = get_matrix_data(egraph, class_id)) {
-                if (data->has_symbolic_shape() && (data_bindings.empty())) {
-                    throw std::runtime_error("Cannot evaluate with symbolic matrices without data bindings.");
+                if (data->has_symbolic_shape()) {
+                    if (!size_bindings || size_bindings->empty()) {
+                        throw std::runtime_error("Cannot evaluate with symbolic matrices without size bindings.");
+                    }
+                    if (data_bindings.empty()) {
+                        throw std::runtime_error("Cannot evaluate with symbolic matrices without data bindings.");
+                    }
                 }
                 Shape shape = bind_shape(data->shape, size_bindings);
                 int rows = *std::get_if<int>(&shape.first);
@@ -87,6 +92,9 @@ Evaluator::Evaluator(
             } else if (auto data = get_tuple_data(egraph, class_id)) {
                 TupleNode tuple_data;
                 for (const auto &matrix_data : *data) {
+                    if (matrix_data.has_symbolic_shape() && (!size_bindings || size_bindings->empty())) {
+                        throw std::runtime_error("Cannot evaluate with symbolic matrices without size bindings.");
+                    }
                     Shape shape = bind_shape(matrix_data.shape, size_bindings);
                     int r = *std::get_if<int>(&shape.first);
                     int c = *std::get_if<int>(&shape.second);

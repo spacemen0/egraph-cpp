@@ -270,7 +270,7 @@ Cost compute_sol_cost(Op op, const ENode &node, const EGraph &egraph, const Size
         return (2.0 / 3.0) * n * n * n + 2.0 * n * n * k;
     }
 
-    if (!is_numeric(shapeA) && !is_numeric(shapeB)) {
+    if (!(is_numeric(shapeA) && is_numeric(shapeB))) {
         std::string n = size_to_symbol(shapeA.first);
         std::string k = size_to_symbol(shapeB.second);
 
@@ -310,7 +310,7 @@ Cost compute_solr_cost(Op op, const ENode &node, const EGraph &egraph, const Siz
         return (2.0 / 3.0) * n * n * n + 2.0 * n * n * m;
     }
 
-    if (!is_numeric(shapeA) && !is_numeric(shapeB)) {
+    if (!(is_numeric(shapeA) && is_numeric(shapeB))) {
         std::string n = size_to_symbol(shapeA.first);
         std::string m = size_to_symbol(shapeB.first);
 

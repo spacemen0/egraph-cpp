@@ -54,10 +54,10 @@ std::string Expression::render(const Expression &expr, bool readable, int parent
 
     if (readable) {
         if (op == Op::Tr) {
-            return Expression::render(expr.children[0], readable) + "ᵀ";
+            return parenthesize(expr.children[0], readable, precedence(expr)) + "ᵀ";
         }
         if (op == Op::Inv) {
-            return Expression::render(expr.children[0], readable) + "⁻¹";
+            return parenthesize(expr.children[0], readable, precedence(expr)) + "⁻¹";
         }
     }
 
