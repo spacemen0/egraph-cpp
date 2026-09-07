@@ -62,45 +62,31 @@ static const auto scale_collapse = make_rewrite(
     "scale-collapse", "Scale(Scale(?a, ?s1), ?s2)", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
     return get_double_from_eclass(g, s.at("s1")).has_value() && get_double_from_eclass(g, s.at("s2")).has_value();
 }, [](EGraph &g, const Substitution &s, Id _) {
-    auto s1 = get_double_from_eclass(g, s.at("s1"));
-    auto s2 = get_double_from_eclass(g, s.at("s2"));
-    if (s1 && s2) {
-        double v = *s1 * *s2;
-        std::vector<Expression> children;
-        children.push_back(Expression("?a"));
-        children.push_back(Expression(ScalarExpr(v)));
-        return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), children), s), false);
-    }
-    throw InvalidOperationError("scale_collapse requires both scale factors to be numbers");
+    double v = *get_double_from_eclass(g, s.at("s1")) * *get_double_from_eclass(g, s.at("s2"));
+    std::vector<Expression> children;
+    children.push_back(Expression("?a"));
+    children.push_back(Expression(ScalarExpr(v)));
+    return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), children), s), false);
 });
 static const auto scale_combine = make_rewrite(
     "scale_combine", "Scale(?a,?s1)+Scale(?a,?s2)", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
     return get_double_from_eclass(g, s.at("s1")).has_value() && get_double_from_eclass(g, s.at("s2")).has_value();
 }, [](EGraph &g, const Substitution &s, Id _) {
-    auto s1 = get_double_from_eclass(g, s.at("s1"));
-    auto s2 = get_double_from_eclass(g, s.at("s2"));
-    if (s1 && s2) {
-        double v = *s1 + *s2;
-        std::vector<Expression> children;
-        children.push_back(Expression("?a"));
-        children.push_back(Expression(ScalarExpr(v)));
-        return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), children), s), false);
-    }
-    throw InvalidOperationError("scale_collapse requires both scale factors to be numbers");
+    double v = *get_double_from_eclass(g, s.at("s1")) + *get_double_from_eclass(g, s.at("s2"));
+    std::vector<Expression> children;
+    children.push_back(Expression("?a"));
+    children.push_back(Expression(ScalarExpr(v)));
+    return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), children), s), false);
 });
 static const auto scale_combine_implicit = make_rewrite(
     "scale_combine_implicit", "Scale(?a,?s1)+?a", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
     return get_double_from_eclass(g, s.at("s1")).has_value();
 }, [](EGraph &g, const Substitution &s, Id _) {
-    auto s1 = get_double_from_eclass(g, s.at("s1"));
-    if (s1) {
-        double v = *s1 + 1.0;
-        std::vector<Expression> children;
-        children.push_back(Expression("?a"));
-        children.push_back(Expression(ScalarExpr(v)));
-        return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), children), s), false);
-    }
-    throw InvalidOperationError("scale_collapse requires both scale factors to be numbers");
+    double v = *get_double_from_eclass(g, s.at("s1")) + 1.0;
+    std::vector<Expression> children;
+    children.push_back(Expression("?a"));
+    children.push_back(Expression(ScalarExpr(v)));
+    return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), children), s), false);
 });
 
 /// Property-Based Simplifications

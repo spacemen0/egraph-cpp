@@ -40,17 +40,13 @@ static const auto sandwich_spd_left = make_rewrite(
     Id b_id = s.at("b");
     const auto *b_prop = get_matrix_data(g, b_id);
     auto old_data = g.get_class_analysis_data(class_id);
-    if (b_prop) {
-        if (auto *mp = std::get_if<MatrixProperty>(&old_data.property)) {
-            mp->flags.is_symmetric = true;
-            if (b_prop->flags.is_positive_definite) {
-                mp->flags.is_positive_definite = true;
-            }
+    if (auto *mp = std::get_if<MatrixProperty>(&old_data.property)) {
+        mp->flags.is_symmetric = true;
+        if (b_prop && b_prop->flags.is_positive_definite) {
+            mp->flags.is_positive_definite = true;
         }
-
-        return std::make_pair(class_id, g.update_class_analysis_data(class_id, old_data));
     }
-    throw InvalidOperationError("sandwich_spd_left: b must be a matrix with properties");
+    return std::make_pair(class_id, g.update_class_analysis_data(class_id, old_data));
 });
 
 static const auto sandwich_spd_right = make_rewrite(
@@ -60,16 +56,13 @@ static const auto sandwich_spd_right = make_rewrite(
     Id b_id = s.at("b");
     const auto *b_prop = get_matrix_data(g, b_id);
     auto old_data = g.get_class_analysis_data(class_id);
-    if (b_prop) {
-        if (auto *mp = std::get_if<MatrixProperty>(&old_data.property)) {
-            mp->flags.is_symmetric = true;
-            if (b_prop->flags.is_positive_definite) {
-                mp->flags.is_positive_definite = true;
-            }
+    if (auto *mp = std::get_if<MatrixProperty>(&old_data.property)) {
+        mp->flags.is_symmetric = true;
+        if (b_prop && b_prop->flags.is_positive_definite) {
+            mp->flags.is_positive_definite = true;
         }
-        return std::make_pair(class_id, g.update_class_analysis_data(class_id, old_data));
     }
-    throw InvalidOperationError("sandwich_spd_right: b must be a matrix with properties");
+    return std::make_pair(class_id, g.update_class_analysis_data(class_id, old_data));
 });
 
 static const std::vector<Rewrite> property_discovery_set = {

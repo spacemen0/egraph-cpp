@@ -49,13 +49,8 @@ Evaluator::Evaluator(
                 node_data.data()[0] = static_cast<double>(*i_val);
                 data_storage[slot] = node_data;
             } else if (auto data = get_matrix_data(egraph, class_id)) {
-                if (data->has_symbolic_shape()) {
-                    if (!size_bindings || size_bindings->empty()) {
-                        throw std::runtime_error("Cannot evaluate with symbolic matrices without size bindings.");
-                    }
-                    if (data_bindings.empty()) {
-                        throw std::runtime_error("Cannot evaluate with symbolic matrices without data bindings.");
-                    }
+                if (data->has_symbolic_shape() && (!size_bindings || size_bindings->empty())) {
+                    throw std::runtime_error("Cannot evaluate with symbolic matrices without size bindings.");
                 }
                 Shape shape = bind_shape(data->shape, size_bindings);
                 int rows = *std::get_if<int>(&shape.first);
@@ -242,8 +237,6 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         bool is_c_zero = false;
         if (auto p = std::get_if<MatrixProperty>(&c_prop.property)) {
             is_c_zero = p->flags.is_zero;
-        } else {
-            throw std::runtime_error("Expected MatrixProperty for C child of Symm");
         }
         if (!is_c_zero) {
             setup_in_place_output(node->get_children()[2], output);

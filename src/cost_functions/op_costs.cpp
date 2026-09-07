@@ -34,14 +34,12 @@ Cost compute_add_cost(Op op, const ENode &node, const EGraph &egraph, const Size
         int rows = std::get<int>(shape.first);
         int cols = std::get<int>(shape.second);
         return static_cast<double>(rows * cols);
-    }
-    if (!is_numeric(shape)) {
+    } else {
         Monomial m = {{size_to_symbol(shape.first), size_to_symbol(shape.second)}};
         SymbolicCost sc;
         sc[m] = 1.0;
         return sc;
     }
-    throw std::invalid_argument("Invalid shape for Add operation in compute_local_cost");
 }
 
 Cost compute_mul_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
@@ -51,8 +49,7 @@ Cost compute_mul_cost(Op op, const ENode &node, const EGraph &egraph, const Size
         int cols1 = std::get<int>(shapes.first.second);
         int cols2 = std::get<int>(shapes.second.second);
         return 2.0 * rows1 * cols1 * cols2;
-    }
-    if (!(is_numeric(shapes.first) && is_numeric(shapes.second))) {
+    } else {
         Monomial m = {
             {size_to_symbol(shapes.first.first), size_to_symbol(shapes.first.second),
              size_to_symbol(shapes.second.second)}};
@@ -60,78 +57,58 @@ Cost compute_mul_cost(Op op, const ENode &node, const EGraph &egraph, const Size
         sc[m] = 2.0;
         return sc;
     }
-    throw std::invalid_argument("Invalid shapes for Mul operation in compute_local_cost");
 }
 
 Cost compute_tr_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
-    {
-        // future: should occur as zero cost if consumed as kernel parameter
-        auto shape = get_one_shape(egraph, size_bindings, node.get_children().at(0));
-        if (is_numeric(shape)) {
-            int rows = std::get<int>(shape.first);
-            int cols = std::get<int>(shape.second);
-            return static_cast<double>(rows * cols);
-        }
-        if (!is_numeric(shape)) {
-            Monomial m = {{size_to_symbol(shape.first), size_to_symbol(shape.second)}};
-            SymbolicCost sc;
-            sc[m] = 1.0;
-            return sc;
-        }
-        throw std::invalid_argument("Invalid shape for Tr operation in compute_local_cost");
+    // future: should occur as zero cost if consumed as kernel parameter
+    auto shape = get_one_shape(egraph, size_bindings, node.get_children().at(0));
+    if (is_numeric(shape)) {
+        int rows = std::get<int>(shape.first);
+        int cols = std::get<int>(shape.second);
+        return static_cast<double>(rows * cols);
+    } else {
+        Monomial m = {{size_to_symbol(shape.first), size_to_symbol(shape.second)}};
+        SymbolicCost sc;
+        sc[m] = 1.0;
+        return sc;
     }
-    // LU L-1 then Solve
 }
 
 Cost compute_inv_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
-    {
-        auto shape = get_one_shape(egraph, size_bindings, node.get_children().at(0));
-        auto data = get_matrix_data(egraph, node.get_children().at(0)); // Get from child
-        if (is_numeric(shape)) {
-            int rows = std::get<int>(shape.first);
-            int cols = std::get<int>(shape.second);
-            if (rows != cols) {
-                throw std::invalid_argument(
-                    "Non-square matrix for Inv operation in "
-                    "compute_local_cost");
-            }
-            if (data &&
-                (data->flags.is_upper_triangular || data->flags.is_lower_triangular || data->flags.is_diagonal)) {
-                return (1.0 / 3.0) * rows * rows * rows;
-            }
-            return 8.0 * rows * rows * rows;
+    auto shape = get_one_shape(egraph, size_bindings, node.get_children().at(0));
+    auto data = get_matrix_data(egraph, node.get_children().at(0));
+    if (is_numeric(shape)) {
+        int rows = std::get<int>(shape.first);
+        if (data &&
+            (data->flags.is_upper_triangular || data->flags.is_lower_triangular || data->flags.is_diagonal)) {
+            return (1.0 / 3.0) * rows * rows * rows;
         }
-        if (!is_numeric(shape)) {
-            Monomial m = {{size_to_symbol(shape.first), size_to_symbol(shape.first), size_to_symbol(shape.first)}};
-            SymbolicCost sc;
-            if (data &&
-                (data->flags.is_upper_triangular || data->flags.is_lower_triangular || data->flags.is_diagonal)) {
-                sc[m] = 1.0 / 3.0;
-            } else {
-                sc[m] = 8.0;
-            }
-            return sc;
+        return 8.0 * rows * rows * rows;
+    } else {
+        Monomial m = {{size_to_symbol(shape.first), size_to_symbol(shape.first), size_to_symbol(shape.first)}};
+        SymbolicCost sc;
+        if (data &&
+            (data->flags.is_upper_triangular || data->flags.is_lower_triangular || data->flags.is_diagonal)) {
+            sc[m] = 1.0 / 3.0;
+        } else {
+            sc[m] = 8.0;
         }
-        throw std::invalid_argument("Invalid shape for Inv operation in compute_local_cost");
-    };
+        return sc;
+    }
 }
 
 Cost compute_minus_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
-    {
-        auto shape = get_one_shape(egraph, size_bindings, node.get_children().at(0));
-        if (is_numeric(shape)) {
-            int rows = std::get<int>(shape.first);
-            int cols = std::get<int>(shape.second);
-            return static_cast<double>(rows * cols);
-        }
-        if (!is_numeric(shape)) {
-            Monomial m = {{size_to_symbol(shape.first), size_to_symbol(shape.second)}};
-            SymbolicCost sc;
-            sc[m] = 1.0;
-            return sc;
-        }
-        throw std::invalid_argument("Invalid shape for Minus operation in compute_local_cost");
-    };
+    auto shape = get_one_shape(egraph, size_bindings, node.get_children().at(0));
+    if (is_numeric(shape)) {
+        int rows = std::get<int>(shape.first);
+        int cols = std::get<int>(shape.second);
+        return static_cast<double>(rows * cols);
+    } else {
+        Monomial m = {{size_to_symbol(shape.first), size_to_symbol(shape.second)}};
+        SymbolicCost sc;
+        sc[m] = 1.0;
+        return sc;
+    }
 }
 
 Cost compute_qr_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
@@ -142,8 +119,7 @@ Cost compute_qr_cost(Op op, const ENode &node, const EGraph &egraph, const SizeB
         auto min_dim = std::min(rows, cols);
         auto max_dim = std::max(rows, cols);
         return 2.0 * min_dim * min_dim * max_dim - (2.0 / 3.0) * min_dim * min_dim * min_dim;
-    }
-    if (!is_numeric(shape)) {
+    } else {
         std::string r = size_to_symbol(shape.first);
         std::string c = size_to_symbol(shape.second);
         if (auto data = get_matrix_data(egraph, node.get_children().at(0))) {
@@ -159,19 +135,14 @@ Cost compute_qr_cost(Op op, const ENode &node, const EGraph &egraph, const SizeB
         sc[n3] = -2.0 / 3.0;
         return sc;
     }
-    throw std::invalid_argument("Invalid shape for QR operation in compute_local_cost");
 }
 
 Cost compute_lu_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
     auto shape = get_one_shape(egraph, size_bindings, node.get_children().at(0));
     if (is_numeric(shape)) {
         double rows = std::get<int>(shape.first);
-        double cols = std::get<int>(shape.second);
-        if (rows != cols)
-            throw std::invalid_argument("Non-square matrix for LU");
         return (2.0 / 3.0) * rows * rows * rows;
-    }
-    if (!is_numeric(shape)) {
+    } else {
         std::string n = size_to_symbol(shape.first);
 
         Monomial n3 = {{n, n, n}};
@@ -179,19 +150,14 @@ Cost compute_lu_cost(Op op, const ENode &node, const EGraph &egraph, const SizeB
         sc[n3] = 2.0 / 3.0;
         return sc;
     }
-    throw std::invalid_argument("Invalid shape for LU operation in compute_local_cost");
 }
 
 Cost compute_llt_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
     auto shape = get_one_shape(egraph, size_bindings, node.get_children().at(0));
     if (is_numeric(shape)) {
         double rows = std::get<int>(shape.first);
-        double cols = std::get<int>(shape.second);
-        if (rows != cols)
-            throw std::invalid_argument("Non-square matrix for LLt");
         return (1.0 / 3.0) * rows * rows * rows;
-    }
-    if (!is_numeric(shape)) {
+    } else {
         std::string n = size_to_symbol(shape.first);
 
         Monomial n3 = {{n, n, n}};
@@ -199,19 +165,14 @@ Cost compute_llt_cost(Op op, const ENode &node, const EGraph &egraph, const Size
         sc[n3] = 1.0 / 3.0;
         return sc;
     }
-    throw std::invalid_argument("Invalid shape for LLt operation in compute_local_cost");
 }
 
 Cost compute_utu_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
     auto shape = get_one_shape(egraph, size_bindings, node.get_children().at(0));
     if (is_numeric(shape)) {
         double rows = std::get<int>(shape.first);
-        double cols = std::get<int>(shape.second);
-        if (rows != cols)
-            throw std::invalid_argument("Non-square matrix for UtU");
         return (1.0 / 3.0) * rows * rows * rows;
-    }
-    if (!is_numeric(shape)) {
+    } else {
         std::string n = size_to_symbol(shape.first);
 
         Monomial n3 = {{n, n, n}};
@@ -219,7 +180,6 @@ Cost compute_utu_cost(Op op, const ENode &node, const EGraph &egraph, const Size
         sc[n3] = 1.0 / 3.0;
         return sc;
     }
-    throw std::invalid_argument("Invalid shape for UtU operation in compute_local_cost");
 }
 
 Cost compute_get_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
@@ -268,9 +228,7 @@ Cost compute_sol_cost(Op op, const ENode &node, const EGraph &egraph, const Size
         }
         // LU Factorization (2/3 n^3) + Forward/Back Substitution (2 n^2 k)
         return (2.0 / 3.0) * n * n * n + 2.0 * n * n * k;
-    }
-
-    if (!(is_numeric(shapeA) && is_numeric(shapeB))) {
+    } else {
         std::string n = size_to_symbol(shapeA.first);
         std::string k = size_to_symbol(shapeB.second);
 
@@ -286,7 +244,6 @@ Cost compute_sol_cost(Op op, const ENode &node, const EGraph &egraph, const Size
         }
         return sc;
     }
-    throw std::invalid_argument("Invalid or mixed shapes for Sol operation in compute_local_cost");
 }
 
 Cost compute_solr_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
@@ -308,9 +265,7 @@ Cost compute_solr_cost(Op op, const ENode &node, const EGraph &egraph, const Siz
         }
         // LU Factorization (2/3 n^3) + Forward/Back Substitution (2 n^2 m)
         return (2.0 / 3.0) * n * n * n + 2.0 * n * n * m;
-    }
-
-    if (!(is_numeric(shapeA) && is_numeric(shapeB))) {
+    } else {
         std::string n = size_to_symbol(shapeA.first);
         std::string m = size_to_symbol(shapeB.first);
 
@@ -326,7 +281,6 @@ Cost compute_solr_cost(Op op, const ENode &node, const EGraph &egraph, const Siz
         }
         return sc;
     }
-    throw std::invalid_argument("Invalid or mixed shapes for SolR operation in compute_local_cost");
 }
 
 Cost compute_scale_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
@@ -663,10 +617,10 @@ Cost compute_ormqr_cost(Op op, const ENode &node, const EGraph &egraph, const Si
     } else {
         std::string m = size_to_symbol(shapeC.first);
         std::string n = size_to_symbol(shapeC.second);
-        std::string k;
+        std::string k = size_to_symbol(shapeQ.second);
         if (auto props = std::get_if<TupleProperty>(&tuple_data.property)) {
-            if ((*props)[0].is_wide_matrix()) {
-                k = size_to_symbol(shapeQ.second);
+            if (!props->empty() && (*props)[0].is_wide_matrix()) {
+                k = size_to_symbol(shapeQ.first);
             }
         }
 
