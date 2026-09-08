@@ -91,12 +91,13 @@ TEST(Rewrite, NewNodes) {
     EXPECT_EQ(results.value(), egraph.find_class_id(id_add));
 }
 
-TEST(Rewrite, SolveRule) {
+TEST(Rewrite, TrsmLN_LeftSolve) {
     auto pt = get_property_table();
 
     MatrixProperty prop_a;
     prop_a.shape = {3, 3};
     prop_a.flags.is_non_singular = true;
+    prop_a.flags.is_lower_triangular = true;
     pt.add_or_update_property_entry("a", prop_a);
 
     MatrixProperty prop_b;
@@ -108,18 +109,18 @@ TEST(Rewrite, SolveRule) {
 
     Id id_expr = egraph.add_expression(Expression("Inv(a) * b"));
 
-    Rewriter rewriter(egraph, {solver_left}, EGraphConfig{.rewrite = {.node_limit = 100}});
+    Rewriter rewriter(egraph, {trsm_ln}, EGraphConfig{.rewrite = {.node_limit = 100}});
     bool changed = rewriter.apply_rewrites();
     EXPECT_TRUE(changed);
 
-    Id id_solve = egraph.add_expression(Expression("Sol(a, b)"));
+    Id id_solve = egraph.add_expression(Expression("Trsm_LN(a, b)"));
     EXPECT_EQ(egraph.find_class_id(id_expr), egraph.find_class_id(id_solve));
     EXPECT_EQ(
         std::get<MatrixProperty>(egraph.get_class_analysis_data(id_expr).property).shape,
         std::make_pair(Size(3), Size(2)));
 }
 
-TEST(Rewrite, SolR_RightSolve) {
+TEST(Rewrite, TrsmRN_RightSolve) {
     PropertyTable pt;
 
     MatrixProperty prop_a;
@@ -137,14 +138,12 @@ TEST(Rewrite, SolR_RightSolve) {
 
     Id id_expr = egraph.add_expression(Expression("b * Inv(a)"));
 
-    Rewriter rewriter(egraph, {solver_right, trsm_rn}, EGraphConfig{.rewrite = {.node_limit = 100}});
+    Rewriter rewriter(egraph, {trsm_rn}, EGraphConfig{.rewrite = {.node_limit = 100}});
     bool changed = rewriter.apply_rewrites();
     EXPECT_TRUE(changed);
 
-    Id id_solr = egraph.add_expression(Expression("SolR(a, b)"));
     Id id_trsm_rn = egraph.add_expression(Expression("Trsm_RN(a, b)"));
 
-    EXPECT_EQ(egraph.find_class_id(id_expr), egraph.find_class_id(id_solr));
     EXPECT_EQ(egraph.find_class_id(id_expr), egraph.find_class_id(id_trsm_rn));
     EXPECT_EQ(
         std::get<MatrixProperty>(egraph.get_class_analysis_data(id_expr).property).shape,

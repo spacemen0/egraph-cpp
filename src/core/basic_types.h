@@ -19,8 +19,6 @@ enum class Op {
     CholeL,   // output: [L] where A = CholeL
     CholeU,   // output: [U] where A = CholeU (representing A = U^T U)
     Get,      // [tuple, index]
-    Sol,      // [A, B] solving AX = B, output X
-    SolR,     // [A, B] solving XA = B, output X
     Scale,    // [A, int] representing scalar * A
     Geqrf,    // QR factorization
     Trtri,    // Inverse of a triangular matrix

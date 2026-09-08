@@ -26,9 +26,6 @@ TEST(Integration, OLSNumeric) {
             break;
         }
     }
-    auto alternative_expression = Expression("Sol(Get(QR(J),1), Tr(Get(QR(J),0)) * k)");
-    auto alternative_id = egraph.add_expression(alternative_expression);
-    ASSERT_TRUE(egraph.find_class_id(alternative_id) == egraph.find_class_id(id));
     // egraph.to_img("OLS_numeric", "svg");
     Pruner::prune_symbolic_when_kernel_available(egraph);
     std::cout << "Doing extraction, num of nodes: " << egraph.num_nodes() << std::endl;

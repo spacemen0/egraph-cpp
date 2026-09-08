@@ -96,10 +96,6 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
             return compute_choleu_cost(*op, *this, egraph, size_bindings);
         case Get:
             return compute_get_cost(*op, *this, egraph, size_bindings);
-        case Sol:
-            return compute_sol_cost(*op, *this, egraph, size_bindings);
-        case SolR:
-            return compute_solr_cost(*op, *this, egraph, size_bindings);
         case Scale:
             return compute_scale_cost(*op, *this, egraph, size_bindings);
         case Gemm_NN:

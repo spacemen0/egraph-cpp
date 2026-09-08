@@ -139,33 +139,6 @@ TEST(OpCostsTest, ComputeGemvCostNumeric) {
     EXPECT_DOUBLE_EQ(std::get<double>(cost_t), 12.0);
 }
 
-TEST(OpCostsTest, ComputeSolCostNumeric) {
-    EGraph egraph(get_property_table());
-    Id id_a = egraph.add_node(make_symbol("A")); // 3x3 general
-    Id id_y = egraph.add_node(make_symbol("y")); // 3x1
-    ENode node = make_op(Op::Sol, {id_a, id_y});
-
-    Cost cost = compute_sol_cost(Op::Sol, node, egraph, nullptr);
-    ASSERT_TRUE(std::holds_alternative<double>(cost));
-    // General solve: (2/3)*n^3 + 2*n^2*k = (2/3)*27 + 2*9*1 = 18 + 18 = 36.0
-    EXPECT_DOUBLE_EQ(std::get<double>(cost), 36.0);
-
-    // Triangular solve
-    PropertyTable pt;
-    pt.add_or_update_property_entry(
-        "L", {.shape = {3, 3}, .flags = {.is_lower_triangular = true, .is_non_singular = true}});
-    pt.add_or_update_property_entry("b", {.shape = {3, 1}});
-    EGraph g2(pt);
-    Id id_l = g2.add_node(make_symbol("L"));
-    Id id_b = g2.add_node(make_symbol("b"));
-    ENode node_tri = make_op(Op::Sol, {id_l, id_b});
-
-    Cost cost_tri = compute_sol_cost(Op::Sol, node_tri, g2, nullptr);
-    ASSERT_TRUE(std::holds_alternative<double>(cost_tri));
-    // Triangular solve: 1.0 * n^2 * k = 9.0
-    EXPECT_DOUBLE_EQ(std::get<double>(cost_tri), 9.0);
-}
-
 TEST(OpCostsTest, ComputeTrtriCostNumeric) {
     EGraph egraph(get_property_table());
     Id id_a = egraph.add_node(make_symbol("A")); // 3x3
@@ -175,25 +148,6 @@ TEST(OpCostsTest, ComputeTrtriCostNumeric) {
     ASSERT_TRUE(std::holds_alternative<double>(cost));
     // (1.0 / 3.0) * 27 = 9.0
     EXPECT_DOUBLE_EQ(std::get<double>(cost), 9.0);
-}
-
-TEST(OpCostsTest, SolAndSolrHandleMixedShapes) {
-    PropertyTable pt;
-    pt.add_or_update_property_entry("A_num", {.shape = {3, 3}});
-    pt.add_or_update_property_entry("B_sym", {.shape = {3, "k"}});
-    EGraph g(pt);
-    Id id_a = g.add_node(make_symbol("A_num"));
-    Id id_b = g.add_node(make_symbol("B_sym"));
-
-    ENode sol_node = make_op(Op::Sol, {id_a, id_b});
-    Cost sol_cost;
-    EXPECT_NO_THROW({ sol_cost = compute_sol_cost(Op::Sol, sol_node, g, nullptr); });
-    EXPECT_TRUE(std::holds_alternative<SymbolicCost>(sol_cost));
-
-    ENode solr_node = make_op(Op::SolR, {id_a, id_b});
-    Cost solr_cost;
-    EXPECT_NO_THROW({ solr_cost = compute_solr_cost(Op::SolR, solr_node, g, nullptr); });
-    EXPECT_TRUE(std::holds_alternative<SymbolicCost>(solr_cost));
 }
 
 TEST(OpCostsTest, ComputeMulCostTransposeNumeric) {

@@ -72,13 +72,9 @@ TEST(ApiTest, OLSSymbolic) {
     SizeBindings bindings = {{"A", 30}, {"B", 10}};
     ExtractionResult best_result = ctx.extract(target_id, bindings);
     std::string actual = best_result.expr.to_string(true);
-    std::string expected_cholel = "Sol(CholeL(Mᵀ * M)ᵀ, Sol(CholeL(Mᵀ * M), Mᵀ * n))";
-    std::string expected_choleu = "Sol(CholeU(Mᵀ * M), Sol(CholeU(Mᵀ * M)ᵀ, Mᵀ * n))";
-    std::string expected_choleu_get = "Sol(Get(CholeU(Mᵀ * M), 0), Sol(Get(CholeU(Mᵀ * M), 0)ᵀ, Mᵀ * n))";
-    std::string expected_solr = "SolR(CholeL(Mᵀ * M), Sol(CholeL(Mᵀ * M), nᵀ * Mᵀ)ᵀ)ᵀ";
-    EXPECT_TRUE(
-        actual == expected_cholel || actual == expected_choleu || actual == expected_choleu_get ||
-        actual == expected_solr)
+    std::string expected_cholel = "CholeL(Mᵀ * M)⁻¹ᵀ * (CholeL(Mᵀ * M)⁻¹ * (Mᵀ * n))";
+    std::string expected_choleu = "CholeU(Mᵀ * M)⁻¹ * (CholeU(Mᵀ * M)⁻¹ᵀ * (Mᵀ * n))";
+    EXPECT_TRUE(actual == expected_cholel || actual == expected_choleu)
         << "Actual expression: " << actual;
 }
 
@@ -91,9 +87,16 @@ TEST(ApiTest, KernelMapping) {
     // (X^T * X)^-1 * X^T * y
     Expression target_math = inverse(transpose(X) * X) * transpose(X) * y;
     Expression best_ast = ctx.optimize_concrete(target_math);
-    EXPECT_EQ(best_ast.to_string(true), "Trsm_LN(R(X), Ormqr_LT(Geqrf(X), y))");
-    ctx.evaluate_concrete(
+    std::string actual = best_ast.to_string(true);
+    std::string expected_qr = "Trsm_LN(R(X), Ormqr_LT(Geqrf(X), y))";
+    std::string expected_cholel =
+        "Trsm_LT(CholeL(Syrk_T(X, Zero_2x2)), Trsm_LN(CholeL(Syrk_T(X, Zero_2x2)), Gemv_T(X, y, Zero_2x1)))";
+    EXPECT_TRUE(actual == expected_qr || actual == expected_cholel) << "Actual: " << actual;
+    auto res = ctx.evaluate_concrete(
         {}, {{"X", std::vector<double>{1.0, 0.0, 0.0, 0.0, 1.0, 0.0}}, {"y", std::vector<double>{5.0, -3.0, 42.0}}});
+    ASSERT_EQ(res.size(), 2);
+    EXPECT_NEAR(res[0], 5.0, 1e-6);
+    EXPECT_NEAR(res[1], -3.0, 1e-6);
 }
 
 TEST(ApiTest, OptimizeSymbolic) {

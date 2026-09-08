@@ -332,50 +332,6 @@ static AnalysisData analyze_get(const EGraph &egraph, const std::vector<Id> &chi
     throw AnalysisError("Get index must be an integer");
 }
 
-static AnalysisData analyze_solve(const EGraph &egraph, const std::vector<Id> &children) {
-    check_arity(children, 2, "Sol");
-    if (auto data1 = get_matrix_data(egraph, children.at(0))) {
-        if (!data1->is_square())
-            throw InvalidOperationError(
-                "Sol operation on non-square matrix " +
-                Expression(egraph.find_node(children.at(0)).value(), egraph).to_string());
-        if (auto data2 = get_matrix_data(egraph, children.at(1))) {
-            if (data1->shape.second != data2->shape.first) {
-                throw ShapeMismatchError("Sol operation with incompatible sizes");
-            }
-
-            MatrixProperty prop;
-            prop.shape = {data1->shape.first, data2->shape.second};
-            prop.flags.is_full_rank = data2->flags.is_full_rank;
-            prop.flags.is_non_singular = data2->flags.is_non_singular;
-            return make_matrix_property_data(prop);
-        }
-    }
-    throw AnalysisError("Sol expects Matrix inputs");
-}
-
-static AnalysisData analyze_solve_right(const EGraph &egraph, const std::vector<Id> &children) {
-    check_arity(children, 2, "SolR");
-    if (auto data1 = get_matrix_data(egraph, children.at(0))) {
-        if (!data1->is_square())
-            throw InvalidOperationError(
-                "SolR operation on non-square matrix " +
-                Expression(egraph.find_node(children.at(0)).value(), egraph).to_string());
-        if (auto data2 = get_matrix_data(egraph, children.at(1))) {
-            if (data2->shape.second != data1->shape.first) {
-                throw ShapeMismatchError("SolR operation with incompatible sizes");
-            }
-
-            MatrixProperty prop;
-            prop.shape = {data2->shape.first, data1->shape.second};
-            prop.flags.is_full_rank = data2->flags.is_full_rank;
-            prop.flags.is_non_singular = data2->flags.is_non_singular;
-            return make_matrix_property_data(prop);
-        }
-    }
-    throw AnalysisError("SolR expects Matrix inputs");
-}
-
 static AnalysisData analyze_lu(const EGraph &egraph, const std::vector<Id> &children) {
     check_arity(children, 1, "LU");
     if (auto data = get_matrix_data(egraph, children.at(0))) {
@@ -1038,10 +994,6 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
         return analyze_choleu(egraph, children);
     case Get:
         return analyze_get(egraph, children);
-    case Sol:
-        return analyze_solve(egraph, children);
-    case SolR:
-        return analyze_solve_right(egraph, children);
     case Scale: {
         return analyze_scale(egraph, children);
     }

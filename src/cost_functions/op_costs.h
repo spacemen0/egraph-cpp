@@ -17,8 +17,6 @@ Cost compute_lu_cost(Op op, const ENode &node, const EGraph &egraph, const SizeB
 Cost compute_cholel_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);
 Cost compute_choleu_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);
 Cost compute_get_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);
-Cost compute_sol_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);
-Cost compute_solr_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);
 Cost compute_scale_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);
 Cost compute_gemm_nn_group_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);
 Cost compute_syrk_n_syrk_t_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);

@@ -204,7 +204,7 @@ TEST(Integration, VerySimpleDiagram) {
 
 TEST(Integration, ExpressionMapToManyKernelSequences) {
     EGraph egraph(get_property_table());
-    egraph.add_expression(Expression("Sol(Get(QR(X),1), Tr(Get(QR(X),0)) * y)"));
+    egraph.add_expression(Expression("Inv(Get(QR(X),1)) * (Tr(Get(QR(X),0)) * y)"));
     Rewriter rewriter(
         egraph, build_rewrite_sets({"lowering"}),
         EGraphConfig{.rewrite = {.node_limit = 1000, .enable_backoff = true}});

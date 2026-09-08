@@ -77,10 +77,14 @@ static const auto syrk_with_c_left =
     make_rewrite("syrk_with_c_left", "?a * Tr(?a) + ?c", "Syrk_N(?a, ?c)", false, is_symmetric("c"));
 static const auto syrk_with_c_right =
     make_rewrite("syrk_with_c_right", "Tr(?a) * ?a + ?c", "Syrk_T(?a, ?c)", false, is_symmetric("c"));
-static const auto trsm =
-    make_rewrite("trsm", "Sol(?a, ?b)", "Trsm_LN(?a, ?b)", false, [](const EGraph &g, const Substitution &s) {
-    return is_square("a")(g, s) && is_triangular("a")(g, s);
+static const auto trsm_ln = make_rewrite(
+    "trsm_ln", "Inv(?a) * ?b", "Trsm_LN(?a, ?b)", false, [](const EGraph &g, const Substitution &s) {
+    return is_square("a")(g, s) && is_triangular("a")(g, s) && is_not_op("a", Op::Tr)(g, s);
 });
+static const auto trsm_lt_tr_inv =
+    make_rewrite("trsm_lt_tr_inv", "Tr(Inv(?a)) * ?b", "Trsm_LT(?a, ?b)", false, is_triangular("a"));
+static const auto trsm_lt_inv_tr =
+    make_rewrite("trsm_lt_inv_tr", "Inv(Tr(?a)) * ?b", "Trsm_LT(?a, ?b)", false, is_triangular("a"));
 
 /// Transition Rules
 /// ----------------------------------------------------------
@@ -107,11 +111,15 @@ static const auto trsm_lt =
     make_rewrite("trsm_lt", "Trsm_LN(Tr(?a), ?b)", "Trsm_LT(?a, ?b)", false, is_triangular("a"));
 
 static const auto trsm_rn = make_rewrite(
-    "trsm_rn_direct", "SolR(?a, ?b)", "Trsm_RN(?a, ?b)", false, [](const EGraph &g, const Substitution &s) {
-    return is_triangular("a")(g, s) && is_not_op("a", Op::Tr)(g, s);
+    "trsm_rn", "?b * Inv(?a)", "Trsm_RN(?a, ?b)", false, [](const EGraph &g, const Substitution &s) {
+    return is_square("a")(g, s) && is_triangular("a")(g, s) && is_not_op("a", Op::Tr)(g, s);
 });
+static const auto trsm_rt_tr_inv =
+    make_rewrite("trsm_rt_tr_inv", "?b * Tr(Inv(?a))", "Trsm_RT(?a, ?b)", false, is_triangular("a"));
+static const auto trsm_rt_inv_tr =
+    make_rewrite("trsm_rt_inv_tr", "?b * Inv(Tr(?a))", "Trsm_RT(?a, ?b)", false, is_triangular("a"));
 static const auto trsm_rt =
-    make_rewrite("trsm_rt_direct", "SolR(Tr(?a), ?b)", "Trsm_RT(?a, ?b)", false, is_triangular("a"));
+    make_rewrite("trsm_rt", "Trsm_RN(Tr(?a), ?b)", "Trsm_RT(?a, ?b)", false, is_triangular("a"));
 
 /// LAPACK
 /// ----------------------------------------------------------
@@ -130,25 +138,31 @@ static const auto fuse_ormqr_rt =
 
 static const auto trtri = make_rewrite("trtri", "Inv(?a)", "Trtri(?a)", false, is_triangular("a"));
 
-static const auto sol_cholel = make_rewrite(
-    "sol_cholel", "Sol(?a, ?b)", "Trsm_LT(Get(Potrf_L(?a), 0), Trsm_LN(Get(Potrf_L(?a), 0), ?b))", false,
+static const auto inv_mul_cholel = make_rewrite(
+    "inv_mul_cholel", "Inv(?a) * ?b", "Trsm_LT(Get(Potrf_L(?a), 0), Trsm_LN(Get(Potrf_L(?a), 0), ?b))", false,
     [](const EGraph &g, const Substitution &s) {
     return is_square("a")(g, s) && !is_triangular("a")(g, s) && is_pos_def("a")(g, s) && is_symmetric("a")(g, s);
 });
-static const auto solr_cholel = make_rewrite(
-    "solr_cholel", "SolR(?a, ?b)", "Trsm_RN(Get(Potrf_L(?a), 0), Trsm_RT(Get(Potrf_L(?a), 0), ?b))", false,
+static const auto mul_inv_cholel = make_rewrite(
+    "mul_inv_cholel", "?b * Inv(?a)", "Trsm_RN(Get(Potrf_L(?a), 0), Trsm_RT(Get(Potrf_L(?a), 0), ?b))", false,
     [](const EGraph &g, const Substitution &s) {
     return is_square("a")(g, s) && !is_triangular("a")(g, s) && is_pos_def("a")(g, s) && is_symmetric("a")(g, s);
 });
-static const auto sol_qr = make_rewrite(
-    "sol_qr", "Sol(?a, ?b)", "Trsm_LN(Get(Geqrf(?a), 1), Ormqr_LT(Geqrf(?a), ?b))", false,
+static const auto inv_mul_qr = make_rewrite(
+    "inv_mul_qr", "Inv(?a) * ?b", "Trsm_LN(Get(Geqrf(?a), 1), Ormqr_LT(Geqrf(?a), ?b))", false,
     [](const EGraph &g, const Substitution &s) {
     return is_square("a")(g, s) && !is_triangular("a")(g, s) && (!is_pos_def("a")(g, s) || !is_symmetric("a")(g, s));
 });
-static const auto solr_qr = make_rewrite(
-    "solr_qr", "SolR(?a, ?b)", "Ormqr_RT(Geqrf(?a), Trsm_RN(Get(Geqrf(?a), 1), ?b))", false,
+static const auto mul_inv_qr = make_rewrite(
+    "mul_inv_qr", "?b * Inv(?a)", "Ormqr_RT(Geqrf(?a), Trsm_RN(Get(Geqrf(?a), 1), ?b))", false,
     [](const EGraph &g, const Substitution &s) {
     return is_square("a")(g, s) && !is_triangular("a")(g, s) && (!is_pos_def("a")(g, s) || !is_symmetric("a")(g, s));
+});
+
+static const auto inv_cholel = make_rewrite(
+    "inv_cholel", "Inv(?a)", "Tr(Trtri(Get(Potrf_L(?a), 0))) * Trtri(Get(Potrf_L(?a), 0))", false,
+    [](const EGraph &g, const Substitution &s) {
+    return is_square("a")(g, s) && !is_triangular("a")(g, s) && is_pos_def("a")(g, s) && is_symmetric("a")(g, s);
 });
 
 static const auto axpy = make_rewrite("axpy", "?a + ?b", "Axpy(?a, ?b)", false);
@@ -165,7 +179,14 @@ static const std::vector<Rewrite> lowering_set = {
     syrk_without_c_right,
     syrk_with_c_left,
     syrk_with_c_right,
-    trsm,
+    trsm_ln,
+    trsm_lt_tr_inv,
+    trsm_lt_inv_tr,
+    trsm_lt,
+    trsm_rn,
+    trsm_rt_tr_inv,
+    trsm_rt_inv_tr,
+    trsm_rt,
     geqrf,
     get_orgqr,
     fuse_ormqr_ln,
@@ -184,15 +205,13 @@ static const std::vector<Rewrite> lowering_set = {
     gemm_tt,
     syrk_t,
     syrk_n,
-    trsm_lt,
-    trsm_rn,
-    trsm_rt,
     potrf_l,
     potrf_u,
-    sol_cholel,
-    solr_cholel,
-    sol_qr,
-    solr_qr,
+    inv_mul_cholel,
+    mul_inv_cholel,
+    inv_mul_qr,
+    mul_inv_qr,
+    inv_cholel,
     axpy,
     axpy_minus,
 };

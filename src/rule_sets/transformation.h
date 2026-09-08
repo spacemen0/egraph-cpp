@@ -24,9 +24,9 @@ static const auto sub_to_add_scale = make_rewrite("sub_to_add_scale", "?a - ?b",
 static const auto scale_add_distribute =
     make_rewrite("scale_add_distribute", "Scale(?a + ?b, ?s)", "Scale(?a, ?s) + Scale(?b, ?s)", true);
 static const auto scale_mul_distribute_left =
-    make_rewrite("scale_mul_distribute_left", "Scale(?a * ?b, ?s)", "Scale(?a, ?s) * ?b", true);
+    make_rewrite("scale_mul_distribute_left", "Scale(?a, ?s) * ?b", "Scale(?a * ?b, ?s)", false);
 static const auto scale_mul_distribute_right =
-    make_rewrite("scale_mul_distribute_right", "Scale(?a * ?b, ?s)", "?a * Scale(?b, ?s)", true);
+    make_rewrite("scale_mul_distribute_right", "?a * Scale(?b, ?s)", "Scale(?a * ?b, ?s)", false);
 
 /// Transpositions and Inversions
 /// ----------------------------------------------------------
@@ -66,16 +66,6 @@ static const auto scale_inverse =
     return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), scale_children), s), false);
 });
 
-/// ----------------------------------------------------------
-static const auto solve_composition = make_rewrite(
-    "solve_composition", "Sol(?a * ?b, ?c)", "Sol(?b, Sol(?a, ?c))", true, [](const EGraph &g, const Substitution &s) {
-    return is_square("a")(g, s) && is_square("b")(g, s);
-});
-static const auto inverse_solve =
-    make_rewrite("inverse_solve", "Inv(Sol(?a, ?b))", "Sol(?b, ?a)", false, [](const EGraph &g, const Substitution &s) {
-    return is_square("a")(g, s) && is_square("b")(g, s);
-});
-
 static const std::vector<Rewrite> transformation_set = {
     mul_assoc,
     add_assoc,
@@ -93,7 +83,5 @@ static const std::vector<Rewrite> transformation_set = {
     orthogonal_inverse,
     scale_transpose,
     scale_inverse,
-    solve_composition,
-    inverse_solve,
 };
 } // namespace egraph

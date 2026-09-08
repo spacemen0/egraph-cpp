@@ -6,16 +6,7 @@
 #include <string>
 #include <string_view>
 
-/// Solver Lowering
-/// ----------------------------------------------------------
-
 namespace egraph {
-static const auto solver_left = make_rewrite("solver_left", "Inv(?a) * ?b", "Sol(?a, ?b)");
-static const auto solver_right = make_rewrite("solver_right", "?b * Inv(?a)", "SolR(?a, ?b)");
-static const auto solver_right_to_left =
-    make_rewrite("solver_right_to_left", "SolR(?a, ?b)", "Tr(Sol(Tr(?a), Tr(?b)))", true);
-static const auto solver_left_to_right =
-    make_rewrite("solver_left_to_right", "Tr(Sol(?a, ?b))", "SolR(Tr(?a), Tr(?b))", true);
 /// QR Factorization
 /// ----------------------------------------------------------
 static const auto qr_invert =
@@ -59,7 +50,6 @@ static const auto cholel_to_choleu = make_rewrite(
 });
 
 static const std::vector<Rewrite> expansion_set = {
-    solver_left, solver_right, solver_right_to_left, solver_left_to_right, qr_invert, qr_leaf, lu_invert, lu_leaf,
-    cholel_invert, cholel_leaf, cholel_to_choleu,
+    qr_invert, qr_leaf, lu_invert, lu_leaf, cholel_invert, cholel_leaf, cholel_to_choleu,
 };
 } // namespace egraph
