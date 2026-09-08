@@ -1,7 +1,6 @@
 #include "op_costs.h"
 #include "utils.h"
 #include <algorithm>
-#include <stdexcept>
 
 namespace egraph {
 using enum Op;
@@ -87,17 +86,30 @@ Cost compute_mul_cost(Op op, const ENode &node, const EGraph &egraph, const Size
             return sc;
         }
     }
+
+    auto prop0 = get_matrix_data(egraph, node.get_children().at(0));
+    auto prop1 = get_matrix_data(egraph, node.get_children().at(1));
+
+    bool is_sq0 = prop0 && (prop0->is_square() || shapes.first.first == shapes.first.second);
+    bool is_sq1 = prop1 && (prop1->is_square() || shapes.second.first == shapes.second.second);
+
+    bool is_trmm_left = is_sq0 && (prop0->flags.is_upper_triangular || prop0->flags.is_lower_triangular);
+
+    bool is_trmm_right = is_sq1 && (prop1->flags.is_upper_triangular || prop1->flags.is_lower_triangular);
+
+    double coeff = (is_trmm_left || is_trmm_right) ? 1.0 : 2.0;
+
     if (is_numeric(shapes.first) && is_numeric(shapes.second)) {
         int rows1 = std::get<int>(shapes.first.first);
         int cols1 = std::get<int>(shapes.first.second);
         int cols2 = std::get<int>(shapes.second.second);
-        return 2.0 * rows1 * cols1 * cols2;
+        return coeff * rows1 * cols1 * cols2;
     } else {
         Monomial m = {
             {size_to_symbol(shapes.first.first), size_to_symbol(shapes.first.second),
              size_to_symbol(shapes.second.second)}};
         SymbolicCost sc;
-        sc[m] = 2.0;
+        sc[m] = coeff;
         return sc;
     }
 }
@@ -122,16 +134,14 @@ Cost compute_inv_cost(Op op, const ENode &node, const EGraph &egraph, const Size
     auto data = get_matrix_data(egraph, node.get_children().at(0));
     if (is_numeric(shape)) {
         int rows = std::get<int>(shape.first);
-        if (data &&
-            (data->flags.is_upper_triangular || data->flags.is_lower_triangular || data->flags.is_diagonal)) {
+        if (data && (data->flags.is_upper_triangular || data->flags.is_lower_triangular || data->flags.is_diagonal)) {
             return (1.0 / 3.0) * rows * rows * rows;
         }
         return 8.0 * rows * rows * rows;
     } else {
         Monomial m = {{size_to_symbol(shape.first), size_to_symbol(shape.first), size_to_symbol(shape.first)}};
         SymbolicCost sc;
-        if (data &&
-            (data->flags.is_upper_triangular || data->flags.is_lower_triangular || data->flags.is_diagonal)) {
+        if (data && (data->flags.is_upper_triangular || data->flags.is_lower_triangular || data->flags.is_diagonal)) {
             sc[m] = 1.0 / 3.0;
         } else {
             sc[m] = 8.0;

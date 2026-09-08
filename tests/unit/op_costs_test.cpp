@@ -81,7 +81,8 @@ TEST(OpCostsTest, ComputeInvCostGeneralSquare) {
 
 TEST(OpCostsTest, ComputeInvCostTriangularSquare) {
     PropertyTable pt;
-    pt.add_or_update_property_entry("U", {.shape = {3, 3}, .flags = {.is_upper_triangular = true, .is_non_singular = true}});
+    pt.add_or_update_property_entry(
+        "U", {.shape = {3, 3}, .flags = {.is_upper_triangular = true, .is_non_singular = true}});
     EGraph egraph(pt);
     Id id_u = egraph.add_node(make_symbol("U"));
     ENode node = make_op(Op::Inv, {id_u});
@@ -91,7 +92,6 @@ TEST(OpCostsTest, ComputeInvCostTriangularSquare) {
     // (1.0 / 3.0) * 3^3 = 9.0
     EXPECT_DOUBLE_EQ(std::get<double>(cost), 9.0);
 }
-
 
 TEST(OpCostsTest, ComputeMinusCostNumeric) {
     EGraph egraph(get_property_table());
@@ -152,7 +152,8 @@ TEST(OpCostsTest, ComputeSolCostNumeric) {
 
     // Triangular solve
     PropertyTable pt;
-    pt.add_or_update_property_entry("L", {.shape = {3, 3}, .flags = {.is_lower_triangular = true, .is_non_singular = true}});
+    pt.add_or_update_property_entry(
+        "L", {.shape = {3, 3}, .flags = {.is_lower_triangular = true, .is_non_singular = true}});
     pt.add_or_update_property_entry("b", {.shape = {3, 1}});
     EGraph g2(pt);
     Id id_l = g2.add_node(make_symbol("L"));
@@ -197,9 +198,9 @@ TEST(OpCostsTest, SolAndSolrHandleMixedShapes) {
 
 TEST(OpCostsTest, ComputeMulCostTransposeNumeric) {
     EGraph egraph(get_property_table());
-    Id id_x = egraph.add_node(make_symbol("X")); // 3x2
+    Id id_x = egraph.add_node(make_symbol("X"));           // 3x2
     Id id_tr_x = egraph.add_node(make_op(Op::Tr, {id_x})); // 2x3
-    ENode node = make_op(Op::Mul, {id_tr_x, id_x}); // Tr(X) * X: 2x2, inner 3
+    ENode node = make_op(Op::Mul, {id_tr_x, id_x});        // Tr(X) * X: 2x2, inner 3
 
     Cost cost = compute_mul_cost(Op::Mul, node, egraph, nullptr);
     ASSERT_TRUE(std::holds_alternative<double>(cost));
@@ -209,7 +210,7 @@ TEST(OpCostsTest, ComputeMulCostTransposeNumeric) {
 
 TEST(OpCostsTest, ComputeMulCostTransposeSymbolic) {
     EGraph egraph(get_property_table_with_symbolic_shapes());
-    Id id_a = egraph.add_node(make_symbol("A")); // a x b
+    Id id_a = egraph.add_node(make_symbol("A"));           // a x b
     Id id_tr_a = egraph.add_node(make_op(Op::Tr, {id_a})); // b x a
     ENode node = make_op(Op::Mul, {id_tr_a, id_a});
 
@@ -219,4 +220,50 @@ TEST(OpCostsTest, ComputeMulCostTransposeSymbolic) {
     EXPECT_EQ(sc.size(), 2);
     EXPECT_DOUBLE_EQ(sc.at(Monomial({"b", "b", "a"})), 1.0);
     EXPECT_DOUBLE_EQ(sc.at(Monomial({"b", "a"})), 1.0);
+}
+
+TEST(OpCostsTest, ComputeMulCostTriangularLeftNumeric) {
+    PropertyTable pt;
+    pt.add_or_update_property_entry("U", {.shape = {3, 3}, .flags = {.is_upper_triangular = true}});
+    pt.add_or_update_property_entry("B", {.shape = {3, 2}});
+    EGraph egraph(pt);
+    Id id_u = egraph.add_node(make_symbol("U"));
+    Id id_b = egraph.add_node(make_symbol("B"));
+    ENode node = make_op(Op::Mul, {id_u, id_b});
+
+    Cost cost = compute_mul_cost(Op::Mul, node, egraph, nullptr);
+    ASSERT_TRUE(std::holds_alternative<double>(cost));
+    // Left TRMM: 1.0 * 3 * 3 * 2 = 18.0 (vs GEMM: 2.0 * 3 * 3 * 2 = 36.0)
+    EXPECT_DOUBLE_EQ(std::get<double>(cost), 18.0);
+}
+
+TEST(OpCostsTest, ComputeMulCostTriangularRightNumeric) {
+    PropertyTable pt;
+    pt.add_or_update_property_entry("B", {.shape = {2, 3}});
+    pt.add_or_update_property_entry("U", {.shape = {3, 3}, .flags = {.is_upper_triangular = true}});
+    EGraph egraph(pt);
+    Id id_b = egraph.add_node(make_symbol("B"));
+    Id id_u = egraph.add_node(make_symbol("U"));
+    ENode node = make_op(Op::Mul, {id_b, id_u});
+
+    Cost cost = compute_mul_cost(Op::Mul, node, egraph, nullptr);
+    ASSERT_TRUE(std::holds_alternative<double>(cost));
+    // Right TRMM: 1.0 * 2 * 3 * 3 = 18.0 (vs GEMM: 2.0 * 2 * 3 * 3 = 36.0)
+    EXPECT_DOUBLE_EQ(std::get<double>(cost), 18.0);
+}
+
+TEST(OpCostsTest, ComputeMulCostTriangularSymbolic) {
+    PropertyTable pt;
+    pt.add_or_update_property_entry("L", {.shape = {"M", "M"}, .flags = {.is_lower_triangular = true}});
+    pt.add_or_update_property_entry("B", {.shape = {"M", "N"}});
+    EGraph egraph(pt);
+    Id id_l = egraph.add_node(make_symbol("L"));
+    Id id_b = egraph.add_node(make_symbol("B"));
+    ENode node = make_op(Op::Mul, {id_l, id_b});
+
+    Cost cost = compute_mul_cost(Op::Mul, node, egraph, nullptr);
+    ASSERT_TRUE(std::holds_alternative<SymbolicCost>(cost));
+    const auto &sc = std::get<SymbolicCost>(cost);
+    EXPECT_EQ(sc.size(), 1);
+    EXPECT_DOUBLE_EQ(sc.at(Monomial({"M", "M", "N"})), 1.0);
 }
