@@ -130,3 +130,17 @@ TEST(Expression, ToStringTransposeInverseReadable) {
     EXPECT_EQ(inv.to_string(true), "A⁻¹");
     EXPECT_EQ(nested.to_string(true), "A⁻¹ᵀ");
 }
+
+TEST(Expression, ToStringTransposeAndInverseParenthesization) {
+    Expression A("A");
+    Expression B("B");
+    Expression tr_add = transpose(A + B);
+    Expression inv_add = inverse(A + B);
+    Expression tr_mul = transpose(A * B);
+    Expression inv_mul = inverse(A * B);
+
+    EXPECT_EQ(tr_add.to_string(true), "(A + B)ᵀ");
+    EXPECT_EQ(inv_add.to_string(true), "(A + B)⁻¹");
+    EXPECT_EQ(tr_mul.to_string(true), "(A * B)ᵀ");
+    EXPECT_EQ(inv_mul.to_string(true), "(A * B)⁻¹");
+}

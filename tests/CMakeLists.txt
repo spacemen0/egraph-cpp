@@ -11,6 +11,10 @@ add_executable(unit_tests
     unit/scale_rewrite_test.cpp
     unit/extractor_test.cpp
     unit/property_test.cpp
+    unit/evaluator_test.cpp
+    unit/op_costs_test.cpp
+    unit/utils_test.cpp
+    unit/config_test.cpp
     integration/api_test.cpp
     integration/integration_test.cpp
     integration/ols_test.cpp

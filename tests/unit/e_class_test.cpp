@@ -47,3 +47,47 @@ TEST(EClass, CleanUpNodes) {
     EXPECT_EQ(countMul12, 1);
     EXPECT_EQ(countAdd34, 1);
 }
+
+TEST(EClass, ConstructorAndGetters) {
+    ENode nodeA({1, 2}, Add);
+    MatrixProperty prop{.shape = {2, 2}, .flags = {.is_identity = true}};
+    AnalysisData data{prop};
+
+    EClass eclass(42, &nodeA, data);
+
+    EXPECT_EQ(eclass.get_nodes().size(), 1);
+    EXPECT_EQ(eclass.get_nodes()[0], &nodeA);
+    EXPECT_TRUE(eclass.get_parents().empty());
+
+    auto *retrieved_prop = std::get_if<MatrixProperty>(&eclass.get_analysis_data().property);
+    ASSERT_NE(retrieved_prop, nullptr);
+    EXPECT_TRUE(retrieved_prop->flags.is_identity);
+}
+
+TEST(EClass, ParentsTracking) {
+    ENode nodeA({1, 2}, Add);
+    AnalysisData data;
+    EClass eclass(1, &nodeA, data);
+
+    eclass.get_parents().push_back(10);
+    eclass.get_parents().push_back(20);
+
+    ASSERT_EQ(eclass.get_parents().size(), 2);
+    EXPECT_EQ(eclass.get_parents()[0], 10);
+    EXPECT_EQ(eclass.get_parents()[1], 20);
+}
+
+TEST(EClass, AnalysisDataMutation) {
+    ENode nodeA({1, 2}, Add);
+    AnalysisData data;
+    EClass eclass(1, &nodeA, data);
+
+    MatrixProperty new_prop{.shape = {3, 3}, .flags = {.is_symmetric = true}};
+    eclass.get_analysis_data() = AnalysisData{new_prop};
+
+    auto *retrieved_prop = std::get_if<MatrixProperty>(&eclass.get_analysis_data().property);
+    ASSERT_NE(retrieved_prop, nullptr);
+    EXPECT_TRUE(retrieved_prop->flags.is_symmetric);
+    EXPECT_EQ(retrieved_prop->shape, (Shape{3, 3}));
+}
+

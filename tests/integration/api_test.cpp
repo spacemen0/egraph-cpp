@@ -158,7 +158,39 @@ TEST(ApiTest, EvaluateConcrete) {
     }
 
     auto out1 = ctx.evaluate_concrete(concrete_sizes, concrete_data);
+    ASSERT_EQ(out1.size(), 20);
     for (size_t i = 0; i < out1.size(); ++i) {
+        EXPECT_TRUE(std::isfinite(out1[i]));
         std::cout << out1[i] << (i == out1.size() - 1 ? "" : " ");
     }
+}
+
+TEST(ApiTest, ConcreteMatrixChainEvaluation) {
+    Context ctx;
+    ctx.define_matrix("A", 2, 2);
+    ctx.define_matrix("B", 2, 2);
+    ctx.define_matrix("C", 2, 2);
+
+    Expression A("A");
+    Expression B("B");
+    Expression C("C");
+
+    Expression target = (A + B) * C;
+    ctx.optimize_concrete(target);
+
+    // A = [1 0; 0 1], B = [2 0; 0 2], C = [4 1; 2 5]
+    // (A + B) * C = 3 * C = [12 3; 6 15]
+    // in col-major: col 0 = [12, 6], col 1 = [3, 15]
+    DataBindings data = {
+        {"A", {1.0, 0.0, 0.0, 1.0}},
+        {"B", {2.0, 0.0, 0.0, 2.0}},
+        {"C", {4.0, 2.0, 1.0, 5.0}}
+    };
+
+    auto res = ctx.evaluate_concrete({}, data);
+    ASSERT_EQ(res.size(), 4);
+    EXPECT_NEAR(res[0], 12.0, 1e-6);
+    EXPECT_NEAR(res[1], 6.0, 1e-6);
+    EXPECT_NEAR(res[2], 3.0, 1e-6);
+    EXPECT_NEAR(res[3], 15.0, 1e-6);
 }

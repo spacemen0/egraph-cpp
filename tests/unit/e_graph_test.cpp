@@ -174,3 +174,44 @@ TEST_F(EGraphTest, MultipleExpressionsShareCommonSubexpression) {
     EXPECT_TRUE(egraph.find_node_id(add1).has_value());
     EXPECT_TRUE(egraph.find_node_id(add2).has_value());
 }
+
+TEST_F(EGraphTest, IsCleanTracking) {
+    EXPECT_TRUE(egraph.is_clean());
+
+    Id id_a = egraph.add_node(sym_a);
+    Id id_z = egraph.add_node(sym_z);
+    egraph.add_node(make_op(Op::Add, {id_a, id_a}));
+    egraph.add_node(make_op(Op::Add, {id_z, id_z}));
+    egraph.rebuild();
+    EXPECT_TRUE(egraph.is_clean());
+
+    egraph.union_classes(id_a, id_z);
+    EXPECT_FALSE(egraph.is_clean());
+
+    egraph.rebuild();
+    EXPECT_TRUE(egraph.is_clean());
+}
+
+TEST_F(EGraphTest, FindClassWithProperty) {
+    Id id_a = egraph.add_node(sym_a);
+    const auto &prop = std::get<MatrixProperty>(egraph.get_class_analysis_data(id_a).property);
+
+    auto found_id = egraph.find_class_with_property(prop);
+    ASSERT_TRUE(found_id.has_value());
+    EXPECT_EQ(egraph.find_class_id(found_id.value()), egraph.find_class_id(id_a));
+}
+
+TEST_F(EGraphTest, ClassIdsAndNodeCountInspection) {
+    EXPECT_TRUE(egraph.get_all_class_ids().empty());
+    EXPECT_EQ(egraph.num_nodes(), 0);
+
+    Id id_x = egraph.add_node(sym_x);
+    Id id_y = egraph.add_node(sym_y);
+
+    EXPECT_EQ(egraph.get_all_class_ids().size(), 2);
+    EXPECT_EQ(egraph.num_nodes(), 2);
+
+    auto all_ids = egraph.get_all_class_ids();
+    EXPECT_NE(std::find(all_ids.begin(), all_ids.end(), id_x), all_ids.end());
+    EXPECT_NE(std::find(all_ids.begin(), all_ids.end(), id_y), all_ids.end());
+}
