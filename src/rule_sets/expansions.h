@@ -44,22 +44,22 @@ static const auto lu_leaf =
 
 /// Cholesky Factorization
 /// ----------------------------------------------------------
-static const auto llt_invert = make_rewrite(
-    "llt-invert", "Inv(?a)", "Tr(Inv(Get(LLt(?a), 0))) * Inv(Get(LLt(?a), 0))", true,
+static const auto cholel_invert = make_rewrite(
+    "cholel-invert", "Inv(?a)", "Tr(Inv(Get(CholeL(?a), 0))) * Inv(Get(CholeL(?a), 0))", true,
     [](const EGraph &g, const Substitution &s) {
     return is_not_factorized("a")(g, s) && is_pos_def("a")(g, s) && is_symmetric("a")(g, s);
 });
-static const auto llt_leaf = make_rewrite(
-    "llt-leaf", "?a", "Get(LLt(?a), 0) * Tr(Get(LLt(?a), 0))", false, [](const EGraph &g, const Substitution &s) {
+static const auto cholel_leaf = make_rewrite(
+    "cholel-leaf", "?a", "Get(CholeL(?a), 0) * Tr(Get(CholeL(?a), 0))", false, [](const EGraph &g, const Substitution &s) {
     return is_not_factorized("a")(g, s) && is_square("a")(g, s) && is_pos_def("a")(g, s) && is_symmetric("a")(g, s);
 });
-static const auto llt_to_utu = make_rewrite(
-    "llt_to_utu", "Get(LLt(?a), 0)", "Tr(Get(UtU(?a), 0))", true, [](const EGraph &g, const Substitution &s) {
+static const auto cholel_to_choleu = make_rewrite(
+    "cholel_to_choleu", "Get(CholeL(?a), 0)", "Tr(Get(CholeU(?a), 0))", true, [](const EGraph &g, const Substitution &s) {
     return is_pos_def("a")(g, s) && is_symmetric("a")(g, s);
 });
 
 static const std::vector<Rewrite> expansion_set = {
     solver_left, solver_right, solver_right_to_left, solver_left_to_right, qr_invert, qr_leaf, lu_invert, lu_leaf,
-    llt_invert,  llt_leaf,     llt_to_utu,
+    cholel_invert, cholel_leaf, cholel_to_choleu,
 };
 } // namespace egraph

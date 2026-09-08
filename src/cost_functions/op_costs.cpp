@@ -152,7 +152,7 @@ Cost compute_lu_cost(Op op, const ENode &node, const EGraph &egraph, const SizeB
     }
 }
 
-Cost compute_llt_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
+Cost compute_cholel_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
     auto shape = get_one_shape(egraph, size_bindings, node.get_children().at(0));
     if (is_numeric(shape)) {
         double rows = std::get<int>(shape.first);
@@ -167,7 +167,7 @@ Cost compute_llt_cost(Op op, const ENode &node, const EGraph &egraph, const Size
     }
 }
 
-Cost compute_utu_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
+Cost compute_choleu_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
     auto shape = get_one_shape(egraph, size_bindings, node.get_children().at(0));
     if (is_numeric(shape)) {
         double rows = std::get<int>(shape.first);

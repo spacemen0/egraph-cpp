@@ -151,30 +151,30 @@ TEST(Rewrite, SolR_RightSolve) {
         std::make_pair(Size(2), Size(3)));
 }
 
-TEST(Rewrite, LLtRewrite) {
+TEST(Rewrite, CholeLRewrite) {
     EGraph egraph(get_property_table());
 
     Id id_expr = egraph.add_expression(Expression("Inv(V)"));
 
-    Rewriter rewriter(egraph, {llt_invert}, EGraphConfig{.rewrite = {.node_limit = 100}});
+    Rewriter rewriter(egraph, {cholel_invert}, EGraphConfig{.rewrite = {.node_limit = 100}});
     bool changed = rewriter.apply_rewrites();
     EXPECT_TRUE(changed);
 
-    Id id_llt = egraph.add_expression(Expression("Tr(Inv(Get(LLt(V), 0))) * Inv(Get(LLt(V), 0))"));
-    EXPECT_EQ(egraph.find_class_id(id_expr), egraph.find_class_id(id_llt));
+    Id id_cholel = egraph.add_expression(Expression("Tr(Inv(Get(CholeL(V), 0))) * Inv(Get(CholeL(V), 0))"));
+    EXPECT_EQ(egraph.find_class_id(id_expr), egraph.find_class_id(id_cholel));
 }
 
-TEST(Rewrite, LLtToUtURewrite) {
+TEST(Rewrite, CholeLToCholeURewrite) {
     EGraph egraph(get_property_table());
 
-    Id id_llt = egraph.add_expression(Expression("Get(LLt(V), 0)"));
+    Id id_cholel = egraph.add_expression(Expression("Get(CholeL(V), 0)"));
 
-    Rewriter rewriter(egraph, {llt_to_utu}, EGraphConfig{.rewrite = {.node_limit = 100}});
+    Rewriter rewriter(egraph, {cholel_to_choleu}, EGraphConfig{.rewrite = {.node_limit = 100}});
     bool changed = rewriter.apply_rewrites();
     EXPECT_TRUE(changed);
 
-    Id id_utu = egraph.add_expression(Expression("Tr(Get(UtU(V), 0))"));
-    EXPECT_EQ(egraph.find_class_id(id_llt), egraph.find_class_id(id_utu));
+    Id id_choleu = egraph.add_expression(Expression("Tr(Get(CholeU(V), 0))"));
+    EXPECT_EQ(egraph.find_class_id(id_cholel), egraph.find_class_id(id_choleu));
 }
 
 TEST(Rewrite, BackoffScheduler) {

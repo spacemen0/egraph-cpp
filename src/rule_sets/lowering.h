@@ -107,8 +107,8 @@ static const auto trsm_rt =
 
 /// LAPACK
 /// ----------------------------------------------------------
-static const auto potrf_l = make_rewrite("potrf_l", "LLt(?a)", "Potrf_L(?a)", false);
-static const auto potrf_u = make_rewrite("potrf_u", "UtU(?a)", "Potrf_U(?a)", false);
+static const auto potrf_l = make_rewrite("potrf_l", "CholeL(?a)", "Potrf_L(?a)", false);
+static const auto potrf_u = make_rewrite("potrf_u", "CholeU(?a)", "Potrf_U(?a)", false);
 static const auto geqrf = make_rewrite("geqrf", "QR(?a)", "Geqrf(?a)", false);
 static const auto get_orgqr = make_rewrite("get_orgqr", "Get(Geqrf(?a), 0)", "Orgqr(Geqrf(?a))", false);
 static const auto fuse_ormqr_ln =
@@ -122,13 +122,13 @@ static const auto fuse_ormqr_rt =
 
 static const auto trtri = make_rewrite("trtri", "Inv(?a)", "Trtri(?a)", false, is_triangular("a"));
 
-static const auto sol_llt = make_rewrite(
-    "sol_llt", "Sol(?a, ?b)", "Trsm_LT(Get(Potrf_L(?a), 0), Trsm_LN(Get(Potrf_L(?a), 0), ?b))", false,
+static const auto sol_cholel = make_rewrite(
+    "sol_cholel", "Sol(?a, ?b)", "Trsm_LT(Get(Potrf_L(?a), 0), Trsm_LN(Get(Potrf_L(?a), 0), ?b))", false,
     [](const EGraph &g, const Substitution &s) {
     return is_square("a")(g, s) && !is_triangular("a")(g, s) && is_pos_def("a")(g, s) && is_symmetric("a")(g, s);
 });
-static const auto solr_llt = make_rewrite(
-    "solr_llt", "SolR(?a, ?b)", "Trsm_RN(Get(Potrf_L(?a), 0), Trsm_RT(Get(Potrf_L(?a), 0), ?b))", false,
+static const auto solr_cholel = make_rewrite(
+    "solr_cholel", "SolR(?a, ?b)", "Trsm_RN(Get(Potrf_L(?a), 0), Trsm_RT(Get(Potrf_L(?a), 0), ?b))", false,
     [](const EGraph &g, const Substitution &s) {
     return is_square("a")(g, s) && !is_triangular("a")(g, s) && is_pos_def("a")(g, s) && is_symmetric("a")(g, s);
 });
@@ -180,8 +180,8 @@ static const std::vector<Rewrite> lowering_set = {
     trsm_rt,
     potrf_l,
     potrf_u,
-    sol_llt,
-    solr_llt,
+    sol_cholel,
+    solr_cholel,
     sol_qr,
     solr_qr,
     axpy,

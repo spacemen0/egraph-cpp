@@ -95,9 +95,12 @@ std::string Expression::render(const Expression &expr, bool readable, int parent
                             factor_name = "U";
                         else if (index == 2)
                             factor_name = "P";
-                    } else if (tuple_op == Op::LLt || tuple_op == Op::Potrf_L || tuple_op == Op::Potrf_U) {
+                    } else if (tuple_op == Op::CholeL || tuple_op == Op::Potrf_L) {
                         if (index == 0)
-                            factor_name = "LLt";
+                            factor_name = "CholeL";
+                    } else if (tuple_op == Op::CholeU || tuple_op == Op::Potrf_U) {
+                        if (index == 0)
+                            factor_name = "CholeU";
                     }
 
                     if (!factor_name.empty()) {

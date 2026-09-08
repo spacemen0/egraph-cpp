@@ -16,8 +16,8 @@ enum class Op {
     Inv,
     QR,       // output: [Q, R] reduced QR
     LU,       // output: [L, U, P]
-    LLt,      // output: [L] where A = LLt
-    UtU,      // output: [U] where A = UtU (representing A = U^T U)
+    CholeL,   // output: [L] where A = CholeL
+    CholeU,   // output: [U] where A = CholeU (representing A = U^T U)
     Get,      // [tuple, index]
     Sol,      // [A, B] solving AX = B, output X
     SolR,     // [A, B] solving XA = B, output X

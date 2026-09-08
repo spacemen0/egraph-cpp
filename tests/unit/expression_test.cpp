@@ -100,21 +100,24 @@ TEST(Expression, ToStringReadable) {
     Expression l("Get(LU(A), 0)");
     Expression u("Get(LU(A), 1)");
     Expression p_mat("Get(LU(A), 2)");
-    Expression llt("Get(LLt(A), 0)");
+    Expression cholel("Get(CholeL(A), 0)");
+    Expression choleu("Get(CholeU(A), 0)");
 
     EXPECT_EQ(q.to_string(), "Get(QR(A), 0)");
     EXPECT_EQ(r.to_string(), "Get(QR(A), 1)");
     EXPECT_EQ(l.to_string(), "Get(LU(A), 0)");
     EXPECT_EQ(u.to_string(), "Get(LU(A), 1)");
     EXPECT_EQ(p_mat.to_string(), "Get(LU(A), 2)");
-    EXPECT_EQ(llt.to_string(), "Get(LLt(A), 0)");
+    EXPECT_EQ(cholel.to_string(), "Get(CholeL(A), 0)");
+    EXPECT_EQ(choleu.to_string(), "Get(CholeU(A), 0)");
 
     EXPECT_EQ(q.to_string(true), "Q(A)");
     EXPECT_EQ(r.to_string(true), "R(A)");
     EXPECT_EQ(l.to_string(true), "L(A)");
     EXPECT_EQ(u.to_string(true), "U(A)");
     EXPECT_EQ(p_mat.to_string(true), "P(A)");
-    EXPECT_EQ(llt.to_string(true), "LLt(A)");
+    EXPECT_EQ(cholel.to_string(true), "CholeL(A)");
+    EXPECT_EQ(choleu.to_string(true), "CholeU(A)");
 }
 
 TEST(Expression, ToStringTransposeInverseReadable) {

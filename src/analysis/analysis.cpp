@@ -406,17 +406,17 @@ static AnalysisData analyze_lu(const EGraph &egraph, const std::vector<Id> &chil
     throw AnalysisError("LU expects a Matrix input");
 }
 
-static AnalysisData analyze_llt(const EGraph &egraph, const std::vector<Id> &children) {
-    check_arity(children, 1, "LLt");
+static AnalysisData analyze_cholel(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 1, "CholeL");
     if (auto data = get_matrix_data(egraph, children.at(0))) {
         if (data->shape.first != data->shape.second) {
-            throw InvalidOperationError("LLt operation on non-square matrix");
+            throw InvalidOperationError("CholeL operation on non-square matrix");
         }
         if (!data->flags.is_positive_definite) {
-            throw InvalidOperationError("LLt operation on non-positive-definite matrix");
+            throw InvalidOperationError("CholeL operation on non-positive-definite matrix");
         }
         if (!data->flags.is_symmetric) {
-            throw InvalidOperationError("LLt operation on non-symmetric matrix");
+            throw InvalidOperationError("CholeL operation on non-symmetric matrix");
         }
         MatrixProperty L;
         L.shape = data->shape;
@@ -425,20 +425,20 @@ static AnalysisData analyze_llt(const EGraph &egraph, const std::vector<Id> &chi
         auto props = std::vector{L};
         return make_tuple_property_data(props);
     }
-    throw AnalysisError("LLt expects a Matrix input");
+    throw AnalysisError("CholeL expects a Matrix input");
 }
 
-static AnalysisData analyze_utu(const EGraph &egraph, const std::vector<Id> &children) {
-    check_arity(children, 1, "UtU");
+static AnalysisData analyze_choleu(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 1, "CholeU");
     if (auto data = get_matrix_data(egraph, children.at(0))) {
         if (data->shape.first != data->shape.second) {
-            throw InvalidOperationError("UtU operation on non-square matrix");
+            throw InvalidOperationError("CholeU operation on non-square matrix");
         }
         if (!data->flags.is_positive_definite) {
-            throw InvalidOperationError("UtU operation on non-positive-definite matrix");
+            throw InvalidOperationError("CholeU operation on non-positive-definite matrix");
         }
         if (!data->flags.is_symmetric) {
-            throw InvalidOperationError("UtU operation on non-symmetric matrix");
+            throw InvalidOperationError("CholeU operation on non-symmetric matrix");
         }
         MatrixProperty U;
         U.shape = data->shape;
@@ -447,7 +447,7 @@ static AnalysisData analyze_utu(const EGraph &egraph, const std::vector<Id> &chi
         auto props = std::vector{U};
         return make_tuple_property_data(props);
     }
-    throw AnalysisError("UtU expects a Matrix input");
+    throw AnalysisError("CholeU expects a Matrix input");
 }
 
 static AnalysisData analyze_gemm_nn(const EGraph &egraph, const std::vector<Id> &children) {
@@ -805,7 +805,7 @@ static AnalysisData analyze_trsm_rt(const EGraph &egraph, const std::vector<Id> 
 }
 
 static AnalysisData analyze_potrf_l(const EGraph &egraph, const std::vector<Id> &children) {
-    return analyze_llt(egraph, children);
+    return analyze_cholel(egraph, children);
 }
 
 static AnalysisData analyze_potrf_u(const EGraph &egraph, const std::vector<Id> &children) {
@@ -1049,10 +1049,10 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
         return analyze_qr(egraph, children);
     case LU:
         return analyze_lu(egraph, children);
-    case LLt:
-        return analyze_llt(egraph, children);
-    case UtU:
-        return analyze_utu(egraph, children);
+    case CholeL:
+        return analyze_cholel(egraph, children);
+    case CholeU:
+        return analyze_choleu(egraph, children);
     case Get:
         return analyze_get(egraph, children);
     case Sol:

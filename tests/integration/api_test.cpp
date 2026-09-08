@@ -72,10 +72,11 @@ TEST(ApiTest, OLSSymbolic) {
     SizeBindings bindings = {{"A", 30}, {"B", 10}};
     ExtractionResult best_result = ctx.extract(target_id, bindings);
     std::string actual = best_result.expr.to_string(true);
-    std::string expected_llt = "Sol(LLt(SymMul(M))ᵀ, Sol(LLt(SymMul(M)), Mᵀ * n))";
-    std::string expected_utu = "Sol(Get(UtU(SymMul(M)), 0), Sol(Get(UtU(SymMul(M)), 0)ᵀ, Mᵀ * n))";
-    std::string expected_solr = "SolR(LLt(SymMul(M)), Sol(LLt(SymMul(M)), nᵀ * Mᵀ)ᵀ)ᵀ";
-    EXPECT_TRUE(actual == expected_llt || actual == expected_utu || actual == expected_solr)
+    std::string expected_cholel = "Sol(CholeL(SymMul(M))ᵀ, Sol(CholeL(SymMul(M)), Mᵀ * n))";
+    std::string expected_choleu = "Sol(CholeU(SymMul(M)), Sol(CholeU(SymMul(M))ᵀ, Mᵀ * n))";
+    std::string expected_choleu_get = "Sol(Get(CholeU(SymMul(M)), 0), Sol(Get(CholeU(SymMul(M)), 0)ᵀ, Mᵀ * n))";
+    std::string expected_solr = "SolR(CholeL(SymMul(M)), Sol(CholeL(SymMul(M)), nᵀ * Mᵀ)ᵀ)ᵀ";
+    EXPECT_TRUE(actual == expected_cholel || actual == expected_choleu || actual == expected_choleu_get || actual == expected_solr)
         << "Actual expression: " << actual;
 }
 

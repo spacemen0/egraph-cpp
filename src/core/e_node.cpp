@@ -90,10 +90,10 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bi
             return compute_qr_cost(*op, *this, egraph, size_bindings);
         case LU:
             return compute_lu_cost(*op, *this, egraph, size_bindings);
-        case LLt:
-            return compute_llt_cost(*op, *this, egraph, size_bindings);
-        case UtU:
-            return compute_utu_cost(*op, *this, egraph, size_bindings);
+        case CholeL:
+            return compute_cholel_cost(*op, *this, egraph, size_bindings);
+        case CholeU:
+            return compute_choleu_cost(*op, *this, egraph, size_bindings);
         case Get:
             return compute_get_cost(*op, *this, egraph, size_bindings);
         case Sol:
