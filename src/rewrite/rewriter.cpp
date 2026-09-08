@@ -6,6 +6,24 @@
 // Instantiate a pattern into the EGraph
 
 namespace egraph {
+
+Rewriter::Rewriter(EGraph &egraph, std::vector<Rewrite> rewrites, const EGraphConfig &config)
+    : egraph(egraph), config(config), enable_backoff(config.rewrite.enable_backoff),
+      enable_node_limit(config.rewrite.enable_node_limit), max_nodes(config.rewrite.node_limit),
+      rewrites(std::move(rewrites)) {
+    std::cout << "[Rewriter] Initialized with " << this->rewrites.size() << " rewrites.\n";
+    filter_rewrites_by_disabled_ops();
+    std::cout << "[Rewriter] After filtering, " << this->rewrites.size() << " rewrites remain.\n";
+    current_match_limits.resize(this->rewrites.size());
+    rewrite_application_counts.resize(this->rewrites.size(), 0);
+    ban_iterations_remaining.resize(this->rewrites.size(), 0);
+    ban_duration_next.resize(this->rewrites.size(), 1);
+
+    std::ranges::transform(this->rewrites, current_match_limits.begin(), [](const auto &r) {
+        return r.initial_match_limit;
+    });
+}
+
 static Id instantiate(EGraph &egraph, const Pattern &pattern, const Substitution &subst) {
     if (const auto *str = std::get_if<uint32_t>(&pattern.atom)) {
         if (get_string_from_lookup(*str).starts_with('?')) {
@@ -28,6 +46,18 @@ bool Rewriter::is_rewrite_banned(size_t i) {
         return true;
     }
     return false;
+}
+
+void Rewriter::filter_rewrites_by_disabled_ops() {
+    rewrites.erase(
+        std::remove_if(
+            rewrites.begin(), rewrites.end(),
+            [this](const Rewrite &r) {
+        return std::any_of(config.disabled_ops.begin(), config.disabled_ops.end(), [r](const Op &op) {
+            return r.lhs.contains_op(op) || r.rhs.contains_op(op);
+        });
+    }),
+        rewrites.end());
 }
 
 void Rewriter::update_ban_status(size_t i, size_t total_valid_matches, size_t budget_remaining) {

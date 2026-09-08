@@ -2,7 +2,6 @@
 #include "e_graph.h"
 #include "egraph_config.h"
 #include "pattern.h"
-#include <algorithm>
 #include <functional>
 #include <string>
 #include <vector>
@@ -21,19 +20,7 @@ struct Rewrite {
 
 class Rewriter {
   public:
-    Rewriter(EGraph &egraph, std::vector<Rewrite> rewrites, const EGraphConfig &config = EGraphConfig())
-        : egraph(egraph), config(config), enable_backoff(config.rewrite.enable_backoff),
-          enable_node_limit(config.rewrite.enable_node_limit), rewrites(std::move(rewrites)),
-          max_nodes(config.rewrite.node_limit) {
-        current_match_limits.resize(this->rewrites.size());
-        rewrite_application_counts.resize(this->rewrites.size(), 0);
-        ban_iterations_remaining.resize(this->rewrites.size(), 0);
-        ban_duration_next.resize(this->rewrites.size(), 1);
-
-        std::ranges::transform(this->rewrites, current_match_limits.begin(), [](const auto &r) {
-            return r.initial_match_limit;
-        });
-    }
+    Rewriter(EGraph &egraph, std::vector<Rewrite> rewrites, const EGraphConfig &config = EGraphConfig());
 
     void set_config(const EGraphConfig &cfg) {
         config = cfg;
@@ -55,6 +42,7 @@ class Rewriter {
         bool left_to_right;
     };
     bool apply_one_iteration();
+    void filter_rewrites_by_disabled_ops();
     bool is_rewrite_banned(size_t i);
     void update_ban_status(size_t i, size_t total_valid_matches, size_t budget_remaining);
     std::vector<Match> find_matches_for_rewrite(

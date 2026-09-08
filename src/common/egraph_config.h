@@ -1,6 +1,8 @@
 #pragma once
 
+#include "basic_types.h"
 #include <cstddef>
+#include <vector>
 
 namespace egraph {
 struct RewriteConfig {
@@ -26,6 +28,7 @@ struct EGraphConfig {
     RewriteConfig rewrite;
     ExtractorConfig extractor;
     PrunerConfig pruner;
+    std::vector<Op> disabled_ops;
     bool enable_logging = false;
     void print_config();
 };

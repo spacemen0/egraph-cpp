@@ -76,7 +76,9 @@ TEST(ApiTest, OLSSymbolic) {
     std::string expected_choleu = "Sol(CholeU(SymMul(M)), Sol(CholeU(SymMul(M))ᵀ, Mᵀ * n))";
     std::string expected_choleu_get = "Sol(Get(CholeU(SymMul(M)), 0), Sol(Get(CholeU(SymMul(M)), 0)ᵀ, Mᵀ * n))";
     std::string expected_solr = "SolR(CholeL(SymMul(M)), Sol(CholeL(SymMul(M)), nᵀ * Mᵀ)ᵀ)ᵀ";
-    EXPECT_TRUE(actual == expected_cholel || actual == expected_choleu || actual == expected_choleu_get || actual == expected_solr)
+    EXPECT_TRUE(
+        actual == expected_cholel || actual == expected_choleu || actual == expected_choleu_get ||
+        actual == expected_solr)
         << "Actual expression: " << actual;
 }
 
@@ -140,7 +142,7 @@ TEST(ApiTest, EvaluateConcrete) {
     Expression n("n");
 
     Expression target_math = (inverse(transpose(M) * M) * transpose(M)) * n;
-
+    ctx.get_config().disabled_ops = {Op::QR};
     ctx.optimize_symbolic(target_math);
 
     SizeBindings concrete_sizes = {{"A", 30}, {"B", 20}};
@@ -182,11 +184,7 @@ TEST(ApiTest, ConcreteMatrixChainEvaluation) {
     // A = [1 0; 0 1], B = [2 0; 0 2], C = [4 1; 2 5]
     // (A + B) * C = 3 * C = [12 3; 6 15]
     // in col-major: col 0 = [12, 6], col 1 = [3, 15]
-    DataBindings data = {
-        {"A", {1.0, 0.0, 0.0, 1.0}},
-        {"B", {2.0, 0.0, 0.0, 2.0}},
-        {"C", {4.0, 2.0, 1.0, 5.0}}
-    };
+    DataBindings data = {{"A", {1.0, 0.0, 0.0, 1.0}}, {"B", {2.0, 0.0, 0.0, 2.0}}, {"C", {4.0, 2.0, 1.0, 5.0}}};
 
     auto res = ctx.evaluate_concrete({}, data);
     ASSERT_EQ(res.size(), 4);

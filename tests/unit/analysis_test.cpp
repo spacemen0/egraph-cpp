@@ -240,8 +240,12 @@ TEST(MatrixAnalysisTest, SyrkRankInferenceOnRectangularMatrices) {
 
 TEST(MatrixAnalysisTest, AnalysisRejectsNonSquareFactorizationsAndInversion) {
     PropertyTable pt;
-    pt.add_or_update_property_entry("RectSym", {.shape = {"A", "B"}, .flags = {.is_positive_definite = true, .is_symmetric = true, .is_non_singular = true}});
-    pt.add_or_update_property_entry("RectNum", {.shape = {3, 4}, .flags = {.is_positive_definite = true, .is_symmetric = true, .is_non_singular = true}});
+    pt.add_or_update_property_entry(
+        "RectSym",
+        {.shape = {"A", "B"}, .flags = {.is_symmetric = true, .is_positive_definite = true, .is_non_singular = true}});
+    pt.add_or_update_property_entry(
+        "RectNum",
+        {.shape = {3, 4}, .flags = {.is_symmetric = true, .is_positive_definite = true, .is_non_singular = true}});
     EGraph g(pt);
     Id id_sym = g.add_node(make_symbol("RectSym"));
     Id id_num = g.add_node(make_symbol("RectNum"));
