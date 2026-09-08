@@ -36,39 +36,34 @@ static const auto invert_mat_prod = make_rewrite(
 });
 static const auto mat_transpose_prod = make_rewrite("mat-transpose-prod", "Tr(?a * ?b)", "Tr(?b) * Tr(?a)", true);
 static const auto sym_prod_transpose_right = make_rewrite(
-    "symm_prod_transpose_right", "?a * ?b", "Tr(?b * Tr(?a))", false,
-    [](const EGraph &g, const Substitution &s) {
-        return is_symmetric("b")(g, s) && is_not_vector("a")(g, s);
-    });
+    "symm_prod_transpose_right", "?a * ?b", "Tr(?b * Tr(?a))", false, [](const EGraph &g, const Substitution &s) {
+    return is_symmetric("b")(g, s) && is_not_vector("a")(g, s);
+});
 static const auto sym_prod_transpose_left = make_rewrite(
-    "symm_prod_transpose_left", "?b * ?a", "Tr(Tr(?a) * ?b)", false,
-    [](const EGraph &g, const Substitution &s) {
-        return is_symmetric("b")(g, s) && is_not_vector("a")(g, s);
-    });
+    "symm_prod_transpose_left", "?b * ?a", "Tr(Tr(?a) * ?b)", false, [](const EGraph &g, const Substitution &s) {
+    return is_symmetric("b")(g, s) && is_not_vector("a")(g, s);
+});
+
 static const auto orthogonal_inverse =
     make_rewrite("orthogonal-inverse", "Inv(?a)", "Tr(?a)", false, is_orthogonal_cond("a"));
 static const auto scale_transpose = make_rewrite("scale_transpose", "Tr(Scale(?a, ?s))", "Scale(Tr(?a), ?s)", true);
 
-static const auto scale_inverse = make_rewrite(
-    "scale_inverse", "Inv(Scale(?a, ?s))", "Dynamic", true, nullptr, [](EGraph &g, const Substitution &s, Id _) {
-    auto s_val = get_double_from_eclass(g, s.at("s"));
-    if (s_val) {
-        double val = *s_val;
-        if (val == 0.0)
-            throw AnalysisError("Division by zero in scale_inverse");
+static const auto scale_inverse =
+    make_rewrite("scale_inverse", "Inv(Scale(?a, ?s))", "Dynamic", true, [](const EGraph &g, const Substitution &s) {
+    auto val = get_double_from_eclass(g, s.at("s"));
+    return val.has_value() && *val != 0.0;
+}, [](EGraph &g, const Substitution &s, Id _) {
+    auto val = get_double_from_eclass(g, s.at("s")).value();
+    // Construct the expression tree directly: Scale(Inv(?a), 1/val)
+    std::vector<Expression> inv_children;
+    inv_children.push_back(Expression("?a"));
+    Expression inv_node(Atom(Op::Inv), inv_children);
 
-        // Construct the expression tree directly: Scale(Inv(?a), 1/val)
-        std::vector<Expression> inv_children;
-        inv_children.push_back(Expression("?a"));
-        Expression inv_node(Atom(Op::Inv), inv_children);
+    std::vector<Expression> scale_children;
+    scale_children.push_back(inv_node);
+    scale_children.push_back(Expression(ScalarExpr(1.0 / val)));
 
-        std::vector<Expression> scale_children;
-        scale_children.push_back(inv_node);
-        scale_children.push_back(Expression(ScalarExpr(1.0 / val)));
-
-        return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), scale_children), s), false);
-    }
-    throw AnalysisError("Expected a constant scalar for the scale factor in scale_inverse rewrite");
+    return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), scale_children), s), false);
 });
 
 /// ----------------------------------------------------------
