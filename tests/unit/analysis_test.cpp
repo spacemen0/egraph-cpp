@@ -44,7 +44,7 @@ TEST(EGraph, BoundExtractionDoesNotMutateAnalysisData) {
     Extractor extractor(egraph);
     auto result = extractor.extract(id_mul, {{"A", 5}, {"B", 3}});
     EXPECT_TRUE(std::holds_alternative<double>(result.cost));
-    EXPECT_EQ(std::get<double>(result.cost), 105.0);
+    EXPECT_EQ(std::get<double>(result.cost), 75.0);
 
     const auto *m_prop_after = std::get_if<MatrixProperty>(&egraph.get_class_analysis_data(id_m).property);
     ASSERT_NE(m_prop_after, nullptr);
@@ -175,38 +175,6 @@ TEST(MatrixAnalysisTest, ArityCheckThrowsAnalysisError) {
 
     EXPECT_THROW(g.add_node(make_op(Op::Add, {id_a})), AnalysisError);
     EXPECT_THROW(g.add_node(make_op(Op::Tr, {id_a, id_a})), AnalysisError);
-}
-
-TEST(MatrixAnalysisTest, SymMulOnWideMatrixIsNotPositiveDefinite) {
-    PropertyTable pt;
-    pt.add_or_update_property_entry("W", {.shape = {2, 5}, .flags = {.is_full_rank = true}});
-    EGraph g(pt);
-    Id id_w = g.add_node(make_symbol("W"));
-    Id id_sym = g.add_node(make_op(Op::SymMul, {id_w}));
-
-    const auto *prop = get_matrix_data(g, id_sym);
-    ASSERT_NE(prop, nullptr);
-    EXPECT_EQ(prop->shape, (Shape{5, 5}));
-    EXPECT_TRUE(prop->flags.is_symmetric);
-    EXPECT_FALSE(prop->flags.is_positive_definite);
-    EXPECT_FALSE(prop->flags.is_non_singular);
-    EXPECT_FALSE(prop->flags.is_full_rank);
-}
-
-TEST(MatrixAnalysisTest, SymMulOnTallMatrixWithoutFullRankIsNotPositiveDefinite) {
-    PropertyTable pt;
-    pt.add_or_update_property_entry("T", {.shape = {5, 2}, .flags = {.is_full_rank = false, .is_tall = true}});
-    EGraph g(pt);
-    Id id_t = g.add_node(make_symbol("T"));
-    Id id_sym = g.add_node(make_op(Op::SymMul, {id_t}));
-
-    const auto *prop = get_matrix_data(g, id_sym);
-    ASSERT_NE(prop, nullptr);
-    EXPECT_EQ(prop->shape, (Shape{2, 2}));
-    EXPECT_TRUE(prop->flags.is_symmetric);
-    EXPECT_FALSE(prop->flags.is_positive_definite);
-    EXPECT_FALSE(prop->flags.is_non_singular);
-    EXPECT_FALSE(prop->flags.is_full_rank);
 }
 
 TEST(MatrixAnalysisTest, SyrkRankInferenceOnRectangularMatrices) {

@@ -67,15 +67,15 @@ TEST(ApiTest, OLSSymbolic) {
     ctx.get_config().rewrite.node_limit = 1000;
     ctx.get_config().rewrite.enable_backoff = true;
     ctx.get_config().rewrite.max_iterations = 10;
-    ctx.rewrite({"simplification", "transformation", "expansion"});
+    ctx.rewrite({"property_discovery", "simplification", "transformation", "expansion"});
 
     SizeBindings bindings = {{"A", 30}, {"B", 10}};
     ExtractionResult best_result = ctx.extract(target_id, bindings);
     std::string actual = best_result.expr.to_string(true);
-    std::string expected_cholel = "Sol(CholeL(SymMul(M))ᵀ, Sol(CholeL(SymMul(M)), Mᵀ * n))";
-    std::string expected_choleu = "Sol(CholeU(SymMul(M)), Sol(CholeU(SymMul(M))ᵀ, Mᵀ * n))";
-    std::string expected_choleu_get = "Sol(Get(CholeU(SymMul(M)), 0), Sol(Get(CholeU(SymMul(M)), 0)ᵀ, Mᵀ * n))";
-    std::string expected_solr = "SolR(CholeL(SymMul(M)), Sol(CholeL(SymMul(M)), nᵀ * Mᵀ)ᵀ)ᵀ";
+    std::string expected_cholel = "Sol(CholeL(Mᵀ * M)ᵀ, Sol(CholeL(Mᵀ * M), Mᵀ * n))";
+    std::string expected_choleu = "Sol(CholeU(Mᵀ * M), Sol(CholeU(Mᵀ * M)ᵀ, Mᵀ * n))";
+    std::string expected_choleu_get = "Sol(Get(CholeU(Mᵀ * M), 0), Sol(Get(CholeU(Mᵀ * M), 0)ᵀ, Mᵀ * n))";
+    std::string expected_solr = "SolR(CholeL(Mᵀ * M), Sol(CholeL(Mᵀ * M), nᵀ * Mᵀ)ᵀ)ᵀ";
     EXPECT_TRUE(
         actual == expected_cholel || actual == expected_choleu || actual == expected_choleu_get ||
         actual == expected_solr)

@@ -22,7 +22,6 @@ enum class Op {
     Sol,      // [A, B] solving AX = B, output X
     SolR,     // [A, B] solving XA = B, output X
     Scale,    // [A, int] representing scalar * A
-    SymMul,   // [A] representing A^T * A (Symmetric Product)
     Geqrf,    // QR factorization
     Trtri,    // Inverse of a triangular matrix
     Gemv_N,   // Gemv(A, x, y) - General Matrix-Vector Multiply

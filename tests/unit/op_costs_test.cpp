@@ -194,3 +194,29 @@ TEST(OpCostsTest, SolAndSolrHandleMixedShapes) {
     EXPECT_NO_THROW({ solr_cost = compute_solr_cost(Op::SolR, solr_node, g, nullptr); });
     EXPECT_TRUE(std::holds_alternative<SymbolicCost>(solr_cost));
 }
+
+TEST(OpCostsTest, ComputeMulCostTransposeNumeric) {
+    EGraph egraph(get_property_table());
+    Id id_x = egraph.add_node(make_symbol("X")); // 3x2
+    Id id_tr_x = egraph.add_node(make_op(Op::Tr, {id_x})); // 2x3
+    ENode node = make_op(Op::Mul, {id_tr_x, id_x}); // Tr(X) * X: 2x2, inner 3
+
+    Cost cost = compute_mul_cost(Op::Mul, node, egraph, nullptr);
+    ASSERT_TRUE(std::holds_alternative<double>(cost));
+    // SYRK cost: 1.0 * n * (n + 1) * k = 2 * 3 * 3 = 18.0 (vs GEMM: 2 * 2 * 3 * 2 = 24.0)
+    EXPECT_DOUBLE_EQ(std::get<double>(cost), 18.0);
+}
+
+TEST(OpCostsTest, ComputeMulCostTransposeSymbolic) {
+    EGraph egraph(get_property_table_with_symbolic_shapes());
+    Id id_a = egraph.add_node(make_symbol("A")); // a x b
+    Id id_tr_a = egraph.add_node(make_op(Op::Tr, {id_a})); // b x a
+    ENode node = make_op(Op::Mul, {id_tr_a, id_a});
+
+    Cost cost = compute_mul_cost(Op::Mul, node, egraph, nullptr);
+    ASSERT_TRUE(std::holds_alternative<SymbolicCost>(cost));
+    const auto &sc = std::get<SymbolicCost>(cost);
+    EXPECT_EQ(sc.size(), 2);
+    EXPECT_DOUBLE_EQ(sc.at(Monomial({"b", "b", "a"})), 1.0);
+    EXPECT_DOUBLE_EQ(sc.at(Monomial({"b", "a"})), 1.0);
+}

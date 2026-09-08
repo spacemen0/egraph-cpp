@@ -42,8 +42,51 @@ Cost compute_add_cost(Op op, const ENode &node, const EGraph &egraph, const Size
     }
 }
 
+static bool are_transposes(const EGraph &egraph, Id id1, Id id2) {
+    Id root1 = egraph.find_class_id(id1);
+    Id root2 = egraph.find_class_id(id2);
+    for (const auto *n : egraph.get_class_nodes(root1)) {
+        if (std::holds_alternative<Op>(n->get_atom()) && std::get<Op>(n->get_atom()) == Op::Tr) {
+            if (egraph.find_class_id(n->get_children().at(0)) == root2) {
+                return true;
+            }
+        }
+    }
+    for (const auto *n : egraph.get_class_nodes(root2)) {
+        if (std::holds_alternative<Op>(n->get_atom()) && std::get<Op>(n->get_atom()) == Op::Tr) {
+            if (egraph.find_class_id(n->get_children().at(0)) == root1) {
+                return true;
+            }
+        }
+    }
+    if (root1 == root2) {
+        if (const auto *prop = get_matrix_data(egraph, root1)) {
+            if (prop->flags.is_symmetric) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 Cost compute_mul_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
     auto shapes = get_two_shapes(egraph, size_bindings, node.get_children().at(0), node.get_children().at(1));
+    if (are_transposes(egraph, node.get_children().at(0), node.get_children().at(1))) {
+        Size N_dim = shapes.first.first;
+        Size K_dim = shapes.first.second;
+        if (is_numeric(shapes.first)) {
+            int n_val = std::get<int>(N_dim);
+            int k_val = std::get<int>(K_dim);
+            return 1.0 * n_val * (n_val + 1.0) * k_val;
+        } else {
+            Monomial n2k = {{size_to_symbol(N_dim), size_to_symbol(N_dim), size_to_symbol(K_dim)}};
+            Monomial nk = {{size_to_symbol(N_dim), size_to_symbol(K_dim)}};
+            SymbolicCost sc;
+            sc[n2k] = 1.0;
+            sc[nk] = 1.0;
+            return sc;
+        }
+    }
     if (is_numeric(shapes.first) && is_numeric(shapes.second)) {
         int rows1 = std::get<int>(shapes.first.first);
         int cols1 = std::get<int>(shapes.first.second);
@@ -295,25 +338,6 @@ Cost compute_scale_cost(Op op, const ENode &node, const EGraph &egraph, const Si
         Monomial rc = {{r, c}};
         SymbolicCost sc;
         sc[rc] = 1.0;
-        return sc;
-    }
-}
-
-Cost compute_sym_mul_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
-    auto shape = get_one_shape(egraph, size_bindings, node.get_children().at(0));
-    Size N_dim = shape.second;
-    Size K_dim = shape.first;
-
-    if (is_numeric(shape)) {
-        int n_val = std::get<int>(N_dim);
-        int k_val = std::get<int>(K_dim);
-        return 1.0 * n_val * (n_val + 1.0) * k_val;
-    } else {
-        Monomial n2k = {{size_to_symbol(N_dim), size_to_symbol(N_dim), size_to_symbol(K_dim)}};
-        Monomial nk = {{size_to_symbol(N_dim), size_to_symbol(K_dim)}};
-        SymbolicCost sc;
-        sc[n2k] = 1.0;
-        sc[nk] = 1.0;
         return sc;
     }
 }
