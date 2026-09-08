@@ -25,4 +25,16 @@ Pattern::Pattern(std::string_view s) {
         return Pattern(str);
     });
 }
+
+bool Pattern::contains_op(const Op &op) const {
+    if (std::holds_alternative<Op>(atom) && std::get<Op>(atom) == op) {
+        return true;
+    }
+    for (const auto &child : children) {
+        if (child.contains_op(op)) {
+            return true;
+        }
+    }
+    return false;
+}
 } // namespace egraph

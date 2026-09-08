@@ -9,6 +9,7 @@ namespace egraph {
 struct Pattern {
     explicit Pattern(const Atom &atom, const std::vector<Pattern> &children) : atom(atom), children(children) {}
     explicit Pattern(std::string_view s);
+    bool contains_op(const Op &op) const;
     Atom atom;
     std::vector<Pattern> children;
 };
