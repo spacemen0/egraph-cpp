@@ -67,8 +67,8 @@ Extractor::Extractor(EGraph &egraph, const EGraphConfig &config)
 
 void Extractor::reset() const {
     tree_cost.clear();
-    minimal_possible_sub_tree_costs.clear();
-    greedy_choices.clear();
+    dag_costs_lower_bound.clear();
+    tree_choices.clear();
     nodes_visited = 0;
 }
 std::vector<Extractor::NumericSearchResult>
@@ -95,7 +95,7 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
 
     AStarSearchNode start_node;
     start_node.g_cost = 0.0;
-    start_node.h_cost = minimal_possible_sub_tree_costs.at(root);
+    start_node.h_cost = dag_costs_lower_bound.at(root);
     start_node.choices_head = nullptr;
     start_node.pending.push_back(root);
 
@@ -137,7 +137,7 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
         }
         // decide which class to expand next: pick the one with the highest lower bound
         auto it = std::max_element(top.pending.begin(), top.pending.end(), [&](Id a, Id b) {
-            return minimal_possible_sub_tree_costs.at(a) < minimal_possible_sub_tree_costs.at(b);
+            return dag_costs_lower_bound.at(a) < dag_costs_lower_bound.at(b);
         });
 
         Id curr_class = *it;
@@ -182,7 +182,7 @@ Extractor::find_top_numeric_dags(Id root_class_id, size_t max_results, const Siz
 
             double max_pending_lb = 0;
             for (Id p : next_state.pending) {
-                max_pending_lb = std::max(max_pending_lb, minimal_possible_sub_tree_costs.at(p));
+                max_pending_lb = std::max(max_pending_lb, dag_costs_lower_bound.at(p));
             }
             next_state.h_cost = max_pending_lb;
 
@@ -229,15 +229,23 @@ Extractor::convert_to_map(const std::vector<const ENode *> &choices, const std::
     return result;
 }
 
+// this function does two things in one pass:
+// 1. Compute the admissible DAG lower-bound cost for each e-class. (If take count of cost sharing, what is the minimum
+// cost of a DAG rooted at this e-class?)
+// 2. Compute the best tree cost and corresponding e-node for each e-class.
 void Extractor::initial_analysis_pass(const SizeBindings *size_bindings) const {
     tree_cost.clear();
-    minimal_possible_sub_tree_costs.clear();
-    greedy_choices.clear();
+    dag_costs_lower_bound.clear();
+    tree_choices.clear();
+
+    // dag costs lower bound but for the current chosen node in tree choices for each class
+    std::unordered_map<Id, double> chosen_node_dag_cost_lower_bound;
 
     auto all_class_ids = egraph.get_all_class_ids();
     for (Id id : all_class_ids) {
         tree_cost[id] = std::numeric_limits<double>::infinity();
-        minimal_possible_sub_tree_costs[id] = std::numeric_limits<double>::infinity();
+        dag_costs_lower_bound[id] = std::numeric_limits<double>::infinity();
+        chosen_node_dag_cost_lower_bound[id] = std::numeric_limits<double>::infinity();
     }
 
     bool changed = true;
@@ -250,50 +258,45 @@ void Extractor::initial_analysis_pass(const SizeBindings *size_bindings) const {
                     continue;
                 }
                 double local = std::get<double>(local_cost);
-
-                // Lower bounds for dag cost and size
                 double max_child_cost = 0;
-                size_t max_child_size = 0;
-                bool children_incomplete_for_lb = false;
 
-                // Tree cost
-                double current_node_greedy_cost = local;
-                bool children_incomplete_for_greedy = false;
+                double node_tree_cost = local;
+                bool children_incomplete = false;
 
                 for (Id child : node->get_children()) {
                     Id child_root = egraph.find_class_id(child);
 
-                    if (minimal_possible_sub_tree_costs[child_root] == std::numeric_limits<double>::infinity()) {
-                        children_incomplete_for_lb = true;
-                    } else {
-
-                        // use std::max because this is at least the cost of all children, even all other children are
-                        // free by sharing.
-                        max_child_cost = std::max(max_child_cost, minimal_possible_sub_tree_costs[child_root]);
-                    }
-
                     if (tree_cost[child_root] == std::numeric_limits<double>::infinity()) {
-                        children_incomplete_for_greedy = true;
-                    } else {
-                        current_node_greedy_cost += tree_cost[child_root];
+                        children_incomplete = true;
+                        break;
                     }
+
+                    max_child_cost = std::max(max_child_cost, dag_costs_lower_bound[child_root]);
+                    node_tree_cost += tree_cost[child_root];
                 }
 
-                if (!children_incomplete_for_lb) {
-                    double node_lb_cost = local + max_child_cost;
-                    size_t node_lb_size = 1 + max_child_size;
-                    if (node_lb_cost < minimal_possible_sub_tree_costs[class_id]) {
-                        minimal_possible_sub_tree_costs[class_id] = node_lb_cost;
-                        changed = true;
-                    }
+                if (children_incomplete) {
+                    continue;
                 }
 
-                if (!children_incomplete_for_greedy) {
-                    if (current_node_greedy_cost < tree_cost[class_id]) {
-                        tree_cost[class_id] = current_node_greedy_cost;
-                        greedy_choices[class_id] = node;
-                        changed = true;
-                    }
+                double node_lb_cost = local + max_child_cost;
+
+                // we have found a better lower bound for this class, but it is not always the node selected for the
+                // best tree cost
+                if (node_lb_cost < dag_costs_lower_bound[class_id]) {
+                    dag_costs_lower_bound[class_id] = node_lb_cost;
+                    changed = true;
+                }
+
+                // if tree cost is smaller than the current best, or if it's equal but the lower bound is smaller,
+                // update the best choice
+                if (node_tree_cost < tree_cost[class_id] ||
+                    (node_tree_cost == tree_cost[class_id] &&
+                     node_lb_cost < chosen_node_dag_cost_lower_bound[class_id])) {
+                    tree_cost[class_id] = node_tree_cost;
+                    chosen_node_dag_cost_lower_bound[class_id] = node_lb_cost;
+                    tree_choices[class_id] = node;
+                    changed = true;
                 }
             }
         }
@@ -317,8 +320,8 @@ ExtractionResult Extractor::tree_extract(Id class_id, const SizeBindings &size_b
             continue;
         }
 
-        auto it = greedy_choices.find(curr);
-        if (it != greedy_choices.end() && it->second) {
+        auto it = tree_choices.find(curr);
+        if (it != tree_choices.end() && it->second) {
             reachable_choices[curr] = it->second;
             for (Id child : it->second->get_children()) {
                 stack.push_back(egraph.find_class_id(child));

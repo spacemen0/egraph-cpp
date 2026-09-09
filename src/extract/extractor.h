@@ -55,9 +55,12 @@ class Extractor {
     size_t max_depth;
     size_t node_visit_limit;
 
-    mutable std::unordered_map<Id, double> tree_cost;                       // local cost + sum(children_costs)
-    mutable std::unordered_map<Id, double> minimal_possible_sub_tree_costs; // local cost + max(children_costs)
-    mutable std::unordered_map<Id, const ENode *> greedy_choices;
+    // Best tree extraction cost for each e-class: local_cost + sum(child_tree_costs)
+    mutable std::unordered_map<Id, double> tree_cost;
+    // Admissible DAG cost lower bound for each e-class: local_cost + max(child_lb_costs)
+    mutable std::unordered_map<Id, double> dag_costs_lower_bound;
+    // Best e-node choice minimizing tree_cost
+    mutable std::unordered_map<Id, const ENode *> tree_choices;
 
     void initial_analysis_pass(const SizeBindings *size_bindings) const;
 
