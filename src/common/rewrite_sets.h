@@ -8,14 +8,17 @@
 #include <vector>
 
 namespace egraph {
-static std::vector<Rewrite> build_complete_rewrite_set() {
-    std::vector<Rewrite> rewrites;
-    rewrites.insert(rewrites.end(), property_discovery_set.begin(), property_discovery_set.end());
-    rewrites.insert(rewrites.end(), simplification_set.begin(), simplification_set.end());
-    rewrites.insert(rewrites.end(), transformation_set.begin(), transformation_set.end());
-    rewrites.insert(rewrites.end(), expansion_set.begin(), expansion_set.end());
-    rewrites.insert(rewrites.end(), lowering_set.begin(), lowering_set.end());
-    return rewrites;
+inline const std::vector<Rewrite> &build_complete_rewrite_set() {
+    static const std::vector<Rewrite> complete_rewrite_set = [] {
+        std::vector<Rewrite> rewrites;
+        rewrites.insert(rewrites.end(), property_discovery_set.begin(), property_discovery_set.end());
+        rewrites.insert(rewrites.end(), simplification_set.begin(), simplification_set.end());
+        rewrites.insert(rewrites.end(), transformation_set.begin(), transformation_set.end());
+        rewrites.insert(rewrites.end(), expansion_set.begin(), expansion_set.end());
+        rewrites.insert(rewrites.end(), lowering_set.begin(), lowering_set.end());
+        return rewrites;
+    }();
+    return complete_rewrite_set;
 }
 
 // available rewrite sets: "complete", "property_discovery", "simplification", "transformation", "expansion",

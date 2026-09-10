@@ -1,5 +1,6 @@
 #include "rewriter.h"
 #include "matcher.h"
+#include "rewrite_sets.h"
 #include "utils.h"
 #include <iostream>
 
@@ -7,21 +8,128 @@
 
 namespace egraph {
 
+static inline bool is_primitive_math_op(Op op) {
+    using enum Op;
+    return op == Add || op == Mul || op == Minus || op == Tr || op == Inv || op == Get;
+}
+
+static inline bool is_symbolic_op(Op op) { return !is_kernel_op(op) && !is_primitive_math_op(op); }
+
+std::unordered_set<Op> Rewriter::compute_effective_disabled_ops(
+    const std::vector<Op> &disabled_ops, const std::vector<Rewrite> *rules_to_inspect) {
+    if (disabled_ops.empty()) {
+        return {};
+    }
+
+    std::unordered_set<Op> effective_disabled_operations(disabled_ops.begin(), disabled_ops.end());
+
+    // Map each symbolic operation to its list of alternative lowering paths.
+    // Each lowering path is a set of ops (kernels or symbolic ops) required to lower it.
+    std::unordered_map<Op, std::vector<std::unordered_set<Op>>> symbolic_op_to_alternative_lowering_paths;
+
+    const auto &candidate_rules = rules_to_inspect ? *rules_to_inspect : build_complete_rewrite_set();
+
+    for (const auto &rule : candidate_rules) {
+        std::unordered_set<Op> lhs_ops;
+        std::unordered_set<Op> rhs_ops;
+        rule.lhs.collect_ops(lhs_ops);
+        rule.collect_rhs_ops(rhs_ops);
+
+        for (Op symbolic_op : lhs_ops) {
+            // A rule is a lowering path when sym op appears on lhs and is eliminated on rhs.
+            if (is_symbolic_op(symbolic_op) && !rhs_ops.contains(symbolic_op)) {
+                std::unordered_set<Op> required_ops_in_path;
+                for (Op rhs_op : rhs_ops) {
+                    if (is_kernel_op(rhs_op) || is_symbolic_op(rhs_op)) {
+                        required_ops_in_path.insert(rhs_op);
+                    }
+                }
+                if (!required_ops_in_path.empty()) {
+                    symbolic_op_to_alternative_lowering_paths[symbolic_op].push_back(std::move(required_ops_in_path));
+                }
+            }
+        }
+    }
+
+    // A single lowering path is blocked if any of its required opes is disabled.
+    // A symbolic operation is blocked if all of its alternative lowering paths are blocked.
+    bool has_newly_disabled_operation = true;
+    while (has_newly_disabled_operation) {
+        has_newly_disabled_operation = false;
+        for (const auto &[symbolic_op, alternative_paths] : symbolic_op_to_alternative_lowering_paths) {
+            if (effective_disabled_operations.contains(symbolic_op)) {
+                continue;
+            }
+            bool are_all_alternative_paths_blocked = true;
+            for (const auto &required_ops_in_path : alternative_paths) {
+                bool is_current_path_blocked = false;
+                for (Op required_op : required_ops_in_path) {
+                    if (effective_disabled_operations.contains(required_op)) {
+                        is_current_path_blocked = true;
+                        break;
+                    }
+                }
+                if (!is_current_path_blocked) {
+                    are_all_alternative_paths_blocked = false;
+                    break;
+                }
+            }
+            if (are_all_alternative_paths_blocked) {
+                effective_disabled_operations.insert(symbolic_op);
+                has_newly_disabled_operation = true;
+            }
+        }
+    }
+
+    return effective_disabled_operations;
+}
+
 Rewriter::Rewriter(EGraph &egraph, std::vector<Rewrite> rewrites, const EGraphConfig &config)
     : egraph(egraph), config(config), enable_backoff(config.rewrite.enable_backoff),
       enable_node_limit(config.rewrite.enable_node_limit), max_nodes(config.rewrite.node_limit),
-      rewrites(std::move(rewrites)) {
-    std::cout << "[Rewriter] Initialized with " << this->rewrites.size() << " rewrites.\n";
+      all_rewrites(std::move(rewrites)), rewrites(all_rewrites) {
+    std::cout << "[Rewriter] Initialized with " << this->all_rewrites.size() << " rewrites.\n";
     filter_rewrites_by_disabled_ops();
     std::cout << "[Rewriter] After filtering, " << this->rewrites.size() << " rewrites remain.\n";
-    current_match_limits.resize(this->rewrites.size());
-    rewrite_application_counts.resize(this->rewrites.size(), 0);
-    ban_iterations_remaining.resize(this->rewrites.size(), 0);
-    ban_duration_next.resize(this->rewrites.size(), 1);
+    reset_limits_and_bans();
+}
 
-    std::ranges::transform(this->rewrites, current_match_limits.begin(), [](const auto &r) {
+void Rewriter::reset_limits_and_bans() {
+    current_match_limits.resize(rewrites.size());
+    rewrite_application_counts.assign(rewrites.size(), 0);
+    ban_iterations_remaining.assign(rewrites.size(), 0);
+    ban_duration_next.assign(rewrites.size(), 1);
+
+    std::ranges::transform(rewrites, current_match_limits.begin(), [](const auto &r) {
         return r.initial_match_limit;
     });
+}
+
+void Rewriter::set_config(const EGraphConfig &cfg) {
+    config = cfg;
+    enable_backoff = cfg.rewrite.enable_backoff;
+    enable_node_limit = cfg.rewrite.enable_node_limit;
+    max_nodes = cfg.rewrite.node_limit;
+    filter_rewrites_by_disabled_ops();
+    reset_limits_and_bans();
+}
+
+void Rewriter::filter_rewrites_by_disabled_ops() {
+    rewrites = all_rewrites;
+    auto effective_disabled_operations = compute_effective_disabled_ops(config.disabled_ops);
+    if (effective_disabled_operations.empty()) {
+        return;
+    }
+    rewrites.erase(
+        std::remove_if(
+            rewrites.begin(), rewrites.end(),
+            [&effective_disabled_operations](const Rewrite &rule) {
+        return std::any_of(
+            effective_disabled_operations.begin(), effective_disabled_operations.end(), [&rule](const Op &disabled_op) {
+            return rule.contains_op(disabled_op);
+        });
+    }),
+        rewrites.end());
 }
 
 static Id instantiate(EGraph &egraph, const Pattern &pattern, const Substitution &subst) {
@@ -46,18 +154,6 @@ bool Rewriter::is_rewrite_banned(size_t i) {
         return true;
     }
     return false;
-}
-
-void Rewriter::filter_rewrites_by_disabled_ops() {
-    rewrites.erase(
-        std::remove_if(
-            rewrites.begin(), rewrites.end(),
-            [this](const Rewrite &r) {
-        return std::any_of(config.disabled_ops.begin(), config.disabled_ops.end(), [r](const Op &op) {
-            return r.lhs.contains_op(op) || r.rhs.contains_op(op);
-        });
-    }),
-        rewrites.end());
 }
 
 void Rewriter::update_ban_status(size_t i, size_t total_valid_matches, size_t budget_remaining) {
