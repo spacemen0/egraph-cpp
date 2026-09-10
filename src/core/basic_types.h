@@ -11,7 +11,6 @@ enum class Op {
     Add,
     Mul,
     Minus,
-    Div,
     Tr,
     Inv,
     QR,       // output: [Q, R] reduced QR
