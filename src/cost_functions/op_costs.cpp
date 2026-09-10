@@ -567,13 +567,18 @@ Cost compute_ormqr_cost(Op op, const ENode &node, const EGraph &egraph, const Si
             shapeQ = bind_shape((*props)[0].shape, size_bindings);
     }
     auto shapeC = get_one_shape(egraph, size_bindings, node.get_children().at(1));
+    bool is_left = (op == Op::Ormqr_LN || op == Op::Ormqr_LT);
     if (is_numeric(shapeQ) && is_numeric(shapeC)) {
         double m = std::get<int>(shapeC.first);
         double n = std::get<int>(shapeC.second);
         double rowsA = std::get<int>(shapeQ.first);
         double colsA = std::get<int>(shapeQ.second);
         double k = std::min(rowsA, colsA);
-        return 4.0 * m * n * k - 2.0 * m * k * k + 3.0 * n * k;
+        if (is_left) {
+            return 4.0 * m * n * k - 2.0 * n * k * k + 3.0 * n * k;
+        } else {
+            return 4.0 * m * n * k - 2.0 * m * k * k + 3.0 * m * k;
+        }
     } else {
         std::string m = size_to_symbol(shapeC.first);
         std::string n = size_to_symbol(shapeC.second);
@@ -585,14 +590,19 @@ Cost compute_ormqr_cost(Op op, const ENode &node, const EGraph &egraph, const Si
         }
 
         std::vector<std::string> mnk_vec{m, n, k};
-
-        std::vector<std::string> mkk_vec{m, k, k};
-        std::vector<std::string> nk_vec{n, k};
-
         SymbolicCost sc;
         sc[Monomial(mnk_vec)] = 4.0;
-        sc[Monomial(mkk_vec)] = -2.0;
-        sc[Monomial(nk_vec)] = 3.0;
+        if (is_left) {
+            std::vector<std::string> nkk_vec{n, k, k};
+            std::vector<std::string> nk_vec{n, k};
+            sc[Monomial(nkk_vec)] = -2.0;
+            sc[Monomial(nk_vec)] = 3.0;
+        } else {
+            std::vector<std::string> mkk_vec{m, k, k};
+            std::vector<std::string> mk_vec{m, k};
+            sc[Monomial(mkk_vec)] = -2.0;
+            sc[Monomial(mk_vec)] = 3.0;
+        }
         return sc;
     }
 }
