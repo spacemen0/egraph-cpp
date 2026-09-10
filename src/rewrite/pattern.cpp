@@ -37,4 +37,13 @@ bool Pattern::contains_op(const Op &op) const {
     }
     return false;
 }
+
+void Pattern::collect_ops(std::unordered_set<Op> &ops) const {
+    if (std::holds_alternative<Op>(atom)) {
+        ops.insert(std::get<Op>(atom));
+    }
+    for (const auto &child : children) {
+        child.collect_ops(ops);
+    }
+}
 } // namespace egraph

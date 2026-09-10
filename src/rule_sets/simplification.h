@@ -60,7 +60,7 @@ static const auto scale_collapse = make_rewrite(
     children.push_back(Expression("?a"));
     children.push_back(Expression(ScalarExpr(v)));
     return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), children), s), false);
-});
+}, 30, {Op::Scale});
 static const auto scale_combine = make_rewrite(
     "scale_combine", "Scale(?a,?s1)+Scale(?a,?s2)", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
     return get_double_from_eclass(g, s.at("s1")).has_value() && get_double_from_eclass(g, s.at("s2")).has_value();
@@ -70,7 +70,7 @@ static const auto scale_combine = make_rewrite(
     children.push_back(Expression("?a"));
     children.push_back(Expression(ScalarExpr(v)));
     return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), children), s), false);
-});
+}, 30, {Op::Scale});
 static const auto scale_combine_implicit = make_rewrite(
     "scale_combine_implicit", "Scale(?a,?s1)+?a", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
     return get_double_from_eclass(g, s.at("s1")).has_value();
@@ -80,7 +80,7 @@ static const auto scale_combine_implicit = make_rewrite(
     children.push_back(Expression("?a"));
     children.push_back(Expression(ScalarExpr(v)));
     return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), children), s), false);
-});
+}, 30, {Op::Scale});
 
 /// Property-Based Simplifications
 /// ----------------------------------------------------------

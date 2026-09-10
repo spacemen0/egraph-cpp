@@ -120,8 +120,17 @@ inline Rewrite make_rewrite(
     const std::string &name, std::string_view lhs, std::string_view rhs, bool bidirectional = false,
     const std::function<bool(const EGraph &, const Substitution &)> &condition = nullptr,
     const std::function<std::pair<Id, bool>(EGraph &, const Substitution &, Id)> &applier = nullptr,
-    size_t initial_match_limit = 30) {
-    return Rewrite{name, Pattern(lhs), Pattern(rhs), bidirectional, condition, applier, initial_match_limit};
+    size_t initial_match_limit = 30,
+    const std::vector<Op> &dynamic_ops = {}) {
+    return Rewrite{name, Pattern(lhs), Pattern(rhs), bidirectional, condition, applier, initial_match_limit, dynamic_ops};
+}
+
+inline Rewrite make_rewrite(
+    const std::string &name, std::string_view lhs, std::string_view rhs, bool bidirectional,
+    const std::function<bool(const EGraph &, const Substitution &)> &condition,
+    const std::function<std::pair<Id, bool>(EGraph &, const Substitution &, Id)> &applier,
+    const std::vector<Op> &dynamic_ops) {
+    return Rewrite{name, Pattern(lhs), Pattern(rhs), bidirectional, condition, applier, 30, dynamic_ops};
 }
 
 inline Id

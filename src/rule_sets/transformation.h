@@ -64,7 +64,7 @@ static const auto scale_inverse =
     scale_children.push_back(Expression(ScalarExpr(1.0 / val)));
 
     return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), scale_children), s), false);
-});
+}, 30, {Op::Scale, Op::Inv});
 
 static const std::vector<Rewrite> transformation_set = {
     mul_assoc,

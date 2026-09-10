@@ -21,7 +21,7 @@ static const auto gemv_without_c =
     auto zero = make_zero_of_shape(g, {a_prop->shape.first, b_prop->shape.second});
     auto gemv_node = ENode{{a_id, b_id, zero}, Op::Gemv_N};
     return std::make_pair(g.add_node(gemv_node), false);
-});
+}, 30, {Op::Gemv_N});
 static const auto gemv_with_c = make_rewrite(
     "gemv_with_c", "?a * ?b + ?c", "Gemv_N(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
     return is_matrix("a")(g, s) && is_vector("b")(g, s) && is_vector("c")(g, s) && is_not_op("a", Op::Tr)(g, s);
@@ -37,7 +37,7 @@ static const auto gemv_t_without_c =
     auto zero = make_zero_of_shape(g, {a_prop->shape.second, b_prop->shape.second});
     auto gemvt_node = ENode{{a_id, b_id, zero}, Op::Gemv_T};
     return std::make_pair(g.add_node(gemvt_node), false);
-});
+}, 30, {Op::Gemv_T});
 static const auto gemv_t_with_c = make_rewrite(
     "gemv_t_with_c", "Tr(?a) * ?b + ?c", "Gemv_T(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
     return is_matrix("a")(g, s) && is_vector("b")(g, s) && is_vector("c")(g, s);
@@ -54,7 +54,7 @@ static const auto gemm_without_c = make_rewrite(
     auto zero = make_zero_of_shape(g, {a_prop->shape.first, b_prop->shape.second});
     auto gemm_node = ENode{{a_id, b_id, zero}, Op::Gemm_NN};
     return std::make_pair(g.add_node(gemm_node), false);
-});
+}, 30, {Op::Gemm_NN});
 static const auto gemm_with_c =
     make_rewrite("gemm_with_c", "?a * ?b + ?c", "Gemm_NN(?a, ?b, ?c)", false, is_not_vector("b"));
 static const auto syrk_without_c_left = make_rewrite(
@@ -64,7 +64,7 @@ static const auto syrk_without_c_left = make_rewrite(
     auto zero = make_zero_of_shape(g, {a_prop->shape.first, a_prop->shape.first});
     auto syrk_node = ENode{{a_id, zero}, Op::Syrk_N};
     return std::make_pair(g.add_node(syrk_node), false);
-});
+}, 30, {Op::Syrk_N});
 static const auto syrk_without_c_right = make_rewrite(
     "syrk_without_c_right", "Tr(?a) * ?a", "Dynamic", false, nullptr, [](EGraph &g, const Substitution &s, Id _) {
     Id a_id = s.at("a");
@@ -72,7 +72,7 @@ static const auto syrk_without_c_right = make_rewrite(
     auto zero = make_zero_of_shape(g, {a_prop->shape.second, a_prop->shape.second});
     auto syrk_node = ENode{{a_id, zero}, Op::Syrk_T};
     return std::make_pair(g.add_node(syrk_node), false);
-});
+}, 30, {Op::Syrk_T});
 static const auto syrk_with_c_left =
     make_rewrite("syrk_with_c_left", "?a * Tr(?a) + ?c", "Syrk_N(?a, ?c)", false, is_symmetric("c"));
 static const auto syrk_with_c_right =

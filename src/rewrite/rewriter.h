@@ -2,8 +2,10 @@
 #include "e_graph.h"
 #include "egraph_config.h"
 #include "pattern.h"
+#include <algorithm>
 #include <functional>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace egraph {
@@ -16,23 +18,41 @@ struct Rewrite {
     // bool indicates if analysis data of any e-node changed
     std::function<std::pair<Id, bool>(EGraph &, const Substitution &, Id)> applier = nullptr;
     size_t initial_match_limit = 30;
+    std::vector<Op> dynamic_ops = {};
+
+    void collect_rhs_ops(std::unordered_set<Op> &ops) const {
+        rhs.collect_ops(ops);
+        for (Op op : dynamic_ops) {
+            ops.insert(op);
+        }
+    }
+
+    bool contains_op(const Op &op) const {
+        if (lhs.contains_op(op) || rhs.contains_op(op)) {
+            return true;
+        }
+        return std::find(dynamic_ops.begin(), dynamic_ops.end(), op) != dynamic_ops.end();
+    }
 };
 
 class Rewriter {
   public:
     Rewriter(EGraph &egraph, std::vector<Rewrite> rewrites, const EGraphConfig &config = EGraphConfig());
 
-    void set_config(const EGraphConfig &cfg) {
-        config = cfg;
-        enable_backoff = cfg.rewrite.enable_backoff;
-        enable_node_limit = cfg.rewrite.enable_node_limit;
-        max_nodes = cfg.rewrite.node_limit;
-    }
+    static std::unordered_set<Op> compute_effective_disabled_ops(
+        const std::vector<Op> &disabled_ops,
+        const std::vector<Rewrite> *custom_lowering_rules = nullptr);
+
+    void set_config(const EGraphConfig &cfg);
     const EGraphConfig &get_config() const { return config; }
 
     bool apply_rewrites(int max_iterations);
     bool apply_rewrites();
     void reset();
+    void reset_limits_and_bans();
+
+    const std::vector<Rewrite> &get_rewrites() const { return rewrites; }
+    const std::vector<Rewrite> &get_all_rewrites() const { return all_rewrites; }
 
   private:
     struct Match {
@@ -53,6 +73,7 @@ class Rewriter {
     EGraphConfig config;
     bool enable_backoff;
     bool enable_node_limit;
+    std::vector<Rewrite> all_rewrites;
     std::vector<Rewrite> rewrites;
     std::vector<size_t> current_match_limits;       // Current limit (doubles when banning) (for backoff)
     std::vector<size_t> rewrite_application_counts; // Accumulated applications in
