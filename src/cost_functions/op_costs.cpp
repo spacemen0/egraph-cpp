@@ -278,10 +278,6 @@ Cost compute_scale_cost(Op op, const ENode &node, const EGraph &egraph, const Si
     }
 }
 
-Cost compute_det_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) { return 5.0; }
-
-Cost compute_log_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) { return 1.0; }
-
 Cost compute_gemm_nn_group_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
     auto shapeA = get_one_shape(egraph, size_bindings, node.get_children().at(0));
     auto shapeB = get_one_shape(egraph, size_bindings, node.get_children().at(1));
