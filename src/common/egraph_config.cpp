@@ -16,7 +16,7 @@ void initialize_config_for_expression(EGraphConfig &config, const Expression &ex
     config.rewrite.max_iterations =
         std::max(config.rewrite.max_iterations, std::max(static_cast<size_t>(10), static_cast<size_t>(depth * 1.6)));
     config.pruner.rewrite_steps_per_iteration = std::max(static_cast<size_t>(10), static_cast<size_t>(depth * 2));
-    config.pruner.prune_samples_per_iteration = std::max(static_cast<size_t>(10), static_cast<size_t>(depth * 6));
+    config.pruner.prune_samples_per_iteration = std::max(static_cast<size_t>(10), static_cast<size_t>(depth * 12));
 }
 
 EGraphConfig initialize_config_for_expression(const Expression &expr) {

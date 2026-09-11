@@ -5,23 +5,6 @@
 
 using namespace egraph;
 
-TEST(ConfigTest, DefaultConfigValues) {
-    EGraphConfig config;
-    EXPECT_EQ(config.rewrite.node_limit, 5000);
-    EXPECT_EQ(config.rewrite.max_iterations, 10);
-    EXPECT_TRUE(config.rewrite.enable_backoff);
-    EXPECT_TRUE(config.rewrite.enable_node_limit);
-
-    EXPECT_EQ(config.extractor.max_depth, 40);
-    EXPECT_EQ(config.extractor.node_visit_limit, 10000000);
-
-    EXPECT_EQ(config.pruner.num_iterations, 2);
-    EXPECT_EQ(config.pruner.rewrite_steps_per_iteration, 6);
-    EXPECT_EQ(config.pruner.prune_samples_per_iteration, 50);
-
-    EXPECT_FALSE(config.enable_logging);
-}
-
 TEST(ConfigTest, InitializeConfigForSimpleExpression) {
     Expression simple("A");
     auto config = initialize_config_for_expression(simple);

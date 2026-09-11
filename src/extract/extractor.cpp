@@ -40,7 +40,7 @@ void Extractor::search_numeric_dags(
 
     nodes_visited++;
     if (enable_logging && (nodes_visited % kExtractorProgressLogEvery == 0)) {
-        std::cout << "[Extractor] Progress (DFS-B&B): visited=" << nodes_visited << ", pending=" << pending.size()
+        std::cout << "[Extractor] Progress: visited=" << nodes_visited << ", pending=" << pending.size()
                   << ", best_results=" << results.size() << std::endl;
     }
 

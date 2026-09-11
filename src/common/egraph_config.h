@@ -19,9 +19,9 @@ struct ExtractorConfig {
 };
 
 struct PrunerConfig {
-    int num_iterations = 2;
+    int num_iterations = 1;
     int rewrite_steps_per_iteration = 6;
-    int prune_samples_per_iteration = 50;
+    int prune_samples_per_iteration = 100;
 };
 
 struct EGraphConfig {
