@@ -57,8 +57,8 @@ class Extractor {
 
     // Best tree extraction cost for each e-class: local_cost + sum(child_tree_costs)
     mutable std::unordered_map<Id, double> tree_cost;
-    // Admissible DAG cost lower bound for each e-class: local_cost + max(child_lb_costs)
-    mutable std::unordered_map<Id, double> dag_costs_lower_bound;
+    // Minimum local cost per for each e-class
+    mutable std::unordered_map<Id, double> min_local_cost;
     // Best e-node choice minimizing tree_cost
     mutable std::unordered_map<Id, const ENode *> tree_choices;
 
@@ -72,6 +72,12 @@ class Extractor {
     bool creates_cycle(
         Id current_class, const ENode *candidate, const std::vector<const ENode *> &current_choices,
         std::vector<size_t> &visited_buffer, std::vector<Id> &stack_buffer) const;
+
+    void search_numeric_dags(
+        Id root, std::vector<Id> &pending, std::vector<size_t> &pending_set,
+        std::vector<const ENode *> &current_choices, double current_g, double pending_min_local_sum,
+        std::vector<NumericSearchResult> &results, double &worst_cost, size_t max_results,
+        std::vector<size_t> &visited_buffer, std::vector<Id> &stack_buffer, const SizeBindings *size_bindings) const;
 
     void search_symbolic_dags(
         Id root, std::vector<Id> &pending, std::vector<size_t> &pending_set,
