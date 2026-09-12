@@ -10,7 +10,8 @@
 /// ----------------------------------------------------------
 
 namespace egraph {
-static const auto mul_assoc = make_rewrite("mul-assoc-left", "?a * (?b * ?c)", "(?a * ?b) * ?c", true);
+static const auto mul_assoc =
+    make_rewrite("mul-assoc-left", "?a * (?b * ?c)", "(?a * ?b) * ?c", true, nullptr, nullptr, 300);
 static const auto add_assoc = make_rewrite("add-assoc", "(?a + ?b) + ?c", "?a + (?b + ?c)", true);
 static const auto commute_add = make_rewrite("commute-add", "?a + ?b", "?b + ?a");
 
@@ -31,17 +32,17 @@ static const auto scale_mul_distribute_right =
 /// Transpositions and Inversions
 /// ----------------------------------------------------------
 static const auto invert_mat_prod = make_rewrite(
-    "invert-mat-prod", "Inv(?a * ?b)", "Inv(?b) * Inv(?a)", true, [](const EGraph &g, const Substitution &s) {
+    "invert-mat-prod", "Inv(?a * ?b)", "Inv(?b) * Inv(?a)", false, [](const EGraph &g, const Substitution &s) {
     return is_non_singular_cond("a")(g, s) && is_non_singular_cond("b")(g, s);
 });
-static const auto mat_transpose_prod = make_rewrite("mat-transpose-prod", "Tr(?a * ?b)", "Tr(?b) * Tr(?a)", true);
+static const auto mat_transpose_prod = make_rewrite("mat-transpose-prod", "Tr(?a * ?b)", "Tr(?b) * Tr(?a)", false);
 static const auto sym_prod_transpose_right = make_rewrite(
     "symm_prod_transpose_right", "?a * ?b", "Tr(?b * Tr(?a))", false, [](const EGraph &g, const Substitution &s) {
-    return is_symmetric("b")(g, s) && is_not_vector("a")(g, s);
+    return is_symmetric("b")(g, s) && is_not_vector("a")(g, s) && is_not_transpose("a")(g, s);
 });
 static const auto sym_prod_transpose_left = make_rewrite(
     "symm_prod_transpose_left", "?b * ?a", "Tr(Tr(?a) * ?b)", false, [](const EGraph &g, const Substitution &s) {
-    return is_symmetric("b")(g, s) && is_not_vector("a")(g, s);
+    return is_symmetric("b")(g, s) && is_not_vector("a")(g, s) && is_not_transpose("a")(g, s);
 });
 
 static const auto orthogonal_inverse =

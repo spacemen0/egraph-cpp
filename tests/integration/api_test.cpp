@@ -74,8 +74,7 @@ TEST(ApiTest, OLSSymbolic) {
     std::string actual = best_result.expr.to_string(true);
     std::string expected_cholel = "CholeL(Mᵀ * M)⁻¹ᵀ * (CholeL(Mᵀ * M)⁻¹ * (Mᵀ * n))";
     std::string expected_choleu = "CholeU(Mᵀ * M)⁻¹ * (CholeU(Mᵀ * M)⁻¹ᵀ * (Mᵀ * n))";
-    EXPECT_TRUE(actual == expected_cholel || actual == expected_choleu)
-        << "Actual expression: " << actual;
+    EXPECT_TRUE(actual == expected_cholel || actual == expected_choleu) << "Actual expression: " << actual;
 }
 
 TEST(ApiTest, KernelMapping) {
@@ -89,9 +88,8 @@ TEST(ApiTest, KernelMapping) {
     Expression best_ast = ctx.optimize_concrete(target_math);
     std::string actual = best_ast.to_string(true);
     std::string expected_qr = "Trsm_LN(R(X), Ormqr_LT(Geqrf(X), y))";
-    std::string expected_cholel =
-        "Trsm_LT(CholeL(Syrk_T(X, Zero_2x2)), Trsm_LN(CholeL(Syrk_T(X, Zero_2x2)), Gemv_T(X, y, Zero_2x1)))";
-    EXPECT_TRUE(actual == expected_qr || actual == expected_cholel) << "Actual: " << actual;
+    std::string expected_qr2 = "Trsm_LN(R(X), Trsm_LT(R(X), Gemv_T(X, y, Zero_2x1)))";
+    EXPECT_TRUE(actual == expected_qr || actual == expected_qr2) << "Actual: " << actual;
     auto res = ctx.evaluate_concrete(
         {}, {{"X", std::vector<double>{1.0, 0.0, 0.0, 0.0, 1.0, 0.0}}, {"y", std::vector<double>{5.0, -3.0, 42.0}}});
     ASSERT_EQ(res.size(), 2);

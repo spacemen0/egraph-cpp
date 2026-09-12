@@ -65,10 +65,44 @@ static const auto sandwich_spd_right = make_rewrite(
     return std::make_pair(class_id, g.update_class_analysis_data(class_id, old_data));
 });
 
+static const auto sandwich_spd_left_assoc = make_rewrite(
+    "sandwich_spd_left_assoc", "(Tr(?a) * ?b) * ?a", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
+    return is_full_column_rank("a")(g, s) && is_symmetric("b")(g, s);
+}, [](EGraph &g, const Substitution &s, Id class_id) {
+    Id b_id = s.at("b");
+    const auto *b_prop = get_matrix_data(g, b_id);
+    auto old_data = g.get_class_analysis_data(class_id);
+    if (auto *mp = std::get_if<MatrixProperty>(&old_data.property)) {
+        mp->flags.is_symmetric = true;
+        if (b_prop && b_prop->flags.is_positive_definite) {
+            mp->flags.is_positive_definite = true;
+        }
+    }
+    return std::make_pair(class_id, g.update_class_analysis_data(class_id, old_data));
+});
+
+static const auto sandwich_spd_right_assoc = make_rewrite(
+    "sandwich_spd_right_assoc", "(?a * ?b) * Tr(?a)", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
+    return is_full_row_rank("a")(g, s) && is_symmetric("b")(g, s);
+}, [](EGraph &g, const Substitution &s, Id class_id) {
+    Id b_id = s.at("b");
+    const auto *b_prop = get_matrix_data(g, b_id);
+    auto old_data = g.get_class_analysis_data(class_id);
+    if (auto *mp = std::get_if<MatrixProperty>(&old_data.property)) {
+        mp->flags.is_symmetric = true;
+        if (b_prop && b_prop->flags.is_positive_definite) {
+            mp->flags.is_positive_definite = true;
+        }
+    }
+    return std::make_pair(class_id, g.update_class_analysis_data(class_id, old_data));
+});
+
 static const std::vector<Rewrite> property_discovery_set = {
     transpose_spd,
     transpose_spd2,
     sandwich_spd_left,
+    sandwich_spd_left_assoc,
     sandwich_spd_right,
+    sandwich_spd_right_assoc,
 };
 } // namespace egraph
