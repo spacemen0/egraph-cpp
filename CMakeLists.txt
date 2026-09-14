@@ -64,6 +64,24 @@ set(MI_BUILD_OBJECT OFF CACHE BOOL "" FORCE)
 set(MI_BUILD_OBJECTS OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(mimalloc)
 
+if(TARGET mimalloc)
+    target_compile_options(mimalloc PRIVATE -fno-sanitize=address)
+    target_link_options(mimalloc PRIVATE -fno-sanitize=address)
+endif()
+
+if(WIN32 AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    execute_process(
+        COMMAND ${CMAKE_CXX_COMPILER} -print-resource-dir
+        OUTPUT_VARIABLE CLANG_RESOURCE_DIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    add_custom_target(copy_asan_runtime ALL
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CLANG_RESOURCE_DIR}/lib/windows/clang_rt.asan_dynamic-x86_64.dll"
+            "${CMAKE_BINARY_DIR}/bin"
+    )
+endif()
+
 enable_testing()
 include(GoogleTest)
 
