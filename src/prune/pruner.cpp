@@ -1,4 +1,5 @@
 #include "pruner.h"
+#include "rewrite_sets.h"
 #include "utils.h"
 
 namespace egraph {
@@ -7,10 +8,11 @@ PruneResult Pruner::prune(const std::vector<Id> &roots, const std::vector<SizeBi
 
     std::unordered_map<Id, std::unordered_set<const ENode *>> keep_choices;
 
-    for (const auto &binding : bindings) {
+    for (size_t i = 0; i < bindings.size(); ++i) {
         extractor.reset();
-        extractor.collect_selected_nodes_for_binding(roots, binding, keep_choices);
-    };
+        bool use_dag = (i < bindings.size() * 0.2);
+        extractor.collect_selected_nodes_for_binding(roots, bindings[i], keep_choices, use_dag);
+    }
     // Keep all root classes (if multiple roots were passed but only part of them were extractable)
     for (Id root : roots) {
         Id root_class = egraph.find_class_id(root);
@@ -166,6 +168,9 @@ void Pruner::rewrite_and_prune(
             config.prune_samples_per_iteration, 10, 5000, size_keys, static_cast<unsigned int>(99 + i),
             &egraph.get_property_table());
         const auto prune_result = prune(roots, bindings);
+
+        // Eliminate unreachable orphan classes created by pruning
+        eliminate_unreachable_classes(egraph, roots);
 
         if (onIterationFinish) {
             onIterationFinish(i, prune_result);

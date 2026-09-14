@@ -111,8 +111,9 @@ TEST(ApiTest, OptimizeSymbolic) {
     auto results = ctx.extract_symbolic();
 
     bool found = std::any_of(results.begin(), results.end(), [](const auto &c) {
-        return c.expr.to_string(false) == "Trsm_LT(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Trsm_LN(Get(Potrf_L(Syrk_T(M, "
-                                          "Zero_BxB)), 0), Gemv_T(M, n, Zero_Bx1)))";
+        std::string s = c.expr.to_string(false);
+        return s == "Trsm_LT(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Trsm_LN(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Gemv_T(M, n, Zero_Bx1)))" ||
+               s == "Trsm_LN(Get(Potrf_U(Syrk_T(M, Zero_BxB)), 0), Trsm_LT(Get(Potrf_U(Syrk_T(M, Zero_BxB)), 0), Gemv_T(M, n, Zero_Bx1)))";
     });
     EXPECT_TRUE(found);
 
