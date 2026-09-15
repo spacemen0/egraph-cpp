@@ -17,6 +17,7 @@ void initialize_config_for_expression(EGraphConfig &config, const Expression &ex
         std::max(config.rewrite.max_iterations, std::max(static_cast<size_t>(10), static_cast<size_t>(depth * 1.6)));
     config.pruner.rewrite_steps_per_iteration = std::max(static_cast<size_t>(10), static_cast<size_t>(depth * 2));
     config.pruner.prune_samples_per_iteration = std::max(static_cast<size_t>(10), static_cast<size_t>(depth * 12));
+    config.pruner.dag_visit_limit = std::max(static_cast<size_t>(200), static_cast<size_t>(depth * 35));
 }
 
 EGraphConfig initialize_config_for_expression(const Expression &expr) {
@@ -39,6 +40,8 @@ void EGraphConfig::print_config() {
     std::cout << "    num_iterations: " << pruner.num_iterations << "\n";
     std::cout << "    rewrite_steps_per_iteration: " << pruner.rewrite_steps_per_iteration << "\n";
     std::cout << "    prune_samples_per_iteration: " << pruner.prune_samples_per_iteration << "\n";
+    std::cout << "    dag_visit_limit: " << pruner.dag_visit_limit << "\n";
 }
+
 
 } // namespace egraph

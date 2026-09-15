@@ -10,7 +10,7 @@ PruneResult Pruner::prune(const std::vector<Id> &roots, const std::vector<SizeBi
 
     for (size_t i = 0; i < bindings.size(); ++i) {
         extractor.reset();
-        bool use_dag = (i < bindings.size() * 0.05);
+        bool use_dag = (i < bindings.size() * 0.2);
         extractor.collect_selected_nodes_for_binding(roots, bindings[i], keep_choices, use_dag);
     }
     // Keep all root classes (if multiple roots were passed but only part of them were extractable)

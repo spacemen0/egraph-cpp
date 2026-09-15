@@ -23,9 +23,10 @@ class Extractor {
   public:
     explicit Extractor(EGraph &egraph, const EGraphConfig &config = EGraphConfig());
 
-    ExtractionResult extract(Id class_id, const SizeBindings &size_bindings = {}) const;
+    ExtractionResult extract(
+        Id class_id, const SizeBindings &size_bindings = {}, size_t visit_limit = 0) const;
     std::vector<ExtractionResult>
-    extract(Id class_id, size_t max_results, const SizeBindings &size_bindings = {}) const;
+    extract(Id class_id, size_t max_results, const SizeBindings &size_bindings = {}, size_t visit_limit = 0) const;
 
     ExtractionResult tree_extract(Id class_id, const SizeBindings &size_bindings = {}) const;
 
@@ -55,6 +56,7 @@ class Extractor {
     mutable size_t nodes_visited = 0;
     size_t max_depth;
     size_t node_visit_limit;
+    size_t dag_visit_limit;
 
     // Best tree extraction cost for each e-class: local_cost + sum(child_tree_costs)
     mutable std::unordered_map<Id, double> tree_cost;
@@ -65,8 +67,11 @@ class Extractor {
 
     void initial_analysis_pass(const SizeBindings *size_bindings) const;
 
+
     std::vector<NumericSearchResult>
-    find_top_numeric_dags(Id root_class_id, size_t max_results, const SizeBindings *size_bindings = nullptr) const;
+    find_top_numeric_dags(
+        Id root_class_id, size_t max_results, const SizeBindings *size_bindings = nullptr,
+        size_t custom_visit_limit = 0) const;
 
     std::vector<SymbolicSearchResult> find_symbolic_dags(Id root_class_id) const;
 
@@ -78,7 +83,9 @@ class Extractor {
         Id root, std::vector<Id> &pending, std::vector<size_t> &pending_set,
         std::vector<const ENode *> &current_choices, double current_g, double pending_min_local_sum,
         std::vector<NumericSearchResult> &results, double &worst_cost, size_t max_results,
-        std::vector<size_t> &visited_buffer, std::vector<Id> &stack_buffer, const SizeBindings *size_bindings) const;
+        std::vector<size_t> &visited_buffer, std::vector<Id> &stack_buffer, const SizeBindings *size_bindings,
+        size_t effective_visit_limit) const;
+
 
     void search_symbolic_dags(
         Id root, std::vector<Id> &pending, std::vector<size_t> &pending_set,
