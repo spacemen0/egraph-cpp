@@ -436,3 +436,32 @@ TEST(Rewrite, DynamicRulesFilteringAndTraversal) {
     Rewriter rewriter_dyn_lowering(egraph_instance, {custom_dynamic_lowering}, EGraphConfig{.disabled_ops = {Op::Potrf_L}});
     EXPECT_TRUE(rewriter_dyn_lowering.get_rewrites().empty());
 }
+
+TEST(Rewrite, TransposeSpdDiscoversSymmetryWithoutFullRank) {
+    PropertyTable pt;
+    // Non-full rank matrix R (e.g. rank-deficient 3x3)
+    pt.add_or_update_property_entry("R", {.shape = std::make_pair(3, 3), .flags = {.is_full_rank = false}});
+    // Full column rank matrix F (3x2, full rank)
+    pt.add_or_update_property_entry("F", {.shape = std::make_pair(3, 2), .flags = {.is_full_rank = true}});
+
+    EGraph egraph(std::move(pt));
+
+    Id id_r_gram = egraph.add_expression(Expression("Tr(R) * R"));
+    Id id_f_gram = egraph.add_expression(Expression("Tr(F) * F"));
+
+    Rewriter rewriter(egraph, {transpose_spd2}, EGraphConfig{.rewrite = {.node_limit = 100}});
+    bool changed = rewriter.apply_rewrites();
+    EXPECT_TRUE(changed);
+
+    // For R (rank-deficient): must discover symmetry and positive semi-definiteness, but NOT strict positive definiteness
+    const auto &r_prop = std::get<MatrixProperty>(egraph.get_class_analysis_data(id_r_gram).property);
+    EXPECT_TRUE(r_prop.flags.is_symmetric);
+    EXPECT_TRUE(r_prop.flags.is_positive_semi_definite);
+    EXPECT_FALSE(r_prop.flags.is_positive_definite);
+
+    // For F (full column rank): must discover symmetry, semi-definiteness, AND positive definiteness
+    const auto &f_prop = std::get<MatrixProperty>(egraph.get_class_analysis_data(id_f_gram).property);
+    EXPECT_TRUE(f_prop.flags.is_symmetric);
+    EXPECT_TRUE(f_prop.flags.is_positive_semi_definite);
+    EXPECT_TRUE(f_prop.flags.is_positive_definite);
+}

@@ -38,11 +38,11 @@ static const auto invert_mat_prod = make_rewrite(
 static const auto mat_transpose_prod = make_rewrite("mat-transpose-prod", "Tr(?a * ?b)", "Tr(?b) * Tr(?a)", false);
 static const auto sym_prod_transpose_right = make_rewrite(
     "symm_prod_transpose_right", "?a * ?b", "Tr(?b * Tr(?a))", false, [](const EGraph &g, const Substitution &s) {
-    return is_symmetric("b")(g, s) && is_not_vector("a")(g, s) && is_not_transpose("a")(g, s);
+    return is_symmetric("b")(g, s) && is_not_vector("a")(g, s);
 });
 static const auto sym_prod_transpose_left = make_rewrite(
     "symm_prod_transpose_left", "?b * ?a", "Tr(Tr(?a) * ?b)", false, [](const EGraph &g, const Substitution &s) {
-    return is_symmetric("b")(g, s) && is_not_vector("a")(g, s) && is_not_transpose("a")(g, s);
+    return is_symmetric("b")(g, s) && is_not_vector("a")(g, s);
 });
 
 static const auto orthogonal_inverse =

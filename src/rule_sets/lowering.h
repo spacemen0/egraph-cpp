@@ -77,9 +77,9 @@ static const auto syrk_with_c_left =
     make_rewrite("syrk_with_c_left", "?a * Tr(?a) + ?c", "Syrk_N(?a, ?c)", false, is_symmetric("c"));
 static const auto syrk_with_c_right =
     make_rewrite("syrk_with_c_right", "Tr(?a) * ?a + ?c", "Syrk_T(?a, ?c)", false, is_symmetric("c"));
-static const auto trsm_ln = make_rewrite(
-    "trsm_ln", "Inv(?a) * ?b", "Trsm_LN(?a, ?b)", false, [](const EGraph &g, const Substitution &s) {
-    return is_square("a")(g, s) && is_triangular("a")(g, s);
+static const auto trsm_ln =
+    make_rewrite("trsm_ln", "Inv(?a) * ?b", "Trsm_LN(?a, ?b)", false, [](const EGraph &g, const Substitution &s) {
+    return is_triangular("a")(g, s);
 });
 static const auto trsm_lt_tr_inv =
     make_rewrite("trsm_lt_tr_inv", "Tr(Inv(?a)) * ?b", "Trsm_LT(?a, ?b)", false, is_triangular("a"));
@@ -107,19 +107,17 @@ static const auto gemm_tt = make_rewrite("gemm_tt", "Gemm_NN(Tr(?a), Tr(?b), ?c)
 static const auto syrk_t = make_rewrite("syrk_t", "Syrk_N(Tr(?a), ?c)", "Syrk_T(?a, ?c)", false);
 static const auto syrk_n = make_rewrite("syrk_n", "Syrk_T(Tr(?a), ?c)", "Syrk_N(?a, ?c)", false);
 
-static const auto trsm_lt =
-    make_rewrite("trsm_lt", "Trsm_LN(Tr(?a), ?b)", "Trsm_LT(?a, ?b)", false, is_triangular("a"));
+static const auto trsm_lt = make_rewrite("trsm_lt", "Trsm_LN(Tr(?a), ?b)", "Trsm_LT(?a, ?b)", false);
 
-static const auto trsm_rn = make_rewrite(
-    "trsm_rn", "?b * Inv(?a)", "Trsm_RN(?a, ?b)", false, [](const EGraph &g, const Substitution &s) {
+static const auto trsm_rn =
+    make_rewrite("trsm_rn", "?b * Inv(?a)", "Trsm_RN(?a, ?b)", false, [](const EGraph &g, const Substitution &s) {
     return is_square("a")(g, s) && is_triangular("a")(g, s);
 });
 static const auto trsm_rt_tr_inv =
     make_rewrite("trsm_rt_tr_inv", "?b * Tr(Inv(?a))", "Trsm_RT(?a, ?b)", false, is_triangular("a"));
 static const auto trsm_rt_inv_tr =
     make_rewrite("trsm_rt_inv_tr", "?b * Inv(Tr(?a))", "Trsm_RT(?a, ?b)", false, is_triangular("a"));
-static const auto trsm_rt =
-    make_rewrite("trsm_rt", "Trsm_RN(Tr(?a), ?b)", "Trsm_RT(?a, ?b)", false, is_triangular("a"));
+static const auto trsm_rt = make_rewrite("trsm_rt", "Trsm_RN(Tr(?a), ?b)", "Trsm_RT(?a, ?b)", false);
 
 /// LAPACK
 /// ----------------------------------------------------------

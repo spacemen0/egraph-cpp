@@ -1,7 +1,6 @@
 #include "analysis.h"
 #include "e_graph.h"
 #include "errors.h"
-#include "expression.h"
 #include "property_table.h"
 #include "utils.h"
 #include <variant>
