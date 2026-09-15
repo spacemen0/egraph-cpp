@@ -129,6 +129,7 @@ Cost compute_tr_cost(Op op, const ENode &node, const EGraph &egraph, const SizeB
     }
 }
 
+// deliberately made really high to avoid explicit inversion
 Cost compute_inv_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
     auto shape = get_one_shape(egraph, size_bindings, node.get_children().at(0));
     auto data = get_matrix_data(egraph, node.get_children().at(0));
@@ -137,14 +138,14 @@ Cost compute_inv_cost(Op op, const ENode &node, const EGraph &egraph, const Size
         if (data && (data->flags.is_upper_triangular || data->flags.is_lower_triangular || data->flags.is_diagonal)) {
             return (1.0 / 3.0) * rows * rows * rows;
         }
-        return 8.0 * rows * rows * rows;
+        return 24.0 * rows * rows * rows;
     } else {
         Monomial m = {{size_to_symbol(shape.first), size_to_symbol(shape.first), size_to_symbol(shape.first)}};
         SymbolicCost sc;
         if (data && (data->flags.is_upper_triangular || data->flags.is_lower_triangular || data->flags.is_diagonal)) {
             sc[m] = 1.0 / 3.0;
         } else {
-            sc[m] = 8.0;
+            sc[m] = 24.0;
         }
         return sc;
     }

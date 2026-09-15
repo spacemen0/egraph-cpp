@@ -75,8 +75,8 @@ TEST(OpCostsTest, ComputeInvCostGeneralSquare) {
 
     Cost cost = compute_inv_cost(Op::Inv, node, egraph, nullptr);
     ASSERT_TRUE(std::holds_alternative<double>(cost));
-    // 8.0 * 3^3 = 216.0
-    EXPECT_DOUBLE_EQ(std::get<double>(cost), 216.0);
+    // 24.0 * 3^3 = 648.0
+    EXPECT_DOUBLE_EQ(std::get<double>(cost), 648.0);
 }
 
 TEST(OpCostsTest, ComputeInvCostTriangularSquare) {

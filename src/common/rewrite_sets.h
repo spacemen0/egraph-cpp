@@ -1,3 +1,5 @@
+#pragma once
+
 #include "expansions.h"
 #include "lowering.h"
 #include "properties_discovery.h"
