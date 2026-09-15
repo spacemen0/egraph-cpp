@@ -142,11 +142,11 @@ static const auto fuse_ormqr_rt =
 
 static const auto trtri = make_rewrite("trtri", "Inv(?a)", "Trtri(?a)", false, is_triangular("a"));
 
-static const auto inv_cholel = make_rewrite(
-    "inv_cholel", "Inv(?a)", "Tr(Trtri(Get(Potrf_L(?a), 0))) * Trtri(Get(Potrf_L(?a), 0))", false,
-    [](const EGraph &g, const Substitution &s) {
-    return is_square("a")(g, s) && !is_triangular("a")(g, s) && is_pos_def("a")(g, s) && is_symmetric("a")(g, s);
-});
+// static const auto inv_cholel = make_rewrite(
+//     "inv_cholel", "Inv(?a)", "Tr(Trtri(Get(Potrf_L(?a), 0))) * Trtri(Get(Potrf_L(?a), 0))", false,
+//     [](const EGraph &g, const Substitution &s) {
+//     return is_square("a")(g, s) && !is_triangular("a")(g, s) && is_pos_def("a")(g, s) && is_symmetric("a")(g, s);
+// });
 
 static const auto axpy = make_rewrite("axpy", "?a + ?b", "Axpy(?a, ?b)", false);
 static const auto axpy_minus = make_rewrite("axpy", "?a - ?b", "Axpy(?a, Scale(?b, -1))", false);
@@ -191,7 +191,7 @@ static const std::vector<Rewrite> lowering_set = {
     potrf_l,
     potrf_u,
     potrf_u_to_potrf_l,
-    inv_cholel,
+    // inv_cholel,
     axpy,
     axpy_minus,
 };
