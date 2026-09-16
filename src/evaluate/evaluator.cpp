@@ -19,8 +19,8 @@ namespace egraph {
 
 Evaluator::Evaluator(
     EGraph &egraph, const ExtractionResult &result, const SizeBindings *size_bindings,
-    const DataBindings &data_bindings)
-    : egraph(egraph), result(result), data_bindings(data_bindings) {
+    const DataBindings &data_bindings, const std::vector<Id> &preserved_ids)
+    : egraph(egraph), result(result), data_bindings(data_bindings), preserved_ids(preserved_ids) {
 
     size_t N = this->result.execution_order.size();
     data_storage.resize(N);
@@ -35,6 +35,18 @@ Evaluator::Evaluator(
     for (size_t slot = 0; slot < N; ++slot) {
         Id class_id = this->result.execution_order[slot];
         slot_map[class_id] = static_cast<int>(slot);
+    }
+
+    preserved_slots.assign(N, false);
+    for (Id id : this->preserved_ids) {
+        Id class_id = egraph.find_class_id(id);
+        if (class_id < slot_map.size() && slot_map[class_id] != -1) {
+            preserved_slots[slot_map[class_id]] = true;
+        }
+    }
+
+    for (size_t slot = 0; slot < N; ++slot) {
+        Id class_id = this->result.execution_order[slot];
         const ENode *node = this->result.choices.at(class_id);
         if (node) {
             const Atom &atom = node->get_atom();
@@ -130,9 +142,11 @@ void Evaluator::setup_in_place_output(Id child_id, MatrixNode &output) const {
     int child_slot = slot_map[child_id];
     auto &child_node = std::get<MatrixNode>(data_storage[child_slot]);
     int count = use_counts[child_slot];
-    // the child is only used once, and by the time of calling this function, the child is guaranteed to be evaluated
-    // already
-    if (count == 1) {
+    bool is_preserved =
+        (child_slot >= 0 && static_cast<size_t>(child_slot) < preserved_slots.size() && preserved_slots[child_slot]);
+    // the child is only used once, not marked as preserved, and by the time of calling this function, the child is
+    // guaranteed to be evaluated already
+    if (count == 1 && !is_preserved) {
         output.data_ptr = std::move(child_node.data_ptr);
         use_counts[child_slot] = 0;
     } else {
@@ -212,10 +226,25 @@ std::vector<double> Evaluator::evaluate() {
             }
         }
     }
+
     // root node should be a MatrixNode
     size_t root_slot = N - 1;
     const MatrixNode &res_node = std::get<MatrixNode>(data_storage[root_slot]);
+    res_node.ensure_general();
     return res_node.vec();
+}
+
+std::vector<double> Evaluator::get_preserved(Id id) const {
+    Id class_id = egraph.find_class_id(id);
+    if (class_id < slot_map.size() && slot_map[class_id] != -1) {
+        int slot = slot_map[class_id];
+        if (std::holds_alternative<MatrixNode>(data_storage[slot])) {
+            auto &node = const_cast<MatrixNode &>(std::get<MatrixNode>(data_storage[slot]));
+            node.ensure_general();
+            return node.vec();
+        }
+    }
+    throw std::runtime_error("Preserved ID not found in evaluator storage.");
 }
 
 void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *node, Id class_id) const {

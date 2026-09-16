@@ -520,7 +520,11 @@ Expression Extractor::build_expression(
 
 std::vector<Id>
 Extractor::build_execution_order(Id class_id, const std::unordered_map<Id, const ENode *> &choices) const {
-    Id root = egraph.find_class_id(class_id);
+    return build_execution_order(std::vector<Id>{class_id}, choices);
+}
+
+std::vector<Id> Extractor::build_execution_order(
+    const std::vector<Id> &roots, const std::unordered_map<Id, const ENode *> &choices) const {
     std::vector<Id> execution_order;
     std::unordered_set<Id> visited;
 
@@ -539,7 +543,9 @@ Extractor::build_execution_order(Id class_id, const std::unordered_map<Id, const
         execution_order.push_back(current);
     };
 
-    dfs(dfs, root);
+    for (Id root : roots) {
+        dfs(dfs, root);
+    }
     return execution_order;
 }
 

@@ -30,47 +30,41 @@ int run_image() {
 
     SizeBindings concrete_sizes = {{"a", h_sizes.first}, {"b", h_sizes.second}};
 
-    // Context 1: Optimize and evaluate math_1 (pseudo-inverse of wide H)
-    {
-        EGraphRunner::Context ctx1;
-        ctx1.get_config().enable_logging = false;
-        Expression H1 = ctx1.define_matrix_symbolic("H", "a", "b", {"full_rank", "wide"});
-        Expression math_1 = transpose(H1) * inverse(H1 * transpose(H1));
+    EGraphRunner::Context ctx;
+    ctx.get_config().enable_logging = false;
 
-        ctx1.optimize_symbolic(math_1);
+    Expression y = ctx.define_matrix_symbolic("y", "a", 1);
+    Expression H = ctx.define_matrix_symbolic("H", "a", "b", {"full_rank", "wide"});
+    Expression I = ctx.define_matrix_symbolic("I", "b", "b", {"identity"});
+    Expression x = ctx.define_matrix_symbolic("x", "b", 1);
 
-        DataBindings concrete_data1 = {{"H", h_data}};
-        auto out1 = ctx1.evaluate_concrete(concrete_sizes, concrete_data1);
-        auto out1_shape = bind_shape(ctx1.get_property().shape, &concrete_sizes);
-        int row1 = std::get<int>(out1_shape.first);
-        int col1 = std::get<int>(out1_shape.second);
-        std::string out_path1 = "examples/data/image_result_1.csv";
-        write_matrix(out_path1, row1, col1, out1);
-    }
+    // Formula: math_1 is pseudo-inverse of wide H: H^T * (H * H^T)^-1
+    Expression math_1 = transpose(H) * inverse(H * transpose(H));
+    // Formula: math_2 is image restoration: math_1 * y + (I - math_1 * H) * x
+    Expression math_2 = math_1 * y + (I - math_1 * H) * x;
 
-    // Context 2: Optimize and evaluate math_2 (image restoration formula)
-    {
-        EGraphRunner::Context ctx2;
-        ctx2.get_config().enable_logging = false;
-        Expression y = ctx2.define_matrix_symbolic("y", "a", 1);
-        Expression H2 = ctx2.define_matrix_symbolic("H", "a", "b", {"full_rank", "wide"});
-        Expression I = ctx2.define_matrix_symbolic("I", "b", "b", {"identity"});
-        Expression x = ctx2.define_matrix_symbolic("x", "b", 1);
+    // math_1 passed as a background expression (and detected as subexpression)
+    ctx.optimize_symbolic(math_2, {math_1});
 
-        Expression math_1_in_2 = transpose(H2) * inverse(H2 * transpose(H2));
-        Expression math_2 = math_1_in_2 * y + (I - math_1_in_2 * H2) * x;
+    DataBindings concrete_data = {
+        {"y", y_data}, {"H", h_data}, {"I", generate_identity_matrix(h_sizes.second)}, {"x", x_data}};
 
-        ctx2.optimize_symbolic(math_2);
+    auto out2 = ctx.evaluate_concrete(concrete_sizes, concrete_data);
 
-        DataBindings concrete_data2 = {
-            {"y", y_data}, {"H", h_data}, {"I", generate_identity_matrix(h_sizes.second)}, {"x", x_data}};
-        auto out2 = ctx2.evaluate_concrete(concrete_sizes, concrete_data2);
-        auto out2_shape = bind_shape(ctx2.get_property().shape, &concrete_sizes);
-        int row2 = std::get<int>(out2_shape.first);
-        int col2 = std::get<int>(out2_shape.second);
-        std::string out_path2 = "examples/data/image_result_2.csv";
-        write_matrix(out_path2, row2, col2, out2);
-    }
+    // Retrieve preserved math_1
+    auto out1 = ctx.get_preserved(math_1);
+    auto out1_shape = bind_shape(ctx.get_property(math_1).shape, &concrete_sizes);
+    int row1 = std::get<int>(out1_shape.first);
+    int col1 = std::get<int>(out1_shape.second);
+    std::string out_path1 = "examples/data/image_result_1.csv";
+    write_matrix(out_path1, row1, col1, out1);
+
+    // Retrieve target math_2
+    auto out2_shape = bind_shape(ctx.get_property().shape, &concrete_sizes);
+    int row2 = std::get<int>(out2_shape.first);
+    int col2 = std::get<int>(out2_shape.second);
+    std::string out_path2 = "examples/data/image_result_2.csv";
+    write_matrix(out_path2, row2, col2, out2);
 
     return 0;
 }

@@ -74,8 +74,9 @@ class Evaluator {
   public:
     explicit Evaluator(
         EGraph &egraph, const ExtractionResult &result, const SizeBindings *size_bindings,
-        const DataBindings &data_bindings);
+        const DataBindings &data_bindings, const std::vector<Id> &preserved_ids = {});
     std::vector<double> evaluate();
+    std::vector<double> get_preserved(Id id) const;
     void print_execution_plan() const;
 
   private:
@@ -86,6 +87,10 @@ class Evaluator {
     EGraph &egraph;
     ExtractionResult result;
     const DataBindings &data_bindings;
+    std::vector<Id> preserved_ids;
+
+    // simply to mark which slots are preserved, so that we don't overwrite them
+    std::vector<bool> preserved_slots;
 
     // element 0 stores the data for the first node in execution_order, and so on.
     std::vector<DataStorage> data_storage;

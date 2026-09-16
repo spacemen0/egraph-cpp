@@ -32,6 +32,10 @@ class Extractor {
         bool use_dag_extract = false) const;
     void reset() const;
 
+    std::vector<Id> build_execution_order(Id class_id, const std::unordered_map<Id, const ENode *> &choices) const;
+    std::vector<Id>
+    build_execution_order(const std::vector<Id> &roots, const std::unordered_map<Id, const ENode *> &choices) const;
+
   private:
     struct NumericSearchResult {
         double cost;
@@ -94,7 +98,6 @@ class Extractor {
 
     Expression build_expression(
         Id class_id, const std::unordered_map<Id, const ENode *> &choices, std::unordered_set<Id> &visiting) const;
-    std::vector<Id> build_execution_order(Id class_id, const std::unordered_map<Id, const ENode *> &choices) const;
 };
 
 } // namespace egraph
