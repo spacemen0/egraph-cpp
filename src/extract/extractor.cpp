@@ -32,7 +32,6 @@ void Extractor::reset() const {
     nodes_visited = 0;
 }
 
-
 void Extractor::search_numeric_dags(
     Id root, std::vector<Id> &pending, std::vector<size_t> &pending_set, std::vector<const ENode *> &current_choices,
     double current_g, double pending_min_local_sum, std::vector<NumericSearchResult> &results, double &worst_cost,
@@ -59,19 +58,16 @@ void Extractor::search_numeric_dags(
             if (results.size() >= max_results) {
                 worst_cost = results.back().cost;
             }
-
-
         }
         return;
     }
 
     if (nodes_visited >= effective_visit_limit) {
-        if (enable_logging) {
+        if (enable_logging & (nodes_visited % kExtractorProgressLogEvery == 0)) {
             std::cout << "[Extractor] Node visit limit reached during numeric search, stopping." << std::endl;
         }
         return;
     }
-
 
     Id current = pending.back();
     pending.pop_back();
@@ -140,8 +136,7 @@ void Extractor::search_numeric_dags(
     pending_set[current] = 1;
 }
 
-std::vector<Extractor::NumericSearchResult>
-Extractor::find_top_numeric_dags(
+std::vector<Extractor::NumericSearchResult> Extractor::find_top_numeric_dags(
     Id root_class_id, size_t max_results, const SizeBindings *size_bindings, size_t custom_visit_limit) const {
     if (max_results == 0) {
         return {};
@@ -211,7 +206,6 @@ Extractor::find_top_numeric_dags(
         root, pending, pending_set, current_choices, 0.0, initial_min_local, best_results, worst_cost, max_results,
         visited_buffer, stack_buffer, size_bindings, effective_limit);
 
-
     if (enable_logging) {
         std::cout << "[Extractor] Visited " << nodes_visited << " nodes during numeric extraction." << std::endl;
     }
@@ -264,7 +258,6 @@ void Extractor::initial_analysis_pass(const SizeBindings *size_bindings) const {
     std::unordered_map<Id, double> dag_costs_lower_bound;
     // dag costs lower bound but for the current chosen node in tree choices for each class
     std::unordered_map<Id, double> chosen_node_dag_cost_lower_bound;
-
 
     auto all_class_ids = egraph.get_all_class_ids();
     for (Id id : all_class_ids) {
@@ -567,8 +560,8 @@ ExtractionResult Extractor::extract(Id class_id, const SizeBindings &size_bindin
 
 std::vector<ExtractionResult>
 Extractor::extract(Id class_id, size_t max_results, const SizeBindings &size_bindings, size_t visit_limit) const {
-    auto top_dags = find_top_numeric_dags(
-        class_id, max_results, size_bindings.empty() ? nullptr : &size_bindings, visit_limit);
+    auto top_dags =
+        find_top_numeric_dags(class_id, max_results, size_bindings.empty() ? nullptr : &size_bindings, visit_limit);
     std::vector<ExtractionResult> results;
     results.reserve(top_dags.size());
     for (const auto &dag : top_dags) {
@@ -629,8 +622,7 @@ std::vector<ExtractionResult> Extractor::extract_symbolic(Id class_id, bool buil
 /// Collects the extracted nodes for the given roots and size bindings, storing them in selected_choices. Returns true
 bool Extractor::collect_selected_nodes_for_binding(
     const std::vector<Id> &roots, const SizeBindings &size_bindings,
-    std::unordered_map<Id, std::unordered_set<const ENode *>> &selected_choices,
-    bool use_dag_extract) const {
+    std::unordered_map<Id, std::unordered_set<const ENode *>> &selected_choices, bool use_dag_extract) const {
     bool any_root_succeeded = false;
 
     for (Id root : roots) {

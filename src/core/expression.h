@@ -34,4 +34,16 @@ inline Expression inverse(const Expression &e) { return Expression(Op::Inv, {e})
 inline Expression scale(const Expression &e, const ScalarExpr &s) { return Expression(Op::Scale, {e, Expression(s)}); }
 inline Expression scale(const Expression &e, double v) { return Expression(Op::Scale, {e, Expression(ScalarExpr(v))}); }
 
+inline bool is_subexpression(const Expression &parent, const Expression &target) {
+    if (parent == target) {
+        return true;
+    }
+    for (const auto &child : parent.children) {
+        if (is_subexpression(child, target)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 } // namespace egraph

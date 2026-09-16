@@ -3,7 +3,6 @@
 #include "e_graph.h"
 #include "egraph_config.h"
 #include <cstddef>
-#include <memory>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -14,17 +13,13 @@ struct ExtractionResult {
     Expression expr;
     std::vector<Id> execution_order;
     std::unordered_map<Id, const ENode *> choices;
-    // Owns synthetic kernel nodes created by post-extraction fusion passes (e.g. alpha/beta
-    // folding). The evaluator must keep the result alive for the whole evaluation.
-    std::vector<std::shared_ptr<ENode>> owned_nodes;
 };
 
 class Extractor {
   public:
     explicit Extractor(EGraph &egraph, const EGraphConfig &config = EGraphConfig());
 
-    ExtractionResult extract(
-        Id class_id, const SizeBindings &size_bindings = {}, size_t visit_limit = 0) const;
+    ExtractionResult extract(Id class_id, const SizeBindings &size_bindings = {}, size_t visit_limit = 0) const;
     std::vector<ExtractionResult>
     extract(Id class_id, size_t max_results, const SizeBindings &size_bindings = {}, size_t visit_limit = 0) const;
 
@@ -67,9 +62,7 @@ class Extractor {
 
     void initial_analysis_pass(const SizeBindings *size_bindings) const;
 
-
-    std::vector<NumericSearchResult>
-    find_top_numeric_dags(
+    std::vector<NumericSearchResult> find_top_numeric_dags(
         Id root_class_id, size_t max_results, const SizeBindings *size_bindings = nullptr,
         size_t custom_visit_limit = 0) const;
 
@@ -85,7 +78,6 @@ class Extractor {
         std::vector<NumericSearchResult> &results, double &worst_cost, size_t max_results,
         std::vector<size_t> &visited_buffer, std::vector<Id> &stack_buffer, const SizeBindings *size_bindings,
         size_t effective_visit_limit) const;
-
 
     void search_symbolic_dags(
         Id root, std::vector<Id> &pending, std::vector<size_t> &pending_set,
