@@ -1,5 +1,4 @@
 #include "pruner.h"
-#include "rewrite_sets.h"
 #include "utils.h"
 
 namespace egraph {

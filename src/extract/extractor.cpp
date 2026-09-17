@@ -626,23 +626,14 @@ std::vector<ExtractionResult> Extractor::extract_symbolic(Id class_id, bool buil
 }
 
 /// Collects the extracted nodes for the given roots and size bindings, storing them in selected_choices. Returns true
-bool Extractor::collect_selected_nodes_for_binding(
+void Extractor::collect_selected_nodes_for_binding(
     const std::vector<Id> &roots, const SizeBindings &size_bindings,
     std::unordered_map<Id, std::unordered_set<const ENode *>> &selected_choices, bool use_dag_extract) const {
-    bool any_root_succeeded = false;
 
     for (Id root : roots) {
         try {
-            if (use_dag_extract) {
-                auto dag_res = extract(root, size_bindings, dag_visit_limit);
-                any_root_succeeded = true;
-                for (const auto &[class_id, node] : dag_res.choices) {
-                    selected_choices[class_id].insert(node);
-                }
-            }
-
-            auto result = tree_extract(root, size_bindings);
-            any_root_succeeded = true;
+            auto result =
+                use_dag_extract ? extract(root, size_bindings, dag_visit_limit) : tree_extract(root, size_bindings);
             for (const auto &[class_id, node] : result.choices) {
                 selected_choices[class_id].insert(node);
             }
@@ -650,8 +641,6 @@ bool Extractor::collect_selected_nodes_for_binding(
             // Skip if no tree/DAG found for this root under these bindings
         }
     }
-
-    return any_root_succeeded;
 }
 
 } // namespace egraph

@@ -1,7 +1,5 @@
 #include "api.h"
 #include "evaluator.h"
-#include "extractor.h"
-#include "test_helpers.h"
 #include <gtest/gtest.h>
 #include <sstream>
 #include <vector>
@@ -123,10 +121,7 @@ TEST(EvaluatorTest, EvaluateMatrixAddition) {
     Expression B("B");
     ctx.optimize_concrete(A + B);
 
-    DataBindings data = {
-        {"A", {1.0, 2.0, 3.0, 4.0}},
-        {"B", {10.0, 20.0, 30.0, 40.0}}
-    };
+    DataBindings data = {{"A", {1.0, 2.0, 3.0, 4.0}}, {"B", {10.0, 20.0, 30.0, 40.0}}};
 
     auto result = ctx.evaluate_concrete({}, data);
     ASSERT_EQ(result.size(), 4);
@@ -145,10 +140,7 @@ TEST(EvaluatorTest, EvaluateMatrixMultiplication) {
     Expression B("B");
     ctx.optimize_concrete(A * B);
 
-    DataBindings data = {
-        {"A", {1.0, 2.0, 3.0, 4.0, 5.0, 6.0}},
-        {"B", {1.0, 2.0, 3.0, 4.0, 5.0, 6.0}}
-    };
+    DataBindings data = {{"A", {1.0, 2.0, 3.0, 4.0, 5.0, 6.0}}, {"B", {1.0, 2.0, 3.0, 4.0, 5.0, 6.0}}};
 
     auto result = ctx.evaluate_concrete({}, data);
     ASSERT_EQ(result.size(), 4);
@@ -167,10 +159,7 @@ TEST(EvaluatorTest, EvaluateMatrixVectorMultiplication) {
     Expression x("x");
     ctx.optimize_concrete(A * x);
 
-    DataBindings data = {
-        {"A", {2.0, 1.0, 0.0, 3.0}},
-        {"x", {4.0, 5.0}}
-    };
+    DataBindings data = {{"A", {2.0, 1.0, 0.0, 3.0}}, {"x", {4.0, 5.0}}};
 
     auto result = ctx.evaluate_concrete({}, data);
     ASSERT_EQ(result.size(), 2);
@@ -187,9 +176,7 @@ TEST(EvaluatorTest, MissingDataBindingThrowsRuntimeError) {
     Expression B("B");
     ctx.optimize_concrete(A + B);
 
-    DataBindings incomplete_data = {
-        {"A", {1.0, 2.0, 3.0, 4.0}}
-    };
+    DataBindings incomplete_data = {{"A", {1.0, 2.0, 3.0, 4.0}}};
 
     EXPECT_THROW(ctx.evaluate_concrete({}, incomplete_data), std::runtime_error);
 }
@@ -203,10 +190,7 @@ TEST(EvaluatorTest, PrintExecutionPlanOutputsDetails) {
     Expression B("B");
     ctx.optimize_concrete(A + B);
 
-    DataBindings data = {
-        {"A", {1.0, 2.0, 3.0, 4.0}},
-        {"B", {5.0, 6.0, 7.0, 8.0}}
-    };
+    DataBindings data = {{"A", {1.0, 2.0, 3.0, 4.0}}, {"B", {5.0, 6.0, 7.0, 8.0}}};
 
     std::stringstream buffer;
     std::streambuf *old_cout = std::cout.rdbuf(buffer.rdbuf());
@@ -224,9 +208,7 @@ TEST(EvaluatorTest, MissingSizeBindingsThrowsRuntimeErrorInsteadOfCrashing) {
     Expression M("M");
     ctx.optimize_concrete(M);
 
-    DataBindings data = {
-        {"M", {1.0, 2.0, 3.0, 4.0}}
-    };
+    DataBindings data = {{"M", {1.0, 2.0, 3.0, 4.0}}};
     SizeBindings incomplete_sizes;
     EXPECT_THROW(ctx.evaluate_concrete(incomplete_sizes, data), std::runtime_error);
 }

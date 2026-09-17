@@ -7,9 +7,9 @@ using namespace egraph;
 int run_gls() {
     EGraphRunner::Context ctx;
     ctx.get_config().enable_logging = true;
-    Expression X = ctx.define_matrix_symbolic("X", "a", "b", {"full_rank", "tall"});
-    Expression y = ctx.define_matrix_symbolic("y", "a", 1);
-    Expression M = ctx.define_matrix_symbolic("M", "a", "a", {"symmetric", "positive_definite"});
+    Expression X = ctx.define_matrix("X", "a", "b", {"full_rank", "tall"});
+    Expression y = ctx.define_matrix("y", "a", 1);
+    Expression M = ctx.define_matrix("M", "a", "a", {"symmetric", "positive_definite"});
     Expression target_math = inverse(transpose(X) * inverse(M) * X) * transpose(X) * inverse(M) * y;
 
     ctx.optimize_symbolic(target_math);

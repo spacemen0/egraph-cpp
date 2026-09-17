@@ -42,6 +42,7 @@ class Context {
     void set_config(const EGraphConfig &cfg) { config = cfg; }
     EGraphConfig &get_config() { return config; }
     const EGraphConfig &get_config() const { return config; }
+
     Expression define_matrix(const std::string &name, int rows, int cols, const std::vector<std::string> &flags = {}) {
         MatrixProperty prop;
         prop.shape = Shape{rows, cols};
@@ -56,7 +57,7 @@ class Context {
         return Expression(name);
     }
 
-    Expression define_matrix_symbolic(
+    Expression define_matrix(
         const std::string &name, const std::string &rows_var, const std::string &cols_var,
         const std::vector<std::string> &flags = {}) {
         size_keys.push_back(rows_var);
@@ -68,7 +69,7 @@ class Context {
         return Expression(name);
     }
 
-    Expression define_matrix_symbolic(
+    Expression define_matrix(
         const std::string &name, const std::string &rows_var, int cols, const std::vector<std::string> &flags = {}) {
         size_keys.push_back(rows_var);
         MatrixProperty prop;
@@ -78,7 +79,7 @@ class Context {
         return Expression(name);
     }
 
-    Expression define_matrix_symbolic(
+    Expression define_matrix(
         const std::string &name, int rows, const std::string &cols_var, const std::vector<std::string> &flags = {}) {
         size_keys.push_back(cols_var);
         MatrixProperty prop;

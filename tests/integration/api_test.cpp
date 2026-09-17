@@ -53,8 +53,8 @@ TEST(ApiTest, ContextOptimization) {
 
 TEST(ApiTest, OLSSymbolic) {
     Context ctx((EGraph(get_property_table())));
-    ctx.define_matrix_symbolic("M", "A", "B", {"full_rank", "tall"});
-    ctx.define_matrix_symbolic("n", "A", 1);
+    ctx.define_matrix("M", "A", "B", {"full_rank", "tall"});
+    ctx.define_matrix("n", "A", 1);
 
     Expression M("M");
     Expression n("n");
@@ -100,8 +100,8 @@ TEST(ApiTest, KernelMapping) {
 TEST(ApiTest, OptimizeSymbolic) {
     Context ctx((EGraph(get_property_table())));
 
-    ctx.define_matrix_symbolic("M", "A", "B", {"full_rank", "tall"});
-    ctx.define_matrix_symbolic("n", "A", 1);
+    ctx.define_matrix("M", "A", "B", {"full_rank", "tall"});
+    ctx.define_matrix("n", "A", 1);
     Expression M("M");
     Expression n("n");
 
@@ -112,8 +112,10 @@ TEST(ApiTest, OptimizeSymbolic) {
 
     bool found = std::any_of(results.begin(), results.end(), [](const auto &c) {
         std::string s = c.expr.to_string(false);
-        return s == "Trsm_LT(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Trsm_LN(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Gemv_T(M, n, Zero_Bx1)))" ||
-               s == "Trsm_LN(Get(Potrf_U(Syrk_T(M, Zero_BxB)), 0), Trsm_LT(Get(Potrf_U(Syrk_T(M, Zero_BxB)), 0), Gemv_T(M, n, Zero_Bx1)))";
+        return s == "Trsm_LT(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), Trsm_LN(Get(Potrf_L(Syrk_T(M, Zero_BxB)), 0), "
+                    "Gemv_T(M, n, Zero_Bx1)))" ||
+               s == "Trsm_LN(Get(Potrf_U(Syrk_T(M, Zero_BxB)), 0), Trsm_LT(Get(Potrf_U(Syrk_T(M, Zero_BxB)), 0), "
+                    "Gemv_T(M, n, Zero_Bx1)))";
     });
     EXPECT_TRUE(found);
 
@@ -138,8 +140,8 @@ TEST(ApiTest, OptimizeSymbolic) {
 
 TEST(ApiTest, EvaluateConcrete) {
     Context ctx;
-    ctx.define_matrix_symbolic("M", "A", "B", {"full_rank", "tall"});
-    ctx.define_matrix_symbolic("n", "A", 1);
+    ctx.define_matrix("M", "A", "B", {"full_rank", "tall"});
+    ctx.define_matrix("n", "A", 1);
     Expression M("M");
     Expression n("n");
 

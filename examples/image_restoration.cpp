@@ -33,25 +33,24 @@ int run_image() {
     EGraphRunner::Context ctx;
     ctx.get_config().enable_logging = false;
 
-    Expression y = ctx.define_matrix_symbolic("y", "a", 1);
-    Expression H = ctx.define_matrix_symbolic("H", "a", "b", {"full_rank", "wide"});
-    Expression I = ctx.define_matrix_symbolic("I", "b", "b", {"identity"});
-    Expression x = ctx.define_matrix_symbolic("x", "b", 1);
+    Expression y = ctx.define_matrix("y", "a", 1);
+    Expression H = ctx.define_matrix("H", "a", "b", {"full_rank", "wide"});
+    Expression I = ctx.define_matrix("I", "b", "b", {"identity"});
+    Expression x = ctx.define_matrix("x", "b", 1);
 
-    // Formula: math_1 is pseudo-inverse of wide H: H^T * (H * H^T)^-1
     Expression math_1 = transpose(H) * inverse(H * transpose(H));
-    // Formula: math_2 is image restoration: math_1 * y + (I - math_1 * H) * x
     Expression math_2 = math_1 * y + (I - math_1 * H) * x;
 
-    // math_1 passed as a background expression (and detected as subexpression)
+    // math_1 passed as a background expression
     ctx.optimize_symbolic(math_2, {math_1});
 
     DataBindings concrete_data = {
         {"y", y_data}, {"H", h_data}, {"I", generate_identity_matrix(h_sizes.second)}, {"x", x_data}};
 
+    // run extraction for both math_1 and math_2 if math_1 is not computed explicitly when computing math_2 (does not
+    // appear as a e-class in the extraction result of math_2)
     auto out2 = ctx.evaluate_concrete(concrete_sizes, concrete_data);
 
-    // Retrieve preserved math_1
     auto out1 = ctx.get_preserved(math_1);
     auto out1_shape = bind_shape(ctx.get_property(math_1).shape, &concrete_sizes);
     int row1 = std::get<int>(out1_shape.first);

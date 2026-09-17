@@ -11,11 +11,11 @@ int run_stochastic_newton() {
     ctx.get_config().enable_logging = true;
 
     // Symbolic Matrix Definitions (generic sizes: b, a, l)
-    Expression B = ctx.define_matrix_symbolic("B", "b", "b", {"positive_definite", "symmetric"});
-    Expression In = ctx.define_matrix_symbolic("In", "b", "b", {"identity"});
-    Expression A = ctx.define_matrix_symbolic("A", "a", "b", {"full_rank", "tall"});
-    Expression W_k = ctx.define_matrix_symbolic("W_k", "a", "l", {"full_rank", "tall"});
-    Expression Il = ctx.define_matrix_symbolic("Il", "l", "l", {"identity"});
+    Expression B = ctx.define_matrix("B", "b", "b", {"positive_definite", "symmetric"});
+    Expression In = ctx.define_matrix("In", "b", "b", {"identity"});
+    Expression A = ctx.define_matrix("A", "a", "b", {"full_rank", "tall"});
+    Expression W_k = ctx.define_matrix("W_k", "a", "l", {"full_rank", "tall"});
+    Expression Il = ctx.define_matrix("Il", "l", "l", {"identity"});
 
     // Formula: B_k = (k / (k - 1)) * B * (In - transpose(A) * W_k * inverse((k - 1) * Il + transpose(W_k) * A * B *
     // transpose(A) * W_k) * transpose(W_k) * A * B)
