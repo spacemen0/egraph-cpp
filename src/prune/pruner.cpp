@@ -1,4 +1,5 @@
 #include "pruner.h"
+#include "rewrite_sets.h"
 #include "utils.h"
 
 namespace egraph {
@@ -170,9 +171,17 @@ void Pruner::rewrite_and_prune(
         if (onIterationStart) {
             onIterationStart(i);
         }
-        rewriter.reset();
-        rewriter.apply_rewrites(config.rewrite_steps_per_iteration);
 
+        rewriter.reset();
+        rewriter.apply_rewrites();
+
+        auto lowering_config = rewriter.get_config();
+        lowering_config.rewrite.enable_backoff = false;
+        lowering_config.rewrite.enable_node_limit = false;
+        Rewriter lowering_rewriter(egraph, build_rewrite_sets({"lowering"}), lowering_config);
+        lowering_rewriter.apply_rewrites();
+
+        prune_symbolic_when_kernel_available(egraph, roots);
         const auto bindings = sample_size_bindings(
             config.prune_samples_per_iteration, 10, 5000, size_keys, static_cast<unsigned int>(99 + i),
             &egraph.get_property_table());

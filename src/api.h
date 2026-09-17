@@ -330,7 +330,6 @@ class Context {
             }
         });
         root_expression = egraph.find_class_id(root_id);
-        lower_to_kernels(all_expressions);
     }
 
     void print_properties() const { egraph.get_property_table().print_all_properties(); }
