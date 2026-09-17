@@ -63,6 +63,8 @@ class Extractor {
     mutable std::unordered_map<Id, double> min_local_cost;
     // Best e-node choice minimizing tree_cost
     mutable std::unordered_map<Id, const ENode *> tree_choices;
+    // Admissible DAG lower-bound cost for each e-node
+    mutable std::unordered_map<const ENode *, double> node_dag_lower_bound;
 
     void initial_analysis_pass(const SizeBindings *size_bindings) const;
 

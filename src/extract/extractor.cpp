@@ -77,13 +77,14 @@ void Extractor::search_numeric_dags(
 
     const auto &class_nodes = egraph.get_class_nodes(current);
     std::vector<const ENode *> candidate_nodes = class_nodes;
-    const ENode *preferred = tree_choices.contains(current) ? tree_choices.at(current) : nullptr;
-    if (preferred && candidate_nodes.size() > 1) {
-        auto it = std::find(candidate_nodes.begin(), candidate_nodes.end(), preferred);
-        if (it != candidate_nodes.end()) {
-            std::swap(*it, candidate_nodes.front());
-        }
-    }
+    std::sort(candidate_nodes.begin(), candidate_nodes.end(), [this](const ENode *a, const ENode *b) {
+        double lb_a = node_dag_lower_bound.contains(a) ? node_dag_lower_bound.at(a)
+                                                       : std::numeric_limits<double>::infinity();
+        double lb_b = node_dag_lower_bound.contains(b) ? node_dag_lower_bound.at(b)
+                                                       : std::numeric_limits<double>::infinity();
+        return lb_a < lb_b;
+    });
+
 
     for (const ENode *node : candidate_nodes) {
         Cost local_c = node->compute_local_cost(egraph, size_bindings);
@@ -253,6 +254,7 @@ void Extractor::initial_analysis_pass(const SizeBindings *size_bindings) const {
     tree_cost.clear();
     min_local_cost.clear();
     tree_choices.clear();
+    node_dag_lower_bound.clear();
 
     // Admissible DAG lower-bound cost for each e-class (used for greedy tie-breaking in tree extraction)
     std::unordered_map<Id, double> dag_costs_lower_bound;
@@ -312,6 +314,7 @@ void Extractor::initial_analysis_pass(const SizeBindings *size_bindings) const {
                 }
 
                 double node_lb_cost = local + max_child_cost;
+                node_dag_lower_bound[node] = node_lb_cost;
 
                 // we have found a better lower bound for this class, but it is not always the node selected for the
                 // best tree cost
