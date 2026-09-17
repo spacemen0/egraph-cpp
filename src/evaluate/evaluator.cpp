@@ -138,6 +138,7 @@ Evaluator::Evaluator(
     }
 }
 
+// re-use the data pointer of a child node for output node if it is only used once and not marked as preserved
 void Evaluator::setup_in_place_output(Id child_id, MatrixNode &output) const {
     int child_slot = slot_map[child_id];
     auto &child_node = std::get<MatrixNode>(data_storage[child_slot]);

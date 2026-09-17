@@ -237,7 +237,7 @@ Cost compute_choleu_cost(Op op, const ENode &node, const EGraph &egraph, const S
 }
 
 Cost compute_get_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
-    // If Get's first child is Geqrf, and index is 0, return infinite cost to force using Orgqr
+    // If Get's first child is Geqrf, and index is 0 assign cost of Orgqr to Get, otherwise 0
     Id child_id = node.get_children().at(0);
     Id index_id = node.get_children().at(1);
     bool is_geqrf = false;
@@ -255,7 +255,7 @@ Cost compute_get_cost(Op op, const ENode &node, const EGraph &egraph, const Size
             Atom index_atom = index_enode->get_atom();
             if (auto val = std::get_if<int>(&index_atom)) {
                 if (*val == 0) {
-                    return compute_orgqr_cost(Op::Orgqr, node, egraph, size_bindings) * 1.2;
+                    return compute_orgqr_cost(Op::Orgqr, node, egraph, size_bindings);
                 }
             }
         }

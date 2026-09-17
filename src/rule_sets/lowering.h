@@ -55,6 +55,8 @@ static const auto gemm_without_c = make_rewrite(
     auto gemm_node = ENode{{a_id, b_id, zero}, Op::Gemm_NN};
     return std::make_pair(g.add_node(gemm_node), false);
 }, 30, {Op::Gemm_NN});
+
+// here we do not assume c will be overwritten
 static const auto gemm_with_c =
     make_rewrite("gemm_with_c", "?a * ?b + ?c", "Gemm_NN(?a, ?b, ?c)", false, is_not_vector("b"));
 static const auto syrk_without_c_left = make_rewrite(

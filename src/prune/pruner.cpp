@@ -107,13 +107,17 @@ PruneResult Pruner::prune_symbolic_when_kernel_available(EGraph &egraph, const s
     for (Id class_id : egraph.get_all_class_ids()) {
         const auto &nodes = egraph.get_class_nodes(class_id);
         bool has_kernel = false;
+        bool has_orgqr = false;
         for (const ENode *node : nodes) {
             auto atom = node->get_atom();
             if (std::holds_alternative<Op>(atom)) {
                 auto op = std::get<Op>(atom);
                 if (is_kernel_op(op)) {
                     has_kernel = true;
-                    break;
+                    if (op == Op::Orgqr) {
+                        has_orgqr = true;
+                        break;
+                    }
                 }
             }
         }
@@ -123,7 +127,13 @@ PruneResult Pruner::prune_symbolic_when_kernel_available(EGraph &egraph, const s
                 auto atom = node->get_atom();
                 if (std::holds_alternative<Op>(atom)) {
                     auto op = std::get<Op>(atom);
-                    if (is_kernel_op(op) || op == Op::Get) {
+                    if (is_kernel_op(op)) {
+                        keep_choices[class_id].insert(node);
+                    } else if (op == Op::Get) {
+                        Id index_id = node->get_children().at(1);
+                        if (has_orgqr && get_int_from_eclass(egraph, index_id) == 0) {
+                            continue; // Skip Get(Geqrf, 0) if Orgqr is available
+                        }
                         keep_choices[class_id].insert(node);
                     }
                 } else {

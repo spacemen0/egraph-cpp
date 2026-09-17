@@ -1,7 +1,7 @@
 ## Notes
 Dynamic means the rhs of the rule can not simply be constructed using plain patterns and the rule has a applier which is a function that construct the new node (or modifies properties) with more complex logics.
 
-Lots of rules theoretically can be deduced from more atomic rules existing I think but they don't necessarily mean they are redundant? 
+Lots of rules theoretically can be deduced from more atomic rules existing I think but that don't necessarily mean they are redundant? 
 
 ## Definition of Operators
 ```cpp
