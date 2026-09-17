@@ -13,7 +13,8 @@ class Pruner {
   public:
     Pruner(EGraph &egraph, Extractor &extractor) : egraph(egraph), extractor(extractor) {}
 
-    PruneResult prune(const std::vector<Id> &roots, const std::vector<SizeBindings> &bindings) const;
+    PruneResult prune(
+        const std::vector<Id> &roots, const std::vector<SizeBindings> &bindings, double dag_sample_ratio = 0.05) const;
     static PruneResult prune_symbolic_when_kernel_available(EGraph &egraph, const std::vector<Id> &roots = {});
     static PruneResult eliminate_unreachable_classes(EGraph &egraph, const std::vector<Id> &roots);
 

@@ -22,7 +22,8 @@ struct PrunerConfig {
     int num_iterations = 1;
     int rewrite_steps_per_iteration = 6;
     int prune_samples_per_iteration = 100;
-    size_t dag_visit_limit = 300;
+    size_t dag_visit_limit = 10000;
+    double dag_sample_ratio = 0.05;
 };
 
 

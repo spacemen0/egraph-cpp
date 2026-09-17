@@ -3,14 +3,16 @@
 #include "utils.h"
 
 namespace egraph {
-PruneResult Pruner::prune(const std::vector<Id> &roots, const std::vector<SizeBindings> &bindings) const {
+PruneResult Pruner::prune(
+    const std::vector<Id> &roots, const std::vector<SizeBindings> &bindings, double dag_sample_ratio) const {
     PruneResult result;
 
     std::unordered_map<Id, std::unordered_set<const ENode *>> keep_choices;
+    size_t dag_samples_count = std::max(size_t(1), static_cast<size_t>(bindings.size() * dag_sample_ratio));
 
     for (size_t i = 0; i < bindings.size(); ++i) {
         extractor.reset();
-        bool use_dag = (i < bindings.size() * 0.2);
+        bool use_dag = (i < dag_samples_count);
         extractor.collect_selected_nodes_for_binding(roots, bindings[i], keep_choices, use_dag);
     }
     // Keep all root classes (if multiple roots were passed but only part of them were extractable)
@@ -185,7 +187,7 @@ void Pruner::rewrite_and_prune(
         const auto bindings = sample_size_bindings(
             config.prune_samples_per_iteration, 10, 5000, size_keys, static_cast<unsigned int>(99 + i),
             &egraph.get_property_table());
-        const auto prune_result = prune(roots, bindings);
+        const auto prune_result = prune(roots, bindings, config.dag_sample_ratio);
 
         // Eliminate unreachable orphan classes created by pruning
         eliminate_unreachable_classes(egraph, roots);
