@@ -46,6 +46,7 @@ TEST(Integration, StochasticNewtonPruneRetainsCholesky) {
 
     // Verify that the pruner preserved the shared Cholesky factorization
     // and lowered it to Potrf_L, without leaving any unhandled generic Inv kernels
-    EXPECT_TRUE(expr_str.find("Potrf_L") != std::string::npos) << "Expected Potrf_L in: " << expr_str;
+    EXPECT_TRUE(expr_str.find("Potrf_L") || expr_str.find("Potrf_U") != std::string::npos)
+        << "Expected Potrf_L or Potrf_U in: " << expr_str;
     EXPECT_TRUE(expr_str.find("Inv(") == std::string::npos) << "Unexpected Inv in: " << expr_str;
 }

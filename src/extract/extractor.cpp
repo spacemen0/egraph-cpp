@@ -78,13 +78,12 @@ void Extractor::search_numeric_dags(
     const auto &class_nodes = egraph.get_class_nodes(current);
     std::vector<const ENode *> candidate_nodes = class_nodes;
     std::sort(candidate_nodes.begin(), candidate_nodes.end(), [this](const ENode *a, const ENode *b) {
-        double lb_a = node_dag_lower_bound.contains(a) ? node_dag_lower_bound.at(a)
-                                                       : std::numeric_limits<double>::infinity();
-        double lb_b = node_dag_lower_bound.contains(b) ? node_dag_lower_bound.at(b)
-                                                       : std::numeric_limits<double>::infinity();
+        double lb_a =
+            node_dag_lower_bound.contains(a) ? node_dag_lower_bound.at(a) : std::numeric_limits<double>::infinity();
+        double lb_b =
+            node_dag_lower_bound.contains(b) ? node_dag_lower_bound.at(b) : std::numeric_limits<double>::infinity();
         return lb_a < lb_b;
     });
-
 
     for (const ENode *node : candidate_nodes) {
         Cost local_c = node->compute_local_cost(egraph, size_bindings);
@@ -590,7 +589,11 @@ bool Extractor::creates_cycle(
         stack_buffer.push_back(egraph.find_class_id(child));
     }
 
-    size_t marker = ++visited_buffer[current_class];
+    static thread_local size_t marker = 0;
+    if (++marker == 0) {
+        std::fill(visited_buffer.begin(), visited_buffer.end(), 0);
+        marker = 1;
+    }
     while (!stack_buffer.empty()) {
         Id curr = stack_buffer.back();
         stack_buffer.pop_back();
