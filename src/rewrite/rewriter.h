@@ -40,8 +40,7 @@ class Rewriter {
     Rewriter(EGraph &egraph, std::vector<Rewrite> rewrites, const EGraphConfig &config = EGraphConfig());
 
     static std::unordered_set<Op> compute_effective_disabled_ops(
-        const std::vector<Op> &disabled_ops,
-        const std::vector<Rewrite> *rules_to_inspect = nullptr);
+        const std::vector<Op> &disabled_ops, const std::vector<Rewrite> *rules_to_inspect = nullptr);
 
     void set_config(const EGraphConfig &cfg);
     const EGraphConfig &get_config() const { return config; }

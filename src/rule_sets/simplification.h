@@ -96,9 +96,9 @@ static const auto orthonormal_transpose = make_rewrite(
 });
 
 static const std::vector<Rewrite> simplification_set = {
-    minus_cancel,         add_comm_zero,         mul_zero_left,      mul_zero_right,      scale_zero_scalar,
-    scale_zero_matrix,    mul_identity_left,     mul_identity_right, scale_one,           tr_tr_cancel,
-    tr_symmetric,         invert_cancel_left,    invert_cancel_right, scale_collapse,     scale_combine,
+    minus_cancel,           add_comm_zero,        mul_zero_left,         mul_zero_right, scale_zero_scalar,
+    scale_zero_matrix,      mul_identity_left,    mul_identity_right,    scale_one,      tr_tr_cancel,
+    tr_symmetric,           invert_cancel_left,   invert_cancel_right,   scale_collapse, scale_combine,
     scale_combine_implicit, orthogonal_transpose, orthonormal_transpose,
 };
 } // namespace egraph

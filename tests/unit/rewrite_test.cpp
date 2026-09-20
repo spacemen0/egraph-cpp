@@ -237,7 +237,8 @@ TEST(Rewrite, LowerAxpy) {
 }
 
 TEST(Rewrite, DisableKernelPropagatesToSymbolicOps) {
-    // When both Potrf_L and Potrf_U are disabled, all Cholesky lowering paths are blocked -> both CholeL and CholeU are disabled
+    // When both Potrf_L and Potrf_U are disabled, all Cholesky lowering paths are blocked -> both CholeL and CholeU are
+    // disabled
     auto effective_disabled_cholesky = Rewriter::compute_effective_disabled_ops({Op::Potrf_L, Op::Potrf_U});
     EXPECT_TRUE(effective_disabled_cholesky.contains(Op::Potrf_L));
     EXPECT_TRUE(effective_disabled_cholesky.contains(Op::Potrf_U));
@@ -245,7 +246,8 @@ TEST(Rewrite, DisableKernelPropagatesToSymbolicOps) {
     EXPECT_TRUE(effective_disabled_cholesky.contains(Op::CholeU));
     EXPECT_FALSE(effective_disabled_cholesky.contains(Op::QR));
 
-    // When only Potrf_L is disabled, CholeL is NOT disabled because it can transition to CholeU via cholel_to_choleu and use Potrf_U
+    // When only Potrf_L is disabled, CholeL is NOT disabled because it can transition to CholeU via cholel_to_choleu
+    // and use Potrf_U
     auto effective_disabled_potrf_l = Rewriter::compute_effective_disabled_ops({Op::Potrf_L});
     EXPECT_TRUE(effective_disabled_potrf_l.contains(Op::Potrf_L));
     EXPECT_FALSE(effective_disabled_potrf_l.contains(Op::CholeL));
@@ -290,7 +292,8 @@ TEST(Rewrite, DisableKernelPropagatesToSymbolicOps) {
 
     // Verify expansion_set filtering in Rewriter when both Cholesky kernels are disabled
     EGraph egraph_instance(get_property_table());
-    Rewriter rewriter_cholesky(egraph_instance, expansion_set, EGraphConfig{.disabled_ops = {Op::Potrf_L, Op::Potrf_U}});
+    Rewriter rewriter_cholesky(
+        egraph_instance, expansion_set, EGraphConfig{.disabled_ops = {Op::Potrf_L, Op::Potrf_U}});
     const auto &filtered_rules_cholesky = rewriter_cholesky.get_rewrites();
     for (const auto &rule : filtered_rules_cholesky) {
         EXPECT_FALSE(rule.lhs.contains_op(Op::CholeL) || rule.rhs.contains_op(Op::CholeL))
@@ -299,7 +302,8 @@ TEST(Rewrite, DisableKernelPropagatesToSymbolicOps) {
             << "Rule " << rule.name << " still contains CholeU despite Cholesky kernels being disabled";
     }
     // Should still have QR rules
-    bool has_qr_rule = std::any_of(filtered_rules_cholesky.begin(), filtered_rules_cholesky.end(), [](const auto &rule) {
+    bool has_qr_rule =
+        std::any_of(filtered_rules_cholesky.begin(), filtered_rules_cholesky.end(), [](const auto &rule) {
         return rule.lhs.contains_op(Op::QR) || rule.rhs.contains_op(Op::QR);
     });
     EXPECT_TRUE(has_qr_rule);
@@ -363,8 +367,7 @@ TEST(Rewrite, DisablingKernelPreventsSymbolicGenerationInEGraph) {
         EGraph egraph_instance(get_property_table());
         egraph_instance.add_expression(Expression("Inv(A)"));
         Rewriter rewriter_instance(
-            egraph_instance, expansion_set,
-            EGraphConfig{.rewrite = {.node_limit = 100}, .disabled_ops = {Op::Geqrf}});
+            egraph_instance, expansion_set, EGraphConfig{.rewrite = {.node_limit = 100}, .disabled_ops = {Op::Geqrf}});
         rewriter_instance.apply_rewrites();
 
         bool has_qr_node = false;
@@ -409,9 +412,9 @@ TEST(Rewrite, DynamicRulesFilteringAndTraversal) {
 
     // 2. Dynamic rule producing a symbolic op:
     auto custom_dynamic_expansion = make_rewrite(
-        "custom_dynamic_cholel", "Inv(?a)", "Dynamic", false, nullptr,
-        [](EGraph &, const Substitution &, Id id) { return std::make_pair(id, false); },
-        {Op::CholeL});
+        "custom_dynamic_cholel", "Inv(?a)", "Dynamic", false, nullptr, [](EGraph &, const Substitution &, Id id) {
+        return std::make_pair(id, false);
+    }, {Op::CholeL});
     EXPECT_TRUE(custom_dynamic_expansion.contains_op(Op::CholeL));
 
     // When both Potrf_L and Potrf_U are disabled, compute_effective_disabled_ops includes CholeL
@@ -426,14 +429,15 @@ TEST(Rewrite, DynamicRulesFilteringAndTraversal) {
     // 3. Dynamic lowering rule:
     // Custom rule dynamically lowers CholeL into Potrf_L via an applier
     auto custom_dynamic_lowering = make_rewrite(
-        "custom_dynamic_potrf_l", "CholeL(?a)", "Dynamic", false, nullptr,
-        [](EGraph &, const Substitution &, Id id) { return std::make_pair(id, false); },
-        {Op::Potrf_L});
+        "custom_dynamic_potrf_l", "CholeL(?a)", "Dynamic", false, nullptr, [](EGraph &, const Substitution &, Id id) {
+        return std::make_pair(id, false);
+    }, {Op::Potrf_L});
     EXPECT_TRUE(custom_dynamic_lowering.contains_op(Op::Potrf_L));
     EXPECT_TRUE(custom_dynamic_lowering.contains_op(Op::CholeL));
 
     // When Potrf_L is disabled, Rewriter filtering prunes the dynamic lowering rule
-    Rewriter rewriter_dyn_lowering(egraph_instance, {custom_dynamic_lowering}, EGraphConfig{.disabled_ops = {Op::Potrf_L}});
+    Rewriter rewriter_dyn_lowering(
+        egraph_instance, {custom_dynamic_lowering}, EGraphConfig{.disabled_ops = {Op::Potrf_L}});
     EXPECT_TRUE(rewriter_dyn_lowering.get_rewrites().empty());
 }
 
@@ -453,7 +457,8 @@ TEST(Rewrite, TransposeSpdDiscoversSymmetryWithoutFullRank) {
     bool changed = rewriter.apply_rewrites();
     EXPECT_TRUE(changed);
 
-    // For R (rank-deficient): must discover symmetry and positive semi-definiteness, but NOT strict positive definiteness
+    // For R (rank-deficient): must discover symmetry and positive semi-definiteness, but NOT strict positive
+    // definiteness
     const auto &r_prop = std::get<MatrixProperty>(egraph.get_class_analysis_data(id_r_gram).property);
     EXPECT_TRUE(r_prop.flags.is_symmetric);
     EXPECT_TRUE(r_prop.flags.is_positive_semi_definite);
@@ -464,4 +469,4 @@ TEST(Rewrite, TransposeSpdDiscoversSymmetryWithoutFullRank) {
     EXPECT_TRUE(f_prop.flags.is_symmetric);
     EXPECT_TRUE(f_prop.flags.is_positive_semi_definite);
     EXPECT_TRUE(f_prop.flags.is_positive_definite);
-}
+}

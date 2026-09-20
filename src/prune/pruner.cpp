@@ -3,8 +3,8 @@
 #include "utils.h"
 
 namespace egraph {
-PruneResult Pruner::prune(
-    const std::vector<Id> &roots, const std::vector<SizeBindings> &bindings, double dag_sample_ratio) const {
+PruneResult
+Pruner::prune(const std::vector<Id> &roots, const std::vector<SizeBindings> &bindings, double dag_sample_ratio) const {
     PruneResult result;
 
     std::unordered_map<Id, std::unordered_set<const ENode *>> keep_choices;

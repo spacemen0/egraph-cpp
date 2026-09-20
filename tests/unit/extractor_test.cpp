@@ -271,5 +271,3 @@ TEST_F(ExtractorTest, BudgetedExtractConsidersSharing) {
     EXPECT_EQ(result.expr.to_string(), "(X * X + A) * (X * X + B)");
     EXPECT_EQ(result.cost, Cost(4200.0));
 }
-
-

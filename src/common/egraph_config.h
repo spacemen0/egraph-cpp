@@ -26,7 +26,6 @@ struct PrunerConfig {
     double dag_sample_ratio = 0.05;
 };
 
-
 struct EGraphConfig {
     RewriteConfig rewrite;
     ExtractorConfig extractor;

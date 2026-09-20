@@ -116,11 +116,7 @@ static const auto sandwich_spd_right_assoc = make_rewrite(
 });
 
 static const std::vector<Rewrite> property_discovery_set = {
-    transpose_spd,
-    transpose_spd2,
-    sandwich_spd_left,
-    sandwich_spd_left_assoc,
-    sandwich_spd_right,
-    sandwich_spd_right_assoc,
+    transpose_spd,           transpose_spd2,     sandwich_spd_left,
+    sandwich_spd_left_assoc, sandwich_spd_right, sandwich_spd_right_assoc,
 };
 } // namespace egraph

@@ -9,8 +9,8 @@
 namespace egraph {
 /// QR Factorization
 /// ----------------------------------------------------------
-static const auto qr_invert = make_rewrite(
-    "qr-invert", "Inv(?a)", "Inv(Get(QR(?a), 1)) * Tr(Get(QR(?a), 0))", false, is_not_factorized("a"));
+static const auto qr_invert =
+    make_rewrite("qr-invert", "Inv(?a)", "Inv(Get(QR(?a), 1)) * Tr(Get(QR(?a), 0))", false, is_not_factorized("a"));
 static const auto qr_leaf =
     make_rewrite("qr-leaf", "?a", "Get(QR(?a), 0) * Get(QR(?a), 1)", false, [](const EGraph &g, const Substitution &s) {
     if (!leaf_and_not_factorized("a")(g, s))
@@ -41,11 +41,13 @@ static const auto cholel_invert = make_rewrite(
     return is_not_factorized("a")(g, s) && is_pos_def("a")(g, s) && is_symmetric("a")(g, s);
 });
 static const auto cholel_leaf = make_rewrite(
-    "cholel-leaf", "?a", "Get(CholeL(?a), 0) * Tr(Get(CholeL(?a), 0))", false, [](const EGraph &g, const Substitution &s) {
+    "cholel-leaf", "?a", "Get(CholeL(?a), 0) * Tr(Get(CholeL(?a), 0))", false,
+    [](const EGraph &g, const Substitution &s) {
     return is_not_factorized("a")(g, s) && is_square("a")(g, s) && is_pos_def("a")(g, s) && is_symmetric("a")(g, s);
 });
 static const auto cholel_to_choleu = make_rewrite(
-    "cholel_to_choleu", "Get(CholeL(?a), 0)", "Tr(Get(CholeU(?a), 0))", true, [](const EGraph &g, const Substitution &s) {
+    "cholel_to_choleu", "Get(CholeL(?a), 0)", "Tr(Get(CholeU(?a), 0))", true,
+    [](const EGraph &g, const Substitution &s) {
     return is_pos_def("a")(g, s) && is_symmetric("a")(g, s);
 });
 

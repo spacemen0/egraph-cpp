@@ -90,4 +90,3 @@ TEST(EClass, AnalysisDataMutation) {
     EXPECT_TRUE(retrieved_prop->flags.is_symmetric);
     EXPECT_EQ(retrieved_prop->shape, (Shape{3, 3}));
 }
-
