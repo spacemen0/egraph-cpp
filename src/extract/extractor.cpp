@@ -41,7 +41,7 @@ void Extractor::search_numeric_dags(
     nodes_visited++;
     if (enable_logging && (nodes_visited % kExtractorProgressLogEvery == 0)) {
         std::cout << "[Extractor] Progress: visited=" << nodes_visited << ", pending=" << pending.size()
-                  << ", best_results=" << results.size() << std::endl;
+                  << ", best_results=" << results.size() << '\n';
     }
 
     if (pending.empty()) {
@@ -63,8 +63,8 @@ void Extractor::search_numeric_dags(
     }
 
     if (nodes_visited >= effective_visit_limit) {
-        if (enable_logging & (nodes_visited % kExtractorProgressLogEvery == 0)) {
-            std::cout << "[Extractor] Node visit limit reached during numeric search, stopping." << std::endl;
+        if (enable_logging && (nodes_visited % kExtractorProgressLogEvery == 0)) {
+            std::cout << "[Extractor] Node visit limit reached during numeric search, stopping.\n";
         }
         return;
     }
@@ -207,7 +207,7 @@ std::vector<Extractor::NumericSearchResult> Extractor::find_top_numeric_dags(
         visited_buffer, stack_buffer, size_bindings, effective_limit);
 
     if (enable_logging) {
-        std::cout << "[Extractor] Visited " << nodes_visited << " nodes during numeric extraction." << std::endl;
+        std::cout << "[Extractor] Visited " << nodes_visited << " nodes during numeric extraction.\n";
     }
 
     if (best_results.empty()) {
@@ -402,7 +402,7 @@ std::vector<Extractor::SymbolicSearchResult> Extractor::find_symbolic_dags(Id ro
         node_costs);
 
     if (enable_logging) {
-        std::cout << "[Extractor] Visited " << nodes_visited << " nodes during symbolic extraction." << std::endl;
+        std::cout << "[Extractor] Visited " << nodes_visited << " nodes during symbolic extraction.\n";
     }
 
     return results;
@@ -423,7 +423,7 @@ void Extractor::search_symbolic_dags(
     nodes_visited++;
     if (enable_logging && (nodes_visited % kExtractorProgressLogEvery == 0)) {
         std::cout << "[Extractor] Progress (symbolic): visited=" << nodes_visited << ", pending=" << pending.size()
-                  << ", chosen=" << chosen_count << ", results=" << results.size() << std::endl;
+                  << ", chosen=" << chosen_count << ", results=" << results.size() << '\n';
     }
 
     if (pending.empty()) {
@@ -433,7 +433,7 @@ void Extractor::search_symbolic_dags(
 
     if (nodes_visited >= node_visit_limit) {
         if (enable_logging) {
-            std::cout << "[Extractor] Node visit limit reached, stopping search." << std::endl;
+            std::cout << "[Extractor] Node visit limit reached, stopping search.\n";
         }
         return;
     }

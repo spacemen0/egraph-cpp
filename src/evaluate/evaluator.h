@@ -80,10 +80,10 @@ class Evaluator {
     void print_execution_plan() const;
 
   private:
-    void dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *node, Id class_id) const;
-    void dispatch_factorization(Op op, const MatrixNode &input, TupleNode &output, const ENode *node) const;
-    void setup_in_place_output(Id child_id, MatrixNode &output) const;
-    void dispatch_get(const TupleNode &input_tuple, int index, MatrixNode &output) const;
+    void dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *node, Id class_id);
+    void dispatch_factorization(Op op, const MatrixNode &input, TupleNode &output, const ENode *node);
+    void setup_in_place_output(Id child_id, MatrixNode &output);
+    void dispatch_get(const TupleNode &input_tuple, int index, MatrixNode &output);
     EGraph &egraph;
     ExtractionResult result;
     const DataBindings &data_bindings;

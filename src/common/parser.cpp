@@ -152,7 +152,7 @@ struct ASTNode {
                     res += ", ";
                 res += children[i]->to_string();
             }
-            res += ")";
+            res += ')';
             return res;
         } else if (std::holds_alternative<uint32_t>(atom)) {
             return get_string_from_lookup(std::get<uint32_t>(atom));

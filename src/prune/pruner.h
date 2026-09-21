@@ -20,8 +20,8 @@ class Pruner {
 
     void rewrite_and_prune(
         const std::vector<Id> &roots, Rewriter &rewriter, const PrunerConfig &config,
-        std::vector<std::string> size_keys, std::function<void(int iteration)> onIterationStart = nullptr,
-        std::function<void(int iteration, const PruneResult &)> onIterationFinish = nullptr) const;
+        const std::vector<std::string> &size_keys, const std::function<void(int iteration)> &onIterationStart = nullptr,
+        const std::function<void(int iteration, const PruneResult &)> &onIterationFinish = nullptr) const;
 
   private:
     EGraph &egraph;

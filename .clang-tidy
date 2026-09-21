@@ -1,0 +1,29 @@
+---
+# Clang-Tidy configuration for egraph-cpp
+Checks: >
+  -*,
+  clang-diagnostic-*,
+  clang-analyzer-*,
+  bugprone-*,
+  performance-*,
+  modernize-*,
+  misc-*,
+  -bugprone-throwing-static-initialization,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-nondeterministic-pointer-iteration-order,
+  -modernize-use-trailing-return-type,
+  -modernize-use-nodiscard,
+  -modernize-use-designated-initializers,
+  -misc-unused-parameters,
+  -misc-const-correctness,
+  -misc-include-cleaner,
+  -misc-no-recursion,
+  -misc-use-anonymous-namespace,
+  -misc-non-private-member-variables-in-classes,
+  -readability-identifier-length,
+  -readability-magic-numbers
+
+HeaderFilterRegex: 'src/.*|examples/.*|tests/.*'
+FormatStyle: none
+WarningsAsErrors: ''
+...

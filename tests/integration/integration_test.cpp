@@ -53,25 +53,25 @@ TEST(Integration, MinimalRealisticExplosionRules) {
         bool changed = rewriter.apply_rewrites(rewrite_steps_per_iteration);
 
         std::cout << "Iteration " << iter + 1 << ": " << (changed ? "rewrites=changed" : "rewrites=stalled")
-                  << ", nodes before pruning=" << egraph.num_nodes() << std::endl;
+                  << ", nodes before pruning=" << egraph.num_nodes() << '\n';
 
         const std::vector<std::string> size_keys = {"A", "B"};
         const auto bindings = sample_size_bindings(prune_samples_per_iteration, 1, 1000, size_keys);
         const auto prune_result = pruner.prune({root_id}, bindings);
 
         std::cout << "Iteration " << iter + 1 << ": pruned=" << prune_result.nodes_pruned
-                  << ", nodes after pruning=" << egraph.num_nodes() << std::endl;
+                  << ", nodes after pruning=" << egraph.num_nodes() << '\n';
 
         if (!changed && prune_result.nodes_pruned == 0) {
             break;
         }
     }
 
-    std::cout << "Num nodes after iterative rewriting/pruning: " << egraph.num_nodes() << std::endl;
+    std::cout << "Num nodes after iterative rewriting/pruning: " << egraph.num_nodes() << '\n';
 
     auto result = extractor.extract(root_id);
-    std::cout << "Final extracted expression: " << result.expr.to_string() << std::endl;
-    std::cout << "Final extracted cost: " << result.cost << std::endl;
+    std::cout << "Final extracted expression: " << result.expr.to_string() << '\n';
+    std::cout << "Final extracted cost: " << result.cost << '\n';
 
     EXPECT_EQ(result.cost, Cost(0.0));
     EXPECT_TRUE(std::holds_alternative<uint32_t>(result.expr.atom));
@@ -97,7 +97,7 @@ TEST(Integration, CyclicTermsThatDoNotExplode) {
     }
     Extractor extractor(egraph);
     auto result = extractor.extract(id);
-    std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << std::endl;
+    std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << '\n';
 
     EXPECT_EQ(result.cost, Cost(0.0));
     EXPECT_TRUE(std::holds_alternative<uint32_t>(result.expr.atom));
@@ -145,7 +145,7 @@ TEST(Integration, MatrixChainSymbolicSizes) {
     }
 
     const auto matched_count = std::ranges::count(expression_seen, true);
-    std::cout << "Matched " << matched_count << " out of " << candidate_expressions.size() << " possible expressions."
-              << std::endl;
+    std::cout << "Matched " << matched_count << " out of " << candidate_expressions.size()
+              << " possible expressions.\n";
     SUCCEED();
 }

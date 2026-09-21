@@ -47,7 +47,7 @@ MatrixProperty MatrixProperty::from_string(std::string_view text) {
 
     std::string_view rest = trim(view.substr(close_paren + 1));
     while (!rest.empty()) {
-        if (!rest.starts_with("[")) {
+        if (!rest.starts_with('[')) {
             throw ParseError("MatrixProperty::from_string: expected '[' before flag");
         }
 
@@ -82,7 +82,7 @@ bool PropertyTable::insert_property(const std::string &name, MatrixProperty prop
     return result.second;
 }
 
-PropertyTable::PropertyTable(std::vector<std::string> property_strings) {
+PropertyTable::PropertyTable(const std::vector<std::string> &property_strings) {
     for (const auto &string : property_strings) {
         auto name_end = string.find(':');
         if (name_end == std::string::npos) {
@@ -125,6 +125,6 @@ void PropertyTable::print_all_properties() const {
 bool PropertyTable::has_property(const std::string &name) const { return properties.contains(name); }
 
 bool PropertyTable::add_or_update_property_entry(const std::string &name, MatrixProperty property) {
-    return insert_property(name, property);
+    return insert_property(name, std::move(property));
 }
 } // namespace egraph

@@ -37,7 +37,7 @@ namespace EGraphRunner {
 class Context {
   public:
     Context(EGraph egraph = EGraph(), EGraphConfig config = EGraphConfig())
-        : egraph(std::move(egraph)), config(config) {}
+        : egraph(std::move(egraph)), config(std::move(config)) {}
 
     void set_config(const EGraphConfig &cfg) { config = cfg; }
     EGraphConfig &get_config() { return config; }
@@ -134,7 +134,7 @@ class Context {
 
     void rewrite_and_prune(
         const std::vector<Id> &target_ids, const std::vector<std::string> &rulesets = {"everything_but_lowering"},
-        std::function<void(int iteration)> onIterationStart = nullptr,
+        const std::function<void(int iteration)> &onIterationStart = nullptr,
         std::function<void(int iteration, const PruneResult &)> onIterationFinish = nullptr) {
         if (config.enable_logging) {
             std::cout << "[API] Starting rewrite_and_prune...\n";
@@ -284,8 +284,8 @@ class Context {
         auto extraction_duration =
             std::chrono::duration_cast<std::chrono::microseconds>(start_evaluate - start_final_extraction);
         auto evaluation_duration = std::chrono::duration_cast<std::chrono::microseconds>(end_evaluate - start_evaluate);
-        std::cout << extraction_duration.count() << std::endl;
-        std::cout << evaluation_duration.count() << std::endl;
+        std::cout << extraction_duration.count() << '\n';
+        std::cout << evaluation_duration.count() << '\n';
 
         preserved_results.clear();
         for (Id id : preserved_ids) {

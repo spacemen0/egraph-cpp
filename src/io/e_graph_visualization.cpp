@@ -97,8 +97,7 @@ void to_dot_file(const EGraph &egraph, const std::string &filename) {
 
 void to_img(const EGraph &egraph, const std::string &filename, const std::string &format) {
     if (format != "png" && format != "svg") {
-        std::cerr << "Error: Unsupported format '" << format << "'. Supported formats are 'png' and 'svg'."
-                  << std::endl;
+        std::cerr << "Error: Unsupported format '" << format << "'. Supported formats are 'png' and 'svg'.\n";
         return;
     }
     std::string dot_filename = filename + ".dot";
@@ -111,7 +110,7 @@ void to_img(const EGraph &egraph, const std::string &filename, const std::string
 #endif
     int result = system((command + " > " + null_device + " 2>&1").c_str());
     if (result != 0) {
-        std::cerr << "Error: Failed to execute command: " << command << std::endl;
+        std::cerr << "Error: Failed to execute command: " << command << '\n';
     }
     // std::remove(dot_filename.c_str());
 }

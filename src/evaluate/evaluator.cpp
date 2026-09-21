@@ -139,7 +139,7 @@ Evaluator::Evaluator(
 }
 
 // re-use the data pointer of a child node for output node if it is only used once and not marked as preserved
-void Evaluator::setup_in_place_output(Id child_id, MatrixNode &output) const {
+void Evaluator::setup_in_place_output(Id child_id, MatrixNode &output) {
     int child_slot = slot_map[child_id];
     auto &child_node = std::get<MatrixNode>(data_storage[child_slot]);
     int count = use_counts[child_slot];
@@ -192,7 +192,7 @@ void Evaluator::print_execution_plan() const {
                 std::cout << "Matrix: " << matrix_name << ", ";
             }
         }
-        std::cout << "\b\b)" << std::endl;
+        std::cout << "\b\b)\n";
     }
 }
 
@@ -248,7 +248,7 @@ std::vector<double> Evaluator::get_preserved(Id id) const {
     throw std::runtime_error("Preserved ID not found in evaluator storage.");
 }
 
-void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *node, Id class_id) const {
+void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *node, Id class_id) {
     using enum Op;
 
     std::vector<const MatrixNode *> inputs;
@@ -507,7 +507,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
     }
 }
 
-void Evaluator::dispatch_factorization(Op op, const MatrixNode &input, TupleNode &output, const ENode *node) const {
+void Evaluator::dispatch_factorization(Op op, const MatrixNode &input, TupleNode &output, const ENode *node) {
     using enum Op;
     switch (op) {
     case Potrf_U: {
@@ -558,7 +558,7 @@ void Evaluator::dispatch_factorization(Op op, const MatrixNode &input, TupleNode
     }
 }
 
-void Evaluator::dispatch_get(const TupleNode &input_tuple, int index, MatrixNode &output) const {
+void Evaluator::dispatch_get(const TupleNode &input_tuple, int index, MatrixNode &output) {
     if (index < 0 || index >= static_cast<int>(input_tuple.matrices.size())) {
         throw std::runtime_error("Index out of bounds in Get evaluation: " + std::to_string(index));
     }

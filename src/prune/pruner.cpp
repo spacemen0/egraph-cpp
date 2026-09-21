@@ -166,9 +166,9 @@ PruneResult Pruner::prune_symbolic_when_kernel_available(EGraph &egraph, const s
 }
 
 void Pruner::rewrite_and_prune(
-    const std::vector<Id> &roots, Rewriter &rewriter, const PrunerConfig &config, std::vector<std::string> size_keys,
-    std::function<void(int iteration)> onIterationStart,
-    std::function<void(int iteration, const PruneResult &)> onIterationFinish) const {
+    const std::vector<Id> &roots, Rewriter &rewriter, const PrunerConfig &config,
+    const std::vector<std::string> &size_keys, const std::function<void(int iteration)> &onIterationStart,
+    const std::function<void(int iteration, const PruneResult &)> &onIterationFinish) const {
     for (int i = 0; i < config.num_iterations; ++i) {
         if (onIterationStart) {
             onIterationStart(i);

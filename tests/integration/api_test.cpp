@@ -2,8 +2,6 @@
 #include "api.h"
 #include "test_helpers.h"
 #include <gtest/gtest.h>
-#include <iostream>
-#include <random>
 using namespace egraph;
 
 using namespace EGraphRunner;

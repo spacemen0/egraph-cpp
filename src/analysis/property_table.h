@@ -128,20 +128,20 @@ struct MatrixProperty {
         else
             s += std::get<std::string>(shape.first);
 
-        s += "x";
+        s += 'x';
 
         if (auto h = std::get_if<int>(&shape.second))
             s += std::to_string(*h);
         else
             s += std::get<std::string>(shape.second);
 
-        s += ")";
+        s += ')';
 
         for (const auto &flag : flag_descriptors) {
             if (this->flags.*(flag.member)) {
                 s += " [";
                 s += flag.label;
-                s += "]";
+                s += ']';
             }
         }
 
@@ -169,7 +169,7 @@ struct AnalysisData {
 class PropertyTable {
   public:
     PropertyTable() = default;
-    explicit PropertyTable(std::vector<std::string> property_strings);
+    explicit PropertyTable(const std::vector<std::string> &property_strings);
     bool add_or_update_property_entry(const std::string &name, MatrixProperty property);
     bool add_or_update_property_entry_by_string(const std::string &string_value);
 

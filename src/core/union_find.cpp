@@ -30,7 +30,7 @@ void UnionFind::unite(Id x, Id y) {
     }
 }
 
-std::vector<Id> UnionFind::get_parents() const noexcept { return parents; }
+const std::vector<Id> &UnionFind::get_parents() const noexcept { return parents; }
 
 Id UnionFind::make_set() {
     auto newIndex = static_cast<Id>(parents.size());

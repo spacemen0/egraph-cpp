@@ -27,7 +27,7 @@ std::string ENode::format() const {
     std::ranges::for_each(children, [&](Id child_id) {
         str += " " + std::to_string(child_id);
     });
-    str += ")";
+    str += ')';
     return str;
 }
 

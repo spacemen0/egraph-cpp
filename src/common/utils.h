@@ -157,8 +157,8 @@ make_identity_for(EGraph &egraph, const Substitution &s, const std::string &var_
         .has_orthonormal_columns = true,
     };
 
-    if (egraph.find_class_with_property(prop).has_value()) {
-        return egraph.find_class_with_property(prop).value();
+    if (auto class_opt = egraph.find_class_with_property(prop); class_opt.has_value()) {
+        return class_opt.value();
     }
 
     std::string size_str;
@@ -193,8 +193,8 @@ inline Id make_zero_of_shape(EGraph &g, const Shape &shape) {
         .is_non_singular = false,
     };
 
-    if (g.find_class_with_property(prop).has_value()) {
-        return g.find_class_with_property(prop).value();
+    if (auto class_opt = g.find_class_with_property(prop); class_opt.has_value()) {
+        return class_opt.value();
     }
 
     std::string h_str, w_str;
@@ -311,7 +311,7 @@ sample_size_bindings(int lower_bound, int upper_bound, std::span<const std::stri
 }
 
 inline SizeBindings
-sample_size_bindings(int lower_bound, int upper_bound, std::vector<std::string> keys, uint32_t seed = 42) {
+sample_size_bindings(int lower_bound, int upper_bound, const std::vector<std::string> &keys, uint32_t seed = 42) {
     if (lower_bound > upper_bound) {
         throw std::invalid_argument("sample_size_bindings: lower_bound cannot be greater than upper_bound");
     }
