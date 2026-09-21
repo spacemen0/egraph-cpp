@@ -287,6 +287,8 @@ class Context {
         auto extraction_duration =
             std::chrono::duration_cast<std::chrono::microseconds>(start_evaluate - start_final_extraction);
         auto evaluation_duration = std::chrono::duration_cast<std::chrono::microseconds>(end_evaluate - start_evaluate);
+        last_extraction_duration = extraction_duration;
+        last_evaluation_duration = evaluation_duration;
         std::cout << extraction_duration.count() << '\n';
         std::cout << evaluation_duration.count() << '\n';
 
@@ -378,6 +380,17 @@ class Context {
     }
     void initialize_config(const Expression &expr) { initialize_config_for_expression(config, expr); }
 
+    std::chrono::microseconds get_last_extraction_duration() const { return last_extraction_duration; }
+    std::chrono::microseconds get_last_evaluation_duration() const { return last_evaluation_duration; }
+    std::chrono::microseconds get_last_total_duration() const {
+        return last_extraction_duration + last_evaluation_duration;
+    }
+    double get_last_extraction_duration_ms() const { return last_extraction_duration.count() / 1000.0; }
+    double get_last_evaluation_duration_ms() const { return last_evaluation_duration.count() / 1000.0; }
+    double get_last_total_duration_ms() const {
+        return (last_extraction_duration + last_evaluation_duration).count() / 1000.0;
+    }
+
   private:
     EGraphConfig config;
     EGraph egraph;
@@ -386,6 +399,8 @@ class Context {
     std::vector<std::string> size_keys;
     std::vector<std::pair<Expression, Id>> preserved_exprs;
     std::unordered_map<Id, std::vector<double>> preserved_results;
+    std::chrono::microseconds last_extraction_duration{0};
+    std::chrono::microseconds last_evaluation_duration{0};
 
     void apply_flags(MatrixProperty &prop, const std::vector<std::string> &flags) {
         for (const auto &f : flags) {

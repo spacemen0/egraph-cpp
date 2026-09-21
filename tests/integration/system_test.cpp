@@ -5,6 +5,11 @@ using namespace egraph;
 
 using namespace EGraphRunner;
 
+constexpr double kMaxOlsTimeMs = 16.0;
+constexpr double kMaxGlsTimeMs = 190.0;
+constexpr double kMaxStoTimeMs = 70.0;
+constexpr double kMaxImageRestorationTimeMs = 300.0;
+
 TEST(SystemTest, OLS) {
     EGraphRunner::Context ctx;
     ctx.get_config().enable_logging = false;
@@ -39,6 +44,12 @@ TEST(SystemTest, OLS) {
 
     std::string out_path = "data/ols_result.csv";
     write_matrix(out_path, row, col, out);
+
+    double total_ms = ctx.get_last_total_duration_ms();
+    EXPECT_LT(total_ms, kMaxOlsTimeMs) << "OLS time exceeded benchmark threshold. Extraction: "
+                                       << ctx.get_last_extraction_duration_ms()
+                                       << " ms, Evaluation: " << ctx.get_last_evaluation_duration_ms()
+                                       << " ms, Total: " << total_ms << " ms";
 }
 
 TEST(SystemTest, GLS) {
@@ -77,6 +88,12 @@ TEST(SystemTest, GLS) {
 
     std::string out_path = "data/gls_result.csv";
     write_matrix(out_path, row, col, out);
+
+    double total_ms = ctx.get_last_total_duration_ms();
+    EXPECT_LT(total_ms, kMaxGlsTimeMs) << "GLS time exceeded benchmark threshold. Extraction: "
+                                       << ctx.get_last_extraction_duration_ms()
+                                       << " ms, Evaluation: " << ctx.get_last_evaluation_duration_ms()
+                                       << " ms, Total: " << total_ms << " ms";
 }
 
 TEST(SystemTest, StochasticNewton) {
@@ -136,6 +153,12 @@ TEST(SystemTest, StochasticNewton) {
 
     std::string out_path = "data/stochastic_newton_result.csv";
     write_matrix(out_path, row, col, out);
+
+    double total_ms = ctx.get_last_total_duration_ms();
+    EXPECT_LT(total_ms, kMaxStoTimeMs) << "Stochastic Newton time exceeded benchmark threshold. Extraction: "
+                                       << ctx.get_last_extraction_duration_ms()
+                                       << " ms, Evaluation: " << ctx.get_last_evaluation_duration_ms()
+                                       << " ms, Total: " << total_ms << " ms";
 }
 
 TEST(SystemTest, ImageRestoration) {
@@ -192,4 +215,9 @@ TEST(SystemTest, ImageRestoration) {
     int col2 = std::get<int>(out2_shape.second);
     std::string out_path2 = "data/image_result_2.csv";
     write_matrix(out_path2, row2, col2, out2);
+
+    double total_ms = ctx.get_last_total_duration_ms();
+    EXPECT_LT(total_ms, kMaxImageRestorationTimeMs)
+        << "Image Restoration time exceeded benchmark threshold. Extraction: " << ctx.get_last_extraction_duration_ms()
+        << " ms, Evaluation: " << ctx.get_last_evaluation_duration_ms() << " ms, Total: " << total_ms << " ms";
 }

@@ -183,6 +183,7 @@ TEST(EvaluatorTest, MissingDataBindingThrowsRuntimeError) {
 
 TEST(EvaluatorTest, PrintExecutionPlanOutputsDetails) {
     EGraphRunner::Context ctx;
+    ctx.get_config().enable_logging = true;
     ctx.define_matrix("A", 2, 2);
     ctx.define_matrix("B", 2, 2);
 
