@@ -142,8 +142,8 @@ Expression::Expression(std::string_view string) {
     auto parsed = string_to_parsed_atom(string);
     atom = parsed.atom;
     if (std::holds_alternative<Op>(atom) && std::get<Op>(atom) == Op::Scale && parsed.children_strings.size() == 2) {
-        children.push_back(Expression(parsed.children_strings[0]));
-        children.push_back(Expression(parser::parse_scalar(parsed.children_strings[1])));
+        children.emplace_back(parsed.children_strings[0]);
+        children.emplace_back(parser::parse_scalar(parsed.children_strings[1]));
         return;
     }
     std::ranges::transform(parsed.children_strings, std::back_inserter(children), [](const std::string &str) {

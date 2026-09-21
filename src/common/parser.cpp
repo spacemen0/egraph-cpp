@@ -388,11 +388,11 @@ class ScalarParser {
         if (curr.type == TokenType::Num) {
             double val = std::stod(std::string(curr.text));
             advance();
-            return ScalarExpr(val);
+            return {val};
         } else if (curr.type == TokenType::Ident) {
             char var = curr.text.empty() ? '\0' : curr.text[0];
             advance();
-            return ScalarExpr(var);
+            return {var};
         } else if (curr.type == TokenType::Minus) {
             advance();
             return {ScalarOp::Neg, {parse_primary()}};

@@ -13,6 +13,7 @@ def generate_all_example_matrices(output_dir: str, seed: int = 42, fmt: str = "%
       - OLS: ols_x.csv (2000x500 tall), ols_y.csv (2000x1)
       - GLS: gls_m.csv (3000x3000 SPD), gls_x.csv (3000x500 tall), gls_y.csv (3000x1)
       - ImageRestoration: image_h.csv (1000x3000 wide), image_y.csv (1000x1), image_x.csv (3000x1)
+      - Stochastic Newton: stochastic_newton_b.csv (2000x2000 SPD), stochastic_newton_in.csv (2000x2000 identity), stochastic_newton_a.csv (4000x2000 tall), stochastic_newton_w.csv (4000x500 tall), stochastic_newton_il.csv (500x500 identity)
     """
     if seed is not None:
         np.random.seed(seed)

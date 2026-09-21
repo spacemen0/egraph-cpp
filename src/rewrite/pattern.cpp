@@ -12,10 +12,10 @@ Pattern::Pattern(std::string_view s) {
     atom = parsed.atom;
 
     if (std::holds_alternative<Op>(atom) && std::get<Op>(atom) == Op::Scale && parsed.children_strings.size() == 2) {
-        children.push_back(Pattern(parsed.children_strings[0]));
+        children.emplace_back(parsed.children_strings[0]);
         const std::string &scalar_str = parsed.children_strings[1];
         if (scalar_str.starts_with('?')) {
-            children.push_back(Pattern(scalar_str));
+            children.emplace_back(scalar_str);
         } else {
             children.push_back(Pattern(Atom(parser::parse_scalar(scalar_str)), {}));
         }

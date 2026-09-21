@@ -3,21 +3,25 @@
 #include "basic_types.h"
 #include "e_node.h"
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace egraph {
 struct Expression {
+
+    Atom atom;
+    std::vector<Expression> children;
+
     explicit Expression() = default;
     explicit Expression(std::string_view string);
     explicit Expression(int i) : atom(i) {}
     explicit Expression(double v) : atom(ScalarExpr(v)) {}
     explicit Expression(const ScalarExpr &s) : atom(s) {}
-    explicit Expression(const Atom &atom, std::vector<Expression> children)
-        : atom(atom), children(std::move(children)) {};
+    explicit Expression(Atom atom, std::vector<Expression> children)
+        : atom(std::move(atom)), children(std::move(children)) {};
 
     explicit Expression(const ENode &node, const EGraph &egraph);
-    Atom atom;
-    std::vector<Expression> children;
+
     std::string to_string(bool readable = false) const;
     bool operator==(const Expression &other) const;
     size_t depth() const;
