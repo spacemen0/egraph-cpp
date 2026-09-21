@@ -5,7 +5,7 @@
 #include <sstream>
 
 namespace egraph {
-int precedence(const Expression &expr) {
+static int precedence(const Expression &expr) {
     if (!std::holds_alternative<Op>(expr.atom)) {
         return 100;
     }
@@ -25,7 +25,7 @@ int precedence(const Expression &expr) {
     }
 }
 
-std::string parenthesize(const Expression &expr, bool readable, int parent_precedence) {
+static std::string parenthesize(const Expression &expr, bool readable, int parent_precedence) {
     std::string rendered = Expression::render(expr, readable, parent_precedence);
     if (precedence(expr) < parent_precedence) {
         return "(" + rendered + ")";
@@ -33,7 +33,7 @@ std::string parenthesize(const Expression &expr, bool readable, int parent_prece
     return rendered;
 }
 
-std::string parenthesize_mul_chain(const Expression &expr, bool readable) {
+static std::string parenthesize_mul_chain(const Expression &expr, bool readable) {
     constexpr int MulPrecedence = 20;
     std::string rendered = Expression::render(expr, readable, MulPrecedence);
     if (std::holds_alternative<Op>(expr.atom) && std::get<Op>(expr.atom) == Op::Mul) {

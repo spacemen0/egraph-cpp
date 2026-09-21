@@ -11,8 +11,8 @@ extern "C" void dgels_(
     const char *trans, const int *m, const int *n, const int *nrhs, double *a, const int *lda, double *b,
     const int *ldb, double *work, const int *lwork, int *info);
 
-inline int
-LAPACKE_dgels(int matrix_layout, char trans, int m, int n, int nrhs, double *a, int lda, double *b, int ldb) {
+inline int static LAPACKE_dgels(
+    int matrix_layout, char trans, int m, int n, int nrhs, double *a, int lda, double *b, int ldb) {
     if (matrix_layout != LAPACK_COL_MAJOR)
         return -1;
     int info = 0;

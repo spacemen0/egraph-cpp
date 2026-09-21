@@ -47,10 +47,7 @@ void Extractor::search_numeric_dags(
     if (pending.empty()) {
         auto choices_map = convert_to_map(current_choices, {root});
         if (is_unique_result(results, choices_map)) {
-            auto it = std::lower_bound(
-                results.begin(), results.end(), current_g, [](const NumericSearchResult &r, double val) {
-                return r.cost < val;
-            });
+            auto it = std::ranges::lower_bound(results, current_g, std::less{}, &NumericSearchResult::cost);
             results.insert(it, NumericSearchResult{current_g, std::move(choices_map)});
             if (results.size() > max_results) {
                 results.pop_back();
@@ -645,6 +642,8 @@ void Extractor::collect_selected_nodes_for_binding(
             }
         } catch (const std::exception &) {
             // Skip if no tree/DAG found for this root under these bindings
+            std::cerr << "[Extractor] Warning: no tree/DAG found for root class " << root
+                      << " under supplied size bindings, skipping.\n";
         }
     }
 }

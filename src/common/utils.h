@@ -374,7 +374,7 @@ inline std::vector<double> generate_random_vector(int size) {
 }
 
 inline std::vector<double> generate_identity_matrix(int size) {
-    std::vector<double> vec(size * size, 0.0);
+    std::vector<double> vec(static_cast<size_t>(size) * size, 0.0);
     for (int i = 0; i < size; ++i) {
         vec[i * size + i] = 1.0;
     }

@@ -62,7 +62,7 @@ inline std::pair<std::pair<int, int>, std::vector<double>> read_matrix(const std
     }
 
     // Convert from row-major (file format) to column-major (engine format)
-    std::vector<double> col_major_data(rows * cols);
+    std::vector<double> col_major_data(static_cast<size_t>(rows) * cols);
     for (int r = 0; r < rows; ++r) {
         for (int c = 0; c < cols; ++c) {
             col_major_data[r + c * rows] = row_major_data[r * cols + c];
@@ -84,7 +84,7 @@ inline std::pair<std::pair<int, int>, std::vector<double>> read_matrix(const std
  */
 inline void write_matrix(
     const std::string &filename, int rows, int cols, const std::vector<double> &col_major_data, int precision = 17) {
-    if (static_cast<size_t>(rows * cols) > col_major_data.size()) {
+    if (static_cast<size_t>(rows) * cols > col_major_data.size()) {
         throw std::invalid_argument(
             "Data buffer size (" + std::to_string(col_major_data.size()) + ") smaller than matrix dimensions (" +
             std::to_string(rows) + "x" + std::to_string(cols) + ")");

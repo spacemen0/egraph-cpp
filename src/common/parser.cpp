@@ -2,19 +2,19 @@
 #include "errors.h"
 #include "utils.h"
 #include <cctype>
+#include <cstdint>
 #include <memory>
 #include <vector>
 
-namespace egraph {
-namespace parser {
+namespace egraph::parser {
 
-enum class TokenType { Eof, Plus, Minus, Star, Slash, LParen, RParen, Comma, Ident, Num, Error };
+namespace {
 
+enum class TokenType : std::uint8_t { Eof, Plus, Minus, Star, Slash, LParen, RParen, Comma, Ident, Num, Error };
 struct Token {
     TokenType type;
     std::string_view text;
 };
-
 class Lexer {
     std::string_view s;
     size_t pos = 0;
@@ -94,7 +94,6 @@ class Lexer {
     }
 };
 
-namespace {
 int op_precedence(Op op) {
     switch (op) {
     case Op::Add:
@@ -106,8 +105,6 @@ int op_precedence(Op op) {
         return 100;
     }
 }
-} // namespace
-
 struct ASTNode {
     Atom atom;
     std::vector<std::unique_ptr<ASTNode>> children;
@@ -381,19 +378,6 @@ class Parser {
         return node;
     }
 };
-
-ParsedAtom parse_expression(std::string_view s) {
-    Parser parser(s);
-    auto ast = parser.parse();
-
-    ParsedAtom res;
-    res.atom = ast->atom;
-    for (const auto &child : ast->children) {
-        res.children_strings.push_back(child->to_string());
-    }
-    return res;
-}
-
 class ScalarParser {
     Lexer lexer;
     Token curr;
@@ -467,12 +451,23 @@ class ScalarParser {
         return node;
     }
 };
+} // namespace
+
+ParsedAtom parse_expression(std::string_view s) {
+    Parser parser(s);
+    auto ast = parser.parse();
+
+    ParsedAtom res;
+    res.atom = ast->atom;
+    for (const auto &child : ast->children) {
+        res.children_strings.push_back(child->to_string());
+    }
+    return res;
+}
 
 ScalarExpr parse_scalar(std::string_view s) {
     ScalarParser parser(s);
     return parser.parse();
 }
 
-} // namespace parser
-
-} // namespace egraph
+} // namespace egraph::parser

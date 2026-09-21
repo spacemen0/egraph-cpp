@@ -7,7 +7,7 @@
 #include <vector>
 
 namespace egraph {
-enum class Op {
+enum class Op : std::uint8_t {
     Add,
     Mul,
     Minus,
@@ -52,7 +52,7 @@ enum class Op {
 using SizeBindings = std::unordered_map<std::string, int>;
 using DataBindings = std::unordered_map<std::string, std::vector<double>>;
 
-enum class ScalarOp { Value, Var, Add, Sub, Mul, Div, Neg };
+enum class ScalarOp : std::uint8_t { Value, Var, Add, Sub, Mul, Div, Neg };
 
 struct ScalarExpr {
     ScalarOp op = ScalarOp::Value;
