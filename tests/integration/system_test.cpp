@@ -7,7 +7,7 @@ using namespace EGraphRunner;
 
 TEST(SystemTest, OLS) {
     EGraphRunner::Context ctx;
-    ctx.get_config().enable_logging = true;
+    ctx.get_config().enable_logging = false;
     Expression X = ctx.define_matrix("X", "a", "b", {"full_rank", "tall"});
     Expression y = ctx.define_matrix("y", "a", 1);
     Expression target_math = (inverse(transpose(X) * X) * transpose(X)) * y;
@@ -43,7 +43,7 @@ TEST(SystemTest, OLS) {
 
 TEST(SystemTest, GLS) {
     EGraphRunner::Context ctx;
-    ctx.get_config().enable_logging = true;
+    ctx.get_config().enable_logging = false;
     Expression X = ctx.define_matrix("X", "a", "b", {"full_rank", "tall"});
     Expression y = ctx.define_matrix("y", "a", 1);
     Expression M = ctx.define_matrix("M", "a", "a", {"symmetric", "positive_definite"});
@@ -81,7 +81,7 @@ TEST(SystemTest, GLS) {
 
 TEST(SystemTest, StochasticNewton) {
     EGraphRunner::Context ctx;
-    ctx.get_config().enable_logging = true;
+    ctx.get_config().enable_logging = false;
 
     // Symbolic Matrix Definitions (generic sizes: b, a, l)
     Expression B = ctx.define_matrix("B", "b", "b", {"positive_definite", "symmetric"});

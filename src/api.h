@@ -277,7 +277,10 @@ class Context {
 #endif
         }
         Evaluator evaluator(egraph, target_result, &size_bindings, bindings, preserved_ids);
-        evaluator.print_execution_plan();
+        if (config.enable_logging) {
+            std::cout << "[API] Execution Plan: ";
+            evaluator.print_execution_plan();
+        }
         auto start_evaluate = std::chrono::high_resolution_clock::now();
         auto target_eval = evaluator.evaluate();
         auto end_evaluate = std::chrono::high_resolution_clock::now();
@@ -312,7 +315,7 @@ class Context {
             Id bg_id = egraph.add_expression(bg_expr);
             all_expressions.push_back(bg_id);
             if (is_subexpression(target_expr, bg_expr)) {
-                preserved_exprs.push_back({bg_expr, bg_id});
+                preserved_exprs.emplace_back(bg_expr, bg_id);
             }
         }
 

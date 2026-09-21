@@ -88,9 +88,13 @@ Rewriter::Rewriter(EGraph &egraph, std::vector<Rewrite> rewrites, const EGraphCo
     : egraph(egraph), config(config), enable_backoff(config.rewrite.enable_backoff),
       enable_node_limit(config.rewrite.enable_node_limit), max_nodes(config.rewrite.node_limit),
       all_rewrites(std::move(rewrites)), rewrites(all_rewrites) {
-    std::cout << "[Rewriter] Initialized with " << this->all_rewrites.size() << " rewrites.\n";
+    if (config.enable_logging) {
+        std::cout << "[Rewriter] Initialized with " << this->all_rewrites.size() << " rewrites.\n";
+    }
     filter_rewrites_by_disabled_ops();
-    std::cout << "[Rewriter] After filtering, " << this->rewrites.size() << " rewrites remain.\n";
+    if (config.enable_logging) {
+        std::cout << "[Rewriter] After filtering, " << this->rewrites.size() << " rewrites remain.\n";
+    }
     reset_limits_and_bans();
 }
 
@@ -272,7 +276,9 @@ bool Rewriter::apply_one_iteration() {
     }
 
     if (enable_node_limit && egraph.num_nodes() > max_nodes) {
-        std::cout << "[Rewriter] Node limit exceeded: " << max_nodes << "\n";
+        if (config.enable_logging) {
+            std::cout << "[Rewriter] Node limit exceeded: " << max_nodes << "\n";
+        }
         return false;
     }
 

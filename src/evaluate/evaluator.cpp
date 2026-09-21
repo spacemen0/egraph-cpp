@@ -1,6 +1,7 @@
 #include "evaluator.h"
 #include "basic_types.h"
 #include "utils.h"
+#include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <string>
@@ -462,7 +463,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
                     out_data[i + j * out_rows] = out_data[i + j * m];
                 }
             }
-            output.vec().resize(out_rows * out_cols);
+            output.vec().resize(static_cast<long>(out_rows) * out_cols);
         }
 
         break;
