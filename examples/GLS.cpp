@@ -13,9 +13,9 @@ int run_gls() {
     Expression target_math = inverse(transpose(X) * inverse(M) * X) * transpose(X) * inverse(M) * y;
 
     ctx.optimize_symbolic(target_math);
-    auto [m_sizes, m_data] = read_matrix("examples/data/gls_m.csv");
-    auto [x_sizes, x_data] = read_matrix("examples/data/gls_x.csv");
-    auto [y_sizes, y_data] = read_matrix("examples/data/gls_y.csv");
+    auto [m_sizes, m_data] = read_matrix("data/gls_m.csv");
+    auto [x_sizes, x_data] = read_matrix("data/gls_x.csv");
+    auto [y_sizes, y_data] = read_matrix("data/gls_y.csv");
 
     if (m_sizes.first != m_sizes.second) {
         std::cerr << "Size error: M must be square.\n";
@@ -42,7 +42,7 @@ int run_gls() {
     int row = std::get<int>(out_shape.first);
     int col = std::get<int>(out_shape.second);
 
-    std::string out_path = "examples/data/gls_result.csv";
+    std::string out_path = "data/gls_result.csv";
     write_matrix(out_path, row, col, out);
     return 0;
 }

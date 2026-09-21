@@ -6,3 +6,4 @@ coverage_report/
 *.svg
 *.DS_Store
 .cache/
+data/

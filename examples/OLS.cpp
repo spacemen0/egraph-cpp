@@ -14,8 +14,8 @@ int run_ols() {
     Expression target_math = (inverse(transpose(X) * X) * transpose(X)) * y;
 
     ctx.optimize_symbolic(target_math);
-    auto [x_sizes, x_data] = read_matrix("examples/data/ols_x.csv");
-    auto [y_sizes, y_data] = read_matrix("examples/data/ols_y.csv");
+    auto [x_sizes, x_data] = read_matrix("data/ols_x.csv");
+    auto [y_sizes, y_data] = read_matrix("data/ols_y.csv");
 
     if (x_sizes.first <= 0 || x_sizes.second <= 0) {
         std::cerr << "Size error: X must be non-empty.\n";
@@ -42,7 +42,7 @@ int run_ols() {
     int row = std::get<int>(out_shape.first);
     int col = std::get<int>(out_shape.second);
 
-    std::string out_path = "examples/data/ols_result.csv";
+    std::string out_path = "data/ols_result.csv";
     write_matrix(out_path, row, col, out);
     return 0;
 }

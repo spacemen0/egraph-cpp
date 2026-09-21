@@ -29,11 +29,11 @@ int run_stochastic_newton() {
     ctx.optimize_symbolic(target_math);
 
     // Read concrete matrix files
-    auto [b_sizes, b_data] = read_matrix("examples/data/stochastic_newton_b.csv");
-    auto [in_sizes, in_data] = read_matrix("examples/data/stochastic_newton_in.csv");
-    auto [a_sizes, a_data] = read_matrix("examples/data/stochastic_newton_a.csv");
-    auto [w_sizes, w_data] = read_matrix("examples/data/stochastic_newton_w.csv");
-    auto [il_sizes, il_data] = read_matrix("examples/data/stochastic_newton_il.csv");
+    auto [b_sizes, b_data] = read_matrix("data/stochastic_newton_b.csv");
+    auto [in_sizes, in_data] = read_matrix("data/stochastic_newton_in.csv");
+    auto [a_sizes, a_data] = read_matrix("data/stochastic_newton_a.csv");
+    auto [w_sizes, w_data] = read_matrix("data/stochastic_newton_w.csv");
+    auto [il_sizes, il_data] = read_matrix("data/stochastic_newton_il.csv");
 
     if (b_sizes.first <= 0 || b_sizes.second <= 0 || b_sizes.first != b_sizes.second) {
         std::cerr << "Size error: B must be square.\n";
@@ -66,7 +66,7 @@ int run_stochastic_newton() {
     int row = std::get<int>(out_shape.first);
     int col = std::get<int>(out_shape.second);
 
-    std::string out_path = "examples/data/stochastic_newton_result.csv";
+    std::string out_path = "data/stochastic_newton_result.csv";
     write_matrix(out_path, row, col, out);
     return 0;
 }

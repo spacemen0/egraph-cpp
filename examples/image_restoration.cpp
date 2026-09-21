@@ -7,9 +7,9 @@
 using namespace egraph;
 
 int run_image() {
-    auto [h_sizes, h_data] = read_matrix("examples/data/image_h.csv");
-    auto [y_sizes, y_data] = read_matrix("examples/data/image_y.csv");
-    auto [x_sizes, x_data] = read_matrix("examples/data/image_x.csv");
+    auto [h_sizes, h_data] = read_matrix("data/image_h.csv");
+    auto [y_sizes, y_data] = read_matrix("data/image_y.csv");
+    auto [x_sizes, x_data] = read_matrix("data/image_x.csv");
 
     if (h_sizes.first >= h_sizes.second) {
         std::cerr << "Size error: H must be wide (rows < cols).\n";
@@ -55,14 +55,14 @@ int run_image() {
     auto out1_shape = bind_shape(ctx.get_property(math_1).shape, &concrete_sizes);
     int row1 = std::get<int>(out1_shape.first);
     int col1 = std::get<int>(out1_shape.second);
-    std::string out_path1 = "examples/data/image_result_1.csv";
+    std::string out_path1 = "data/image_result_1.csv";
     write_matrix(out_path1, row1, col1, out1);
 
     // Retrieve target math_2
     auto out2_shape = bind_shape(ctx.get_property().shape, &concrete_sizes);
     int row2 = std::get<int>(out2_shape.first);
     int col2 = std::get<int>(out2_shape.second);
-    std::string out_path2 = "examples/data/image_result_2.csv";
+    std::string out_path2 = "data/image_result_2.csv";
     write_matrix(out_path2, row2, col2, out2);
 
     return 0;
