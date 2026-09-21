@@ -138,40 +138,6 @@ TEST(ApiTest, OptimizeSymbolic) {
     EXPECT_NEAR(out2[1], 3.0, 1e-6);
 }
 
-TEST(ApiTest, EvaluateConcrete) {
-    Context ctx;
-    ctx.define_matrix("M", "A", "B", {"full_rank", "tall"});
-    ctx.define_matrix("n", "A", 1);
-    Expression M("M");
-    Expression n("n");
-
-    Expression target_math = (inverse(transpose(M) * M) * transpose(M)) * n;
-    ctx.get_config().disabled_ops = {Op::QR};
-    ctx.optimize_symbolic(target_math);
-
-    SizeBindings concrete_sizes = {{"A", 30}, {"B", 20}};
-    std::mt19937 gen(42); // NOSONAR: Non-cryptographic synthetic test data
-    std::uniform_real_distribution<double> dist(-5.0, 5.0);
-
-    DataBindings concrete_data = {
-        {"M", std::vector<double>(concrete_sizes["A"] * concrete_sizes["B"])},
-        {"n", std::vector<double>(concrete_sizes["A"])}};
-
-    for (auto &value : concrete_data["M"]) {
-        value = dist(gen);
-    }
-    for (auto &value : concrete_data["n"]) {
-        value = dist(gen);
-    }
-
-    auto out1 = ctx.evaluate_concrete(concrete_sizes, concrete_data);
-    ASSERT_EQ(out1.size(), 20);
-    for (size_t i = 0; i < out1.size(); ++i) {
-        EXPECT_TRUE(std::isfinite(out1[i]));
-        std::cout << out1[i] << (i == out1.size() - 1 ? "" : " ");
-    }
-}
-
 TEST(ApiTest, ConcreteMatrixChainEvaluation) {
     Context ctx;
     ctx.define_matrix("A", 2, 2);

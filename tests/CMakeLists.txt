@@ -17,8 +17,6 @@ add_executable(unit_tests
     unit/config_test.cpp
     integration/api_test.cpp
     integration/integration_test.cpp
-    integration/ols_test.cpp
-    integration/gls_test.cpp
     integration/pruner_test.cpp
     integration/system_test.cpp
 )

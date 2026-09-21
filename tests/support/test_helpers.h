@@ -92,6 +92,12 @@ const static ENode sym_w = make_symbol("W");
 inline std::pair<std::pair<int, int>, std::vector<double>> read_matrix(const std::string &filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
+        file.open("../" + filename);
+    }
+    if (!file.is_open()) {
+        file.open("../../" + filename);
+    }
+    if (!file.is_open()) {
         throw std::runtime_error("Could not open file for reading: " + filename);
     }
 
@@ -158,6 +164,12 @@ inline void write_matrix(
     }
 
     std::ofstream file(filename);
+    if (!file.is_open()) {
+        file.open("../" + filename);
+    }
+    if (!file.is_open()) {
+        file.open("../../" + filename);
+    }
     if (!file.is_open()) {
         throw std::runtime_error("Could not open file for writing: " + filename);
     }

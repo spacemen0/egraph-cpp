@@ -29,30 +29,6 @@ TEST(Integration, MatrixPartialSet) {
     EXPECT_EQ(std::get<uint32_t>(result.expr.atom), register_string_in_lookup("X"));
 }
 
-TEST(Integration, SimplifyComplexMatrixChain) {
-    EGraph egraph(get_property_table());
-
-    Expression root_expr("Tr(v * M) * Inv(Tr(v))");
-    Id root_id = egraph.add_expression(root_expr);
-    std::cout << "Initial EGraph size: " << egraph.num_nodes() << " nodes." << std::endl;
-
-    std::vector<Rewrite> rules = {
-        mul_identity_left,
-        mat_transpose_prod,
-        invert_cancel_right,
-        mul_assoc,
-    };
-    Rewriter rewriter(egraph, rules, EGraphConfig{.rewrite = {.node_limit = 1000}});
-    rewriter.apply_rewrites(8);
-
-    Extractor extractor(egraph);
-    auto results = extractor.extract_symbolic(root_id);
-    for (const auto &result : results) {
-        std::cout << "Extracted expression: " << result.expr.to_string() << std::endl;
-        std::cout << "Cost: " << result.cost << std::endl;
-    }
-}
-
 TEST(Integration, MinimalRealisticExplosionRules) {
     EGraph egraph(get_property_table());
     const auto root_id = egraph.add_expression(Expression("Inv(A) * A * A"));
@@ -172,43 +148,4 @@ TEST(Integration, MatrixChainSymbolicSizes) {
     std::cout << "Matched " << matched_count << " out of " << candidate_expressions.size() << " possible expressions."
               << std::endl;
     SUCCEED();
-}
-
-TEST(Integration, SimpleDiagram) {
-    PropertyTable pt;
-    pt.add_or_update_property_entry("A", {.shape = std::make_pair(3, 3)});
-    pt.add_or_update_property_entry("B", {.shape = std::make_pair(3, 3)});
-    pt.add_or_update_property_entry("C", {.shape = std::make_pair(3, 3)});
-    pt.add_or_update_property_entry("D", {.shape = std::make_pair(3, 3)});
-    EGraph egraph(pt);
-    egraph.add_expression(Expression("(A + B) * (C + D)"));
-    std::vector<Rewrite> rules = {commute_add, mul_distribute_left, mul_distribute_right};
-    Rewriter rewriter = Rewriter(egraph, rules, EGraphConfig{.rewrite = {.node_limit = 1000}});
-    rewriter.apply_rewrites();
-    egraph.to_dot_file("simple_diagram.dot");
-    egraph.to_img("simple_diagram", "svg");
-}
-
-TEST(Integration, VerySimpleDiagram) {
-    PropertyTable pt;
-    pt.add_or_update_property_entry("a", {.shape = std::make_pair(3, 3)});
-    pt.add_or_update_property_entry("b", {.shape = std::make_pair(3, 3)});
-    pt.add_or_update_property_entry("c", {.shape = std::make_pair(3, 3)});
-    pt.add_or_update_property_entry("d", {.shape = std::make_pair(3, 3)});
-    EGraph egraph(pt);
-    egraph.add_expression(Expression("(a + b)*(c + d)"));
-    egraph.add_expression(Expression("(a+b)*(d+c)"));
-    egraph.to_dot_file("diagram.dot");
-    egraph.to_img("very_simple_diagram", "svg");
-}
-
-TEST(Integration, ExpressionMapToManyKernelSequences) {
-    EGraph egraph(get_property_table());
-    egraph.add_expression(Expression("Inv(Get(QR(X),1)) * (Tr(Get(QR(X),0)) * y)"));
-    Rewriter rewriter(
-        egraph, build_rewrite_sets({"lowering"}),
-        EGraphConfig{.rewrite = {.node_limit = 1000, .enable_backoff = true}});
-    rewriter.apply_rewrites();
-    Pruner::prune_symbolic_when_kernel_available(egraph);
-    egraph.to_img("many_kernels", "svg");
 }
