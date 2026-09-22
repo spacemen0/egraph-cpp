@@ -385,10 +385,14 @@ class Context {
     std::chrono::microseconds get_last_total_duration() const {
         return last_extraction_duration + last_evaluation_duration;
     }
-    double get_last_extraction_duration_ms() const { return last_extraction_duration.count() / 1000.0; }
-    double get_last_evaluation_duration_ms() const { return last_evaluation_duration.count() / 1000.0; }
+    double get_last_extraction_duration_ms() const {
+        return static_cast<double>(last_extraction_duration.count()) / 1000.0;
+    }
+    double get_last_evaluation_duration_ms() const {
+        return static_cast<double>(last_evaluation_duration.count()) / 1000.0;
+    }
     double get_last_total_duration_ms() const {
-        return (last_extraction_duration + last_evaluation_duration).count() / 1000.0;
+        return static_cast<double>((last_extraction_duration + last_evaluation_duration).count()) / 1000.0;
     }
 
   private:

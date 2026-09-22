@@ -1,8 +1,5 @@
 #include "api.h"
-#include "test_helpers.h"
-#include <chrono>
 #include <gtest/gtest.h>
-#include <iostream>
 
 using namespace egraph;
 

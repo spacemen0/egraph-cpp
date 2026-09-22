@@ -8,7 +8,8 @@ Pruner::prune(const std::vector<Id> &roots, const std::vector<SizeBindings> &bin
     PruneResult result;
 
     std::unordered_map<Id, std::unordered_set<const ENode *>> keep_choices;
-    size_t dag_samples_count = std::max(size_t(1), static_cast<size_t>(static_cast<double>(bindings.size()) * dag_sample_ratio));
+    size_t dag_samples_count =
+        std::max(size_t(3), static_cast<size_t>(static_cast<double>(bindings.size()) * dag_sample_ratio));
 
     for (size_t i = 0; i < bindings.size(); ++i) {
         extractor.reset();

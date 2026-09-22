@@ -588,7 +588,7 @@ bool Extractor::creates_cycle(
 
     static thread_local size_t marker = 0;
     if (++marker == 0) {
-        std::fill(visited_buffer.begin(), visited_buffer.end(), 0);
+        std::ranges::fill(visited_buffer, 0);
         marker = 1;
     }
     while (!stack_buffer.empty()) {
@@ -628,7 +628,7 @@ std::vector<ExtractionResult> Extractor::extract_symbolic(Id class_id, bool buil
     return results;
 }
 
-/// Collects the extracted nodes for the given roots and size bindings, storing them in selected_choices. Returns true
+/// Collects the extracted nodes for the given roots and size bindings, storing them in selected_choices.
 void Extractor::collect_selected_nodes_for_binding(
     const std::vector<Id> &roots, const SizeBindings &size_bindings,
     std::unordered_map<Id, std::unordered_set<const ENode *>> &selected_choices, bool use_dag_extract) const {
@@ -641,7 +641,6 @@ void Extractor::collect_selected_nodes_for_binding(
                 selected_choices[class_id].insert(node);
             }
         } catch (const std::exception &) {
-            // Skip if no tree/DAG found for this root under these bindings
             std::cerr << "[Extractor] Warning: no tree/DAG found for root class " << root
                       << " under supplied size bindings, skipping.\n";
         }
