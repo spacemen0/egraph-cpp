@@ -25,17 +25,17 @@ static const auto sub_to_add_scale = make_rewrite("sub_to_add_scale", "?a - ?b",
 static const auto scale_add_distribute =
     make_rewrite("scale_add_distribute", "Scale(?a + ?b, ?s)", "Scale(?a, ?s) + Scale(?b, ?s)", true);
 static const auto scale_mul_distribute_left =
-    make_rewrite("scale_mul_distribute_left", "Scale(?a, ?s) * ?b", "Scale(?a * ?b, ?s)", false);
+    make_rewrite("scale_mul_distribute_left", "Scale(?a, ?s) * ?b", "Scale(?a * ?b, ?s)", true);
 static const auto scale_mul_distribute_right =
-    make_rewrite("scale_mul_distribute_right", "?a * Scale(?b, ?s)", "Scale(?a * ?b, ?s)", false);
+    make_rewrite("scale_mul_distribute_right", "?a * Scale(?b, ?s)", "Scale(?a * ?b, ?s)", true);
 
 /// Transpositions and Inversions
 /// ----------------------------------------------------------
 static const auto invert_mat_prod = make_rewrite(
-    "invert-mat-prod", "Inv(?a * ?b)", "Inv(?b) * Inv(?a)", false, [](const EGraph &g, const Substitution &s) {
+    "invert-mat-prod", "Inv(?a * ?b)", "Inv(?b) * Inv(?a)", true, [](const EGraph &g, const Substitution &s) {
     return is_non_singular_cond("a")(g, s) && is_non_singular_cond("b")(g, s);
 });
-static const auto mat_transpose_prod = make_rewrite("mat-transpose-prod", "Tr(?a * ?b)", "Tr(?b) * Tr(?a)", false);
+static const auto mat_transpose_prod = make_rewrite("mat-transpose-prod", "Tr(?a * ?b)", "Tr(?b) * Tr(?a)", true);
 static const auto sym_prod_transpose_right = make_rewrite(
     "symm_prod_transpose_right", "?a * ?b", "Tr(?b * Tr(?a))", false, [](const EGraph &g, const Substitution &s) {
     return is_symmetric("b")(g, s) && is_not_vector("a")(g, s);
