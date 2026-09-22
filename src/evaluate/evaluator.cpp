@@ -28,8 +28,8 @@ Evaluator::Evaluator(
     use_counts.resize(N, 0);
 
     Id max_id = 0;
-    for (Id class_id : this->result.execution_order) {
-        max_id = std::max(max_id, class_id);
+    for (Id id : this->egraph.get_all_class_ids()) {
+        max_id = std::max(max_id, id);
     }
     slot_map.assign(max_id + 1, -1);
 
@@ -38,11 +38,17 @@ Evaluator::Evaluator(
         slot_map[class_id] = static_cast<int>(slot);
     }
 
+    for (Id id : this->egraph.get_all_class_ids()) {
+        Id root = this->egraph.find_class_id(id);
+        if (root < slot_map.size() && slot_map[root] != -1) {
+            slot_map[id] = slot_map[root];
+        }
+    }
+
     preserved_slots.assign(N, false);
     for (Id id : this->preserved_ids) {
-        Id class_id = egraph.find_class_id(id);
-        if (class_id < slot_map.size() && slot_map[class_id] != -1) {
-            preserved_slots[slot_map[class_id]] = true;
+        if (id < slot_map.size() && slot_map[id] != -1) {
+            preserved_slots[slot_map[id]] = true;
         }
     }
 
@@ -144,8 +150,7 @@ void Evaluator::setup_in_place_output(Id child_id, MatrixNode &output) {
     int child_slot = slot_map[child_id];
     auto &child_node = std::get<MatrixNode>(data_storage[child_slot]);
     int count = use_counts[child_slot];
-    bool is_preserved =
-        (child_slot >= 0 && static_cast<size_t>(child_slot) < preserved_slots.size() && preserved_slots[child_slot]);
+    bool is_preserved = preserved_slots[child_slot];
     // the child is only used once, not marked as preserved, and by the time of calling this function, the child is
     // guaranteed to be evaluated already
     if (count == 1 && !is_preserved) {
@@ -237,9 +242,8 @@ std::vector<double> Evaluator::evaluate() {
 }
 
 std::vector<double> Evaluator::get_preserved(Id id) const {
-    Id class_id = egraph.find_class_id(id);
-    if (class_id < slot_map.size() && slot_map[class_id] != -1) {
-        int slot = slot_map[class_id];
+    if (id < slot_map.size() && slot_map[id] != -1) {
+        int slot = slot_map[id];
         if (std::holds_alternative<MatrixNode>(data_storage[slot])) {
             auto &node = const_cast<MatrixNode &>(std::get<MatrixNode>(data_storage[slot]));
             node.ensure_general();

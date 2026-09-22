@@ -32,6 +32,7 @@ int run_image() {
 
     EGraphRunner::Context ctx;
     ctx.get_config().enable_logging = false;
+    ctx.get_config().disabled_ops = {Op::Potrf_U};
 
     Expression y = ctx.define_matrix("y", "a", 1);
     Expression H = ctx.define_matrix("H", "a", "b", {"full_rank", "wide"});
