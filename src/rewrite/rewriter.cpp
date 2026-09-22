@@ -2,6 +2,7 @@
 #include "matcher.h"
 #include "rewrite_sets.h"
 #include "utils.h"
+#include <algorithm>
 #include <iostream>
 
 // Instantiate a pattern into the EGraph
@@ -124,16 +125,12 @@ void Rewriter::filter_rewrites_by_disabled_ops() {
     if (effective_disabled_operations.empty()) {
         return;
     }
-    rewrites.erase(
-        std::remove_if(
-            rewrites.begin(), rewrites.end(),
-            [&effective_disabled_operations](const Rewrite &rule) {
-        return std::any_of(
-            effective_disabled_operations.begin(), effective_disabled_operations.end(), [&rule](const Op &disabled_op) {
+    auto it = std::ranges::remove_if(rewrites, [&effective_disabled_operations](const Rewrite &rule) {
+        return std::ranges::any_of(effective_disabled_operations, [&rule](const Op &disabled_op) {
             return rule.contains_op(disabled_op);
         });
-    }),
-        rewrites.end());
+    });
+    rewrites.erase(it.begin(), it.end());
 }
 
 static Id instantiate(EGraph &egraph, const Pattern &pattern, const Substitution &subst) {
@@ -315,9 +312,9 @@ bool Rewriter::apply_rewrites() {
 }
 
 void Rewriter::reset() {
-    std::fill(rewrite_application_counts.begin(), rewrite_application_counts.end(), 0);
-    std::fill(ban_iterations_remaining.begin(), ban_iterations_remaining.end(), 0);
-    std::fill(ban_duration_next.begin(), ban_duration_next.end(), 1);
+    std::ranges::fill(rewrite_application_counts, 0);
+    std::ranges::fill(ban_iterations_remaining, 0);
+    std::ranges::fill(ban_duration_next, 1);
     std::ranges::transform(rewrites, current_match_limits.begin(), [](const auto &r) {
         return r.initial_match_limit;
     });

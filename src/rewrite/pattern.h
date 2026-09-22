@@ -4,11 +4,12 @@
 #include <map>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace egraph {
 struct Pattern {
-    explicit Pattern(const Atom &atom, const std::vector<Pattern> &children) : atom(atom), children(children) {}
+    explicit Pattern(Atom atom, const std::vector<Pattern> &children) : atom(std::move(atom)), children(children) {}
     explicit Pattern(std::string_view s);
     bool contains_op(const Op &op) const;
     void collect_ops(std::unordered_set<Op> &ops) const;

@@ -37,7 +37,7 @@ inline std::string get_string_from_lookup(uint32_t id) {
 inline uint32_t register_string_in_lookup(const std::string &s) {
     auto &table = get_lookup_table();
     if (table.find(s) == table.end()) {
-        uint32_t id = static_cast<uint32_t>(table.size());
+        auto id = static_cast<uint32_t>(table.size());
         table[s] = id;
         get_reverse_lookup().push_back(s);
     }
