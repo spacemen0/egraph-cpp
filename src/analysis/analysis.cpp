@@ -215,6 +215,8 @@ static AnalysisData analyze_transpose(const EGraph &egraph, const std::vector<Id
         prop.shape = std::make_pair(child_size.second, child_size.first);
         prop.flags.is_lower_triangular = data->flags.is_upper_triangular;
         prop.flags.is_upper_triangular = data->flags.is_lower_triangular;
+        prop.flags.is_tall = data->flags.is_wide;
+        prop.flags.is_wide = data->flags.is_tall;
         return make_matrix_property_data(prop);
     }
     throw AnalysisError("Tr expects a Matrix input");

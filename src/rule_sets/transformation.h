@@ -13,7 +13,7 @@ namespace egraph {
 static const auto mul_assoc =
     make_rewrite("mul-assoc-left", "?a * (?b * ?c)", "(?a * ?b) * ?c", true, nullptr, nullptr, 300);
 static const auto add_assoc = make_rewrite("add-assoc", "(?a + ?b) + ?c", "?a + (?b + ?c)", true);
-static const auto commute_add = make_rewrite("commute-add", "?a + ?b", "?b + ?a");
+static const auto commute_add = make_rewrite("commute-add", "?a + ?b", "?b + ?a", true);
 
 /// Distributions and Normalizations
 /// ----------------------------------------------------------
@@ -21,7 +21,7 @@ static const auto mul_distribute_left =
     make_rewrite("mul-distribute-over-add-left", "?a * (?b + ?c)", "?a * ?b + ?a * ?c", true);
 static const auto mul_distribute_right =
     make_rewrite("mul-distribute-over-add-right", "(?a + ?b) * ?c", "?a * ?c + ?b * ?c", true);
-static const auto sub_to_add_scale = make_rewrite("sub_to_add_scale", "?a - ?b", "?a + Scale(?b, -1.0)");
+static const auto sub_to_add_scale = make_rewrite("sub_to_add_scale", "?a - ?b", "?a + Scale(?b, -1.0)", true);
 static const auto scale_add_distribute =
     make_rewrite("scale_add_distribute", "Scale(?a + ?b, ?s)", "Scale(?a, ?s) + Scale(?b, ?s)", true);
 static const auto scale_mul_distribute_left =
@@ -37,16 +37,16 @@ static const auto invert_mat_prod = make_rewrite(
 });
 static const auto mat_transpose_prod = make_rewrite("mat-transpose-prod", "Tr(?a * ?b)", "Tr(?b) * Tr(?a)", true);
 static const auto sym_prod_transpose_right = make_rewrite(
-    "symm_prod_transpose_right", "?a * ?b", "Tr(?b * Tr(?a))", false, [](const EGraph &g, const Substitution &s) {
+    "symm_prod_transpose_right", "?a * ?b", "Tr(?b * Tr(?a))", true, [](const EGraph &g, const Substitution &s) {
     return is_symmetric("b")(g, s) && is_not_vector("a")(g, s);
 });
 static const auto sym_prod_transpose_left = make_rewrite(
-    "symm_prod_transpose_left", "?b * ?a", "Tr(Tr(?a) * ?b)", false, [](const EGraph &g, const Substitution &s) {
+    "symm_prod_transpose_left", "?b * ?a", "Tr(Tr(?a) * ?b)", true, [](const EGraph &g, const Substitution &s) {
     return is_symmetric("b")(g, s) && is_not_vector("a")(g, s);
 });
 
 static const auto orthogonal_inverse =
-    make_rewrite("orthogonal-inverse", "Inv(?a)", "Tr(?a)", false, is_orthogonal_cond("a"));
+    make_rewrite("orthogonal-inverse", "Inv(?a)", "Tr(?a)", true, is_orthogonal_cond("a"));
 static const auto scale_transpose = make_rewrite("scale_transpose", "Tr(Scale(?a, ?s))", "Scale(Tr(?a), ?s)", true);
 
 static const auto scale_inverse =

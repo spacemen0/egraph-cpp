@@ -100,7 +100,7 @@ static auto is_non_singular_cond = [](std::string_view var) {
 static auto is_orthogonal_cond = [](std::string_view var) {
     return [var = std::string(var)](const EGraph &g, const Substitution &s) {
         const auto *prop = get_matrix_data(g, s.at(var));
-        return prop && prop->flags.is_orthogonal;
+        return prop && prop->flags.is_orthogonal && !prop->flags.is_identity;
     };
 };
 
