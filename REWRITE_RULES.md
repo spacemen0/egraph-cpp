@@ -1,7 +1,6 @@
 ## Notes
 Dynamic means the rhs of the rule can not simply be constructed using plain patterns and the rule has a applier which is a function that construct the new node (or modifies properties) with more complex logics.
 
-Lots of rules theoretically can be deduced from more atomic rules existing I think but that don't necessarily mean they are redundant? 
 
 ## Definition of Operators
 ```cpp
@@ -115,9 +114,6 @@ enum class Op {
 ### `tr-tr-cancel`
 - **Pattern:** `Tr(Tr(?a))` -> `?a`
 
-### `tr_symmetric`
-- **Pattern:** `Tr(?a)` -> `?a`
-- **Description:**: when a is symmetric
 
 ### `invert-cancel-left`
 - **Pattern:** `Inv(?a) * ?a` -> `I` (Dynamic)
@@ -139,7 +135,7 @@ enum class Op {
 
 ### `orthogonal-transpose`
 - **Pattern:** `Tr(?a) * ?a` -> `I` (Dynamic)
-- **Description:**: when a is orthogonal 
+- **Description:**: when a is orthogonal and is not identity
 
 ### `orthonormal-transpose`
 - **Pattern:** `Tr(?a) * ?a` -> `I` (Dynamic)
@@ -156,7 +152,7 @@ enum class Op {
 - **Pattern:** `(?a + ?b) + ?c` <-> `?a + (?b + ?c)`
 
 ### `commute-add`
-- **Pattern:** `?a + ?b` -> `?b + ?a`
+- **Pattern:** `?a + ?b` <-> `?b + ?a`
 
 ### `mul-distribute-over-add-left`
 - **Pattern:** `?a * (?b + ?c)` <-> `?a * ?b + ?a * ?c`
@@ -165,36 +161,41 @@ enum class Op {
 - **Pattern:** `(?a + ?b) * ?c` <-> `?a * ?c + ?b * ?c`
 
 ### `sub_to_add_scale`
-- **Pattern:** `?a - ?b` -> `?a + Scale(?b, -1.0)`
+- **Pattern:** `?a - ?b` <-> `?a + Scale(?b, -1.0)`
+- **Description:** Minus to Scale
 
 (I think a lot of these scale rules are not used and tested)
 ### `scale_add_distribute`
 - **Pattern:** `Scale(?a + ?b, ?s)` <-> `Scale(?a, ?s) + Scale(?b, ?s)`
 
 ### `scale_mul_distribute_left`
-- **Pattern:** `Scale(?a, ?s) * ?b` -> `Scale(?a * ?b, ?s)` 
+- **Pattern:** `Scale(?a, ?s) * ?b` <-> `Scale(?a * ?b, ?s)` 
 
 ### `scale_mul_distribute_right`
-- **Pattern:** `?a * Scale(?b, ?s)` -> `Scale(?a * ?b, ?s)`
+- **Pattern:** `?a * Scale(?b, ?s)` <-> `Scale(?a * ?b, ?s)`
+
+### `tr_symmetric`
+- **Pattern:** `Tr(?a)` <-> `?a`
+- **Description:**: when a is symmetric
 
 ### `invert-mat-prod`
-- **Pattern:** `Inv(?a * ?b)` -> `Inv(?b) * Inv(?a)`
+- **Pattern:** `Inv(?a * ?b)` <-> `Inv(?b) * Inv(?a)`
 - **Description:**: a and b need to be invertible 
 
 ### `mat-transpose-prod`
-- **Pattern:** `Tr(?a * ?b)` -> `Tr(?b) * Tr(?a)`
+- **Pattern:** `Tr(?a * ?b)` <-> `Tr(?b) * Tr(?a)`
 
 ### `symm_prod_transpose_right`
-- **Pattern:** `?a * ?b` -> `Tr(?b * Tr(?a))`
+- **Pattern:** `?a * ?b` <-> `Tr(?b * Tr(?a))`
 - **Description:**: when b is symmetric
 
 ### `symm_prod_transpose_left`
-- **Pattern:** `?b * ?a` -> `Tr(Tr(?a) * ?b)`
+- **Pattern:** `?b * ?a` <-> `Tr(Tr(?a) * ?b)`
 - **Description:**: when b is symmetric
 
 ### `orthogonal-inverse`
-- **Pattern:** `Inv(?a)` -> `Tr(?a)`
-- **Description:**: when a is orthogonal
+- **Pattern:** `Inv(?a)` <-> `Tr(?a)`
+- **Description:**: when a is orthogonal and is not identity 
 
 ### `scale_transpose`
 - **Pattern:** `Tr(Scale(?a, ?s))` <-> `Scale(Tr(?a), ?s)`
@@ -207,32 +208,34 @@ enum class Op {
 
 ## 4. Expansion Rules
 
+factorized means the matrix is not one of these: triangular, diagonal, identity, zero, orthogonal and has orthonormal columns
+
 ### `qr-invert`
-- **Pattern:** `Inv(?a)` -> `Inv(Get(QR(?a), 1)) * Tr(Get(QR(?a), 0))`
-- **Description:**: Replaces $A^{-1}$ with $R^{-1} Q^T$
+- **Pattern:** `Inv(?a)` <-> `Inv(Get(QR(?a), 1)) * Tr(Get(QR(?a), 0))`
+- **Description:**: Replaces $A^{-1}$ with $R^{-1} Q^T$, when a is not factorized and is square
 
 ### `qr-leaf`
-- **Pattern:** `?a` -> `Get(QR(?a), 0) * Get(QR(?a), 1)`
-- **Description:**: Expands an unfactorized leaf matrix into its QR product $Q \cdot R$.
+- **Pattern:** `?a` <-> `Get(QR(?a), 0) * Get(QR(?a), 1)`
+- **Description:**: Expands an unfactorized leaf matrix into its QR product $Q \cdot R$. when a is not factorized and has a shape (either wide or square or tall, can not be ambiguous)
 
 ### `cholel-invert`
-- **Pattern:** `Inv(?a)` -> `Tr(Inv(Get(CholeL(?a), 0))) * Inv(Get(CholeL(?a), 0))`
+- **Pattern:** `Inv(?a)` <-> `Tr(Inv(Get(CholeL(?a), 0))) * Inv(Get(CholeL(?a), 0))`
 - **Description:**: Replaces $A^{-1}$ with $(L^{-1})^T L^{-1}$ for symmetric positive definite matrices using Cholesky factor $L$.
 
 ### `cholel-leaf`
-- **Pattern:** `?a` -> `Get(CholeL(?a), 0) * Tr(Get(CholeL(?a), 0))`
+- **Pattern:** `?a` <-> `Get(CholeL(?a), 0) * Tr(Get(CholeL(?a), 0))`
 - **Description:**: Expands an unfactorized symmetric positive definite leaf into Cholesky product $L L^T$.
 
 ### `cholel_to_choleu`
 - **Pattern:** `Get(CholeL(?a), 0)` <-> `Tr(Get(CholeU(?a), 0))`
-- **Description:**: Converts between lower and upper Cholesky factors bidirectionally 
+- **Description:**: Converts between lower and upper Cholesky factors
 
 ### `lu-invert` *(inactive)*
-- **Pattern:** `Inv(?a)` -> `Inv(Get(LU(?a), 1)) * Inv(Get(LU(?a), 0))`
+- **Pattern:** `Inv(?a)` <-> `Inv(Get(LU(?a), 1)) * Inv(Get(LU(?a), 0))`
 - **Description:**: Replaces $A^{-1}$ with $U^{-1} L^{-1}$.
 
 ### `lu-leaf` *(inactive)*
-- **Pattern:** `?a` -> `Get(LU(?a), 0) * Get(LU(?a), 1)`
+- **Pattern:** `?a` <-> `Get(LU(?a), 0) * Get(LU(?a), 1)`
 - **Description:**: Expands an unfactorized square leaf into LU product.
 
 ---

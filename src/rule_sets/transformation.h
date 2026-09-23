@@ -46,7 +46,9 @@ static const auto sym_prod_transpose_left = make_rewrite(
 });
 
 static const auto orthogonal_inverse =
-    make_rewrite("orthogonal-inverse", "Inv(?a)", "Tr(?a)", true, is_orthogonal_cond("a"));
+    make_rewrite("orthogonal-inverse", "Inv(?a)", "Tr(?a)", true, [](const EGraph &g, const Substitution &s) {
+    return is_orthogonal_cond("a")(g, s) && !is_identity_cond("a")(g, s);
+});
 static const auto scale_transpose = make_rewrite("scale_transpose", "Tr(Scale(?a, ?s))", "Scale(Tr(?a), ?s)", true);
 
 static const auto scale_inverse =
