@@ -44,7 +44,7 @@ static const auto sym_prod_transpose_left = make_rewrite(
     "symm_prod_transpose_left", "?b * ?a", "Tr(Tr(?a) * ?b)", true, [](const EGraph &g, const Substitution &s) {
     return is_symmetric("b")(g, s) && is_not_vector("a")(g, s);
 });
-
+static const auto tr_symmetric = make_rewrite("tr_symmetric", "Tr(?a)", "?a", true, is_symmetric("a"));
 static const auto orthogonal_inverse =
     make_rewrite("orthogonal-inverse", "Inv(?a)", "Tr(?a)", true, [](const EGraph &g, const Substitution &s) {
     return is_orthogonal_cond("a")(g, s) && !is_identity_cond("a")(g, s);
@@ -59,7 +59,7 @@ static const auto scale_inverse =
     auto val = get_double_from_eclass(g, s.at("s")).value();
     // Construct the expression tree directly: Scale(Inv(?a), 1/val)
     std::vector<Expression> inv_children;
-    inv_children.push_back(Expression("?a"));
+    inv_children.emplace_back("?a");
     Expression inv_node(Atom(Op::Inv), inv_children);
 
     std::vector<Expression> scale_children;
@@ -81,6 +81,7 @@ static const std::vector<Rewrite> transformation_set = {
     scale_mul_distribute_right,
     invert_mat_prod,
     mat_transpose_prod,
+    tr_symmetric,
     sym_prod_transpose_right,
     sym_prod_transpose_left,
     orthogonal_inverse,

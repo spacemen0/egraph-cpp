@@ -40,7 +40,7 @@ static const auto mul_identity_right =
     make_rewrite("mul-identity-right", "?i * ?a", "?a", false, is_identity_cond("i"));
 static const auto scale_one = make_rewrite("scale_one", "Scale(?a, 1.0)", "?a");
 static const auto tr_tr_cancel = make_rewrite("tr-tr-cancel", "Tr(Tr(?a))", "?a");
-static const auto tr_symmetric = make_rewrite("tr_symmetric", "Tr(?a)", "?a", false, is_symmetric("a"));
+
 /// Cancellations
 /// ----------------------------------------------------------
 static const auto invert_cancel_left = make_rewrite(
@@ -57,8 +57,8 @@ static const auto scale_collapse = make_rewrite(
 }, [](EGraph &g, const Substitution &s, Id _) {
     double v = *get_double_from_eclass(g, s.at("s1")) * *get_double_from_eclass(g, s.at("s2"));
     std::vector<Expression> children;
-    children.push_back(Expression("?a"));
-    children.push_back(Expression(ScalarExpr(v)));
+    children.emplace_back("?a");
+    children.emplace_back(ScalarExpr(v));
     return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), children), s), false);
 }, 30, {Op::Scale});
 static const auto scale_combine = make_rewrite(
@@ -67,8 +67,8 @@ static const auto scale_combine = make_rewrite(
 }, [](EGraph &g, const Substitution &s, Id _) {
     double v = *get_double_from_eclass(g, s.at("s1")) + *get_double_from_eclass(g, s.at("s2"));
     std::vector<Expression> children;
-    children.push_back(Expression("?a"));
-    children.push_back(Expression(ScalarExpr(v)));
+    children.emplace_back("?a");
+    children.emplace_back(ScalarExpr(v));
     return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), children), s), false);
 }, 30, {Op::Scale});
 static const auto scale_combine_implicit = make_rewrite(
@@ -77,16 +77,17 @@ static const auto scale_combine_implicit = make_rewrite(
 }, [](EGraph &g, const Substitution &s, Id _) {
     double v = *get_double_from_eclass(g, s.at("s1")) + 1.0;
     std::vector<Expression> children;
-    children.push_back(Expression("?a"));
-    children.push_back(Expression(ScalarExpr(v)));
+    children.emplace_back("?a");
+    children.emplace_back(ScalarExpr(v));
     return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), children), s), false);
 }, 30, {Op::Scale});
 
 /// Property-Based Simplifications
 /// ----------------------------------------------------------
-static const auto orthogonal_transpose = make_rewrite(
-    "orthogonal-transpose", "Tr(?a) * ?a", "Identity", false, is_orthogonal_cond("a"),
-    [](EGraph &g, const Substitution &s, Id _) {
+static const auto orthogonal_transpose =
+    make_rewrite("orthogonal-transpose", "Tr(?a) * ?a", "Identity", false, [](const EGraph &g, const Substitution &s) {
+    return is_orthogonal_cond("a")(g, s);
+}, [](EGraph &g, const Substitution &s, Id _) {
     return std::make_pair(make_identity_for(g, s, "a"), false);
 });
 static const auto orthonormal_transpose = make_rewrite(
@@ -96,9 +97,9 @@ static const auto orthonormal_transpose = make_rewrite(
 });
 
 static const std::vector<Rewrite> simplification_set = {
-    minus_cancel,           add_comm_zero,        mul_zero_left,         mul_zero_right, scale_zero_scalar,
-    scale_zero_matrix,      mul_identity_left,    mul_identity_right,    scale_one,      tr_tr_cancel,
-    tr_symmetric,           invert_cancel_left,   invert_cancel_right,   scale_collapse, scale_combine,
-    scale_combine_implicit, orthogonal_transpose, orthonormal_transpose,
+    minus_cancel,         add_comm_zero,         mul_zero_left,      mul_zero_right, scale_zero_scalar,
+    scale_zero_matrix,    mul_identity_left,     mul_identity_right, scale_one,      tr_tr_cancel,
+    invert_cancel_left,   invert_cancel_right,   scale_collapse,     scale_combine,  scale_combine_implicit,
+    orthogonal_transpose, orthonormal_transpose,
 };
 } // namespace egraph

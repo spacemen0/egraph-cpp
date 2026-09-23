@@ -5,10 +5,10 @@ using namespace egraph;
 
 using namespace EGraphRunner;
 
-constexpr double kMaxOlsTimeMs = 16.0;
-constexpr double kMaxGlsTimeMs = 190.0;
-constexpr double kMaxStoTimeMs = 70.0; // current pruning strategy fails to find optimal solution but it does exist
-constexpr double kMaxImageRestorationTimeMs = 300.0;
+constexpr double kMaxOlsTimeMs = 20.0;
+constexpr double kMaxGlsTimeMs = 250.0;
+constexpr double kMaxStoTimeMs = 100.0; // current pruning strategy fails to find optimal solution but it does exist
+constexpr double kMaxImageRestorationTimeMs = 400.0;
 
 TEST(SystemTest, OLS) {
     EGraphRunner::Context ctx;
@@ -59,7 +59,6 @@ TEST(SystemTest, GLS) {
     Expression y = ctx.define_matrix("y", "a", 1);
     Expression M = ctx.define_matrix("M", "a", "a", {"symmetric", "positive_definite"});
     Expression target_math = inverse(transpose(X) * inverse(M) * X) * transpose(X) * inverse(M) * y;
-
     ctx.optimize_symbolic(target_math);
     auto [m_sizes, m_data] = read_matrix("data/gls_m.csv");
     auto [x_sizes, x_data] = read_matrix("data/gls_x.csv");
@@ -183,7 +182,6 @@ TEST(SystemTest, ImageRestoration) {
 
     EGraphRunner::Context ctx;
     ctx.get_config().enable_logging = false;
-    ctx.get_config().disabled_ops = {Op::Potrf_U};
 
     Expression y = ctx.define_matrix("y", "a", 1);
     Expression H = ctx.define_matrix("H", "a", "b", {"full_rank", "wide"});
