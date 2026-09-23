@@ -237,76 +237,96 @@ void EGraph::rebuild() {
         }
     }
 
-    bool changed = true;
-    while (changed) {
-        while (!analysis_pending.empty()) {
-            std::unordered_set<Id> current_pending = std::move(analysis_pending);
-            analysis_pending.clear();
+    while (!analysis_pending.empty()) {
+        std::unordered_set<Id> current_pending = std::move(analysis_pending);
+        analysis_pending.clear();
 
-            for (Id pending_id : current_pending) {
-                auto node = nodes[pending_id].get();
-                Id class_id = uf.find_root(pending_id);
-                auto &class_ref = classes.at(class_id);
-                auto new_analysis = make_analysis(*node);
-                bool analysis_changed = merge_analysis_data(class_ref->get_analysis_data(), new_analysis);
-                if (analysis_changed) {
-                    for (auto parent : class_ref->get_parents()) {
-                        analysis_pending.insert(parent);
-                    }
+        for (Id pending_id : current_pending) {
+            auto node = nodes[pending_id].get();
+            Id class_id = uf.find_root(pending_id);
+            auto &class_ref = classes.at(class_id);
+            auto new_analysis = make_analysis(*node);
+            bool analysis_changed = false;
+            analysis_changed |= merge_analysis_data(class_ref->get_analysis_data(), new_analysis);
+            analysis_changed |= propagate_involution_properties_for(class_id);
+            analysis_changed |= propagate_involution_properties_for(pending_id);
+            if (analysis_changed) {
+                for (auto parent : class_ref->get_parents()) {
+                    analysis_pending.insert(parent);
                 }
             }
         }
-
-        changed = propagate_involution_properties();
     }
 }
 
-bool EGraph::propagate_involution_properties() {
+bool EGraph::propagate_involution_properties_for(Id class_id) {
+    auto canonical_class_id = uf.find_and_compress(class_id);
     bool any_changed = false;
-    for (const auto &[class_id, eclass_ptr] : classes) {
-        if (uf.find_root(class_id) != class_id)
+    const auto eclass_ptr = classes.at(canonical_class_id)->get_nodes();
+
+    for (const auto *node : eclass_ptr) {
+        if (!std::holds_alternative<Op>(node->get_atom()) || node->get_children().size() != 1)
             continue;
-        const auto *mp = std::get_if<MatrixProperty>(&eclass_ptr->get_analysis_data().property);
-        if (!mp)
+
+        Op op = std::get<Op>(node->get_atom());
+        if (op != Op::Tr && op != Op::Inv)
             continue;
 
-        for (const auto *node : eclass_ptr->get_nodes()) {
-            if (!std::holds_alternative<Op>(node->get_atom()) || node->get_children().size() != 1)
-                continue;
+        Id child_id = uf.find_root(node->get_children()[0]);
+        const auto parent_property = *get_matrix_data(*this, canonical_class_id);
+        auto child_property = *get_matrix_data(*this, child_id);
+        if (op == Op::Tr) {
+            child_property.shape = {parent_property.shape.second, parent_property.shape.first};
+            child_property.flags.is_tall = parent_property.flags.is_wide;
+            child_property.flags.is_wide = parent_property.flags.is_tall;
+            if (parent_property.flags.is_upper_triangular)
+                child_property.flags.is_lower_triangular = true;
+            if (parent_property.flags.is_lower_triangular)
+                child_property.flags.is_upper_triangular = true;
+            if (parent_property.flags.is_symmetric)
+                child_property.flags.is_symmetric = true;
+            if (parent_property.flags.is_diagonal)
+                child_property.flags.is_diagonal = true;
+            if (parent_property.flags.is_positive_definite)
+                child_property.flags.is_positive_definite = true;
+            if (parent_property.flags.is_positive_semi_definite)
+                child_property.flags.is_positive_semi_definite = true;
+            if (parent_property.flags.is_orthogonal)
+                child_property.flags.is_orthogonal = true;
+            if (parent_property.flags.is_non_singular)
+                child_property.flags.is_non_singular = true;
+            if (parent_property.flags.is_full_rank)
+                child_property.flags.is_full_rank = true;
+            if (parent_property.flags.is_identity)
+                child_property.flags.is_identity = true;
+            if (parent_property.flags.is_zero)
+                child_property.flags.is_zero = true;
 
-            Op op = std::get<Op>(node->get_atom());
-            if (op != Op::Tr && op != Op::Inv)
-                continue;
+            if (update_class_analysis_data(child_id, AnalysisData{child_property})) {
+                any_changed = true;
+            }
+        } else if (op == Op::Inv) {
+            if (parent_property.flags.is_upper_triangular)
+                child_property.flags.is_upper_triangular = true;
+            if (parent_property.flags.is_lower_triangular)
+                child_property.flags.is_lower_triangular = true;
+            if (parent_property.flags.is_symmetric)
+                child_property.flags.is_symmetric = true;
+            if (parent_property.flags.is_diagonal)
+                child_property.flags.is_diagonal = true;
+            if (parent_property.flags.is_positive_definite)
+                child_property.flags.is_positive_definite = true;
+            if (parent_property.flags.is_orthogonal)
+                child_property.flags.is_orthogonal = true;
+            if (parent_property.flags.is_non_singular)
+                child_property.flags.is_non_singular = true;
+            if (parent_property.flags.is_full_rank)
+                child_property.flags.is_full_rank = true;
+            if (parent_property.flags.is_identity)
+                child_property.flags.is_identity = true;
 
-            Id child_id = uf.find_root(node->get_children()[0]);
-            const auto *child_existing = get_matrix_data(*this, child_id);
-
-            if (op == Op::Tr) {
-                Shape expected_child_shape = {mp->shape.second, mp->shape.first};
-
-                MatrixProperty child_prop = *child_existing;
-                if (mp->flags.is_upper_triangular)
-                    child_prop.flags.is_lower_triangular = true;
-                if (mp->flags.is_lower_triangular)
-                    child_prop.flags.is_upper_triangular = true;
-                if (mp->flags.is_symmetric)
-                    child_prop.flags.is_symmetric = true;
-                if (mp->flags.is_diagonal)
-                    child_prop.flags.is_diagonal = true;
-                if (mp->flags.is_positive_definite)
-                    child_prop.flags.is_positive_definite = true;
-                if (mp->flags.is_positive_semi_definite)
-                    child_prop.flags.is_positive_semi_definite = true;
-                if (mp->flags.is_orthogonal)
-                    child_prop.flags.is_orthogonal = true;
-                if (mp->flags.is_non_singular)
-                    child_prop.flags.is_non_singular = true;
-                if (mp->flags.is_full_rank)
-                    child_prop.flags.is_full_rank = true;
-
-                if (update_class_analysis_data(child_id, AnalysisData{child_prop})) {
-                    any_changed = true;
-                }
+            if (update_class_analysis_data(child_id, AnalysisData{child_property})) {
+                any_changed = true;
             }
         }
     }

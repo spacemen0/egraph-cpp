@@ -54,7 +54,7 @@ class EGraph {
     AnalysisData make_analysis(const ENode &node) const;
     bool merge_analysis_data(AnalysisData &data1, const AnalysisData &data2) const;
     bool register_analysis_pending_parents_for(Id class_id);
-    bool propagate_involution_properties();
+    bool propagate_involution_properties_for(Id class_id);
 
     // stores the union-find structure for e-classes (which stores equivalences)
     UnionFind uf;

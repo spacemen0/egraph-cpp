@@ -7,7 +7,7 @@ using namespace EGraphRunner;
 
 constexpr double kMaxOlsTimeMs = 16.0;
 constexpr double kMaxGlsTimeMs = 190.0;
-constexpr double kMaxStoTimeMs = 70.0;
+constexpr double kMaxStoTimeMs = 70.0; // current pruning strategy fails to find optimal solution but it does exist
 constexpr double kMaxImageRestorationTimeMs = 300.0;
 
 TEST(SystemTest, OLS) {
