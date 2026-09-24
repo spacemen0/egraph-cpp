@@ -167,10 +167,10 @@ PruneResult Pruner::prune_symbolic_when_kernel_available(EGraph &egraph, const s
 }
 
 void Pruner::rewrite_and_prune(
-    const std::vector<Id> &roots, Rewriter &rewriter, const PrunerConfig &config,
+    const std::vector<Id> &roots, Rewriter &rewriter, const EGraphConfig &config,
     const std::vector<std::string> &size_keys, const std::function<void(int iteration)> &onIterationStart,
     const std::function<void(int iteration, const PruneResult &)> &onIterationFinish) const {
-    for (int i = 0; i < config.num_iterations; ++i) {
+    for (int i = 0; i < config.pruner.num_iterations; ++i) {
         if (onIterationStart) {
             onIterationStart(i);
         }
@@ -182,16 +182,24 @@ void Pruner::rewrite_and_prune(
         lowering_config.rewrite.enable_backoff = false;
         lowering_config.rewrite.enable_node_limit = false;
         Rewriter lowering_rewriter(egraph, build_rewrite_sets({"lowering"}), lowering_config);
-        lowering_rewriter.apply_rewrites();
+        lowering_rewriter.apply_rewrites(1);
 
-        prune_symbolic_when_kernel_available(egraph, roots);
+        auto res = prune_symbolic_when_kernel_available(egraph, roots);
+        if (config.enable_logging) {
+            std::cout << "Pruned symbolic nodes: " << res.nodes_pruned << "\n";
+        }
         const auto bindings = sample_size_bindings(
-            config.prune_samples_per_iteration, 10, 5000, size_keys, static_cast<unsigned int>(99 + i),
+            config.pruner.prune_samples_per_iteration, 10, 5000, size_keys, static_cast<unsigned int>(99 + i),
             &egraph.get_property_table());
-        const auto prune_result = prune(roots, bindings, config.dag_sample_ratio);
-
+        const auto prune_result = prune(roots, bindings, config.pruner.dag_sample_ratio);
+        if (config.enable_logging) {
+            std::cout << "Pruned nodes: " << prune_result.nodes_pruned << "\n";
+        }
         // Eliminate unreachable orphan classes created by pruning
-        eliminate_unreachable_classes(egraph, roots);
+        auto res2 = eliminate_unreachable_classes(egraph, roots);
+        if (config.enable_logging) {
+            std::cout << "Eliminated unreachable classes: " << res2.nodes_pruned << "\n";
+        }
 
         if (onIterationFinish) {
             onIterationFinish(i, prune_result);

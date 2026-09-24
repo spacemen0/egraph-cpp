@@ -152,7 +152,7 @@ class Context {
         Extractor extractor(egraph, config);
         Pruner pruner(egraph, extractor);
 
-        pruner.rewrite_and_prune(target_ids, rewriter, config.pruner, size_keys, onIterationStart, onIterationFinish);
+        pruner.rewrite_and_prune(target_ids, rewriter, config, size_keys, onIterationStart, onIterationFinish);
     }
 
     void lower_to_kernels(const std::vector<Id> &roots = {}) {

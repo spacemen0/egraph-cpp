@@ -49,6 +49,7 @@ static const auto orthogonal_inverse =
     make_rewrite("orthogonal-inverse", "Inv(?a)", "Tr(?a)", true, [](const EGraph &g, const Substitution &s) {
     return is_orthogonal_cond("a")(g, s) && !is_identity_cond("a")(g, s);
 });
+static const auto transpose_inverse = make_rewrite("transpose-inverse", "Tr(Inv(?a))", "Inv(Tr(?a))", true);
 static const auto scale_transpose = make_rewrite("scale_transpose", "Tr(Scale(?a, ?s))", "Scale(Tr(?a), ?s)", true);
 
 static const auto scale_inverse =
@@ -80,6 +81,7 @@ static const std::vector<Rewrite> transformation_set = {
     scale_mul_distribute_left,
     scale_mul_distribute_right,
     invert_mat_prod,
+    transpose_inverse,
     mat_transpose_prod,
     tr_symmetric,
     sym_prod_transpose_right,

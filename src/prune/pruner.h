@@ -19,7 +19,7 @@ class Pruner {
     static PruneResult eliminate_unreachable_classes(EGraph &egraph, const std::vector<Id> &roots);
 
     void rewrite_and_prune(
-        const std::vector<Id> &roots, Rewriter &rewriter, const PrunerConfig &config,
+        const std::vector<Id> &roots, Rewriter &rewriter, const EGraphConfig &config,
         const std::vector<std::string> &size_keys, const std::function<void(int iteration)> &onIterationStart = nullptr,
         const std::function<void(int iteration, const PruneResult &)> &onIterationFinish = nullptr) const;
 

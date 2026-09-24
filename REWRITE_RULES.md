@@ -208,11 +208,11 @@ enum class Op {
 
 ## 4. Expansion Rules
 
-factorized means the matrix is not one of these: triangular, diagonal, identity, zero, orthogonal and has orthonormal columns
+not factorized means the matrix is not one of these: triangular, diagonal, identity, zero, orthogonal and has orthonormal columns
 
 ### `qr-invert`
 - **Pattern:** `Inv(?a)` <-> `Inv(Get(QR(?a), 1)) * Tr(Get(QR(?a), 0))`
-- **Description:**: Replaces $A^{-1}$ with $R^{-1} Q^T$, when a is not factorized and is square
+- **Description:**: Replaces $A^{-1}$ with $R^{-1} Q^T$, when a is not factorized and is square (need to check if a is square because it's bi-directional)
 
 ### `qr-leaf`
 - **Pattern:** `?a` <-> `Get(QR(?a), 0) * Get(QR(?a), 1)`
@@ -246,124 +246,164 @@ factorized means the matrix is not one of these: triangular, diagonal, identity,
 
 #### `axpy`
 - **Pattern:** `?a + ?b` -> `Axpy(?a, ?b)`
-- **Description:**: Lowers vector or matrix addition into BLAS `axpy`.
+- **Description:** Lowers vector or matrix addition into BLAS `axpy`.
 
 #### `axpy_minus`
 - **Pattern:** `?a - ?b` -> `Axpy(?a, Scale(?b, -1))`
-- **Description:**: Lowers matrix or vector subtraction into BLAS `axpy`.
+- **Description:** Lowers matrix or vector subtraction into BLAS `axpy`.
 
 ---
 
-### BLAS Level 2
+### BLAS Level 2: Matrix-Vector Operations
 
-#### `gemv_without_c`
+#### `gemv_n_without_c`
 - **Pattern:** `?a * ?b` -> `Gemv_N(?a, ?b, 0)` (Dynamic)
-- **Description:**: when a is matrix, b is vector and a is not a transpose node
+- **Description:** When `a` is a matrix and `b` is a vector and `a` is not a `Tr` node.
 
-#### `gemv_with_c`
+#### `gemv_n_with_c`
 - **Pattern:** `?a * ?b + ?c` -> `Gemv_N(?a, ?b, ?c)`
-- **Description:**: when a is matrix, b is vector c is a vector and a is not a transpose node
+- **Description:** When `a` is a matrix, `b` is a vector, `c` is a vector, and `a` is not a `Tr` node.
 
 #### `gemv_t_without_c`
 - **Pattern:** `Tr(?a) * ?b` -> `Gemv_T(?a, ?b, 0)` (Dynamic)
-- **Description:**: when a is matrix, b is vector
+- **Description:** When `a` is a matrix and `b` is a vector.
 
 #### `gemv_t_with_c`
 - **Pattern:** `Tr(?a) * ?b + ?c` -> `Gemv_T(?a, ?b, ?c)`
-- **Description:**: when a is matrix, b is vector c is a vector
+- **Description:** When `a` is a matrix, `b` and `c` are vectors.
+
 ---
 
-### BLAS Level 3: Matrix-Matrix Operations
+### BLAS Level 3: Symm
 
-#### `gemm_without_c`
-- **Pattern:** `?a * ?b` -> `Gemm_NN(?a, ?b, 0)` (Dynamic)
-- **Description:**: when b is not vector
+#### `symm_l_without_c`
+- **Pattern:** `?a * ?b` -> `Symm_L(?a, ?b, 0)` (Dynamic)
+- **Description:** When `a` is symmetric and `b` is not a vector.
+
+#### `symm_l`
+- **Pattern:** `?a * ?b + ?c` -> `Symm_L(?a, ?b, ?c)`
+- **Description:** When `a` is symmetric and `b` is not a vector.
+
+#### `symm_r_without_c`
+- **Pattern:** `?b * ?a` -> `Symm_R(?a, ?b, 0)` (Dynamic)
+- **Description:** When `a` is symmetric and `b` is not a vector.
+
+#### `symm_r`
+- **Pattern:** `?b * ?a + ?c` -> `Symm_R(?a, ?b, ?c)`
+- **Description:** When `a` is symmetric and `b` is not a vector.
+
+---
+
+### BLAS Level 3: Trmm
+
+#### `trmm_ln_without_c`
+- **Pattern:** `?a * ?b` -> `Trmm_LN(?a, ?b, 0)` (Dynamic)
+- **Description:** When `a` is triangular and `b` is not a vector. Computes $A B$.
+
+#### `trmm_ln`
+- **Pattern:** `?a * ?b + ?c` -> `Trmm_LN(?a, ?b, ?c)`
+- **Description:** When `a` is triangular and `b` is not a vector. Computes $A B + C$.
+
+#### `trmm_lt_without_c`
+- **Pattern:** `Tr(?a) * ?b` -> `Trmm_LT(?a, ?b, 0)` (Dynamic)
+- **Description:** When `a` is triangular and `b` is not a vector. Computes $A^T B$.
+
+#### `trmm_lt`
+- **Pattern:** `Tr(?a) * ?b + ?c` -> `Trmm_LT(?a, ?b, ?c)`
+- **Description:** When `a` is triangular and `b` is not a vector. Computes $A^T B + C$.
+
+#### `trmm_rn_without_c`
+- **Pattern:** `?b * ?a` -> `Trmm_RN(?a, ?b, 0)` (Dynamic)
+- **Description:** When `a` is triangular and `b` is not a vector. Computes $B A$.
+
+#### `trmm_rn`
+- **Pattern:** `?b * ?a + ?c` -> `Trmm_RN(?a, ?b, ?c)`
+- **Description:** When `a` is triangular and `b` is not a vector. Computes $B A + C$.
+
+#### `trmm_rt_without_c`
+- **Pattern:** `?b * Tr(?a)` -> `Trmm_RT(?a, ?b, 0)` (Dynamic)
+- **Description:** When `a` is triangular and `b` is not a vector. Computes $B A^T$.
+
+#### `trmm_rt`
+- **Pattern:** `?b * Tr(?a) + ?c` -> `Trmm_RT(?a, ?b, ?c)`
+- **Description:** When `a` is triangular and `b` is not a vector. Computes $B A^T + C$.
+
+---
+
+### BLAS Level 3: Syrk
+
+#### `syrk_n_without_c`
+- **Pattern:** `?a * Tr(?a)` -> `Syrk_N(?a, 0)` (Dynamic)
+- **Description:** Computes $A A^T$.
+
+#### `syrk_n_with_c`
+- **Pattern:** `?a * Tr(?a) + ?c` -> `Syrk_N(?a, ?c)`
+- **Description:** When `c` is symmetric. Computes $A A^T + C$.
+
+#### `syrk_t_without_c`
+- **Pattern:** `Tr(?a) * ?a` -> `Syrk_T(?a, 0)` (Dynamic)
+- **Description:** Computes $A^T A$.
+
+#### `syrk_t_with_c`
+- **Pattern:** `Tr(?a) * ?a + ?c` -> `Syrk_T(?a, ?c)`
+- **Description:** When `c` is symmetric. Computes $A^T A + C$.
+
+---
+
+### BLAS Level 3: Gemm
+
+#### `gemm_tn_without_c`
+- **Pattern:** `Tr(?a) * ?b` -> `Gemm_TN(?a, ?b, 0)` (Dynamic)
+- **Description:** When `a` and `b` is not a vector.
+
+#### `gemm_tn`
+- **Pattern:** `Tr(?a) * ?b + ?c` -> `Gemm_TN(?a, ?b, ?c)`
+- **Description:** When `a` and `b` is not a vector.
+
+#### `gemm_nt_without_c`
+- **Pattern:** `?a * Tr(?b)` -> `Gemm_NT(?a, ?b, 0)` (Dynamic)
+- **Description:** When `a` and `b` is not a vector.
+
+#### `gemm_nt`
+- **Pattern:** `?a * Tr(?b) + ?c` -> `Gemm_NT(?a, ?b, ?c)`
+- **Description:** When `a` and `b` is not a vector.
+
+#### `gemm_tt_without_c`
+- **Pattern:** `Tr(?a) * Tr(?b)` -> `Gemm_TT(?a, ?b, 0)` (Dynamic)
+- **Description:** When `a` and `b` is not a vector.
+
+#### `gemm_tt`
+- **Pattern:** `Tr(?a) * Tr(?b) + ?c` -> `Gemm_TT(?a, ?b, ?c)`
+- **Description:** When `a` and `b` is not a vector.
 
 #### `gemm_with_c`
 - **Pattern:** `?a * ?b + ?c` -> `Gemm_NN(?a, ?b, ?c)`
-- **Description:**: when b is not vector
+- **Description:**  When `a` and `b` is not a vector.
 
+#### `gemm_without_c`
+- **Pattern:** `?a * ?b` -> `Gemm_NN(?a, ?b, 0)` (Dynamic)
+- **Description:**  When `a` and `b` is not a vector.
 
-#### `gemm_tn`
-- **Pattern:** `Gemm_NN(Tr(?a), ?b, ?c)` -> `Gemm_TN(?a, ?b, ?c)`
+---
 
-#### `gemm_nt`
-- **Pattern:** `Gemm_NN(?a, Tr(?b), ?c)` -> `Gemm_NT(?a, ?b, ?c)`
-
-#### `gemm_tt`
-- **Pattern:** `Gemm_NN(Tr(?a), Tr(?b), ?c)` -> `Gemm_TT(?a, ?b, ?c)`
-
-#### `gemm_to_symm_l`
-- **Pattern:** `Gemm_NN(?a, ?b, ?c)` -> `Symm_L(?a, ?b, ?c)`
-- **Description:**: when a is symmetric
-
-#### `gemm_to_symm_r`
-- **Pattern:** `Gemm_NN(?b, ?a, ?c)` -> `Symm_R(?a, ?b, ?c)`
-- **Description:**: when a is symmetric
-
-#### `gemm_to_trmm_ln`
-- **Pattern:** `Gemm_NN(?a, ?b, ?c)` -> `Trmm_LN(?a, ?b, ?c)`
-- **Description:**: when a is triangular
-
-#### `gemm_to_trmm_lt`
-- **Pattern:** `Gemm_TN(?a, ?b, ?c)` -> `Trmm_LT(?a, ?b, ?c)`
-- **Description:**: when a is triangular
-
-#### `gemm_to_trmm_rn`
-- **Pattern:** `Gemm_NN(?b, ?a, ?c)` -> `Trmm_RN(?a, ?b, ?c)`
-- **Description:**:when a is triangular
-
-#### `gemm_to_trmm_rt`
-- **Pattern:** `Gemm_NT(?b, ?a, ?c)` -> `Trmm_RT(?a, ?b, ?c)`
-- **Description:**:when a is triangular
-
-#### `syrk_without_c_left`
-- **Pattern:** `?a * Tr(?a)` -> `Syrk_N(?a, 0)` (Dynamic) 
-
-#### `syrk_without_c_right`
-- **Pattern:** `Tr(?a) * ?a` -> `Syrk_T(?a, 0)` (Dynamic)
-
-#### `syrk_with_c_left`
-- **Pattern:** `?a * Tr(?a) + ?c` -> `Syrk_N(?a, ?c)`
-
-#### `syrk_with_c_right`
-- **Pattern:** `Tr(?a) * ?a + ?c` -> `Syrk_T(?a, ?c)`
-
-#### `syrk_t`
-- **Pattern:** `Syrk_N(Tr(?a), ?c)` -> `Syrk_T(?a, ?c)`
-
-#### `syrk_n`
-- **Pattern:** `Syrk_T(Tr(?a), ?c)` -> `Syrk_N(?a, ?c)`
+### BLAS: trsm
 
 #### `trsm_ln`
 - **Pattern:** `Inv(?a) * ?b` -> `Trsm_LN(?a, ?b)`
-- **Description:**: when a is triangular
+- **Description:** When `a` is triangular. Solves $A X = B$.
 
 #### `trsm_lt_tr_inv`
 - **Pattern:** `Tr(Inv(?a)) * ?b` -> `Trsm_LT(?a, ?b)`
-- **Description:**: when a is triangular
+- **Description:** When `a` is triangular. Solves $A^T X = B$.
 
-#### `trsm_lt_inv_tr`
-- **Pattern:** `Inv(Tr(?a)) * ?b` -> `Trsm_LT(?a, ?b)`
-- **Description:**:  when a is triangular
-
-#### `trsm_lt`
-- **Pattern:** `Trsm_LN(Tr(?a), ?b)` -> `Trsm_LT(?a, ?b)`
 
 #### `trsm_rn`
 - **Pattern:** `?b * Inv(?a)` -> `Trsm_RN(?a, ?b)`
-- **Description:**: when a is triangular
+- **Description:** When `a` is triangular. Solves $X A = B$.
 
 #### `trsm_rt_tr_inv`
 - **Pattern:** `?b * Tr(Inv(?a))` -> `Trsm_RT(?a, ?b)`
-- **Description:**:  when a is triangular
-
-#### `trsm_rt_inv_tr`
-- **Pattern:** `?b * Inv(Tr(?a))` -> `Trsm_RT(?a, ?b)`
-- **Description:**:  when a is triangular
-
-#### `trsm_rt`
-- **Pattern:** `Trsm_RN(Tr(?a), ?b)` -> `Trsm_RT(?a, ?b)`
+- **Description:** When `a` is triangular. Solves $X A^T = B$.
 
 ---
 
@@ -386,7 +426,7 @@ factorized means the matrix is not one of these: triangular, diagonal, identity,
 
 #### `get_orgqr`
 - **Pattern:** `Get(Geqrf(?a), 0)` -> `Orgqr(Geqrf(?a))`
-- **Description:**: Generates explicit orthogonal matrix Q. 
+- **Description:** Generates an explicit orthogonal matrix Q.
 
 #### `fuse_ormqr_ln`
 - **Pattern:** `Get(Geqrf(?a), 0) * ?b` -> `Ormqr_LN(Geqrf(?a), ?b)`
@@ -402,4 +442,4 @@ factorized means the matrix is not one of these: triangular, diagonal, identity,
 
 #### `trtri`
 - **Pattern:** `Inv(?a)` -> `Trtri(?a)`
-- **Description:**: when a is triangular
+- **Description:** When `a` is triangular.
