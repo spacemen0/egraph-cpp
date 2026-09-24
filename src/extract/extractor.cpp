@@ -265,12 +265,14 @@ void Extractor::initial_analysis_pass(const SizeBindings *size_bindings) const {
         chosen_node_dag_cost_lower_bound[id] = std::numeric_limits<double>::infinity();
     }
 
+    std::unordered_map<const ENode *, double> node_local_costs;
     // compute minimum local cost per class (independent of children)
     for (Id class_id : all_class_ids) {
         for (const ENode *node : egraph.get_class_nodes(class_id)) {
             Cost local_cost = node->compute_local_cost(egraph, size_bindings);
             if (std::holds_alternative<double>(local_cost)) {
                 double local_val = std::get<double>(local_cost);
+                node_local_costs[node] = local_val;
                 if (local_val < min_local_cost[class_id]) {
                     min_local_cost[class_id] = local_val;
                 }
@@ -283,11 +285,11 @@ void Extractor::initial_analysis_pass(const SizeBindings *size_bindings) const {
         changed = false;
         for (Id class_id : all_class_ids) {
             for (const ENode *node : egraph.get_class_nodes(class_id)) {
-                Cost local_cost = node->compute_local_cost(egraph, size_bindings);
-                if (!std::holds_alternative<double>(local_cost)) {
+                auto it = node_local_costs.find(node);
+                if (it == node_local_costs.end()) {
                     continue;
                 }
-                double local = std::get<double>(local_cost);
+                double local = it->second;
                 double max_child_cost = 0;
 
                 double node_tree_cost = local;
