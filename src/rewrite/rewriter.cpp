@@ -223,7 +223,7 @@ bool Rewriter::apply_matches(const std::vector<Match> &matches) {
     return changed;
 }
 
-bool Rewriter::apply_one_iteration() {
+bool Rewriter::apply_one_iteration(int iteration) {
     bool changed = false;
 
     Matcher matcher(egraph);
@@ -274,7 +274,8 @@ bool Rewriter::apply_one_iteration() {
 
     if (enable_node_limit && egraph.num_nodes() > max_nodes) {
         if (config.enable_logging) {
-            std::cout << "[Rewriter] Node limit exceeded: " << max_nodes << "\n";
+            std::cout << "[Rewriter] Node limit exceeded: " << max_nodes << " at Iteration " << iteration
+                      << ", current nodes: " << egraph.num_nodes() << "\n";
         }
         return false;
     }
@@ -287,7 +288,7 @@ bool Rewriter::apply_rewrites(int max_iterations) {
 
     for (int i = 0; i < max_iterations; ++i) {
 
-        if (!apply_one_iteration()) {
+        if (!apply_one_iteration(i)) {
             break;
         }
         any_changed = true;
@@ -302,7 +303,7 @@ bool Rewriter::apply_rewrites() {
     bool changed = false;
     int iteration = 0;
     while (true) {
-        if (!apply_one_iteration()) {
+        if (!apply_one_iteration(iteration)) {
             break;
         }
         changed = true;

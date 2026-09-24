@@ -1,7 +1,5 @@
-#include "api.h"
-#include <gtest/gtest.h>
 
-using namespace egraph;
+#include <gtest/gtest.h>
 
 // TEST(Integration, StochasticNewtonPruneRetainsCholesky) {
 //     EGraphRunner::Context ctx;

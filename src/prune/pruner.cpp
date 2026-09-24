@@ -188,17 +188,17 @@ void Pruner::rewrite_and_prune(
         if (config.enable_logging) {
             std::cout << "Pruned symbolic nodes: " << res.nodes_pruned << "\n";
         }
+        // Eliminate unreachable orphan classes created by pruning
+        auto res2 = eliminate_unreachable_classes(egraph, roots);
+        if (config.enable_logging) {
+            std::cout << "Eliminated unreachable classes: " << res2.nodes_pruned << "\n";
+        }
         const auto bindings = sample_size_bindings(
             config.pruner.prune_samples_per_iteration, 10, 5000, size_keys, static_cast<unsigned int>(99 + i),
             &egraph.get_property_table());
         const auto prune_result = prune(roots, bindings, config.pruner.dag_sample_ratio);
         if (config.enable_logging) {
             std::cout << "Pruned nodes: " << prune_result.nodes_pruned << "\n";
-        }
-        // Eliminate unreachable orphan classes created by pruning
-        auto res2 = eliminate_unreachable_classes(egraph, roots);
-        if (config.enable_logging) {
-            std::cout << "Eliminated unreachable classes: " << res2.nodes_pruned << "\n";
         }
 
         if (onIterationFinish) {

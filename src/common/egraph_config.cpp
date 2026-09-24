@@ -9,16 +9,16 @@ void initialize_config_for_expression(EGraphConfig &config, const Expression &ex
 
     // Node limit scales exponentially with AST depth (up to depth 8)
     size_t exponential_scale = static_cast<size_t>(std::pow(2.0, std::min(depth, size_t(8))));
-    size_t computed_limit = nodes * exponential_scale * 4;
-    config.rewrite.node_limit = std::max(computed_limit, static_cast<size_t>(5000));
+    size_t computed_limit = nodes * exponential_scale * 8;
+    config.rewrite.node_limit = std::max(computed_limit, static_cast<size_t>(8000));
 
     // Scale iteration depth based on AST complexity
     config.rewrite.max_iterations =
-        std::max(config.rewrite.max_iterations, std::max(10, static_cast<int>(static_cast<double>(depth) * 1.6)));
+        std::max({config.rewrite.max_iterations, 10, static_cast<int>(static_cast<double>(depth) * 2)});
     config.pruner.rewrite_steps_per_iteration = std::max(10, static_cast<int>(depth * 2));
-    config.pruner.prune_samples_per_iteration = std::max(10, static_cast<int>(depth * 12));
-    config.pruner.dag_visit_limit = std::max(static_cast<size_t>(10000), static_cast<size_t>(depth * 1500));
-    config.pruner.dag_sample_ratio = 0.05;
+    config.pruner.prune_samples_per_iteration = std::max(10, static_cast<int>(depth * 4));
+    config.pruner.dag_visit_limit = std::max(static_cast<size_t>(10000), static_cast<size_t>(depth * 4000));
+    config.pruner.dag_sample_ratio = 0.16;
 
     config.disabled_ops = {Op::Potrf_U};
 }

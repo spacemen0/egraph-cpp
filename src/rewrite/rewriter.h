@@ -31,7 +31,7 @@ struct Rewrite {
         if (lhs.contains_op(op) || rhs.contains_op(op)) {
             return true;
         }
-        return std::find(dynamic_ops.begin(), dynamic_ops.end(), op) != dynamic_ops.end();
+        return std::ranges::find(dynamic_ops, op) != dynamic_ops.end();
     }
 };
 
@@ -60,7 +60,7 @@ class Rewriter {
         Substitution subst;
         bool left_to_right;
     };
-    bool apply_one_iteration();
+    bool apply_one_iteration(int iteration);
     void filter_rewrites_by_disabled_ops();
     bool is_rewrite_banned(size_t i);
     void update_ban_status(size_t i, size_t total_valid_matches, size_t budget_remaining);
