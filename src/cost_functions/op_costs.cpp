@@ -383,21 +383,20 @@ Cost compute_symm_group_cost(Op op, const ENode &node, const EGraph &egraph, con
 
     if (op == Symm_L) {
         if (std::holds_alternative<int>(M) && std::holds_alternative<int>(N)) {
-            // C = A*B with A symmetric (M x M), B (M x N): ~M^2*N flops (half of gemm)
-            return Cost(1.0 * std::get<int>(M) * std::get<int>(M) * std::get<int>(N));
+            return {2.0 * std::get<int>(M) * std::get<int>(M) * std::get<int>(N)};
         }
         Monomial m = {{size_to_symbol(M), size_to_symbol(M), size_to_symbol(N)}};
         SymbolicCost sc;
-        sc[m] = 1.0;
+        sc[m] = 2.0;
         return sc;
     } else {
         if (std::holds_alternative<int>(M) && std::holds_alternative<int>(N)) {
-            // C = B*A with A symmetric (N x N), B (M x N): ~M*N^2 flops (half of gemm)
-            return Cost(1.0 * std::get<int>(M) * std::get<int>(N) * std::get<int>(N));
+
+            return {2.0 * std::get<int>(M) * std::get<int>(N) * std::get<int>(N)};
         }
         Monomial m = {{size_to_symbol(M), size_to_symbol(N), size_to_symbol(N)}};
         SymbolicCost sc;
-        sc[m] = 1.0;
+        sc[m] = 2.0;
         return sc;
     }
 }
