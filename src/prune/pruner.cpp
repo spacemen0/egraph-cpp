@@ -1,6 +1,7 @@
 #include "pruner.h"
 #include "rewrite_sets.h"
 #include "utils.h"
+#include <thread>
 
 namespace egraph {
 PruneResult
@@ -9,13 +10,41 @@ Pruner::prune(const std::vector<Id> &roots, const std::vector<SizeBindings> &bin
 
     std::unordered_map<Id, std::unordered_set<const ENode *>> keep_choices;
     size_t dag_samples_count =
-        std::max(size_t(3), static_cast<size_t>(static_cast<double>(bindings.size()) * dag_sample_ratio));
+        std::max(static_cast<size_t>(3), static_cast<size_t>(static_cast<double>(bindings.size()) * dag_sample_ratio));
 
-    for (size_t i = 0; i < bindings.size(); ++i) {
-        extractor.reset();
-        bool use_dag = (i < dag_samples_count);
-        extractor.collect_selected_nodes_for_binding(roots, bindings[i], keep_choices, use_dag);
+    size_t num_threads =
+        std::min(bindings.size(), static_cast<size_t>(std::max(1u, std::thread::hardware_concurrency())));
+    if (num_threads <= 1) {
+        for (size_t i = 0; i < bindings.size(); ++i) {
+            extractor.reset();
+            bool use_dag = (i < dag_samples_count);
+            extractor.collect_selected_nodes_for_binding(roots, bindings[i], keep_choices, use_dag);
+        }
+    } else {
+        std::vector<std::unordered_map<Id, std::unordered_set<const ENode *>>> thread_keep_choices(num_threads);
+        std::vector<std::thread> workers;
+        workers.reserve(num_threads);
+        for (size_t t = 0; t < num_threads; ++t) {
+            workers.emplace_back([&, t]() {
+                Extractor thread_extractor = extractor;
+                for (size_t i = t; i < bindings.size(); i += num_threads) {
+                    thread_extractor.reset();
+                    bool use_dag = (i < dag_samples_count);
+                    thread_extractor.collect_selected_nodes_for_binding(
+                        roots, bindings[i], thread_keep_choices[t], use_dag);
+                }
+            });
+        }
+        for (auto &w : workers) {
+            w.join();
+        }
+        for (const auto &t_choices : thread_keep_choices) {
+            for (const auto &[class_id, nodes] : t_choices) {
+                keep_choices[class_id].insert(nodes.begin(), nodes.end());
+            }
+        }
     }
+
     // Keep all root classes (if multiple roots were passed but only part of them were extractable)
     for (Id root : roots) {
         Id root_class = egraph.find_class_id(root);
