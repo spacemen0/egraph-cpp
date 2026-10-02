@@ -23,18 +23,13 @@ bool Matcher::atoms_match(const Atom &pat_atom, const Atom &enode_atom) const {
     return false;
 }
 
-std::vector<const ENode *> Matcher::ordered_nodes(Id eclass_id) const {
-    const auto &nodes = egraph.get_class_nodes(eclass_id);
-    std::vector<const ENode *> ordered(nodes.begin(), nodes.end());
-    return ordered;
-}
-
-std::set<Substitution> Matcher::find_matches_in_eclass(Id eclass_id, const Pattern &pattern) const {
+std::vector<Substitution> Matcher::find_matches_in_eclass(Id eclass_id, const Pattern &pattern) const {
     Substitution initial_subst;
-    std::set<Substitution> out_substitutions;
     auto matches = search_eclass_for_pattern(eclass_id, pattern, initial_subst);
-    out_substitutions.insert(matches.begin(), matches.end());
-    return out_substitutions;
+    if (matches.size() > 1) {
+        std::ranges::sort(matches);
+    }
+    return matches;
 }
 
 std::vector<Substitution>
@@ -61,7 +56,7 @@ Matcher::search_eclass_for_pattern(Id eclass_id, const Pattern &pattern, const S
         }
     }
 
-    for (const ENode *node : ordered_nodes(canonical_id)) {
+    for (const ENode *node : egraph.get_class_nodes(canonical_id)) {
         if (!atoms_match(pattern.atom, node->get_atom()) || node->get_children().size() != pattern.children.size()) {
             continue;
         }

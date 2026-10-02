@@ -179,8 +179,8 @@ std::vector<Rewriter::Match> Rewriter::find_matches_for_rewrite(
         if (egraph.find_class_id(class_id) != class_id)
             continue;
 
-        std::set<Substitution> substs = matcher.find_matches_in_eclass(class_id, rewrite.lhs);
-        std::set<Substitution> reverse_substs;
+        std::vector<Substitution> substs = matcher.find_matches_in_eclass(class_id, rewrite.lhs);
+        std::vector<Substitution> reverse_substs;
         if (rewrite.bidirectional) {
             reverse_substs = matcher.find_matches_in_eclass(class_id, rewrite.rhs);
         }
