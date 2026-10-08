@@ -161,41 +161,119 @@ std::vector<Extractor::NumericSearchResult> Extractor::find_top_numeric_dags(
     std::vector<Id> pending = {root};
     pending_set[root] = 1;
 
+
+
     std::vector<NumericSearchResult> best_results;
     double worst_cost = std::numeric_limits<double>::infinity();
 
     // Seed with tree extraction result to establish an immediate upper bound
-    std::unordered_map<Id, const ENode *> seed_map;
-    std::vector<Id> seed_stack = {root};
-    while (!seed_stack.empty()) {
-        Id current = seed_stack.back();
-        seed_stack.pop_back();
+    // Refine seed map via local greedy improvements to find better DAGs
+    std::vector<const ENode *> dag_choices = tree_choices;
 
-        if (seed_map.contains(current)) {
-            continue;
-        }
-        // simply use the best tree choice for each class
-        const ENode *chosen = (current < tree_choices.size()) ? tree_choices[current] : nullptr;
-        if (chosen) {
-            seed_map[current] = chosen;
-            for (Id child : chosen->get_children()) {
-                seed_stack.push_back(egraph.find_class_id(child));
-            }
-        }
-    }
-    if (!seed_map.empty()) {
-        double seed_dag_cost = 0.0;
-        for (const auto &[cls, node] : seed_map) {
+    auto eval_dag = [&](const std::vector<const ENode *> &choices)
+        -> std::pair<double, std::unordered_map<Id, const ENode *>> {
+        std::unordered_map<Id, const ENode *> map;
+        std::unordered_set<Id> vis_path;
+        double total = 0.0;
+
+        auto dfs = [&](auto &self, Id curr_id) -> bool {
+            Id curr = egraph.find_class_id(curr_id);
+            if (vis_path.contains(curr)) return false;
+            if (map.contains(curr)) return true;
+            if (curr >= choices.size() || !choices[curr]) return false;
+
+            const ENode *node = choices[curr];
+            map[curr] = node;
             Cost c = node->compute_local_cost(egraph, size_bindings);
-            if (std::holds_alternative<double>(c)) {
-                seed_dag_cost += std::get<double>(c);
+            if (!std::holds_alternative<double>(c)) return false;
+            double val = std::get<double>(c);
+            if (val == std::numeric_limits<double>::infinity()) return false;
+            total += val;
+
+            vis_path.insert(curr);
+            for (Id child : node->get_children()) {
+                if (!self(self, child)) return false;
+            }
+            vis_path.erase(curr);
+            return true;
+        };
+
+        if (!dfs(dfs, root)) {
+            return {std::numeric_limits<double>::infinity(), {}};
+        }
+        return {total, map};
+    };
+
+    auto [best_dag_cost, best_dag_map] = eval_dag(dag_choices);
+    if (best_dag_cost != std::numeric_limits<double>::infinity()) {
+        bool improved = true;
+        int iter = 0;
+        while (improved && iter < 5) {
+            improved = false;
+            iter++;
+            std::vector<Id> reachable_classes;
+            reachable_classes.reserve(best_dag_map.size());
+            for (const auto &[cls, _] : best_dag_map) {
+                reachable_classes.push_back(cls);
+            }
+            for (Id cls : reachable_classes) {
+                const ENode *orig_node = dag_choices[cls];
+                for (const ENode *cand : egraph.get_class_nodes(cls)) {
+                    if (cand == orig_node) continue;
+                    dag_choices[cls] = cand;
+                    auto [cand_cost, cand_map] = eval_dag(dag_choices);
+                    if (cand_cost < best_dag_cost) {
+                        best_dag_cost = cand_cost;
+                        best_dag_map = std::move(cand_map);
+                        orig_node = cand;
+                        improved = true;
+                    } else {
+                        dag_choices[cls] = orig_node;
+                    }
+                }
             }
         }
-        best_results.push_back(NumericSearchResult{seed_dag_cost, std::move(seed_map)});
+        best_results.push_back(NumericSearchResult{best_dag_cost, std::move(best_dag_map)});
         if (best_results.size() >= max_results) {
-            worst_cost = seed_dag_cost;
+            worst_cost = best_dag_cost;
         }
     }
+
+    if (best_results.empty()) {
+        // Fallback to simple tree extraction seed
+        std::unordered_map<Id, const ENode *> seed_map;
+        std::vector<Id> seed_stack = {root};
+        while (!seed_stack.empty()) {
+            Id current = seed_stack.back();
+            seed_stack.pop_back();
+
+            if (seed_map.contains(current)) {
+                continue;
+            }
+            const ENode *chosen = (current < tree_choices.size()) ? tree_choices[current] : nullptr;
+            if (chosen) {
+                seed_map[current] = chosen;
+                for (Id child : chosen->get_children()) {
+                    seed_stack.push_back(egraph.find_class_id(child));
+                }
+            }
+        }
+        if (!seed_map.empty()) {
+            double seed_dag_cost = 0.0;
+            for (const auto &[cls, node] : seed_map) {
+                Cost c = node->compute_local_cost(egraph, size_bindings);
+                if (std::holds_alternative<double>(c)) {
+                    seed_dag_cost += std::get<double>(c);
+                }
+            }
+            best_results.push_back(NumericSearchResult{seed_dag_cost, std::move(seed_map)});
+            if (best_results.size() >= max_results) {
+                worst_cost = seed_dag_cost;
+            }
+        }
+    }
+
+
 
     double initial_min_local =
         (root < min_local_cost.size() && min_local_cost[root] != std::numeric_limits<double>::infinity())

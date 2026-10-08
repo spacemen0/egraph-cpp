@@ -144,23 +144,6 @@ make_identity_for(EGraph &egraph, const Substitution &s, const std::string &var_
     const auto &matrix_prop = *matrix_prop_ptr;
     auto shape = matrix_prop.shape;
 
-    MatrixProperty prop;
-    prop.shape = use_first_dim ? std::make_pair(shape.first, shape.first) : std::make_pair(shape.second, shape.second);
-    prop.flags = {
-        .is_diagonal = true,
-        .is_upper_triangular = true,
-        .is_lower_triangular = true,
-        .is_symmetric = true,
-        .is_zero = false,
-        .is_identity = true,
-        .is_non_singular = true,
-        .has_orthonormal_columns = true,
-    };
-
-    if (auto class_opt = egraph.find_class_with_property(prop); class_opt.has_value()) {
-        return class_opt.value();
-    }
-
     std::string size_str;
     if (use_first_dim) {
         if (auto val = std::get_if<int>(&shape.first))
@@ -175,11 +158,46 @@ make_identity_for(EGraph &egraph, const Substitution &s, const std::string &var_
     }
 
     std::string identity_name = "I_" + size_str + "x" + size_str;
+    ENode id_node({}, register_string_in_lookup(identity_name));
+    if (auto class_opt = egraph.find_node_id(id_node); class_opt.has_value()) {
+        return class_opt.value();
+    }
+
+    MatrixProperty prop;
+    prop.shape = use_first_dim ? std::make_pair(shape.first, shape.first) : std::make_pair(shape.second, shape.second);
+    prop.flags = {
+        .is_diagonal = true,
+        .is_upper_triangular = true,
+        .is_lower_triangular = true,
+        .is_symmetric = true,
+        .is_zero = false,
+        .is_identity = true,
+        .is_non_singular = true,
+        .has_orthonormal_columns = true,
+    };
+
     egraph.register_or_update_property(identity_name, prop);
-    return egraph.add_node(ENode({}, register_string_in_lookup(identity_name)));
+    return egraph.add_node(std::move(id_node));
 }
 
 inline Id make_zero_of_shape(EGraph &g, const Shape &shape) {
+    std::string h_str, w_str;
+    if (auto val = std::get_if<int>(&shape.first))
+        h_str = std::to_string(*val);
+    else
+        h_str = std::get<std::string>(shape.first);
+
+    if (auto val = std::get_if<int>(&shape.second))
+        w_str = std::to_string(*val);
+    else
+        w_str = std::get<std::string>(shape.second);
+
+    std::string zero_name = "Zero_" + h_str + "x" + w_str;
+    ENode zero_node({}, register_string_in_lookup(zero_name));
+    if (auto class_opt = g.find_node_id(zero_node); class_opt.has_value()) {
+        return class_opt.value();
+    }
+
     MatrixProperty prop;
     prop.shape = shape;
     bool is_sq = shape.first == shape.second;
@@ -193,26 +211,9 @@ inline Id make_zero_of_shape(EGraph &g, const Shape &shape) {
         .is_non_singular = false,
     };
 
-    if (auto class_opt = g.find_class_with_property(prop); class_opt.has_value()) {
-        return class_opt.value();
-    }
-
-    std::string h_str, w_str;
-    if (auto val = std::get_if<int>(&shape.first))
-        h_str = std::to_string(*val);
-    else
-        h_str = std::get<std::string>(shape.first);
-
-    if (auto val = std::get_if<int>(&shape.second))
-        w_str = std::to_string(*val);
-    else
-        w_str = std::get<std::string>(shape.second);
-
-    std::string zero_name = "Zero_" + h_str + "x" + w_str;
-
     g.register_or_update_property(zero_name, prop);
 
-    return g.add_node(ENode({}, register_string_in_lookup(zero_name)));
+    return g.add_node(std::move(zero_node));
 }
 
 inline Id make_zero_for(EGraph &g, const Substitution &s, const std::string &var_name) {

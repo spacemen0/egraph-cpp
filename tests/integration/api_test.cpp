@@ -161,3 +161,63 @@ TEST(ApiTest, ConcreteMatrixChainEvaluation) {
     EXPECT_NEAR(res[2], 3.0, 1e-6);
     EXPECT_NEAR(res[3], 15.0, 1e-6);
 }
+
+TEST(ApiTest, SymbolicSyrkPipelineDemonstration) {
+    Context ctx;
+    ctx.get_config().enable_logging = false;
+
+    // 1. Symbolic Matrix Definition: A has symbolic shape M x K and is tall
+    ctx.define_matrix("A", "M", "K", {"tall"});
+
+    Expression A("A");
+    Expression target_math = transpose(A) * A;
+
+    Id root_id = ctx.add(target_math);
+
+    // Initial E-Graph: 3 nodes (A, Tr, *), 3 classes
+    EXPECT_EQ(ctx.get_egraph().num_nodes(), 3);
+    EXPECT_EQ(ctx.get_egraph().get_all_class_ids().size(), 3);
+    ctx.get_egraph().to_img("syrk_symbolic_1_initial", "svg");
+
+    // 2. Rewrite & Lowering (small rewrite budget: 1 iteration)
+    ctx.get_config().rewrite.max_iterations = 1;
+    ctx.get_config().rewrite.enable_backoff = false;
+    ctx.get_config().rewrite.enable_node_limit = false;
+    ctx.rewrite({"property_discovery", "simplification", "transformation"});
+
+    std::vector<Rewrite> lowering_rewrites = build_rewrite_sets({"lowering"});
+    Rewriter rewriter(ctx.get_egraph(), lowering_rewrites, ctx.get_config());
+    rewriter.apply_rewrites();
+
+    // Saturated & Lowered E-Graph: 7 nodes, 4 classes
+    // Root class contains alternative implementations: *, Gemm_NN, Gemm_TN, Syrk_T
+    EXPECT_EQ(ctx.get_egraph().num_nodes(), 7);
+    EXPECT_EQ(ctx.get_egraph().get_all_class_ids().size(), 4);
+
+    Id root_class = ctx.get_egraph().find_class_id(root_id);
+    const auto &root_nodes = ctx.get_egraph().get_class_nodes(root_class);
+    bool has_syrk = std::any_of(root_nodes.begin(), root_nodes.end(), [](const ENode *node) {
+        return node->to_string() == "Syrk_T";
+    });
+    EXPECT_TRUE(has_syrk);
+    ctx.get_egraph().to_img("syrk_symbolic_2_lowered", "svg");
+
+    // 3. Pruning: eliminate symbolic ops and suboptimal kernels
+    Pruner::prune_symbolic_when_kernel_available(ctx.get_egraph(), {root_id});
+
+    Extractor extractor(ctx.get_egraph(), ctx.get_config());
+    Pruner pruner(ctx.get_egraph(), extractor);
+    auto bindings = sample_size_bindings(10, 10, 5000, {"M", "K"}, 99, &ctx.get_egraph().get_property_table());
+    pruner.prune({root_id}, bindings);
+    Pruner::eliminate_unreachable_classes(ctx.get_egraph(), {root_id});
+
+    // Pruned E-Graph: compressed to 3 nodes (A, Zero_KxK, Syrk_T), 3 classes
+    EXPECT_EQ(ctx.get_egraph().num_nodes(), 3);
+    EXPECT_EQ(ctx.get_egraph().get_all_class_ids().size(), 3);
+    ctx.get_egraph().to_img("syrk_symbolic_3_pruned", "svg");
+
+    // Verify optimal extraction
+    auto sym_results = ctx.extract_symbolic(root_id);
+    ASSERT_FALSE(sym_results.empty());
+    EXPECT_EQ(sym_results[0].expr.to_string(false), "Syrk_T(A, Zero_KxK)");
+}

@@ -211,7 +211,7 @@ void Pruner::rewrite_and_prune(
         lowering_config.rewrite.enable_backoff = false;
         lowering_config.rewrite.enable_node_limit = false;
         Rewriter lowering_rewriter(egraph, build_rewrite_sets({"lowering"}), lowering_config);
-        lowering_rewriter.apply_rewrites(1);
+        lowering_rewriter.apply_rewrites();
 
         auto res = prune_symbolic_when_kernel_available(egraph, roots);
         if (config.enable_logging) {
