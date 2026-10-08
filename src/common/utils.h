@@ -2,6 +2,7 @@
 
 #include "basic_types.h"
 #include "errors.h"
+#include "extractor.h"
 #include "parser.h"
 #include "rewriter.h"
 #include "types.h"
@@ -366,7 +367,8 @@ inline std::vector<SizeBindings> sample_size_bindings(
 
 inline std::vector<double> generate_random_vector(int size) {
     std::vector<double> vec(size);
-    std::mt19937 gen(99); // NOSONAR: Non-cryptographic test vector generation
+    std::random_device rd;
+    std::mt19937 gen(rd()); // NOSONAR: Non-cryptographic test matrix generation
     std::uniform_real_distribution<double> dis(-1.0, 1.0);
     for (int i = 0; i < size; ++i) {
         vec[i] = dis(gen);
@@ -403,4 +405,46 @@ inline std::optional<double> get_double_from_eclass(const EGraph &egraph, Id id)
     }
     return std::nullopt;
 }
+
+inline void print_execution_plan(const ExtractionResult &result, const DataBindings *data_bindings) {
+    for (Id class_id : result.execution_order) {
+        auto it = result.choices.find(class_id);
+        const ENode *node = it->second;
+        const Atom &atom = node->get_atom();
+        const auto *op = std::get_if<Op>(&atom);
+        if (!op)
+            continue;
+
+        std::string op_name = atom_to_string(*op);
+        for (char &c : op_name) {
+            c = static_cast<char>(static_cast<unsigned char>(c));
+        }
+
+        std::cout << op_name << "(id: " << class_id << ")(";
+        for (Id child_id : node->get_children()) {
+            auto child_node_it = result.choices.find(child_id);
+            const auto atom = child_node_it->second->get_atom();
+            if (const auto *child_op = std::get_if<Op>(&atom)) {
+                std::string child_op_name = atom_to_string(*child_op);
+                for (char &c : child_op_name) {
+                    c = static_cast<char>(static_cast<unsigned char>(c));
+                }
+                std::cout << child_op_name << "(id: " << child_id << "), ";
+            } else if (const auto *s = std::get_if<ScalarExpr>(&atom)) {
+                if (data_bindings) {
+                    std::cout << "Scalar: " << s->evaluate(*data_bindings) << ", ";
+                } else {
+                    std::cout << "Scalar: " << s->val << ", ";
+                }
+            } else if (const auto *i_val = std::get_if<int>(&atom)) {
+                std::cout << "Int: " << *i_val << ", ";
+            } else if (std::holds_alternative<uint32_t>(atom)) {
+                std::string matrix_name = get_string_from_lookup(std::get<uint32_t>(atom));
+                std::cout << "Matrix: " << matrix_name << ", ";
+            }
+        }
+        std::cout << "\b\b)\n";
+    }
+}
+
 } // namespace egraph

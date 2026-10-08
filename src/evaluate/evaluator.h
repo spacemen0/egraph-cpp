@@ -2,10 +2,11 @@
 #include "e_graph.h"
 #include "extractor.h"
 
+#include <cstdint>
 #include <memory>
 
 namespace egraph {
-enum class StorageFormat { General, SymmetricUpper, SymmetricLower, TriangularUpper, TriangularLower };
+enum class StorageFormat : std::uint8_t { General, SymmetricUpper, SymmetricLower, TriangularUpper, TriangularLower };
 
 struct MatrixNode {
     std::shared_ptr<std::vector<double>> data_ptr;
@@ -77,7 +78,6 @@ class Evaluator {
         const DataBindings &data_bindings, const std::vector<Id> &preserved_ids = {});
     std::vector<double> evaluate();
     std::vector<double> get_preserved(Id id) const;
-    void print_execution_plan() const;
 
   private:
     void dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *node, Id class_id);

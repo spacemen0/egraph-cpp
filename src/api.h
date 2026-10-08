@@ -278,8 +278,8 @@ class Context {
         }
         Evaluator evaluator(egraph, target_result, &size_bindings, bindings, preserved_ids);
         if (config.enable_logging) {
-            std::cout << "[API] Execution Plan: ";
-            evaluator.print_execution_plan();
+            std::cout << "[API] Execution Plan: \n";
+            print_execution_plan(target_result, &bindings);
         }
         auto start_evaluate = std::chrono::high_resolution_clock::now();
         auto target_eval = evaluator.evaluate();
@@ -335,6 +335,13 @@ class Context {
             }
         });
         root_expression = egraph.find_class_id(root_id);
+        egraph.to_img("optimized_expression_" + std::to_string(root_expression), "svg");
+        auto res = extract_symbolic(root_expression);
+        for (const auto &r : res) {
+            std::cout << "[API] Extracted symbolic expression: " << r.expr.to_string(true) << "\n";
+            std::cout << "[API] Execution plan: \n";
+            print_execution_plan(r, nullptr);
+        }
     }
 
     void print_properties() const { egraph.get_property_table().print_all_properties(); }
