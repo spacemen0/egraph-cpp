@@ -162,6 +162,8 @@ void Evaluator::setup_in_place_output(Id child_id, MatrixNode &output) {
             use_counts[child_slot]--;
         }
     }
+    output.rows = child_node.rows;
+    output.cols = child_node.cols;
     output.format = child_node.format;
 }
 
