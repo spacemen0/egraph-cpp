@@ -9,6 +9,8 @@ constexpr double kMaxOlsTimeMs = 20.0;
 constexpr double kMaxGlsTimeMs = 250.0;
 constexpr double kMaxStoTimeMs = 100.0; // current pruning strategy fails to find optimal solution but it does exist
 constexpr double kMaxImageRestorationTimeMs = 400.0;
+constexpr double kMaxKalmanGainTimeMs = 150.0;
+constexpr double kMaxKalmanTimeMs = 300.0;
 
 TEST(SystemTest, OLS) {
     EGraphRunner::Context ctx;
@@ -219,4 +221,187 @@ TEST(SystemTest, ImageRestoration) {
     EXPECT_LT(total_ms, kMaxImageRestorationTimeMs)
         << "Image Restoration time exceeded benchmark threshold. Extraction: " << ctx.get_last_extraction_duration_ms()
         << " ms, Evaluation: " << ctx.get_last_evaluation_duration_ms() << " ms, Total: " << total_ms << " ms";
+}
+
+TEST(SystemTest, KalmanGain) {
+    auto [P_n_n_1_sizes, P_n_n_1_data] = read_matrix("data/kalman_P_n_n_1.csv");
+    if (P_n_n_1_data.empty()) {
+        std::tie(P_n_n_1_sizes, P_n_n_1_data) = read_matrix("data/kalman_p.csv");
+    }
+    auto [H_sizes, H_data] = read_matrix("data/kalman_H.csv");
+    if (H_data.empty()) {
+        std::tie(H_sizes, H_data) = read_matrix("data/kalman_h.csv");
+    }
+    auto [R_n_sizes, R_n_data] = read_matrix("data/kalman_R_n.csv");
+    if (R_n_data.empty()) {
+        std::tie(R_n_sizes, R_n_data) = read_matrix("data/kalman_r.csv");
+    }
+
+    if (P_n_n_1_sizes.first <= 0 || P_n_n_1_sizes.first != P_n_n_1_sizes.second) {
+        std::cerr << "Size error: P_{n, n-1} must be non-empty and square.\n";
+    }
+    if (R_n_sizes.first <= 0 || R_n_sizes.first != R_n_sizes.second) {
+        std::cerr << "Size error: R_n must be non-empty and square.\n";
+    }
+    if (H_sizes.first >= H_sizes.second) {
+        std::cerr << "Size error: H must be wide (rows < cols).\n";
+    }
+    if (H_sizes.second != P_n_n_1_sizes.first) {
+        std::cerr << "Size error: Columns of H must match state dimension (rows of P_{n, n-1}).\n";
+    }
+    if (H_sizes.first != R_n_sizes.first) {
+        std::cerr << "Size error: Rows of H must match measurement dimension (rows of R_n).\n";
+    }
+
+    int m_val = P_n_n_1_sizes.first; // state dimension
+    int p_val = R_n_sizes.first;     // measurement dimension
+    SizeBindings concrete_sizes = {{"m", m_val}, {"p", p_val}};
+
+    EGraphRunner::Context ctx;
+    ctx.get_config().enable_logging = false;
+
+    Expression P_n_n_1 = ctx.define_matrix("P_n_n_1", "m", "m", {"symmetric", "positive_definite"});
+    Expression H = ctx.define_matrix("H", "p", "m", {"full_rank", "wide"});
+    Expression R_n = ctx.define_matrix("R_n", "p", "p", {"symmetric", "positive_definite"});
+
+    // 1. Compute Kalman Gain:
+    //    K_n = P_{n, n-1} * H^T * (H * P_{n, n-1} * H^T + R_n)^-1
+    Expression S_n = H * P_n_n_1 * transpose(H) + R_n;
+    Expression K_n = P_n_n_1 * transpose(H) * inverse(S_n);
+
+    ctx.optimize_symbolic(K_n);
+
+    DataBindings concrete_data = {
+        {"P_n_n_1", P_n_n_1_data},
+        {"H", H_data},
+        {"R_n", R_n_data}
+    };
+
+    auto out_K_n = ctx.evaluate_concrete(concrete_sizes, concrete_data);
+
+    write_matrix("data/kalman_result_K_n.csv", m_val, p_val, out_K_n);
+
+    double total_ms = ctx.get_last_total_duration_ms();
+    EXPECT_LT(total_ms, kMaxKalmanGainTimeMs)
+        << "Kalman Gain time exceeded benchmark threshold. Extraction: " << ctx.get_last_extraction_duration_ms()
+        << " ms, Evaluation: " << ctx.get_last_evaluation_duration_ms() << " ms, Total: " << total_ms << " ms";
+}
+
+TEST(SystemTest, KalmanFilter) {
+    auto [P_n_n_1_sizes, P_n_n_1_data] = read_matrix("data/kalman_P_n_n_1.csv");
+    if (P_n_n_1_data.empty()) {
+        std::tie(P_n_n_1_sizes, P_n_n_1_data) = read_matrix("data/kalman_p.csv");
+    }
+    auto [H_sizes, H_data] = read_matrix("data/kalman_H.csv");
+    if (H_data.empty()) {
+        std::tie(H_sizes, H_data) = read_matrix("data/kalman_h.csv");
+    }
+    auto [R_n_sizes, R_n_data] = read_matrix("data/kalman_R_n.csv");
+    if (R_n_data.empty()) {
+        std::tie(R_n_sizes, R_n_data) = read_matrix("data/kalman_r.csv");
+    }
+    auto [x_hat_n_n_1_sizes, x_hat_n_n_1_data] = read_matrix("data/kalman_x_hat_n_n_1.csv");
+    if (x_hat_n_n_1_data.empty()) {
+        std::tie(x_hat_n_n_1_sizes, x_hat_n_n_1_data) = read_matrix("data/kalman_x.csv");
+    }
+    auto [z_n_sizes, z_n_data] = read_matrix("data/kalman_z_n.csv");
+    if (z_n_data.empty()) {
+        std::tie(z_n_sizes, z_n_data) = read_matrix("data/kalman_z.csv");
+    }
+
+    if (P_n_n_1_sizes.first <= 0 || P_n_n_1_sizes.first != P_n_n_1_sizes.second) {
+        std::cerr << "Size error: P_{n, n-1} must be non-empty and square.\n";
+    }
+    if (R_n_sizes.first <= 0 || R_n_sizes.first != R_n_sizes.second) {
+        std::cerr << "Size error: R_n must be non-empty and square.\n";
+    }
+    if (H_sizes.first >= H_sizes.second) {
+        std::cerr << "Size error: H must be wide (rows < cols).\n";
+    }
+    if (H_sizes.second != P_n_n_1_sizes.first) {
+        std::cerr << "Size error: Columns of H must match state dimension (rows of P_{n, n-1}).\n";
+    }
+    if (H_sizes.first != R_n_sizes.first) {
+        std::cerr << "Size error: Rows of H must match measurement dimension (rows of R_n).\n";
+    }
+    if (x_hat_n_n_1_sizes.second != 1 || x_hat_n_n_1_sizes.first != P_n_n_1_sizes.first) {
+        std::cerr << "Size error: x_hat_{n, n-1} must be a column vector matching state dimension.\n";
+    }
+    if (z_n_sizes.second != 1 || z_n_sizes.first != R_n_sizes.first) {
+        std::cerr << "Size error: z_n must be a column vector matching measurement dimension.\n";
+    }
+
+    int m_val = P_n_n_1_sizes.first; // state dimension
+    int p_val = R_n_sizes.first;     // measurement dimension
+    SizeBindings concrete_sizes = {{"m", m_val}, {"p", p_val}};
+
+    // --- State Update ---
+    // 1. Compute Kalman Gain:
+    //    K_n = P_{n, n-1} * H^T * (H * P_{n, n-1} * H^T + R_n)^-1
+    // 2. Update estimate with measurement:
+    //    \hat{x}_{n, n} = \hat{x}_{n, n-1} + K_n * (z_n - H * \hat{x}_{n, n-1})
+    EGraphRunner::Context ctx_state;
+    ctx_state.get_config().enable_logging = false;
+
+    Expression P_n_n_1 = ctx_state.define_matrix("P_n_n_1", "m", "m", {"symmetric", "positive_definite"});
+    Expression H = ctx_state.define_matrix("H", "p", "m", {"full_rank", "wide"});
+    Expression R_n = ctx_state.define_matrix("R_n", "p", "p", {"symmetric", "positive_definite"});
+    Expression x_hat_n_n_1 = ctx_state.define_matrix("x_hat_n_n_1", "m", 1);
+    Expression z_n = ctx_state.define_matrix("z_n", "p", 1);
+
+    Expression S_n = H * P_n_n_1 * transpose(H) + R_n;
+    Expression K_n = P_n_n_1 * transpose(H) * inverse(S_n);
+    Expression x_hat_n_n = x_hat_n_n_1 + K_n * (z_n - H * x_hat_n_n_1);
+
+    ctx_state.optimize_symbolic(x_hat_n_n, {K_n});
+
+    DataBindings state_data = {
+        {"P_n_n_1", P_n_n_1_data},
+        {"H", H_data},
+        {"R_n", R_n_data},
+        {"x_hat_n_n_1", x_hat_n_n_1_data},
+        {"z_n", z_n_data}
+    };
+
+    auto out_x_hat_n_n = ctx_state.evaluate_concrete(concrete_sizes, state_data);
+    auto out_K_n = ctx_state.get_preserved(K_n);
+
+    // Save exact matrices 1 & 2: K_n and \hat{x}_{n, n}
+    write_matrix("data/kalman_result_K_n.csv", m_val, p_val, out_K_n);
+    write_matrix("data/kalman_result_x_hat_n_n.csv", m_val, 1, out_x_hat_n_n);
+
+    // --- Covariance Update (Joseph stabilized form) ---
+    // 3. Update the estimate uncertainty:
+    //    P_{n, n} = (I - K_n * H) * P_{n, n-1} * (I - K_n * H)^T + K_n * R_n * K_n^T
+    EGraphRunner::Context ctx_cov;
+    ctx_cov.get_config().enable_logging = false;
+
+    Expression P_n_n_1_cov = ctx_cov.define_matrix("P_n_n_1", "m", "m", {"symmetric", "positive_definite"});
+    Expression H_cov = ctx_cov.define_matrix("H", "p", "m", {"full_rank", "wide"});
+    Expression R_n_cov = ctx_cov.define_matrix("R_n", "p", "p", {"symmetric", "positive_definite"});
+    Expression I = ctx_cov.define_matrix("I", "m", "m", {"identity"});
+
+    Expression S_n_cov = H_cov * P_n_n_1_cov * transpose(H_cov) + R_n_cov;
+    Expression K_n_cov = P_n_n_1_cov * transpose(H_cov) * inverse(S_n_cov);
+    Expression I_K_n_H = I - K_n_cov * H_cov;
+    Expression P_n_n = I_K_n_H * P_n_n_1_cov * transpose(I_K_n_H) + K_n_cov * R_n_cov * transpose(K_n_cov);
+
+    ctx_cov.optimize_symbolic(P_n_n, {K_n_cov});
+
+    DataBindings cov_data = {
+        {"P_n_n_1", P_n_n_1_data},
+        {"H", H_data},
+        {"R_n", R_n_data},
+        {"I", generate_identity_matrix(m_val)}
+    };
+
+    auto out_P_n_n = ctx_cov.evaluate_concrete(concrete_sizes, cov_data);
+
+    // Save exact matrix 3: P_{n, n}
+    write_matrix("data/kalman_result_P_n_n.csv", m_val, m_val, out_P_n_n);
+
+    double total_ms = ctx_state.get_last_total_duration_ms() + ctx_cov.get_last_total_duration_ms();
+    EXPECT_LT(total_ms, kMaxKalmanTimeMs)
+        << "Kalman Filter time exceeded benchmark threshold. State: " << ctx_state.get_last_total_duration_ms()
+        << " ms, Covariance: " << ctx_cov.get_last_total_duration_ms() << " ms, Total: " << total_ms << " ms";
 }

@@ -2,13 +2,15 @@
 #include <iostream>
 #include <string>
 
-void print_usage(const char *prog_name) {
+static void print_usage(const char *prog_name) {
     std::cout << "Usage: " << prog_name << " <case_name>\n";
     std::cout << "Available case names:\n";
     std::cout << "  - OLS          : Ordinary Least Squares example\n";
     std::cout << "  - GLS          : Generalized Least Squares example\n";
     std::cout << "  - Image        : Image Restoration example\n";
-    std::cout << "  - Sto : Stochastic Newton example\n";
+    std::cout << "  - Sto          : Stochastic Newton example\n";
+    std::cout << "  - KalmanGain   : Kalman Gain (Kn) calculation example\n";
+    std::cout << "  - Kalman       : Full Kalman Filter example\n";
     std::cout << "  - all          : Run all example cases\n";
 }
 
@@ -29,12 +31,18 @@ int main(int argc, char *argv[]) {
 
     } else if (case_name == "Sto" || case_name == "sto") {
         return run_stochastic_newton();
+    } else if (case_name == "KalmanGain" || case_name == "kalman_gain" || case_name == "Kn" || case_name == "kn") {
+        return run_kalman_gain();
+    } else if (case_name == "Kalman" || case_name == "kalman") {
+        return run_kalman_filter();
     } else if (case_name == "all" || case_name == "ALL") {
         int res = 0;
         res |= run_ols();
         res |= run_gls();
         res |= run_image();
         res |= run_stochastic_newton();
+        res |= run_kalman_gain();
+        res |= run_kalman_filter();
         return res;
     } else {
         std::cerr << "Unknown case name: '" << case_name << "'\n\n";

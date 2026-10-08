@@ -41,6 +41,13 @@ def generate_all_example_matrices(output_dir: str, seed: int = 42, fmt: str = "%
         ("stochastic_newton_a.csv", 4000, 2000, "fullrank", "StoNewton Tall Matrix A (4000x2000)"),
         ("stochastic_newton_w.csv", 4000, 500, "fullrank", "StoNewton Tall Matrix W_k (4000x500)"),
         ("stochastic_newton_il.csv", 500, 500, "identity", "StoNewton Identity Matrix Il (500x500)"),
+
+        # Kalman Filter Example Datasets (matching Karman.png exact names)
+        ("kalman_p.csv", 2000, 2000, "spd", "Kalman Filter Prior Covariance Matrix P_{n, n-1} (2000x2000 SPD)"),
+        ("kalman_h.csv", 500, 2000, "fullrank", "Kalman Filter Measurement Matrix H (500x2000 Wide)"),
+        ("kalman_r.csv", 500, 500, "spd", "Kalman Filter Measurement Noise Covariance R_n (500x500 SPD)"),
+        ("kalman_x.csv", 2000, 1, "general", "Kalman Filter Prior State Estimate x_hat_{n, n-1} (2000x1)"),
+        ("kalman_z.csv", 500, 1, "general", "Kalman Filter Measurement Vector z_n (500x1)"),
     ]
 
     print(f"Generating example matrices in directory: {output_dir}\n" + "=" * 60)
@@ -50,6 +57,24 @@ def generate_all_example_matrices(output_dir: str, seed: int = 42, fmt: str = "%
         matrix = generate_matrix(rows, cols, prop_type)
         np.savetxt(file_path, matrix, delimiter=",", fmt=fmt)
         print(f"  ✓ Saved {filename:<18} ({rows}x{cols}, type: {prop_type:<8}) - {description}")
+
+    # Create exact matrix name aliases for Kalman Filter
+    kalman_aliases = [
+        ("kalman_P_n_n_1.csv", "kalman_p.csv"),
+        ("kalman_H.csv", "kalman_h.csv"),
+        ("kalman_R_n.csv", "kalman_r.csv"),
+        ("kalman_x_hat_n_n_1.csv", "kalman_x.csv"),
+        ("kalman_z_n.csv", "kalman_z.csv"),
+    ]
+    for alias, target in kalman_aliases:
+        if alias.lower() == target.lower():
+            continue
+        alias_path = os.path.join(output_dir, alias)
+        target_path = os.path.join(output_dir, target)
+        if os.path.exists(target_path):
+            if os.path.islink(alias_path) or os.path.exists(alias_path):
+                os.remove(alias_path)
+            os.symlink(target, alias_path)
 
     print("=" * 60 + "\nAll example datasets successfully generated.")
 
