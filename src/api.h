@@ -337,11 +337,6 @@ class Context {
         root_expression = egraph.find_class_id(root_id);
         egraph.to_img("optimized_expression_" + std::to_string(root_expression), "svg");
         auto res = extract_symbolic(root_expression);
-        for (const auto &r : res) {
-            std::cout << "[API] Extracted symbolic expression: " << r.expr.to_string(true) << "\n";
-            std::cout << "[API] Execution plan: \n";
-            print_execution_plan(r, nullptr);
-        }
     }
 
     void print_properties() const { egraph.get_property_table().print_all_properties(); }

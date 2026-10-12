@@ -1,4 +1,5 @@
 #include "e_graph.h"
+#include "lowering.h"
 #include "rewrite_sets.h"
 #include "rewriter.h"
 #include "test_helpers.h"
@@ -469,4 +470,34 @@ TEST(Rewrite, TransposeSpdDiscoversSymmetryWithoutFullRank) {
     EXPECT_TRUE(f_prop.flags.is_symmetric);
     EXPECT_TRUE(f_prop.flags.is_positive_semi_definite);
     EXPECT_TRUE(f_prop.flags.is_positive_definite);
+}
+
+TEST(Rewrite, TopDownTriangularityPropagationBug) {
+    PropertyTable pt;
+    pt.add_or_update_property_entry("U", {.shape = std::make_pair(2, 2), .flags = {.is_upper_triangular = true}});
+    pt.add_or_update_property_entry("A", {.shape = std::make_pair(2, 3), .flags = {}});
+    pt.add_or_update_property_entry("B", {.shape = std::make_pair(3, 2), .flags = {}});
+
+    EGraph egraph(std::move(pt));
+
+    Id id_u = egraph.add_expression(Expression("U"));
+    Id id_prod = egraph.add_expression(Expression("Tr(B) * Tr(A)"));
+
+    // Suppose Tr(B) * Tr(A) is known to equal U
+    egraph.union_classes(id_prod, id_u);
+    egraph.rebuild();
+
+    Rewriter rewriter_trans(egraph, {mat_transpose_prod}, EGraphConfig{.rewrite = {.node_limit = 100}});
+    rewriter_trans.apply_rewrites();
+
+    // Find the child e-class representing (A * B)
+    Id id_ab = egraph.add_expression(Expression("A * B"));
+    Id child_class = egraph.find_class_id(id_ab);
+    const auto &child_prop = std::get<MatrixProperty>(egraph.get_class_analysis_data(child_class).property);
+
+    Id parent_class = egraph.find_class_id(id_u);
+    const auto &parent_prop = std::get<MatrixProperty>(egraph.get_class_analysis_data(parent_class).property);
+
+    EXPECT_TRUE(parent_prop.flags.is_upper_triangular);
+    EXPECT_TRUE(child_prop.flags.is_lower_triangular);
 }

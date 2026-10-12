@@ -216,6 +216,8 @@ bool EGraph::union_classes(Id id1, Id id2) {
     auto &parents2 = class2_ptr->get_parents();
     parents1.insert(parents1.end(), std::make_move_iterator(parents2.begin()), std::make_move_iterator(parents2.end()));
 
+    propagate_involution_properties_for(root1);
+
     return true;
 }
 
@@ -246,10 +248,7 @@ void EGraph::rebuild() {
             Id class_id = uf.find_root(pending_id);
             auto &class_ref = classes.at(class_id);
             auto new_analysis = make_analysis(*node);
-            bool analysis_changed = false;
-            analysis_changed |= merge_analysis_data(class_ref->get_analysis_data(), new_analysis);
-            analysis_changed |= propagate_involution_properties_for(class_id);
-            analysis_changed |= propagate_involution_properties_for(pending_id);
+            bool analysis_changed = merge_analysis_data(class_ref->get_analysis_data(), new_analysis);
             if (analysis_changed) {
                 for (auto parent : class_ref->get_parents()) {
                     analysis_pending.insert(parent);
@@ -492,6 +491,7 @@ PruneResult EGraph::prune_nodes_except(const std::unordered_map<Id, std::unorder
     return result;
 }
 
+// Returns true if the analysis data for the class was updated, false otherwise.
 bool EGraph::update_class_analysis_data(Id class_id, const AnalysisData &data) {
     Id root = uf.find_and_compress(class_id);
     if (!classes.contains(root)) {
@@ -531,6 +531,7 @@ bool EGraph::update_class_analysis_data(Id class_id, const AnalysisData &data) {
     if (changed) {
         current_data = data;
         register_analysis_pending_parents_for(root);
+        propagate_involution_properties_for(root);
         return true;
     }
     return false;
