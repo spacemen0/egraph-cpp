@@ -205,7 +205,7 @@ void Pruner::rewrite_and_prune(
         }
 
         rewriter.reset();
-        rewriter.apply_rewrites();
+        rewriter.apply_rewrites(config.pruner.rewrite_steps_per_iteration);
 
         auto lowering_config = rewriter.get_config();
         lowering_config.rewrite.enable_backoff = false;

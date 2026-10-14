@@ -90,6 +90,12 @@ static const auto orthogonal_transpose =
 }, [](EGraph &g, const Substitution &s, Id _) {
     return std::make_pair(make_identity_for(g, s, "a"), false);
 });
+static const auto orthogonal_transpose_right = make_rewrite(
+    "orthogonal-transpose-right", "?a * Tr(?a)", "Identity", false, [](const EGraph &g, const Substitution &s) {
+    return is_orthogonal_cond("a")(g, s);
+}, [](EGraph &g, const Substitution &s, Id _) {
+    return std::make_pair(make_identity_for(g, s, "a"), false);
+});
 static const auto orthonormal_transpose = make_rewrite(
     "orthonormal-transpose", "Tr(?a) * ?a", "Identity", false, is_orthonormal_cond("a"),
     [](EGraph &g, const Substitution &s, Id _) {
@@ -97,9 +103,23 @@ static const auto orthonormal_transpose = make_rewrite(
 });
 
 static const std::vector<Rewrite> simplification_set = {
-    minus_cancel,         add_comm_zero,         mul_zero_left,      mul_zero_right, scale_zero_scalar,
-    scale_zero_matrix,    mul_identity_left,     mul_identity_right, scale_one,      tr_tr_cancel,
-    invert_cancel_left,   invert_cancel_right,   scale_collapse,     scale_combine,  scale_combine_implicit,
-    orthogonal_transpose, orthonormal_transpose,
+    minus_cancel,
+    add_comm_zero,
+    mul_zero_left,
+    mul_zero_right,
+    scale_zero_scalar,
+    scale_zero_matrix,
+    mul_identity_left,
+    mul_identity_right,
+    scale_one,
+    tr_tr_cancel,
+    invert_cancel_left,
+    invert_cancel_right,
+    scale_collapse,
+    scale_combine,
+    scale_combine_implicit,
+    orthogonal_transpose,
+    orthogonal_transpose_right,
+    orthonormal_transpose,
 };
 } // namespace egraph
