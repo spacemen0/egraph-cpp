@@ -10,7 +10,7 @@ void initialize_config_for_expression(EGraphConfig &config, const Expression &ex
     // Node limit scales exponentially with AST depth (up to depth 8)
     size_t exponential_scale = static_cast<size_t>(std::pow(2.0, std::min(depth, size_t(8))));
     size_t computed_limit = nodes * exponential_scale * 8;
-    config.rewrite.node_limit = std::max(computed_limit, static_cast<size_t>(8000));
+    config.rewrite.node_limit = std::max(computed_limit, static_cast<size_t>(2000));
 
     // Scale iteration depth based on AST complexity
     config.rewrite.max_iterations =
