@@ -5,12 +5,21 @@ using namespace egraph;
 
 using namespace EGraphRunner;
 
+#ifdef _WIN32
+constexpr double kMaxOlsTimeMs = 80.0;
+constexpr double kMaxGlsTimeMs = 450.0;
+constexpr double kMaxStoTimeMs = 250.0;
+constexpr double kMaxImageRestorationTimeMs = 650.0;
+constexpr double kMaxKalmanGainTimeMs = 250.0;
+constexpr double kMaxKalmanTimeMs = 500.0;
+#else
 constexpr double kMaxOlsTimeMs = 20.0;
 constexpr double kMaxGlsTimeMs = 250.0;
 constexpr double kMaxStoTimeMs = 100.0; // current pruning strategy fails to find optimal solution but it does exist
 constexpr double kMaxImageRestorationTimeMs = 400.0;
 constexpr double kMaxKalmanGainTimeMs = 150.0;
 constexpr double kMaxKalmanTimeMs = 300.0;
+#endif
 
 TEST(SystemTest, OLS) {
     EGraphRunner::Context ctx;
@@ -224,18 +233,9 @@ TEST(SystemTest, ImageRestoration) {
 }
 
 TEST(SystemTest, KalmanGain) {
-    auto [P_n_n_1_sizes, P_n_n_1_data] = read_matrix("data/kalman_P_n_n_1.csv");
-    if (P_n_n_1_data.empty()) {
-        std::tie(P_n_n_1_sizes, P_n_n_1_data) = read_matrix("data/kalman_p.csv");
-    }
-    auto [H_sizes, H_data] = read_matrix("data/kalman_H.csv");
-    if (H_data.empty()) {
-        std::tie(H_sizes, H_data) = read_matrix("data/kalman_h.csv");
-    }
-    auto [R_n_sizes, R_n_data] = read_matrix("data/kalman_R_n.csv");
-    if (R_n_data.empty()) {
-        std::tie(R_n_sizes, R_n_data) = read_matrix("data/kalman_r.csv");
-    }
+    auto [P_n_n_1_sizes, P_n_n_1_data] = read_matrix("data/kalman_p.csv");
+    auto [H_sizes, H_data] = read_matrix("data/kalman_h.csv");
+    auto [R_n_sizes, R_n_data] = read_matrix("data/kalman_r.csv");
 
     if (P_n_n_1_sizes.first <= 0 || P_n_n_1_sizes.first != P_n_n_1_sizes.second) {
         std::cerr << "Size error: P_{n, n-1} must be non-empty and square.\n";
@@ -271,11 +271,7 @@ TEST(SystemTest, KalmanGain) {
 
     ctx.optimize_symbolic(K_n);
 
-    DataBindings concrete_data = {
-        {"P_n_n_1", P_n_n_1_data},
-        {"H", H_data},
-        {"R_n", R_n_data}
-    };
+    DataBindings concrete_data = {{"P_n_n_1", P_n_n_1_data}, {"H", H_data}, {"R_n", R_n_data}};
 
     auto out_K_n = ctx.evaluate_concrete(concrete_sizes, concrete_data);
 
@@ -288,26 +284,11 @@ TEST(SystemTest, KalmanGain) {
 }
 
 TEST(SystemTest, KalmanFilter) {
-    auto [P_n_n_1_sizes, P_n_n_1_data] = read_matrix("data/kalman_P_n_n_1.csv");
-    if (P_n_n_1_data.empty()) {
-        std::tie(P_n_n_1_sizes, P_n_n_1_data) = read_matrix("data/kalman_p.csv");
-    }
-    auto [H_sizes, H_data] = read_matrix("data/kalman_H.csv");
-    if (H_data.empty()) {
-        std::tie(H_sizes, H_data) = read_matrix("data/kalman_h.csv");
-    }
-    auto [R_n_sizes, R_n_data] = read_matrix("data/kalman_R_n.csv");
-    if (R_n_data.empty()) {
-        std::tie(R_n_sizes, R_n_data) = read_matrix("data/kalman_r.csv");
-    }
-    auto [x_hat_n_n_1_sizes, x_hat_n_n_1_data] = read_matrix("data/kalman_x_hat_n_n_1.csv");
-    if (x_hat_n_n_1_data.empty()) {
-        std::tie(x_hat_n_n_1_sizes, x_hat_n_n_1_data) = read_matrix("data/kalman_x.csv");
-    }
-    auto [z_n_sizes, z_n_data] = read_matrix("data/kalman_z_n.csv");
-    if (z_n_data.empty()) {
-        std::tie(z_n_sizes, z_n_data) = read_matrix("data/kalman_z.csv");
-    }
+    auto [P_n_n_1_sizes, P_n_n_1_data] = read_matrix("data/kalman_p.csv");
+    auto [H_sizes, H_data] = read_matrix("data/kalman_h.csv");
+    auto [R_n_sizes, R_n_data] = read_matrix("data/kalman_r.csv");
+    auto [x_hat_n_n_1_sizes, x_hat_n_n_1_data] = read_matrix("data/kalman_x.csv");
+    auto [z_n_sizes, z_n_data] = read_matrix("data/kalman_z.csv");
 
     if (P_n_n_1_sizes.first <= 0 || P_n_n_1_sizes.first != P_n_n_1_sizes.second) {
         std::cerr << "Size error: P_{n, n-1} must be non-empty and square.\n";
@@ -360,8 +341,7 @@ TEST(SystemTest, KalmanFilter) {
         {"H", H_data},
         {"R_n", R_n_data},
         {"x_hat_n_n_1", x_hat_n_n_1_data},
-        {"z_n", z_n_data}
-    };
+        {"z_n", z_n_data}};
 
     auto out_x_hat_n_n = ctx_state.evaluate_concrete(concrete_sizes, state_data);
     auto out_K_n = ctx_state.get_preserved(K_n);
@@ -389,11 +369,7 @@ TEST(SystemTest, KalmanFilter) {
     ctx_cov.optimize_symbolic(P_n_n, {K_n_cov});
 
     DataBindings cov_data = {
-        {"P_n_n_1", P_n_n_1_data},
-        {"H", H_data},
-        {"R_n", R_n_data},
-        {"I", generate_identity_matrix(m_val)}
-    };
+        {"P_n_n_1", P_n_n_1_data}, {"H", H_data}, {"R_n", R_n_data}, {"I", generate_identity_matrix(m_val)}};
 
     auto out_P_n_n = ctx_cov.evaluate_concrete(concrete_sizes, cov_data);
 

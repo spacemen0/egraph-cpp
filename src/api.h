@@ -8,6 +8,7 @@
 #include "pruner.h"
 #include "rewrite_sets.h"
 #include "rewriter.h"
+#include <array>
 #include <chrono>
 #include <iostream>
 #ifdef _WIN32
@@ -260,13 +261,13 @@ class Context {
             std::cout << "[API] Extracted expression: " << target_result.expr.to_string() << "\n";
             std::cout << "[API] Evaluating concrete expression...\n";
 #ifdef _WIN32
-            HMODULE hModule = NULL;
+            HMODULE hModule = nullptr;
             if (GetModuleHandleExA(
                     GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                    reinterpret_cast<LPCSTR>(reinterpret_cast<void *>(cblas_dgemm)), &hModule)) {
-                char path[MAX_PATH];
-                if (GetModuleFileNameA(hModule, path, sizeof(path))) {
-                    std::cout << "[API] Active BLAS Kernel:   " << path << "\n";
+                    reinterpret_cast<LPCSTR>(cblas_dgemm), &hModule)) {
+                std::array<char, MAX_PATH> path{};
+                if (GetModuleFileNameA(hModule, path.data(), sizeof(path))) {
+                    std::cout << "[API] Active BLAS Kernel:   " << path.data() << "\n";
                 }
             }
 #else
@@ -335,7 +336,6 @@ class Context {
             }
         });
         root_expression = egraph.find_class_id(root_id);
-        egraph.to_img("optimized_expression_" + std::to_string(root_expression), "svg");
         auto res = extract_symbolic(root_expression);
     }
 

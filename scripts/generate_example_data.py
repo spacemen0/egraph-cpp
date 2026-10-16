@@ -75,7 +75,7 @@ def main():
 
     args = parser.parse_args()
 
-    outdir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "examples", "data"))
+    outdir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
 
     generate_all_example_matrices(outdir, seed=args.seed, fmt=args.fmt)
 
