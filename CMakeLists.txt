@@ -6,8 +6,15 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
+# Default to Release build type if not specified for single-configuration generators
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+endif()
+
 # Configure build settings before adding dependencies
 option(ENABLE_COVERAGE "Build with gcov/coverage instrumentation" OFF)
+option(ENABLE_ASAN "Build with AddressSanitizer" OFF)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     if(ENABLE_COVERAGE)
@@ -16,7 +23,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         add_link_options(--coverage)
     endif()
 
-    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    if(ENABLE_ASAN)
         message(STATUS "Building with AddressSanitizer")
         add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
         add_link_options(-fsanitize=address)
@@ -26,6 +33,10 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
             add_compile_definitions(_ITERATOR_DEBUG_LEVEL=0)
             set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
         endif()
+    endif()
+
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        message(STATUS "Debug mode")
     else()
         message(STATUS "Release mode: Building with optimizations")
         add_compile_options(-O3)
@@ -57,7 +68,7 @@ FetchContent_Declare(
   URL https://github.com/microsoft/mimalloc/archive/refs/tags/v3.5.0.zip
   DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
-if(APPLE)
+if(APPLE OR ENABLE_ASAN)
     set(MI_OVERRIDE OFF CACHE BOOL "" FORCE)
 endif()
 set(MI_USE_CXX ON CACHE BOOL "" FORCE)
@@ -72,7 +83,7 @@ if(TARGET mimalloc)
     target_link_options(mimalloc PRIVATE -fno-sanitize=address)
 endif()
 
-if(WIN32 AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if(ENABLE_ASAN AND WIN32 AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     execute_process(
         COMMAND ${CMAKE_CXX_COMPILER} -print-resource-dir
         OUTPUT_VARIABLE CLANG_RESOURCE_DIR

@@ -1,3 +1,7 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = []
+# ///
 #!/usr/bin/env python3
 import argparse
 import pathlib
@@ -20,7 +24,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    repo_root = pathlib.Path(__file__).resolve().parent
+    repo_root = pathlib.Path(__file__).resolve().parent.parent
     input_file = "input.txt" if args.mode == "0" else "input_symbolic.txt"
     input_path = repo_root / input_file
 

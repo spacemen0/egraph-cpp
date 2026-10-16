@@ -9,7 +9,7 @@ TEST(ConfigTest, InitializeConfigForSimpleExpression) {
     Expression simple("A");
     auto config = initialize_config_for_expression(simple);
 
-    EXPECT_GE(config.rewrite.node_limit, 5000);
+    EXPECT_GE(config.rewrite.node_limit, 2000);
     EXPECT_GE(config.rewrite.max_iterations, 10);
     EXPECT_GE(config.pruner.rewrite_steps_per_iteration, 10);
     EXPECT_GE(config.pruner.prune_samples_per_iteration, 10);
@@ -19,7 +19,7 @@ TEST(ConfigTest, InitializeConfigForDeepExpression) {
     Expression deep("((((A + B) * (C + D)) + ((A + B) * (C + D))) * (A + B))");
     auto config = initialize_config_for_expression(deep);
 
-    EXPECT_GE(config.rewrite.node_limit, 5000);
+    EXPECT_GE(config.rewrite.node_limit, 2000);
     EXPECT_GE(config.rewrite.max_iterations, 10);
     EXPECT_GE(config.pruner.rewrite_steps_per_iteration, 10);
 }

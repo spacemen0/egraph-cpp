@@ -1,3 +1,9 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "numpy",
+# ]
+# ///
 import os
 import sys
 import argparse
@@ -57,24 +63,6 @@ def generate_all_example_matrices(output_dir: str, seed: int = 42, fmt: str = "%
         matrix = generate_matrix(rows, cols, prop_type)
         np.savetxt(file_path, matrix, delimiter=",", fmt=fmt)
         print(f"  ✓ Saved {filename:<18} ({rows}x{cols}, type: {prop_type:<8}) - {description}")
-
-    # Create exact matrix name aliases for Kalman Filter
-    kalman_aliases = [
-        ("kalman_P_n_n_1.csv", "kalman_p.csv"),
-        ("kalman_H.csv", "kalman_h.csv"),
-        ("kalman_R_n.csv", "kalman_r.csv"),
-        ("kalman_x_hat_n_n_1.csv", "kalman_x.csv"),
-        ("kalman_z_n.csv", "kalman_z.csv"),
-    ]
-    for alias, target in kalman_aliases:
-        if alias.lower() == target.lower():
-            continue
-        alias_path = os.path.join(output_dir, alias)
-        target_path = os.path.join(output_dir, target)
-        if os.path.exists(target_path):
-            if os.path.islink(alias_path) or os.path.exists(alias_path):
-                os.remove(alias_path)
-            os.symlink(target, alias_path)
 
     print("=" * 60 + "\nAll example datasets successfully generated.")
 

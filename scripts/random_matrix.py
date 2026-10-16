@@ -1,3 +1,9 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "numpy",
+# ]
+# ///
 import os
 import sys
 import argparse

@@ -34,4 +34,12 @@ target_link_libraries(unit_tests
 
 target_compile_definitions(unit_tests PRIVATE UNIT_TEST)
 
+if(TARGET copy_openblas_dll)
+    add_dependencies(unit_tests copy_openblas_dll)
+endif()
+
+if(TARGET copy_asan_runtime)
+    add_dependencies(unit_tests copy_asan_runtime)
+endif()
+
 gtest_discover_tests(unit_tests)
