@@ -16,6 +16,7 @@ struct RewriteConfig {
 struct ExtractorConfig {
     size_t max_depth = 40;
     size_t node_visit_limit = 10000000;
+    size_t seeding_attempts = 5;
 };
 
 struct PrunerConfig {

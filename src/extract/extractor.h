@@ -56,6 +56,7 @@ class Extractor {
     size_t max_depth;
     size_t node_visit_limit;
     size_t dag_visit_limit;
+    size_t seeding_attempts;
 
     // Best tree extraction cost for each e-class: local_cost + sum(child_tree_costs)
     mutable std::vector<double> tree_cost;

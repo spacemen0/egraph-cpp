@@ -23,7 +23,8 @@ bool Extractor::is_unique_result(
 
 Extractor::Extractor(EGraph &egraph, const EGraphConfig &config)
     : egraph(egraph), enable_logging(config.enable_logging), max_depth(config.extractor.max_depth),
-      node_visit_limit(config.extractor.node_visit_limit), dag_visit_limit(config.pruner.dag_visit_limit) {}
+      node_visit_limit(config.extractor.node_visit_limit), dag_visit_limit(config.pruner.dag_visit_limit),
+      seeding_attempts(config.extractor.seeding_attempts) {}
 
 void Extractor::reset() const {
     tree_cost.clear();
@@ -71,7 +72,7 @@ void Extractor::search_numeric_dags(
 
     const auto &class_nodes = egraph.get_class_nodes(current);
     std::vector<const ENode *> candidate_nodes = class_nodes;
-    std::sort(candidate_nodes.begin(), candidate_nodes.end(), [this](const ENode *a, const ENode *b) {
+    std::ranges::sort(candidate_nodes, [this](const ENode *a, const ENode *b) {
         double lb_a =
             node_dag_lower_bound.contains(a) ? node_dag_lower_bound.at(a) : std::numeric_limits<double>::infinity();
         double lb_b =
@@ -147,10 +148,17 @@ std::vector<Extractor::NumericSearchResult> Extractor::find_top_numeric_dags(
     }
 
     nodes_visited = 0;
+
+    // Buffers for cycle detection and tracking visited nodes
     std::vector<size_t> visited_buffer(max_id + 1, 0);
     std::vector<Id> stack_buffer;
+
+    // The current choices of e-nodes for each e-class during the search
     std::vector<const ENode *> current_choices(max_id + 1, nullptr);
+
+    // Pending e-classes to explore
     std::vector<size_t> pending_set(max_id + 1, 0);
+    // A quick lookup: 0 means not already pending, 1 means pending
     std::vector<Id> pending = {root};
     pending_set[root] = 1;
 
@@ -158,23 +166,21 @@ std::vector<Extractor::NumericSearchResult> Extractor::find_top_numeric_dags(
     double worst_cost = std::numeric_limits<double>::infinity();
 
     // Seed with tree extraction result to establish an immediate upper bound
-    // Refine seed map via local greedy improvements to find better DAGs
+    // Refine later
     std::vector<const ENode *> dag_choices = tree_choices;
 
-    auto eval_dag =
+    auto evaluate_dag_cost =
         [&](const std::vector<const ENode *> &choices) -> std::pair<double, std::unordered_map<Id, const ENode *>> {
         std::unordered_map<Id, const ENode *> map;
-        std::unordered_set<Id> vis_path;
+        std::unordered_set<Id> visited;
         double total = 0.0;
 
         auto dfs = [&](auto &self, Id curr_id) -> bool {
             Id curr = egraph.find_class_id(curr_id);
-            if (vis_path.contains(curr))
-                return false;
+            if (visited.contains(curr))
+                return false; // cycle
             if (map.contains(curr))
-                return true;
-            if (curr >= choices.size() || !choices[curr])
-                return false;
+                return true; // already computed so early return
 
             const ENode *node = choices[curr];
             map[curr] = node;
@@ -186,12 +192,12 @@ std::vector<Extractor::NumericSearchResult> Extractor::find_top_numeric_dags(
                 return false;
             total += val;
 
-            vis_path.insert(curr);
+            visited.insert(curr);
             for (Id child : node->get_children()) {
                 if (!self(self, child))
                     return false;
             }
-            vis_path.erase(curr);
+            visited.erase(curr);
             return true;
         };
 
@@ -201,32 +207,36 @@ std::vector<Extractor::NumericSearchResult> Extractor::find_top_numeric_dags(
         return {total, map};
     };
 
-    auto [best_dag_cost, best_dag_map] = eval_dag(dag_choices);
+    auto [best_dag_cost, best_dag_map] = evaluate_dag_cost(dag_choices);
     if (best_dag_cost != std::numeric_limits<double>::infinity()) {
         bool improved = true;
-        int iter = 0;
-        while (improved && iter < 5) {
+        size_t iter = 0;
+        while (improved && iter < seeding_attempts) {
             improved = false;
             iter++;
+            if (iter > 1) {
+                std::cout << "[Extractor] Indeed Improved during Seeding DAG search, iter=" << iter
+                          << ", best_dag_cost=" << best_dag_cost << "\n";
+            }
             std::vector<Id> reachable_classes;
             reachable_classes.reserve(best_dag_map.size());
-            for (const auto &[cls, _] : best_dag_map) {
-                reachable_classes.push_back(cls);
+            for (const auto &[class_id, _] : best_dag_map) {
+                reachable_classes.push_back(class_id);
             }
-            for (Id cls : reachable_classes) {
-                const ENode *orig_node = dag_choices[cls];
-                for (const ENode *cand : egraph.get_class_nodes(cls)) {
-                    if (cand == orig_node)
+            for (Id class_id : reachable_classes) {
+                const ENode *original_node = dag_choices[class_id];
+                for (const ENode *candidate : egraph.get_class_nodes(class_id)) {
+                    if (candidate == original_node)
                         continue;
-                    dag_choices[cls] = cand;
-                    auto [cand_cost, cand_map] = eval_dag(dag_choices);
+                    dag_choices[class_id] = candidate;
+                    auto [cand_cost, cand_map] = evaluate_dag_cost(dag_choices);
                     if (cand_cost < best_dag_cost) {
                         best_dag_cost = cand_cost;
                         best_dag_map = std::move(cand_map);
-                        orig_node = cand;
+                        original_node = candidate;
                         improved = true;
                     } else {
-                        dag_choices[cls] = orig_node;
+                        dag_choices[class_id] = original_node;
                     }
                 }
             }
@@ -238,37 +248,7 @@ std::vector<Extractor::NumericSearchResult> Extractor::find_top_numeric_dags(
     }
 
     if (best_results.empty()) {
-        // Fallback to simple tree extraction seed
-        std::unordered_map<Id, const ENode *> seed_map;
-        std::vector<Id> seed_stack = {root};
-        while (!seed_stack.empty()) {
-            Id current = seed_stack.back();
-            seed_stack.pop_back();
-
-            if (seed_map.contains(current)) {
-                continue;
-            }
-            const ENode *chosen = (current < tree_choices.size()) ? tree_choices[current] : nullptr;
-            if (chosen) {
-                seed_map[current] = chosen;
-                for (Id child : chosen->get_children()) {
-                    seed_stack.push_back(egraph.find_class_id(child));
-                }
-            }
-        }
-        if (!seed_map.empty()) {
-            double seed_dag_cost = 0.0;
-            for (const auto &[cls, node] : seed_map) {
-                Cost c = node->compute_local_cost(egraph, size_bindings);
-                if (std::holds_alternative<double>(c)) {
-                    seed_dag_cost += std::get<double>(c);
-                }
-            }
-            best_results.push_back(NumericSearchResult{seed_dag_cost, std::move(seed_map)});
-            if (best_results.size() >= max_results) {
-                worst_cost = seed_dag_cost;
-            }
-        }
+        throw std::runtime_error("Runtime error: no numeric DAG found for root class under supplied size bindings");
     }
 
     size_t effective_limit = custom_visit_limit > 0 ? custom_visit_limit : node_visit_limit;
@@ -285,8 +265,7 @@ std::vector<Extractor::NumericSearchResult> Extractor::find_top_numeric_dags(
         throw std::runtime_error("Runtime error: no numeric DAG found for root class under supplied size bindings");
     }
 
-    std::sort(
-        best_results.begin(), best_results.end(), [](const NumericSearchResult &lhs, const NumericSearchResult &rhs) {
+    std::ranges::sort(best_results, [](const NumericSearchResult &lhs, const NumericSearchResult &rhs) {
         return lhs.cost < rhs.cost;
     });
 
