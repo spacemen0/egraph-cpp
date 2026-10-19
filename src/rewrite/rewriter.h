@@ -70,8 +70,6 @@ class Rewriter {
 
     EGraph &egraph;
     EGraphConfig config;
-    bool enable_backoff;
-    bool enable_node_limit;
     std::vector<Rewrite> all_rewrites;
     std::vector<Rewrite> rewrites;
     std::vector<size_t> current_match_limits;       // Current limit (doubles when banning) (for backoff)
@@ -79,7 +77,6 @@ class Rewriter {
                                                     // current iteration
     std::vector<size_t> ban_iterations_remaining;   // How many iterations left in current ban
     std::vector<size_t> ban_duration_next;          // Duration for next ban (starts at 1, doubles)
-    size_t max_nodes;
 };
 
 } // namespace egraph

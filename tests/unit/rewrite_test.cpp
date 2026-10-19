@@ -502,7 +502,7 @@ TEST(Rewrite, TopDownTriangularityDiscoveredOnExistingChild) {
     std::vector<Rewrite> rules = {
         orthogonal_transpose, orthogonal_transpose_right, mat_transpose_prod, mul_identity_left, mul_identity_right};
 
-    Rewriter rewriter(egraph, rules, EGraphConfig{.rewrite = {.node_limit = 200, .max_iterations = 10}});
+    Rewriter rewriter(egraph, rules, EGraphConfig{.rewrite = {.node_limit = 200}});
     egraph.to_img("top_down_triangularity_before", "png");
 
     rewriter.apply_rewrites(1);

@@ -86,9 +86,7 @@ std::unordered_set<Op> Rewriter::compute_effective_disabled_ops(
 }
 
 Rewriter::Rewriter(EGraph &egraph, std::vector<Rewrite> rewrites, const EGraphConfig &config)
-    : egraph(egraph), config(config), enable_backoff(config.rewrite.enable_backoff),
-      enable_node_limit(config.rewrite.enable_node_limit), max_nodes(config.rewrite.node_limit),
-      all_rewrites(std::move(rewrites)), rewrites(all_rewrites) {
+    : egraph(egraph), config(config), all_rewrites(std::move(rewrites)), rewrites(all_rewrites) {
     if (config.enable_logging) {
         std::cout << "[Rewriter] Initialized with " << this->all_rewrites.size() << " rewrites.\n";
     }
@@ -112,9 +110,6 @@ void Rewriter::reset_limits_and_bans() {
 
 void Rewriter::set_config(const EGraphConfig &cfg) {
     config = cfg;
-    enable_backoff = cfg.rewrite.enable_backoff;
-    enable_node_limit = cfg.rewrite.enable_node_limit;
-    max_nodes = cfg.rewrite.node_limit;
     filter_rewrites_by_disabled_ops();
     reset_limits_and_bans();
 }
@@ -150,7 +145,7 @@ static Id instantiate(EGraph &egraph, const Pattern &pattern, const Substitution
 }
 
 bool Rewriter::is_rewrite_banned(size_t i) {
-    if (ban_iterations_remaining[i] > 0 && enable_backoff) {
+    if (ban_iterations_remaining[i] > 0 && config.rewrite.enable_backoff) {
         ban_iterations_remaining[i]--;
         return true;
     }
@@ -158,11 +153,11 @@ bool Rewriter::is_rewrite_banned(size_t i) {
 }
 
 void Rewriter::update_ban_status(size_t i, size_t total_valid_matches, size_t budget_remaining) {
-    if (total_valid_matches > budget_remaining && enable_backoff) {
+    if (total_valid_matches > budget_remaining && config.rewrite.enable_backoff) {
         ban_iterations_remaining[i] = ban_duration_next[i];
         ban_duration_next[i] *= 2;
         current_match_limits[i] *= 2;
-    } else if (enable_backoff) {
+    } else if (config.rewrite.enable_backoff) {
         // if the rewrite was not banned, we reduce the ban duration for next time
         ban_duration_next[i] = std::max(size_t(1), ban_duration_next[i] / 2);
     }
@@ -216,7 +211,7 @@ bool Rewriter::apply_matches(const std::vector<Match> &matches) {
             changed |= egraph.union_classes(match.class_id, instantiate(egraph, rewrite.lhs, match.subst));
         }
 
-        if (enable_node_limit && egraph.num_nodes() > max_nodes) {
+        if (config.rewrite.enable_node_limit && egraph.num_nodes() > config.rewrite.node_limit) {
             break; // Break the apply loop to enforce limits but guarantee rebuild
         }
     }
@@ -244,7 +239,7 @@ bool Rewriter::apply_one_iteration(int iteration) {
         size_t total_valid_matches = 0;
         std::vector<Match> rewrite_matches = find_matches_for_rewrite(i, matcher, class_ids, total_valid_matches);
 
-        size_t budget_remaining = enable_backoff ? current_match_limits[i] : total_valid_matches;
+        size_t budget_remaining = config.rewrite.enable_backoff ? current_match_limits[i] : total_valid_matches;
         size_t matches_to_apply = std::min(total_valid_matches, budget_remaining);
 
         if (total_valid_matches <= budget_remaining) {
@@ -272,10 +267,10 @@ bool Rewriter::apply_one_iteration(int iteration) {
         egraph.rebuild();
     }
 
-    if (enable_node_limit && egraph.num_nodes() > max_nodes) {
+    if (config.rewrite.enable_node_limit && egraph.num_nodes() > config.rewrite.node_limit) {
         if (config.enable_logging) {
-            std::cout << "[Rewriter] Node limit exceeded: " << max_nodes << " at Iteration " << iteration
-                      << ", current nodes: " << egraph.num_nodes() << "\n";
+            std::cout << "[Rewriter] Node limit exceeded: " << config.rewrite.node_limit << " at Iteration "
+                      << iteration << ", current nodes: " << egraph.num_nodes() << "\n";
         }
         return false;
     }

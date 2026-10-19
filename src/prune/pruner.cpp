@@ -4,13 +4,14 @@
 #include <thread>
 
 namespace egraph {
-PruneResult
-Pruner::prune(const std::vector<Id> &roots, const std::vector<SizeBindings> &bindings, double dag_sample_ratio) const {
+PruneResult Pruner::prune(
+    const std::vector<Id> &roots, const std::vector<SizeBindings> &bindings) const {
     PruneResult result;
 
     std::unordered_map<Id, std::unordered_set<const ENode *>> keep_choices;
-    size_t dag_samples_count =
-        std::max(static_cast<size_t>(3), static_cast<size_t>(static_cast<double>(bindings.size()) * dag_sample_ratio));
+    size_t dag_samples_count = std::max(
+        static_cast<size_t>(3),
+        static_cast<size_t>(static_cast<double>(bindings.size()) * config.pruner.dag_sample_ratio));
 
     size_t num_threads =
         std::min(bindings.size(), static_cast<size_t>(std::max(1u, std::thread::hardware_concurrency())));
@@ -18,7 +19,8 @@ Pruner::prune(const std::vector<Id> &roots, const std::vector<SizeBindings> &bin
         for (size_t i = 0; i < bindings.size(); ++i) {
             extractor.reset();
             bool use_dag = (i < dag_samples_count);
-            extractor.collect_selected_nodes_for_binding(roots, bindings[i], keep_choices, use_dag);
+            extractor.collect_selected_nodes_for_binding(
+                roots, bindings[i], keep_choices, use_dag, config.pruner.dag_visit_limit);
         }
     } else {
         std::vector<std::unordered_map<Id, std::unordered_set<const ENode *>>> thread_keep_choices(num_threads);
@@ -31,7 +33,7 @@ Pruner::prune(const std::vector<Id> &roots, const std::vector<SizeBindings> &bin
                     thread_extractor.reset();
                     bool use_dag = (i < dag_samples_count);
                     thread_extractor.collect_selected_nodes_for_binding(
-                        roots, bindings[i], thread_keep_choices[t], use_dag);
+                        roots, bindings[i], thread_keep_choices[t], use_dag, config.pruner.dag_visit_limit);
                 }
             });
         }
@@ -196,7 +198,7 @@ PruneResult Pruner::prune_symbolic_when_kernel_available(EGraph &egraph, const s
 }
 
 void Pruner::rewrite_and_prune(
-    const std::vector<Id> &roots, Rewriter &rewriter, const EGraphConfig &config,
+    const std::vector<Id> &roots, Rewriter &rewriter,
     const std::vector<std::string> &size_keys, const std::function<void(int iteration)> &onIterationStart,
     const std::function<void(int iteration, const PruneResult &)> &onIterationFinish) const {
     for (int i = 0; i < config.pruner.num_iterations; ++i) {
@@ -225,7 +227,7 @@ void Pruner::rewrite_and_prune(
         const auto bindings = sample_size_bindings(
             config.pruner.prune_samples_per_iteration, 10, 5000, size_keys, static_cast<unsigned int>(99 + i),
             &egraph.get_property_table());
-        const auto prune_result = prune(roots, bindings, config.pruner.dag_sample_ratio);
+        const auto prune_result = prune(roots, bindings);
         if (config.enable_logging) {
             std::cout << "Pruned nodes: " << prune_result.nodes_pruned << "\n";
         }

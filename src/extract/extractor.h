@@ -17,7 +17,8 @@ struct ExtractionResult {
 
 class Extractor {
   public:
-    explicit Extractor(EGraph &egraph, const EGraphConfig &config = EGraphConfig());
+    explicit Extractor(EGraph &egraph, EGraphConfig config = EGraphConfig())
+        : egraph(egraph), config(std::move(config)) {}
 
     ExtractionResult extract(Id class_id, const SizeBindings &size_bindings = {}, size_t visit_limit = 0) const;
     std::vector<ExtractionResult>
@@ -28,9 +29,12 @@ class Extractor {
     std::vector<ExtractionResult> extract_symbolic(Id class_id, bool build_expressions = true) const;
     void collect_selected_nodes_for_binding(
         const std::vector<Id> &roots, const SizeBindings &size_bindings,
-        std::unordered_map<Id, std::unordered_set<const ENode *>> &selected_choices,
-        bool use_dag_extract = false) const;
+        std::unordered_map<Id, std::unordered_set<const ENode *>> &selected_choices, bool use_dag_extract,
+        size_t dag_visit_limit) const;
     void reset() const;
+
+    void set_config(const EGraphConfig &cfg) { config = cfg; }
+    const EGraphConfig &get_config() const { return config; }
 
     std::vector<Id> build_execution_order(Id class_id, const std::unordered_map<Id, const ENode *> &choices) const;
     std::vector<Id>
@@ -51,12 +55,8 @@ class Extractor {
         const std::vector<NumericSearchResult> &best_results, const std::unordered_map<Id, const ENode *> &choices_map);
 
     EGraph &egraph;
-    bool enable_logging = false;
+    EGraphConfig config;
     mutable size_t nodes_visited = 0;
-    size_t max_depth;
-    size_t node_visit_limit;
-    size_t dag_visit_limit;
-    size_t seeding_attempts;
 
     // Best tree extraction cost for each e-class: local_cost + sum(child_tree_costs)
     mutable std::vector<double> tree_cost;

@@ -97,7 +97,7 @@ class Context {
         return id;
     }
 
-    void rewrite(const std::vector<std::string> &rulesets = {"complete"}) {
+    void rewrite(const std::vector<std::string> &rulesets = {"complete"}, int max_iterations = -1) {
         if (config.enable_logging) {
             std::cout << "[API] Running rewrite with rulesets: ";
             for (const auto &rs : rulesets)
@@ -107,8 +107,8 @@ class Context {
         std::vector<Rewrite> rewrites = build_rewrite_sets(rulesets);
 
         Rewriter rewriter(egraph, rewrites, config);
-        if (config.rewrite.max_iterations > 0) {
-            rewriter.apply_rewrites(config.rewrite.max_iterations);
+        if (max_iterations > 0) {
+            rewriter.apply_rewrites(max_iterations);
         } else {
             rewriter.apply_rewrites();
         }
@@ -151,9 +151,9 @@ class Context {
         std::vector<Rewrite> rewrites = build_rewrite_sets(rulesets);
         Rewriter rewriter(egraph, rewrites, config);
         Extractor extractor(egraph, config);
-        Pruner pruner(egraph, extractor);
+        Pruner pruner(egraph, extractor, config);
 
-        pruner.rewrite_and_prune(target_ids, rewriter, config, size_keys, onIterationStart, onIterationFinish);
+        pruner.rewrite_and_prune(target_ids, rewriter, size_keys, onIterationStart, onIterationFinish);
     }
 
     void lower_to_kernels(const std::vector<Id> &roots = {}) {

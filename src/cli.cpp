@@ -146,10 +146,8 @@ void rewrite_e_graph(SessionState &state, std::optional<int> num_iterations) {
     }
     state.ctx.get_config().rewrite.node_limit = 10000;
     state.ctx.get_config().rewrite.enable_backoff = true;
-    if (num_iterations.has_value()) {
-        state.ctx.get_config().rewrite.max_iterations = num_iterations.value();
-    }
-    state.ctx.rewrite(state.rulesets);
+    int max_iters = num_iterations.value_or(-1);
+    state.ctx.rewrite(state.rulesets, max_iters);
 }
 
 void extract_expression(SessionState &state, size_t expression_id) {
@@ -414,34 +412,42 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
 
 using namespace egraph;
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv) noexcept {
     (void)argc;
     (void)argv;
-    print_repl_help();
+    try {
+        print_repl_help();
 
-    SessionState state;
-    std::string line;
-    while (true) {
-        if (isatty(fileno(stdin))) {
-            std::cout << "egraph> " << std::flush;
-        }
-        if (!std::getline(std::cin, line)) {
-            std::cout << "\n";
-            break;
+        SessionState state;
+        std::string line;
+        while (true) {
+            if (isatty(fileno(stdin))) {
+                std::cout << "egraph> " << std::flush;
+            }
+            if (!std::getline(std::cin, line)) {
+                std::cout << "\n";
+                break;
+            }
+
+            std::vector<std::string> tokens = split_tokens(line);
+            if (tokens.empty()) {
+                continue;
+            }
+
+            const std::string &command = tokens[0];
+            if (command == "quit" || command == "exit") {
+                break;
+            }
+
+            execute_session_command(tokens, state);
         }
 
-        std::vector<std::string> tokens = split_tokens(line);
-        if (tokens.empty()) {
-            continue;
-        }
-
-        const std::string &command = tokens[0];
-        if (command == "quit" || command == "exit") {
-            break;
-        }
-
-        execute_session_command(tokens, state);
+        return 0;
+    } catch (const std::exception &e) {
+        std::cerr << "Fatal error: " << e.what() << "\n";
+        return 1;
+    } catch (...) {
+        std::cerr << "Fatal error: unknown exception\n";
+        return 1;
     }
-
-    return 0;
 }

@@ -13,8 +13,6 @@ void initialize_config_for_expression(EGraphConfig &config, const Expression &ex
     config.rewrite.node_limit = std::max(computed_limit, static_cast<size_t>(2000));
 
     // Scale iteration depth based on AST complexity
-    config.rewrite.max_iterations =
-        std::max({config.rewrite.max_iterations, 10, static_cast<int>(static_cast<double>(depth) * 2)});
     config.pruner.rewrite_steps_per_iteration = std::max(10, static_cast<int>(depth * 2));
     config.pruner.prune_samples_per_iteration = std::max(10, static_cast<int>(depth * 4));
     config.pruner.dag_visit_limit = std::max(static_cast<size_t>(10000), static_cast<size_t>(depth * 4000));
@@ -33,7 +31,6 @@ void EGraphConfig::print_config() {
     std::cout << "EGraphConfig:\n";
     std::cout << "  RewriteConfig:\n";
     std::cout << "    node_limit: " << rewrite.node_limit << "\n";
-    std::cout << "    max_iterations: " << rewrite.max_iterations << "\n";
     std::cout << "    enable_backoff: " << (rewrite.enable_backoff ? "true" : "false") << "\n";
     std::cout << "    enable_node_match_limit: " << (rewrite.enable_node_limit ? "true" : "false") << "\n";
     std::cout << "  ExtractorConfig:\n";

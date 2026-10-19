@@ -7,7 +7,6 @@
 namespace egraph {
 struct RewriteConfig {
     size_t node_limit = 5000;
-    int max_iterations = 10;
     bool enable_backoff = true;
     bool enable_node_limit =
         true; // If true, the rewriter will stop applying rewrites if the number of nodes exceeds node_limit

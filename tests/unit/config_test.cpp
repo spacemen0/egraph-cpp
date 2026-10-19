@@ -10,7 +10,6 @@ TEST(ConfigTest, InitializeConfigForSimpleExpression) {
     auto config = initialize_config_for_expression(simple);
 
     EXPECT_GE(config.rewrite.node_limit, 2000);
-    EXPECT_GE(config.rewrite.max_iterations, 10);
     EXPECT_GE(config.pruner.rewrite_steps_per_iteration, 10);
     EXPECT_GE(config.pruner.prune_samples_per_iteration, 10);
 }
@@ -20,7 +19,6 @@ TEST(ConfigTest, InitializeConfigForDeepExpression) {
     auto config = initialize_config_for_expression(deep);
 
     EXPECT_GE(config.rewrite.node_limit, 2000);
-    EXPECT_GE(config.rewrite.max_iterations, 10);
     EXPECT_GE(config.pruner.rewrite_steps_per_iteration, 10);
 }
 

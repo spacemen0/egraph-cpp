@@ -64,7 +64,6 @@ TEST(ApiTest, OLSSymbolic) {
 
     ctx.get_config().rewrite.node_limit = 1000;
     ctx.get_config().rewrite.enable_backoff = true;
-    ctx.get_config().rewrite.max_iterations = 10;
     ctx.rewrite({"property_discovery", "simplification", "transformation", "expansion"});
 
     SizeBindings bindings = {{"A", 30}, {"B", 10}};
@@ -180,10 +179,9 @@ TEST(ApiTest, SymbolicSyrkPipelineDemonstration) {
     ctx.get_egraph().to_img("syrk_symbolic_1_initial", "svg");
 
     // 2. Rewrite & Lowering (small rewrite budget: 1 iteration)
-    ctx.get_config().rewrite.max_iterations = 1;
     ctx.get_config().rewrite.enable_backoff = false;
     ctx.get_config().rewrite.enable_node_limit = false;
-    ctx.rewrite({"property_discovery", "simplification", "transformation"});
+    ctx.rewrite({"property_discovery", "simplification", "transformation"}, 1);
 
     std::vector<Rewrite> lowering_rewrites = build_rewrite_sets({"lowering"});
     Rewriter rewriter(ctx.get_egraph(), lowering_rewrites, ctx.get_config());
