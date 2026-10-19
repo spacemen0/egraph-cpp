@@ -27,16 +27,15 @@ Extractor::Extractor(EGraph &egraph, const EGraphConfig &config)
 
 void Extractor::reset() const {
     tree_cost.clear();
-    min_local_cost.clear();
     tree_choices.clear();
     nodes_visited = 0;
 }
 
 void Extractor::search_numeric_dags(
     Id root, std::vector<Id> &pending, std::vector<size_t> &pending_set, std::vector<const ENode *> &current_choices,
-    double current_g, double pending_min_local_sum, std::vector<NumericSearchResult> &results, double &worst_cost,
-    size_t max_results, std::vector<size_t> &visited_buffer, std::vector<Id> &stack_buffer,
-    const SizeBindings *size_bindings, size_t effective_visit_limit) const {
+    double current_cost, std::vector<NumericSearchResult> &results, double &worst_cost, size_t max_results,
+    std::vector<size_t> &visited_buffer, std::vector<Id> &stack_buffer, const SizeBindings *size_bindings,
+    size_t effective_visit_limit) const {
 
     nodes_visited++;
     if (enable_logging && (nodes_visited % kExtractorProgressLogEvery == 0)) {
@@ -47,8 +46,8 @@ void Extractor::search_numeric_dags(
     if (pending.empty()) {
         auto choices_map = convert_to_map(current_choices, {root});
         if (is_unique_result(results, choices_map)) {
-            auto it = std::ranges::lower_bound(results, current_g, std::less{}, &NumericSearchResult::cost);
-            results.insert(it, NumericSearchResult{current_g, std::move(choices_map)});
+            auto it = std::ranges::lower_bound(results, current_cost, std::less{}, &NumericSearchResult::cost);
+            results.insert(it, NumericSearchResult{current_cost, std::move(choices_map)});
             if (results.size() > max_results) {
                 results.pop_back();
             }
@@ -69,8 +68,6 @@ void Extractor::search_numeric_dags(
     Id current = pending.back();
     pending.pop_back();
     pending_set[current] = 0;
-    double current_min_local = (current < min_local_cost.size()) ? min_local_cost[current] : 0.0;
-    double remaining_min_local = pending_min_local_sum - current_min_local;
 
     const auto &class_nodes = egraph.get_class_nodes(current);
     std::vector<const ENode *> candidate_nodes = class_nodes;
@@ -92,8 +89,8 @@ void Extractor::search_numeric_dags(
             continue;
         }
 
-        double next_g = current_g + local_val;
-        if (next_g + remaining_min_local >= worst_cost) {
+        double next_cost = current_cost + local_val;
+        if (next_cost >= worst_cost) {
             continue;
         }
 
@@ -111,16 +108,12 @@ void Extractor::search_numeric_dags(
                 pending.push_back(child_root);
                 pending_set[child_root] = 1;
                 added_children_count++;
-                if (child_root < min_local_cost.size() &&
-                    min_local_cost[child_root] != std::numeric_limits<double>::infinity()) {
-                    added_min_local += min_local_cost[child_root];
-                }
             }
         }
 
         search_numeric_dags(
-            root, pending, pending_set, current_choices, next_g, remaining_min_local + added_min_local, results,
-            worst_cost, max_results, visited_buffer, stack_buffer, size_bindings, effective_visit_limit);
+            root, pending, pending_set, current_choices, next_cost, results, worst_cost, max_results, visited_buffer,
+            stack_buffer, size_bindings, effective_visit_limit);
 
         for (int i = 0; i < added_children_count; ++i) {
             Id child_id = pending.back();
@@ -161,8 +154,6 @@ std::vector<Extractor::NumericSearchResult> Extractor::find_top_numeric_dags(
     std::vector<Id> pending = {root};
     pending_set[root] = 1;
 
-
-
     std::vector<NumericSearchResult> best_results;
     double worst_cost = std::numeric_limits<double>::infinity();
 
@@ -170,29 +161,35 @@ std::vector<Extractor::NumericSearchResult> Extractor::find_top_numeric_dags(
     // Refine seed map via local greedy improvements to find better DAGs
     std::vector<const ENode *> dag_choices = tree_choices;
 
-    auto eval_dag = [&](const std::vector<const ENode *> &choices)
-        -> std::pair<double, std::unordered_map<Id, const ENode *>> {
+    auto eval_dag =
+        [&](const std::vector<const ENode *> &choices) -> std::pair<double, std::unordered_map<Id, const ENode *>> {
         std::unordered_map<Id, const ENode *> map;
         std::unordered_set<Id> vis_path;
         double total = 0.0;
 
         auto dfs = [&](auto &self, Id curr_id) -> bool {
             Id curr = egraph.find_class_id(curr_id);
-            if (vis_path.contains(curr)) return false;
-            if (map.contains(curr)) return true;
-            if (curr >= choices.size() || !choices[curr]) return false;
+            if (vis_path.contains(curr))
+                return false;
+            if (map.contains(curr))
+                return true;
+            if (curr >= choices.size() || !choices[curr])
+                return false;
 
             const ENode *node = choices[curr];
             map[curr] = node;
             Cost c = node->compute_local_cost(egraph, size_bindings);
-            if (!std::holds_alternative<double>(c)) return false;
+            if (!std::holds_alternative<double>(c))
+                return false;
             double val = std::get<double>(c);
-            if (val == std::numeric_limits<double>::infinity()) return false;
+            if (val == std::numeric_limits<double>::infinity())
+                return false;
             total += val;
 
             vis_path.insert(curr);
             for (Id child : node->get_children()) {
-                if (!self(self, child)) return false;
+                if (!self(self, child))
+                    return false;
             }
             vis_path.erase(curr);
             return true;
@@ -219,7 +216,8 @@ std::vector<Extractor::NumericSearchResult> Extractor::find_top_numeric_dags(
             for (Id cls : reachable_classes) {
                 const ENode *orig_node = dag_choices[cls];
                 for (const ENode *cand : egraph.get_class_nodes(cls)) {
-                    if (cand == orig_node) continue;
+                    if (cand == orig_node)
+                        continue;
                     dag_choices[cls] = cand;
                     auto [cand_cost, cand_map] = eval_dag(dag_choices);
                     if (cand_cost < best_dag_cost) {
@@ -273,17 +271,11 @@ std::vector<Extractor::NumericSearchResult> Extractor::find_top_numeric_dags(
         }
     }
 
-
-
-    double initial_min_local =
-        (root < min_local_cost.size() && min_local_cost[root] != std::numeric_limits<double>::infinity())
-            ? min_local_cost[root]
-            : 0.0;
     size_t effective_limit = custom_visit_limit > 0 ? custom_visit_limit : node_visit_limit;
 
     search_numeric_dags(
-        root, pending, pending_set, current_choices, 0.0, initial_min_local, best_results, worst_cost, max_results,
-        visited_buffer, stack_buffer, size_bindings, effective_limit);
+        root, pending, pending_set, current_choices, 0.0, best_results, worst_cost, max_results, visited_buffer,
+        stack_buffer, size_bindings, effective_limit);
 
     if (enable_logging) {
         std::cout << "[Extractor] Visited " << nodes_visited << " nodes during numeric extraction.\n";
@@ -336,7 +328,6 @@ void Extractor::initial_analysis_pass(const SizeBindings *size_bindings) const {
     }
 
     tree_cost.assign(max_id + 1, std::numeric_limits<double>::infinity());
-    min_local_cost.assign(max_id + 1, std::numeric_limits<double>::infinity());
     tree_choices.assign(max_id + 1, nullptr);
     node_dag_lower_bound.clear();
 
@@ -360,9 +351,6 @@ void Extractor::initial_analysis_pass(const SizeBindings *size_bindings) const {
             Cost local_cost = node->compute_local_cost(egraph, size_bindings);
             if (std::holds_alternative<double>(local_cost)) {
                 double local_val = std::get<double>(local_cost);
-                if (local_val < min_local_cost[class_id]) {
-                    min_local_cost[class_id] = local_val;
-                }
                 std::vector<Id> canon_children;
                 canon_children.reserve(node->get_children().size());
                 for (Id child : node->get_children()) {
