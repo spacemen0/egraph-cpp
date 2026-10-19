@@ -4,8 +4,7 @@
 #include <thread>
 
 namespace egraph {
-PruneResult Pruner::prune(
-    const std::vector<Id> &roots, const std::vector<SizeBindings> &bindings) const {
+PruneResult Pruner::prune(const std::vector<Id> &roots, const std::vector<SizeBindings> &bindings) const {
     PruneResult result;
 
     std::unordered_map<Id, std::unordered_set<const ENode *>> keep_choices;
@@ -47,7 +46,7 @@ PruneResult Pruner::prune(
         }
     }
 
-    // Keep all root classes (if multiple roots were passed but only part of them were extractable)
+    // Keep all root classes (if multiple roots were passed but only part of them were able to be extracted)
     for (Id root : roots) {
         Id root_class = egraph.find_class_id(root);
         if (keep_choices.contains(root_class)) {
@@ -198,8 +197,8 @@ PruneResult Pruner::prune_symbolic_when_kernel_available(EGraph &egraph, const s
 }
 
 void Pruner::rewrite_and_prune(
-    const std::vector<Id> &roots, Rewriter &rewriter,
-    const std::vector<std::string> &size_keys, const std::function<void(int iteration)> &onIterationStart,
+    const std::vector<Id> &roots, Rewriter &rewriter, const std::vector<std::string> &size_keys,
+    const std::function<void(int iteration)> &onIterationStart,
     const std::function<void(int iteration, const PruneResult &)> &onIterationFinish) const {
     for (int i = 0; i < config.pruner.num_iterations; ++i) {
         if (onIterationStart) {

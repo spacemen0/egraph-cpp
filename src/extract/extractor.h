@@ -67,21 +67,22 @@ class Extractor {
 
     void initial_analysis_pass(const SizeBindings *size_bindings) const;
 
+    std::pair<double, std::unordered_map<Id, const ENode *>>
+    evaluate_dag(Id root, const std::vector<const ENode *> &choices, const SizeBindings *size_bindings) const;
+
+    NumericSearchResult refine_seed_dag(Id root, const SizeBindings *size_bindings) const;
+
     std::vector<NumericSearchResult> find_top_numeric_dags(
         Id root_class_id, size_t max_results, const SizeBindings *size_bindings = nullptr,
         size_t custom_visit_limit = 0) const;
 
-    std::vector<SymbolicSearchResult> find_symbolic_dags(Id root_class_id) const;
-
-    bool creates_cycle(
-        Id current_class, const ENode *candidate, const std::vector<const ENode *> &current_choices,
-        std::vector<size_t> &visited_buffer, std::vector<Id> &stack_buffer) const;
-
     void search_numeric_dags(
         Id root, std::vector<Id> &pending, std::vector<size_t> &pending_set,
-        std::vector<const ENode *> &current_choices, double current_g, std::vector<NumericSearchResult> &results,
+        std::vector<const ENode *> &current_choices, double current_cost, std::vector<NumericSearchResult> &results,
         double &worst_cost, size_t max_results, std::vector<size_t> &visited_buffer, std::vector<Id> &stack_buffer,
         const SizeBindings *size_bindings, size_t effective_visit_limit) const;
+
+    std::vector<SymbolicSearchResult> find_symbolic_dags(Id root_class_id) const;
 
     void search_symbolic_dags(
         Id root, std::vector<Id> &pending, std::vector<size_t> &pending_set,
@@ -89,9 +90,9 @@ class Extractor {
         std::vector<SymbolicSearchResult> &results, std::vector<size_t> &visited_buffer, std::vector<Id> &stack_buffer,
         const std::unordered_map<const ENode *, Cost> &node_costs) const;
 
-    void record_symbolic_result(
-        Id root, const std::vector<const ENode *> &current_choices, const SymbolicCost &current_cost,
-        std::vector<SymbolicSearchResult> &results) const;
+    bool creates_cycle(
+        Id current_class, const ENode *candidate, const std::vector<const ENode *> &current_choices,
+        std::vector<size_t> &visited_buffer, std::vector<Id> &stack_buffer) const;
 
     std::unordered_map<Id, const ENode *>
     convert_to_map(const std::vector<const ENode *> &choices, const std::vector<Id> &roots) const;
