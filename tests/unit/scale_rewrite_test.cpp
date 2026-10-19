@@ -1,7 +1,8 @@
 #include "e_graph.h"
-#include "rewrite_sets.h"
 #include "rewriter.h"
+#include "simplification.h"
 #include "test_helpers.h"
+#include "transformation.h"
 #include <gtest/gtest.h>
 using namespace egraph;
 

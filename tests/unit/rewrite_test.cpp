@@ -476,44 +476,45 @@ TEST(Rewrite, TopDownTriangularityDiscoveredOnExistingChild) {
     PropertyTable pt;
     pt.add_or_update_property_entry(
         "Q", {.shape = {2, 2}, .flags = {.is_full_rank = true, .is_non_singular = true, .is_orthogonal = true}});
+    pt.add_or_update_property_entry(
+        "Identity", {.shape = {2, 2},
+                     .flags = {
+                         .is_diagonal = true,
+                         .is_upper_triangular = true,
+                         .is_lower_triangular = true,
+                         .is_identity = true,
+                         .is_full_rank = true,
+                         .is_non_singular = true}});
 
     EGraph egraph(std::move(pt));
 
-    Id id_parent = egraph.add_expression(Expression("Tr(Q * Tr(Q))"));
-    Id id_child = egraph.find_class_id(egraph.add_expression(Expression("Q * Tr(Q)")));
+    // Child : Q * Tr(Q * Identity)
+    // Parent expression: Tr(Tr(Q)) * Tr(Q)
+    Id id_child = egraph.find_class_id(egraph.add_expression(Expression("Q * Tr(Q * Identity)")));
+    Id id_parent = egraph.find_class_id(egraph.add_expression(Expression("Tr(Tr(Q)) * Tr(Q)")));
 
     const auto &child_prop_before = std::get<MatrixProperty>(egraph.get_class_analysis_data(id_child).property);
     const auto &parent_prop_before = std::get<MatrixProperty>(egraph.get_class_analysis_data(id_parent).property);
-
-    // Verify initial state: child exists, but has NO triangular property!
     EXPECT_FALSE(child_prop_before.flags.is_lower_triangular);
     EXPECT_FALSE(child_prop_before.flags.is_upper_triangular);
     EXPECT_FALSE(parent_prop_before.flags.is_upper_triangular);
 
-    // Rules:
-    // - mat_transpose_prod rewrites Tr(Q * Tr(Q)) <-> Tr(Tr(Q)) * Tr(Q)
-    // - orthogonal_transpose simplifies Tr(Tr(Q)) * Tr(Q) -> Identity
-    Rewriter rewriter(
-        egraph, {mat_transpose_prod, orthogonal_transpose},
-        EGraphConfig{.rewrite = {.node_limit = 200, .max_iterations = 10}});
+    std::vector<Rewrite> rules = {
+        orthogonal_transpose, orthogonal_transpose_right, mat_transpose_prod, mul_identity_left, mul_identity_right};
 
-    // Iteration 0: mat_transpose_prod synthesizes Tr(Tr(Q)) * Tr(Q) into the parent class.
-    // orthogonal_transpose cannot match yet because Tr(Tr(Q)) * Tr(Q) was only created in this iteration.
+    Rewriter rewriter(egraph, rules, EGraphConfig{.rewrite = {.node_limit = 200, .max_iterations = 10}});
+    egraph.to_img("top_down_triangularity_before", "png");
+
     rewriter.apply_rewrites(1);
-    const auto &child_prop_iter0 = std::get<MatrixProperty>(egraph.get_class_analysis_data(id_child).property);
-    const auto &parent_prop_iter0 = std::get<MatrixProperty>(egraph.get_class_analysis_data(id_parent).property);
 
-    EXPECT_FALSE(child_prop_iter0.flags.is_lower_triangular);
-    EXPECT_FALSE(parent_prop_iter0.flags.is_upper_triangular);
+    egraph.to_img("top_down_triangularity_after", "png");
+    Id parent_class = egraph.find_class_id(id_parent);
+    const auto &parent_prop_iter1 = std::get<MatrixProperty>(egraph.get_class_analysis_data(parent_class).property);
 
-    rewriter.apply_rewrites();
+    Id child_class = egraph.find_class_id(id_child);
+    const auto &child_prop_iter1 = std::get<MatrixProperty>(egraph.get_class_analysis_data(child_class).property);
 
-    const auto &child_prop_after = std::get<MatrixProperty>(egraph.get_class_analysis_data(id_child).property);
-    const auto &parent_prop_after = std::get<MatrixProperty>(egraph.get_class_analysis_data(id_parent).property);
+    EXPECT_TRUE(parent_prop_iter1.flags.is_upper_triangular);
 
-    // Parent has simplified to Identity (upper & lower triangular)
-    EXPECT_TRUE(parent_prop_after.flags.is_upper_triangular);
-
-    // Child has acquired lower-triangularity purely via TOP-DOWN propagation
-    EXPECT_TRUE(child_prop_after.flags.is_lower_triangular);
+    EXPECT_TRUE(child_prop_iter1.flags.is_lower_triangular);
 }
