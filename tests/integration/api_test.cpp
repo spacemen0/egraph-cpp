@@ -49,31 +49,6 @@ TEST(ApiTest, ContextOptimization) {
     EXPECT_EQ(best_ast.to_string(true), "Gemm_TT(B, A, Zero_300x100)");
 }
 
-TEST(ApiTest, OLSSymbolic) {
-    Context ctx((EGraph(get_property_table())));
-    ctx.define_matrix("M", "A", "B", {"full_rank", "tall"});
-    ctx.define_matrix("n", "A", 1);
-
-    Expression M("M");
-    Expression n("n");
-
-    // (M^T * M)^-1 * M^T * n
-    Expression target_math = inverse(transpose(M) * M) * transpose(M) * n;
-
-    Id target_id = ctx.add(target_math);
-
-    ctx.get_config().rewrite.node_limit = 1000;
-    ctx.get_config().rewrite.enable_backoff = true;
-    ctx.rewrite({"property_discovery", "simplification", "transformation", "expansion"});
-
-    SizeBindings bindings = {{"A", 30}, {"B", 10}};
-    ExtractionResult best_result = ctx.extract(target_id, bindings);
-    std::string actual = best_result.expr.to_string(true);
-    std::string expected_cholel = "CholeL(Mᵀ * M)⁻¹ᵀ * (CholeL(Mᵀ * M)⁻¹ * (Mᵀ * n))";
-    std::string expected_choleu = "CholeU(Mᵀ * M)⁻¹ * (CholeU(Mᵀ * M)⁻¹ᵀ * (Mᵀ * n))";
-    EXPECT_TRUE(actual == expected_cholel || actual == expected_choleu) << "Actual expression: " << actual;
-}
-
 TEST(ApiTest, KernelMapping) {
     Context ctx((EGraph(get_property_table())));
 

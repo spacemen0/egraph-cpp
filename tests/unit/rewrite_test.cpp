@@ -237,7 +237,7 @@ TEST(Rewrite, LowerAxpy) {
     EXPECT_EQ(egraph.find_class_id(mat_add_id), egraph.find_class_id(mat_axpy_id));
 }
 
-TEST(Rewrite, DisableKernelFiltersExpansionRules) {
+TEST(Rewrite, DisableKernelFiltersLoweringRules) {
     auto effective_disabled_cholesky = Rewriter::compute_effective_disabled_ops({Op::Potrf_L, Op::Potrf_U});
     EXPECT_TRUE(effective_disabled_cholesky.contains(Op::Potrf_L));
     EXPECT_TRUE(effective_disabled_cholesky.contains(Op::Potrf_U));
@@ -261,10 +261,10 @@ TEST(Rewrite, DisableKernelFiltersExpansionRules) {
     auto effective_disabled_none = Rewriter::compute_effective_disabled_ops({});
     EXPECT_TRUE(effective_disabled_none.empty());
 
-    // Verify expansion_set filtering in Rewriter when both Cholesky kernels are disabled
+    // Verify lowering_set filtering in Rewriter when both Cholesky kernels are disabled
     EGraph egraph_instance(get_property_table());
     Rewriter rewriter_cholesky(
-        egraph_instance, expansion_set, EGraphConfig{.disabled_ops = {Op::Potrf_L, Op::Potrf_U}});
+        egraph_instance, lowering_set, EGraphConfig{.disabled_ops = {Op::Potrf_L, Op::Potrf_U}});
     const auto &filtered_rules_cholesky = rewriter_cholesky.get_rewrites();
     for (const auto &rule : filtered_rules_cholesky) {
         EXPECT_FALSE(rule.lhs.contains_op(Op::Potrf_L) || rule.rhs.contains_op(Op::Potrf_L))
@@ -279,7 +279,7 @@ TEST(Rewrite, DisableKernelFiltersExpansionRules) {
     });
     EXPECT_TRUE(has_geqrf_rule);
 
-    Rewriter rewriter_geqrf(egraph_instance, expansion_set, EGraphConfig{.disabled_ops = {Op::Geqrf}});
+    Rewriter rewriter_geqrf(egraph_instance, lowering_set, EGraphConfig{.disabled_ops = {Op::Geqrf}});
     const auto &filtered_rules_geqrf = rewriter_geqrf.get_rewrites();
     for (const auto &rule : filtered_rules_geqrf) {
         EXPECT_FALSE(rule.lhs.contains_op(Op::Geqrf) || rule.rhs.contains_op(Op::Geqrf))
@@ -297,7 +297,7 @@ TEST(Rewrite, DisablingKernelPreventsFactorizationInEGraph) {
     {
         EGraph egraph_instance(get_property_table());
         egraph_instance.add_expression(Expression("Inv(V)"));
-        Rewriter rewriter_instance(egraph_instance, expansion_set, EGraphConfig{.rewrite = {.node_limit = 100}});
+        Rewriter rewriter_instance(egraph_instance, lowering_set, EGraphConfig{.rewrite = {.node_limit = 100}});
         rewriter_instance.apply_rewrites();
 
         bool has_potrf_l_node = false;
@@ -317,7 +317,7 @@ TEST(Rewrite, DisablingKernelPreventsFactorizationInEGraph) {
         EGraph egraph_instance(get_property_table());
         egraph_instance.add_expression(Expression("Inv(V)"));
         Rewriter rewriter_instance(
-            egraph_instance, expansion_set,
+            egraph_instance, lowering_set,
             EGraphConfig{.rewrite = {.node_limit = 100}, .disabled_ops = {Op::Potrf_L, Op::Potrf_U}});
         rewriter_instance.apply_rewrites();
 
@@ -338,7 +338,7 @@ TEST(Rewrite, DisablingKernelPreventsFactorizationInEGraph) {
         EGraph egraph_instance(get_property_table());
         egraph_instance.add_expression(Expression("Inv(A)"));
         Rewriter rewriter_instance(
-            egraph_instance, expansion_set, EGraphConfig{.rewrite = {.node_limit = 100}, .disabled_ops = {Op::Geqrf}});
+            egraph_instance, lowering_set, EGraphConfig{.rewrite = {.node_limit = 100}, .disabled_ops = {Op::Geqrf}});
         rewriter_instance.apply_rewrites();
 
         bool has_geqrf_node = false;
@@ -356,12 +356,12 @@ TEST(Rewrite, DisablingKernelPreventsFactorizationInEGraph) {
 
 TEST(Rewrite, DynamicSetConfigReFiltersRules) {
     EGraph egraph_instance(get_property_table());
-    Rewriter rewriter_instance(egraph_instance, expansion_set);
-    EXPECT_EQ(rewriter_instance.get_rewrites().size(), expansion_set.size());
+    Rewriter rewriter_instance(egraph_instance, lowering_set);
+    EXPECT_EQ(rewriter_instance.get_rewrites().size(), lowering_set.size());
 
     // Dynamically disable both Potrf_L and Potrf_U
     rewriter_instance.set_config(EGraphConfig{.disabled_ops = {Op::Potrf_L, Op::Potrf_U}});
-    EXPECT_LT(rewriter_instance.get_rewrites().size(), expansion_set.size());
+    EXPECT_LT(rewriter_instance.get_rewrites().size(), lowering_set.size());
     for (const auto &rule : rewriter_instance.get_rewrites()) {
         EXPECT_FALSE(rule.lhs.contains_op(Op::Potrf_L) || rule.rhs.contains_op(Op::Potrf_L));
         EXPECT_FALSE(rule.lhs.contains_op(Op::Potrf_U) || rule.rhs.contains_op(Op::Potrf_U));
@@ -369,7 +369,7 @@ TEST(Rewrite, DynamicSetConfigReFiltersRules) {
 
     // Re-enable everything
     rewriter_instance.set_config(EGraphConfig{.disabled_ops = {}});
-    EXPECT_EQ(rewriter_instance.get_rewrites().size(), expansion_set.size());
+    EXPECT_EQ(rewriter_instance.get_rewrites().size(), lowering_set.size());
 }
 
 TEST(Rewrite, DynamicRulesFilteringAndTraversal) {
