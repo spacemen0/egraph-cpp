@@ -13,10 +13,6 @@ enum class Op : std::uint8_t {
     Minus,
     Tr,
     Inv,
-    QR,       // output: [Q, R] reduced QR
-    LU,       // output: [L, U, P]
-    CholeL,   // output: [L] where A = CholeL
-    CholeU,   // output: [U] where A = CholeU (representing A = U^T U)
     Get,      // [tuple, index]
     Scale,    // [A, int] representing scalar * A
     Geqrf,    // QR factorization

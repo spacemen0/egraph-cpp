@@ -160,20 +160,20 @@ TEST(Rewrite, CholeLRewrite) {
     bool changed = rewriter.apply_rewrites();
     EXPECT_TRUE(changed);
 
-    Id id_cholel = egraph.add_expression(Expression("Tr(Inv(Get(CholeL(V), 0))) * Inv(Get(CholeL(V), 0))"));
+    Id id_cholel = egraph.add_expression(Expression("Tr(Inv(Get(Potrf_L(V), 0))) * Inv(Get(Potrf_L(V), 0))"));
     EXPECT_EQ(egraph.find_class_id(id_expr), egraph.find_class_id(id_cholel));
 }
 
 TEST(Rewrite, CholeLToCholeURewrite) {
     EGraph egraph(get_property_table());
 
-    Id id_cholel = egraph.add_expression(Expression("Get(CholeL(V), 0)"));
+    Id id_cholel = egraph.add_expression(Expression("Get(Potrf_L(V), 0)"));
 
     Rewriter rewriter(egraph, {cholel_to_choleu}, EGraphConfig{.rewrite = {.node_limit = 100}});
     bool changed = rewriter.apply_rewrites();
     EXPECT_TRUE(changed);
 
-    Id id_choleu = egraph.add_expression(Expression("Tr(Get(CholeU(V), 0))"));
+    Id id_choleu = egraph.add_expression(Expression("Tr(Get(Potrf_U(V), 0))"));
     EXPECT_EQ(egraph.find_class_id(id_cholel), egraph.find_class_id(id_choleu));
 }
 
@@ -237,59 +237,29 @@ TEST(Rewrite, LowerAxpy) {
     EXPECT_EQ(egraph.find_class_id(mat_add_id), egraph.find_class_id(mat_axpy_id));
 }
 
-TEST(Rewrite, DisableKernelPropagatesToSymbolicOps) {
-    // When both Potrf_L and Potrf_U are disabled, all Cholesky lowering paths are blocked -> both CholeL and CholeU are
-    // disabled
+TEST(Rewrite, DisableKernelFiltersExpansionRules) {
     auto effective_disabled_cholesky = Rewriter::compute_effective_disabled_ops({Op::Potrf_L, Op::Potrf_U});
     EXPECT_TRUE(effective_disabled_cholesky.contains(Op::Potrf_L));
     EXPECT_TRUE(effective_disabled_cholesky.contains(Op::Potrf_U));
-    EXPECT_TRUE(effective_disabled_cholesky.contains(Op::CholeL));
-    EXPECT_TRUE(effective_disabled_cholesky.contains(Op::CholeU));
-    EXPECT_FALSE(effective_disabled_cholesky.contains(Op::QR));
+    EXPECT_FALSE(effective_disabled_cholesky.contains(Op::Geqrf));
 
-    // When only Potrf_L is disabled, CholeL is NOT disabled because it can transition to CholeU via cholel_to_choleu
-    // and use Potrf_U
     auto effective_disabled_potrf_l = Rewriter::compute_effective_disabled_ops({Op::Potrf_L});
     EXPECT_TRUE(effective_disabled_potrf_l.contains(Op::Potrf_L));
-    EXPECT_FALSE(effective_disabled_potrf_l.contains(Op::CholeL));
-    EXPECT_FALSE(effective_disabled_potrf_l.contains(Op::CholeU));
+    EXPECT_FALSE(effective_disabled_potrf_l.contains(Op::Potrf_U));
 
-    // When only Potrf_U is disabled, CholeU is disabled, but CholeL has a direct lowering path via Potrf_L
-    auto effective_disabled_potrf_u = Rewriter::compute_effective_disabled_ops({Op::Potrf_U});
-    EXPECT_TRUE(effective_disabled_potrf_u.contains(Op::Potrf_U));
-    EXPECT_TRUE(effective_disabled_potrf_u.contains(Op::CholeU));
-    EXPECT_FALSE(effective_disabled_potrf_u.contains(Op::CholeL));
-
-    // Geqrf -> QR (only single lowering path exists)
     auto effective_disabled_geqrf = Rewriter::compute_effective_disabled_ops({Op::Geqrf});
     EXPECT_TRUE(effective_disabled_geqrf.contains(Op::Geqrf));
-    EXPECT_TRUE(effective_disabled_geqrf.contains(Op::QR));
-    EXPECT_FALSE(effective_disabled_geqrf.contains(Op::CholeL));
-    EXPECT_FALSE(effective_disabled_geqrf.contains(Op::CholeU));
+    EXPECT_FALSE(effective_disabled_geqrf.contains(Op::Potrf_L));
+    EXPECT_FALSE(effective_disabled_geqrf.contains(Op::Potrf_U));
 
-    // Both Cholesky and QR kernels disabled
     auto effective_disabled_all_factorizations =
         Rewriter::compute_effective_disabled_ops({Op::Potrf_L, Op::Potrf_U, Op::Geqrf});
     EXPECT_TRUE(effective_disabled_all_factorizations.contains(Op::Potrf_L));
     EXPECT_TRUE(effective_disabled_all_factorizations.contains(Op::Potrf_U));
-    EXPECT_TRUE(effective_disabled_all_factorizations.contains(Op::CholeL));
-    EXPECT_TRUE(effective_disabled_all_factorizations.contains(Op::CholeU));
     EXPECT_TRUE(effective_disabled_all_factorizations.contains(Op::Geqrf));
-    EXPECT_TRUE(effective_disabled_all_factorizations.contains(Op::QR));
 
-    // Empty disabled_ops -> nothing disabled
     auto effective_disabled_none = Rewriter::compute_effective_disabled_ops({});
     EXPECT_TRUE(effective_disabled_none.empty());
-
-    // Custom multi-hop rules inspection: CholeL -> QR -> Geqrf
-    std::vector<Rewrite> custom_multi_hop_rules = {
-        make_rewrite("cholel_to_qr", "CholeL(?a)", "QR(?a)", false),
-        make_rewrite("qr_to_geqrf", "QR(?a)", "Geqrf(?a)", false),
-    };
-    auto effective_disabled_custom = Rewriter::compute_effective_disabled_ops({Op::Geqrf}, &custom_multi_hop_rules);
-    EXPECT_TRUE(effective_disabled_custom.contains(Op::Geqrf));
-    EXPECT_TRUE(effective_disabled_custom.contains(Op::QR));
-    EXPECT_TRUE(effective_disabled_custom.contains(Op::CholeL));
 
     // Verify expansion_set filtering in Rewriter when both Cholesky kernels are disabled
     EGraph egraph_instance(get_property_table());
@@ -297,52 +267,52 @@ TEST(Rewrite, DisableKernelPropagatesToSymbolicOps) {
         egraph_instance, expansion_set, EGraphConfig{.disabled_ops = {Op::Potrf_L, Op::Potrf_U}});
     const auto &filtered_rules_cholesky = rewriter_cholesky.get_rewrites();
     for (const auto &rule : filtered_rules_cholesky) {
-        EXPECT_FALSE(rule.lhs.contains_op(Op::CholeL) || rule.rhs.contains_op(Op::CholeL))
-            << "Rule " << rule.name << " still contains CholeL despite Cholesky kernels being disabled";
-        EXPECT_FALSE(rule.lhs.contains_op(Op::CholeU) || rule.rhs.contains_op(Op::CholeU))
-            << "Rule " << rule.name << " still contains CholeU despite Cholesky kernels being disabled";
+        EXPECT_FALSE(rule.lhs.contains_op(Op::Potrf_L) || rule.rhs.contains_op(Op::Potrf_L))
+            << "Rule " << rule.name << " still contains Potrf_L despite Cholesky kernels being disabled";
+        EXPECT_FALSE(rule.lhs.contains_op(Op::Potrf_U) || rule.rhs.contains_op(Op::Potrf_U))
+            << "Rule " << rule.name << " still contains Potrf_U despite Cholesky kernels being disabled";
     }
-    // Should still have QR rules
-    bool has_qr_rule =
+    // Should still have Geqrf rules
+    bool has_geqrf_rule =
         std::any_of(filtered_rules_cholesky.begin(), filtered_rules_cholesky.end(), [](const auto &rule) {
-        return rule.lhs.contains_op(Op::QR) || rule.rhs.contains_op(Op::QR);
+        return rule.lhs.contains_op(Op::Geqrf) || rule.rhs.contains_op(Op::Geqrf);
     });
-    EXPECT_TRUE(has_qr_rule);
+    EXPECT_TRUE(has_geqrf_rule);
 
     Rewriter rewriter_geqrf(egraph_instance, expansion_set, EGraphConfig{.disabled_ops = {Op::Geqrf}});
     const auto &filtered_rules_geqrf = rewriter_geqrf.get_rewrites();
     for (const auto &rule : filtered_rules_geqrf) {
-        EXPECT_FALSE(rule.lhs.contains_op(Op::QR) || rule.rhs.contains_op(Op::QR))
-            << "Rule " << rule.name << " still contains QR despite Geqrf being disabled";
+        EXPECT_FALSE(rule.lhs.contains_op(Op::Geqrf) || rule.rhs.contains_op(Op::Geqrf))
+            << "Rule " << rule.name << " still contains Geqrf despite Geqrf being disabled";
     }
-    // Should still have CholeL rules
-    bool has_cholel_rule = std::any_of(filtered_rules_geqrf.begin(), filtered_rules_geqrf.end(), [](const auto &rule) {
-        return rule.lhs.contains_op(Op::CholeL) || rule.rhs.contains_op(Op::CholeL);
+    // Should still have Potrf_L rules
+    bool has_potrf_l_rule = std::any_of(filtered_rules_geqrf.begin(), filtered_rules_geqrf.end(), [](const auto &rule) {
+        return rule.lhs.contains_op(Op::Potrf_L) || rule.rhs.contains_op(Op::Potrf_L);
     });
-    EXPECT_TRUE(has_cholel_rule);
+    EXPECT_TRUE(has_potrf_l_rule);
 }
 
-TEST(Rewrite, DisablingKernelPreventsSymbolicGenerationInEGraph) {
-    // 1. Without disabled_ops, Inv(V) expands to CholeL
+TEST(Rewrite, DisablingKernelPreventsFactorizationInEGraph) {
+    // 1. Without disabled_ops, Inv(V) expands to Potrf_L
     {
         EGraph egraph_instance(get_property_table());
         egraph_instance.add_expression(Expression("Inv(V)"));
         Rewriter rewriter_instance(egraph_instance, expansion_set, EGraphConfig{.rewrite = {.node_limit = 100}});
         rewriter_instance.apply_rewrites();
 
-        bool has_cholel_node = false;
+        bool has_potrf_l_node = false;
         for (Id class_id : egraph_instance.get_all_class_ids()) {
             for (const ENode *node : egraph_instance.get_class_nodes(class_id)) {
-                if (std::holds_alternative<Op>(node->get_atom()) && std::get<Op>(node->get_atom()) == Op::CholeL) {
-                    has_cholel_node = true;
+                if (std::holds_alternative<Op>(node->get_atom()) && std::get<Op>(node->get_atom()) == Op::Potrf_L) {
+                    has_potrf_l_node = true;
                     break;
                 }
             }
         }
-        EXPECT_TRUE(has_cholel_node);
+        EXPECT_TRUE(has_potrf_l_node);
     }
 
-    // 2. With both Potrf_L and Potrf_U disabled, Inv(V) MUST NOT produce CholeL
+    // 2. With both Potrf_L and Potrf_U disabled, Inv(V) MUST NOT produce Potrf_L
     {
         EGraph egraph_instance(get_property_table());
         egraph_instance.add_expression(Expression("Inv(V)"));
@@ -351,19 +321,19 @@ TEST(Rewrite, DisablingKernelPreventsSymbolicGenerationInEGraph) {
             EGraphConfig{.rewrite = {.node_limit = 100}, .disabled_ops = {Op::Potrf_L, Op::Potrf_U}});
         rewriter_instance.apply_rewrites();
 
-        bool has_cholel_node = false;
+        bool has_potrf_l_node = false;
         for (Id class_id : egraph_instance.get_all_class_ids()) {
             for (const ENode *node : egraph_instance.get_class_nodes(class_id)) {
-                if (std::holds_alternative<Op>(node->get_atom()) && std::get<Op>(node->get_atom()) == Op::CholeL) {
-                    has_cholel_node = true;
+                if (std::holds_alternative<Op>(node->get_atom()) && std::get<Op>(node->get_atom()) == Op::Potrf_L) {
+                    has_potrf_l_node = true;
                     break;
                 }
             }
         }
-        EXPECT_FALSE(has_cholel_node);
+        EXPECT_FALSE(has_potrf_l_node);
     }
 
-    // 3. With Geqrf disabled, Inv(A) MUST NOT produce QR
+    // 3. With Geqrf disabled, Inv(A) MUST NOT produce Geqrf
     {
         EGraph egraph_instance(get_property_table());
         egraph_instance.add_expression(Expression("Inv(A)"));
@@ -371,16 +341,16 @@ TEST(Rewrite, DisablingKernelPreventsSymbolicGenerationInEGraph) {
             egraph_instance, expansion_set, EGraphConfig{.rewrite = {.node_limit = 100}, .disabled_ops = {Op::Geqrf}});
         rewriter_instance.apply_rewrites();
 
-        bool has_qr_node = false;
+        bool has_geqrf_node = false;
         for (Id class_id : egraph_instance.get_all_class_ids()) {
             for (const ENode *node : egraph_instance.get_class_nodes(class_id)) {
-                if (std::holds_alternative<Op>(node->get_atom()) && std::get<Op>(node->get_atom()) == Op::QR) {
-                    has_qr_node = true;
+                if (std::holds_alternative<Op>(node->get_atom()) && std::get<Op>(node->get_atom()) == Op::Geqrf) {
+                    has_geqrf_node = true;
                     break;
                 }
             }
         }
-        EXPECT_FALSE(has_qr_node);
+        EXPECT_FALSE(has_geqrf_node);
     }
 }
 
@@ -393,7 +363,8 @@ TEST(Rewrite, DynamicSetConfigReFiltersRules) {
     rewriter_instance.set_config(EGraphConfig{.disabled_ops = {Op::Potrf_L, Op::Potrf_U}});
     EXPECT_LT(rewriter_instance.get_rewrites().size(), expansion_set.size());
     for (const auto &rule : rewriter_instance.get_rewrites()) {
-        EXPECT_FALSE(rule.lhs.contains_op(Op::CholeL) || rule.rhs.contains_op(Op::CholeL));
+        EXPECT_FALSE(rule.lhs.contains_op(Op::Potrf_L) || rule.rhs.contains_op(Op::Potrf_L));
+        EXPECT_FALSE(rule.lhs.contains_op(Op::Potrf_U) || rule.rhs.contains_op(Op::Potrf_U));
     }
 
     // Re-enable everything
@@ -411,34 +382,28 @@ TEST(Rewrite, DynamicRulesFilteringAndTraversal) {
         EXPECT_FALSE(rule.contains_op(Op::Gemm_NN));
     }
 
-    // 2. Dynamic rule producing a symbolic op:
+    // 2. Dynamic rule producing an op:
     auto custom_dynamic_expansion = make_rewrite(
-        "custom_dynamic_cholel", "Inv(?a)", "Dynamic", false, nullptr, [](EGraph &, const Substitution &, Id id) {
+        "custom_dynamic_potrf_l", "Inv(?a)", "Dynamic", false, nullptr, [](EGraph &, const Substitution &, Id id) {
         return std::make_pair(id, false);
-    }, {Op::CholeL});
-    EXPECT_TRUE(custom_dynamic_expansion.contains_op(Op::CholeL));
-
-    // When both Potrf_L and Potrf_U are disabled, compute_effective_disabled_ops includes CholeL
-    auto effective_disabled_cholesky = Rewriter::compute_effective_disabled_ops({Op::Potrf_L, Op::Potrf_U});
-    EXPECT_TRUE(effective_disabled_cholesky.contains(Op::CholeL));
+    }, {Op::Potrf_L});
+    EXPECT_TRUE(custom_dynamic_expansion.contains_op(Op::Potrf_L));
 
     // Rewriter filtering prunes the custom dynamic expansion rule
     Rewriter rewriter_dyn_expansion(
-        egraph_instance, {custom_dynamic_expansion}, EGraphConfig{.disabled_ops = {Op::Potrf_L, Op::Potrf_U}});
+        egraph_instance, {custom_dynamic_expansion}, EGraphConfig{.disabled_ops = {Op::Potrf_L}});
     EXPECT_TRUE(rewriter_dyn_expansion.get_rewrites().empty());
 
     // 3. Dynamic lowering rule:
-    // Custom rule dynamically lowers CholeL into Potrf_L via an applier
     auto custom_dynamic_lowering = make_rewrite(
-        "custom_dynamic_potrf_l", "CholeL(?a)", "Dynamic", false, nullptr, [](EGraph &, const Substitution &, Id id) {
+        "custom_dynamic_geqrf", "Inv(?a)", "Dynamic", false, nullptr, [](EGraph &, const Substitution &, Id id) {
         return std::make_pair(id, false);
-    }, {Op::Potrf_L});
-    EXPECT_TRUE(custom_dynamic_lowering.contains_op(Op::Potrf_L));
-    EXPECT_TRUE(custom_dynamic_lowering.contains_op(Op::CholeL));
+    }, {Op::Geqrf});
+    EXPECT_TRUE(custom_dynamic_lowering.contains_op(Op::Geqrf));
 
-    // When Potrf_L is disabled, Rewriter filtering prunes the dynamic lowering rule
+    // When Geqrf is disabled, Rewriter filtering prunes the dynamic lowering rule
     Rewriter rewriter_dyn_lowering(
-        egraph_instance, {custom_dynamic_lowering}, EGraphConfig{.disabled_ops = {Op::Potrf_L}});
+        egraph_instance, {custom_dynamic_lowering}, EGraphConfig{.disabled_ops = {Op::Geqrf}});
     EXPECT_TRUE(rewriter_dyn_lowering.get_rewrites().empty());
 }
 

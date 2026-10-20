@@ -220,12 +220,10 @@ TEST(MatrixAnalysisTest, AnalysisRejectsNonSquareFactorizationsAndInversion) {
 
     EXPECT_THROW(g.add_node(make_op(Op::Inv, {id_sym})), InvalidOperationError);
     EXPECT_THROW(g.add_node(make_op(Op::Inv, {id_num})), InvalidOperationError);
-    EXPECT_THROW(g.add_node(make_op(Op::CholeL, {id_sym})), InvalidOperationError);
-    EXPECT_THROW(g.add_node(make_op(Op::CholeL, {id_num})), InvalidOperationError);
-    EXPECT_THROW(g.add_node(make_op(Op::CholeU, {id_sym})), InvalidOperationError);
-    EXPECT_THROW(g.add_node(make_op(Op::CholeU, {id_num})), InvalidOperationError);
     EXPECT_THROW(g.add_node(make_op(Op::Potrf_L, {id_sym})), InvalidOperationError);
     EXPECT_THROW(g.add_node(make_op(Op::Potrf_L, {id_num})), InvalidOperationError);
+    EXPECT_THROW(g.add_node(make_op(Op::Potrf_U, {id_sym})), InvalidOperationError);
+    EXPECT_THROW(g.add_node(make_op(Op::Potrf_U, {id_num})), InvalidOperationError);
     EXPECT_THROW(g.add_node(make_op(Op::Trtri, {id_sym})), InvalidOperationError);
     EXPECT_THROW(g.add_node(make_op(Op::Trtri, {id_num})), InvalidOperationError);
 }

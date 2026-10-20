@@ -243,13 +243,10 @@ static const auto trsm_rt_tr_inv =
 
 /// LAPACK
 /// ----------------------------------------------------------
-static const auto potrf_l = make_rewrite("potrf_l", "CholeL(?a)", "Potrf_L(?a)", false);
-static const auto potrf_u = make_rewrite("potrf_u", "CholeU(?a)", "Potrf_U(?a)", false);
 static const auto potrf_u_to_potrf_l =
     make_rewrite("potrf_u_to_potrf_l", "Get(Potrf_U(?a), 0)", "Tr(Get(Potrf_L(?a), 0))", false);
 static const auto potrf_l_to_potrf_u =
     make_rewrite("potrf_l_to_potrf_u", "Get(Potrf_L(?a), 0)", "Tr(Get(Potrf_U(?a), 0))", false);
-static const auto geqrf = make_rewrite("geqrf", "QR(?a)", "Geqrf(?a)", false);
 static const auto get_orgqr = make_rewrite("get_orgqr", "Get(Geqrf(?a), 0)", "Orgqr(Geqrf(?a))", false);
 static const auto fuse_ormqr_ln =
     make_rewrite("fuse_ormqr_ln", "Get(Geqrf(?a), 0) * ?b", "Ormqr_LN(Geqrf(?a), ?b)", false);
@@ -300,11 +297,8 @@ static const std::vector<Rewrite> lowering_set = {
     gemm_tt,
     gemm_with_c,
     gemm_without_c,
-    potrf_l,
-    potrf_u,
     potrf_u_to_potrf_l,
     potrf_l_to_potrf_u,
-    geqrf,
     get_orgqr,
     fuse_ormqr_ln,
     fuse_ormqr_lt,

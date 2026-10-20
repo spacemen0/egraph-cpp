@@ -51,10 +51,10 @@ TEST(Expression, ToString) {
 }
 
 TEST(Expression, ToStringFactorizationIndexing) {
-    Expression q("Get(QR(A), 0)");
-    Expression r("Get(QR(A), 1)");
-    EXPECT_EQ(q.to_string(), "Get(QR(A), 0)");
-    EXPECT_EQ(r.to_string(), "Get(QR(A), 1)");
+    Expression q("Get(Geqrf(A), 0)");
+    Expression r("Get(Geqrf(A), 1)");
+    EXPECT_EQ(q.to_string(), "Get(Geqrf(A), 0)");
+    EXPECT_EQ(r.to_string(), "Get(Geqrf(A), 1)");
     EXPECT_EQ(q.to_string(true), "Q(A)");
     EXPECT_EQ(r.to_string(true), "R(A)");
 }
@@ -69,22 +69,22 @@ TEST(Expression, ToStringMulChainPreservesRightGrouping) {
     EXPECT_EQ(p.to_string(), "A * (B * C)");
 }
 
-TEST(Expression, ParseQRNode) {
-    Expression p("Get(QR(A), 0) * Get(QR(A), 1)");
+TEST(Expression, ParseGeqrfNode) {
+    Expression p("Get(Geqrf(A), 0) * Get(Geqrf(A), 1)");
     EXPECT_EQ(std::get<Op>(p.atom), Op::Mul);
     ASSERT_EQ(p.children.size(), 2);
     const Expression &get_q = p.children[0];
     EXPECT_EQ(std::get<Op>(get_q.atom), Op::Get);
     ASSERT_EQ(get_q.children.size(), 2);
     EXPECT_TRUE(std::holds_alternative<Op>(get_q.children[0].atom));
-    EXPECT_EQ(std::get<Op>(get_q.children[0].atom), Op::QR);
+    EXPECT_EQ(std::get<Op>(get_q.children[0].atom), Op::Geqrf);
     EXPECT_TRUE(std::holds_alternative<int>(get_q.children[1].atom));
     EXPECT_EQ(std::get<int>(get_q.children[1].atom), 0);
     const Expression &get_r = p.children[1];
     EXPECT_EQ(std::get<Op>(get_r.atom), Op::Get);
     ASSERT_EQ(get_r.children.size(), 2);
     EXPECT_TRUE(std::holds_alternative<Op>(get_r.children[0].atom));
-    EXPECT_EQ(std::get<Op>(get_r.children[0].atom), Op::QR);
+    EXPECT_EQ(std::get<Op>(get_r.children[0].atom), Op::Geqrf);
     EXPECT_TRUE(std::holds_alternative<int>(get_r.children[1].atom));
     EXPECT_EQ(std::get<int>(get_r.children[1].atom), 1);
 }
@@ -95,27 +95,18 @@ TEST(Expression, ParsingErrors) {
 }
 
 TEST(Expression, ToStringReadable) {
-    Expression q("Get(QR(A), 0)");
-    Expression r("Get(QR(A), 1)");
-    Expression l("Get(LU(A), 0)");
-    Expression u("Get(LU(A), 1)");
-    Expression p_mat("Get(LU(A), 2)");
-    Expression cholel("Get(CholeL(A), 0)");
-    Expression choleu("Get(CholeU(A), 0)");
+    Expression q("Get(Geqrf(A), 0)");
+    Expression r("Get(Geqrf(A), 1)");
+    Expression cholel("Get(Potrf_L(A), 0)");
+    Expression choleu("Get(Potrf_U(A), 0)");
 
-    EXPECT_EQ(q.to_string(), "Get(QR(A), 0)");
-    EXPECT_EQ(r.to_string(), "Get(QR(A), 1)");
-    EXPECT_EQ(l.to_string(), "Get(LU(A), 0)");
-    EXPECT_EQ(u.to_string(), "Get(LU(A), 1)");
-    EXPECT_EQ(p_mat.to_string(), "Get(LU(A), 2)");
-    EXPECT_EQ(cholel.to_string(), "Get(CholeL(A), 0)");
-    EXPECT_EQ(choleu.to_string(), "Get(CholeU(A), 0)");
+    EXPECT_EQ(q.to_string(), "Get(Geqrf(A), 0)");
+    EXPECT_EQ(r.to_string(), "Get(Geqrf(A), 1)");
+    EXPECT_EQ(cholel.to_string(), "Get(Potrf_L(A), 0)");
+    EXPECT_EQ(choleu.to_string(), "Get(Potrf_U(A), 0)");
 
     EXPECT_EQ(q.to_string(true), "Q(A)");
     EXPECT_EQ(r.to_string(true), "R(A)");
-    EXPECT_EQ(l.to_string(true), "L(A)");
-    EXPECT_EQ(u.to_string(true), "U(A)");
-    EXPECT_EQ(p_mat.to_string(true), "P(A)");
     EXPECT_EQ(cholel.to_string(true), "CholeL(A)");
     EXPECT_EQ(choleu.to_string(true), "CholeU(A)");
 }
