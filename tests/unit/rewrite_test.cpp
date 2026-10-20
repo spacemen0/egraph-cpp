@@ -238,34 +238,17 @@ TEST(Rewrite, LowerAxpy) {
 }
 
 TEST(Rewrite, DisableKernelFiltersLoweringRules) {
-    auto effective_disabled_cholesky = Rewriter::compute_effective_disabled_ops({Op::Potrf_L, Op::Potrf_U});
-    EXPECT_TRUE(effective_disabled_cholesky.contains(Op::Potrf_L));
-    EXPECT_TRUE(effective_disabled_cholesky.contains(Op::Potrf_U));
-    EXPECT_FALSE(effective_disabled_cholesky.contains(Op::Geqrf));
+    EGraph egraph_instance(get_property_table());
 
-    auto effective_disabled_potrf_l = Rewriter::compute_effective_disabled_ops({Op::Potrf_L});
-    EXPECT_TRUE(effective_disabled_potrf_l.contains(Op::Potrf_L));
-    EXPECT_FALSE(effective_disabled_potrf_l.contains(Op::Potrf_U));
-
-    auto effective_disabled_geqrf = Rewriter::compute_effective_disabled_ops({Op::Geqrf});
-    EXPECT_TRUE(effective_disabled_geqrf.contains(Op::Geqrf));
-    EXPECT_FALSE(effective_disabled_geqrf.contains(Op::Potrf_L));
-    EXPECT_FALSE(effective_disabled_geqrf.contains(Op::Potrf_U));
-
-    auto effective_disabled_all_factorizations =
-        Rewriter::compute_effective_disabled_ops({Op::Potrf_L, Op::Potrf_U, Op::Geqrf});
-    EXPECT_TRUE(effective_disabled_all_factorizations.contains(Op::Potrf_L));
-    EXPECT_TRUE(effective_disabled_all_factorizations.contains(Op::Potrf_U));
-    EXPECT_TRUE(effective_disabled_all_factorizations.contains(Op::Geqrf));
-
-    auto effective_disabled_none = Rewriter::compute_effective_disabled_ops({});
-    EXPECT_TRUE(effective_disabled_none.empty());
+    // Without disabled ops, lowering_set contains all rules
+    Rewriter rewriter_all(egraph_instance, lowering_set, EGraphConfig{});
+    EXPECT_EQ(rewriter_all.get_rewrites().size(), lowering_set.size());
 
     // Verify lowering_set filtering in Rewriter when both Cholesky kernels are disabled
-    EGraph egraph_instance(get_property_table());
     Rewriter rewriter_cholesky(
         egraph_instance, lowering_set, EGraphConfig{.disabled_ops = {Op::Potrf_L, Op::Potrf_U}});
     const auto &filtered_rules_cholesky = rewriter_cholesky.get_rewrites();
+    EXPECT_LT(filtered_rules_cholesky.size(), lowering_set.size());
     for (const auto &rule : filtered_rules_cholesky) {
         EXPECT_FALSE(rule.lhs.contains_op(Op::Potrf_L) || rule.rhs.contains_op(Op::Potrf_L))
             << "Rule " << rule.name << " still contains Potrf_L despite Cholesky kernels being disabled";
@@ -281,6 +264,7 @@ TEST(Rewrite, DisableKernelFiltersLoweringRules) {
 
     Rewriter rewriter_geqrf(egraph_instance, lowering_set, EGraphConfig{.disabled_ops = {Op::Geqrf}});
     const auto &filtered_rules_geqrf = rewriter_geqrf.get_rewrites();
+    EXPECT_LT(filtered_rules_geqrf.size(), lowering_set.size());
     for (const auto &rule : filtered_rules_geqrf) {
         EXPECT_FALSE(rule.lhs.contains_op(Op::Geqrf) || rule.rhs.contains_op(Op::Geqrf))
             << "Rule " << rule.name << " still contains Geqrf despite Geqrf being disabled";
