@@ -18,7 +18,7 @@ void initialize_config_for_expression(EGraphConfig &config, const Expression &ex
     config.pruner.dag_visit_limit = std::max(static_cast<size_t>(10000), static_cast<size_t>(depth * 4000));
     config.pruner.dag_sample_ratio = 0.16;
 
-    config.disabled_ops = {Op::Potrf_U};
+    // config.disabled_ops = {Op::Potrf_U};
 }
 
 EGraphConfig initialize_config_for_expression(const Expression &expr) {
