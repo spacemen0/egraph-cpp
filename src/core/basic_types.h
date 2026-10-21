@@ -7,7 +7,8 @@
 #include <vector>
 
 namespace egraph {
-enum class Op : std::uint8_t {
+// NOLINTNEXTLINE(performance-enum-size) - dynamically extended by OpRegistry at runtime
+enum class Op : std::uint32_t {
     Add,
     Mul,
     Minus,
@@ -57,7 +58,9 @@ struct ScalarExpr {
     std::vector<ScalarExpr> children;
 
     ScalarExpr() = default;
-    ScalarExpr(double v) : op(ScalarOp::Value), val(v) {}
+    // NOLINTNEXTLINE(misc-explicit-constructor)
+    ScalarExpr(double v) : val(v) {}
+    // NOLINTNEXTLINE(misc-explicit-constructor)
     ScalarExpr(char c) : op(ScalarOp::Var), var(c) {}
     ScalarExpr(ScalarOp op, std::vector<ScalarExpr> children) : op(op), children(std::move(children)) {}
 
@@ -109,6 +112,7 @@ struct ScalarExpr {
             return s;
         }
         case ScalarOp::Var:
+            // NOLINTNEXTLINE(modernize-return-braced-init-list) - braced init would call initializer_list<char>{1, var}
             return std::string(1, var);
         case ScalarOp::Add:
             return "(" + children[0].to_string() + " + " + children[1].to_string() + ")";
@@ -146,13 +150,6 @@ using Atom = std::variant<Op, uint32_t, int, ScalarExpr>;      // int for indexe
 using Size = std::variant<int, std::string>;
 using Shape = std::pair<Size, Size>;
 
-static inline bool is_kernel_op(Op op) {
-    using enum Op;
-    return op == Geqrf || op == Gemv_N || op == Gemv_T || op == Trtri || op == Gemm_NN || op == Gemm_TN ||
-           op == Gemm_NT || op == Gemm_TT || op == Syrk_N || op == Syrk_T || op == Trmm_LN || op == Trmm_LT ||
-           op == Trmm_RN || op == Trmm_RT || op == Symm_L || op == Symm_R || op == Trsm_LN || op == Trsm_LT ||
-           op == Trsm_RN || op == Trsm_RT || op == Potrf_L || op == Potrf_U || op == Orgqr || op == Ormqr_LN ||
-           op == Ormqr_LT || op == Ormqr_RN || op == Ormqr_RT || op == Axpy || op == Scale;
-}
+bool is_kernel_op(Op op);
 
 } // namespace egraph

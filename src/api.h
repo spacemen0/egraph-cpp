@@ -4,6 +4,7 @@
 #include "evaluator.h"
 #include "expression.h"
 #include "extractor.h"
+#include "op_registry.h"
 #include "property_table.h"
 #include "pruner.h"
 #include "rewrite_sets.h"
@@ -95,6 +96,14 @@ class Context {
         all_expressions.push_back(id);
         root_expression = id;
         return id;
+    }
+
+    Op register_op(const std::string &name, bool is_kernel, AnalyzeFn analyze = nullptr) {
+        return OpRegistry::instance().register_op(name, is_kernel, std::move(analyze));
+    }
+
+    Op register_kernel(const std::string &name, AnalyzeFn analyze = nullptr) {
+        return register_op(name, true, std::move(analyze));
     }
 
     void rewrite(const std::vector<std::string> &rulesets = {"complete"}, int max_iterations = -1) {

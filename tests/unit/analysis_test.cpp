@@ -2,7 +2,9 @@
 #include "e_graph.h"
 #include "errors.h"
 #include "extractor.h"
+#include "op_registry.h"
 #include "test_helpers.h"
+#include "utils.h"
 #include <gtest/gtest.h>
 using namespace egraph;
 
@@ -226,4 +228,52 @@ TEST(MatrixAnalysisTest, AnalysisRejectsNonSquareFactorizationsAndInversion) {
     EXPECT_THROW(g.add_node(make_op(Op::Potrf_U, {id_num})), InvalidOperationError);
     EXPECT_THROW(g.add_node(make_op(Op::Trtri, {id_sym})), InvalidOperationError);
     EXPECT_THROW(g.add_node(make_op(Op::Trtri, {id_num})), InvalidOperationError);
+}
+
+TEST(OpRegistry, UniformRegistrationAndAnalysis) {
+    auto &registry = OpRegistry::instance();
+    EXPECT_TRUE(registry.is_kernel(Op::Gemm_NN));
+    EXPECT_FALSE(registry.is_kernel(Op::Add));
+    EXPECT_EQ(registry.name(Op::Gemm_NN), "Gemm_NN");
+    EXPECT_EQ(parse_op("Gemm_NN"), Op::Gemm_NN);
+
+    // Register a new custom vendor kernel using the exact same uniform API
+    Op vendor_add = registry.register_op("VendorAdd", true, [](const EGraph &egraph, const std::vector<Id> &children) {
+        if (children.size() != 2) {
+            throw AnalysisError("VendorAdd expects 2 children");
+        }
+        auto *p1 = get_matrix_data(egraph, children[0]);
+        auto *p2 = get_matrix_data(egraph, children[1]);
+        if (!p1 || !p2) {
+            throw AnalysisError("VendorAdd expects matrix inputs");
+        }
+        if (p1->shape != p2->shape) {
+            throw ShapeMismatchError("Shape mismatch in VendorAdd");
+        }
+        MatrixProperty prop;
+        prop.shape = p1->shape;
+        return AnalysisData{prop};
+    });
+
+    EXPECT_TRUE(registry.is_kernel(vendor_add));
+    EXPECT_TRUE(is_kernel_op(vendor_add));
+    EXPECT_EQ(registry.name(vendor_add), "VendorAdd");
+    EXPECT_EQ(parse_op("VendorAdd"), vendor_add);
+
+    // Test in EGraph analysis
+    EGraph egraph(get_property_table());
+    Id id_x = egraph.add_node(sym_x);  // 3x2
+    Id id_x2 = egraph.add_node(sym_x); // 3x2
+    Id id_y = egraph.add_node(sym_y);  // 2x3
+
+    // Matching shapes -> analysis succeeds and populates matrix shape
+    ENode valid_node = make_op(vendor_add, {id_x, id_x2});
+    Id valid_id = egraph.add_node(valid_node);
+    const auto *prop = get_matrix_data(egraph, valid_id);
+    ASSERT_NE(prop, nullptr);
+    EXPECT_EQ(prop->shape, (Shape{3, 2}));
+
+    // Mismatched shapes -> custom analyzer throws ShapeMismatchError
+    ENode mismatch_node = make_op(vendor_add, {id_x, id_y});
+    EXPECT_THROW(egraph.add_node(mismatch_node), ShapeMismatchError);
 }

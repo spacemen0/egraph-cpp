@@ -4,6 +4,7 @@ add_library(egraph_core_lib STATIC
     core/e_graph.cpp
     core/e_class.cpp 
     core/expression.cpp
+    core/op_registry.cpp
     rewrite/pattern.cpp
     rewrite/matcher.cpp
     rewrite/rewriter.cpp

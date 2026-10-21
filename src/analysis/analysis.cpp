@@ -1,6 +1,7 @@
 #include "analysis.h"
 #include "e_graph.h"
 #include "errors.h"
+#include "op_registry.h"
 #include "property_table.h"
 #include "utils.h"
 #include <variant>
@@ -910,101 +911,50 @@ static AnalysisData analyze_scale(const EGraph &egraph, const std::vector<Id> &c
     throw AnalysisError("Scale expects a Matrix input");
 }
 
+void init_builtin_ops(OpRegistry &registry) {
+    registry.register_op(Op::Add, "Add", false, analyze_add);
+    registry.register_op(Op::Mul, "Mul", false, analyze_mul);
+    registry.register_op(Op::Minus, "Minus", false, analyze_minus);
+    registry.register_op(Op::Tr, "Tr", false, analyze_transpose);
+    registry.register_op(Op::Inv, "Inv", false, analyze_invert);
+    registry.register_op(Op::Get, "Get", false, analyze_get);
+    registry.register_op(Op::Scale, "Scale", true, analyze_scale);
+
+    registry.register_op(Op::Geqrf, "Geqrf", true, analyze_geqrf);
+    registry.register_op(Op::Trtri, "Trtri", true, analyze_trtri);
+    registry.register_op(Op::Gemv_N, "Gemv_N", true, analyze_gemv_n);
+    registry.register_op(Op::Gemv_T, "Gemv_T", true, analyze_gemv_t);
+    registry.register_op(Op::Gemm_NN, "Gemm_NN", true, analyze_gemm_nn);
+    registry.register_op(Op::Gemm_TN, "Gemm_TN", true, analyze_gemm_tn);
+    registry.register_op(Op::Gemm_NT, "Gemm_NT", true, analyze_gemm_nt);
+    registry.register_op(Op::Gemm_TT, "Gemm_TT", true, analyze_gemm_tt);
+    registry.register_op(Op::Syrk_N, "Syrk_N", true, analyze_syrk_n);
+    registry.register_op(Op::Syrk_T, "Syrk_T", true, analyze_syrk_t);
+    registry.register_op(Op::Trmm_LN, "Trmm_LN", true, analyze_trmm_ln);
+    registry.register_op(Op::Trmm_LT, "Trmm_LT", true, analyze_trmm_lt);
+    registry.register_op(Op::Trmm_RN, "Trmm_RN", true, analyze_trmm_rn);
+    registry.register_op(Op::Trmm_RT, "Trmm_RT", true, analyze_trmm_rt);
+    registry.register_op(Op::Symm_L, "Symm_L", true, analyze_symm_l);
+    registry.register_op(Op::Symm_R, "Symm_R", true, analyze_symm_r);
+    registry.register_op(Op::Trsm_LN, "Trsm_LN", true, analyze_trsm_ln);
+    registry.register_op(Op::Trsm_LT, "Trsm_LT", true, analyze_trsm_lt);
+    registry.register_op(Op::Trsm_RN, "Trsm_RN", true, analyze_trsm_rn);
+    registry.register_op(Op::Trsm_RT, "Trsm_RT", true, analyze_trsm_rt);
+    registry.register_op(Op::Potrf_L, "Potrf_L", true, analyze_potrf_l);
+    registry.register_op(Op::Potrf_U, "Potrf_U", true, analyze_potrf_u);
+    registry.register_op(Op::Orgqr, "Orgqr", true, analyze_orgqr);
+    registry.register_op(Op::Ormqr_LN, "Ormqr_LN", true, analyze_ormqr_ln);
+    registry.register_op(Op::Ormqr_LT, "Ormqr_LT", true, analyze_ormqr_lt);
+    registry.register_op(Op::Ormqr_RN, "Ormqr_RN", true, analyze_ormqr_rn);
+    registry.register_op(Op::Ormqr_RT, "Ormqr_RT", true, analyze_ormqr_rt);
+    registry.register_op(Op::Axpy, "Axpy", true, analyze_axpy);
+}
+
 AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode &node, Op op) {
-    const auto &children = node.get_children();
-
-    switch (op) {
-        using enum Op;
-    case Add:
-        return analyze_add(egraph, children);
-    case Mul:
-        return analyze_mul(egraph, children);
-    case Tr:
-        return analyze_transpose(egraph, children);
-    case Inv:
-        return analyze_invert(egraph, children);
-    case Minus:
-        return analyze_minus(egraph, children);
-    case Get:
-        return analyze_get(egraph, children);
-    case Scale: {
-        return analyze_scale(egraph, children);
+    const auto &desc = OpRegistry::instance().get(op);
+    if (!desc.analyze) {
+        throw AnalysisError("Operation has no analysis registered: " + desc.name);
     }
-
-    case Gemm_NN: {
-        return analyze_gemm_nn(egraph, children);
-    }
-    case Gemm_TN: {
-        return analyze_gemm_tn(egraph, children);
-    }
-    case Gemm_NT: {
-        return analyze_gemm_nt(egraph, children);
-    }
-    case Gemm_TT: {
-        return analyze_gemm_tt(egraph, children);
-    }
-    case Syrk_N: {
-        return analyze_syrk_n(egraph, children);
-    }
-    case Syrk_T: {
-        return analyze_syrk_t(egraph, children);
-    }
-    case Trmm_LN:
-        return analyze_trmm_ln(egraph, children);
-    case Trmm_LT:
-        return analyze_trmm_lt(egraph, children);
-    case Trmm_RN:
-        return analyze_trmm_rn(egraph, children);
-    case Trmm_RT:
-        return analyze_trmm_rt(egraph, children);
-    case Symm_L:
-        return analyze_symm_l(egraph, children);
-    case Symm_R:
-        return analyze_symm_r(egraph, children);
-    case Trsm_LN: {
-        return analyze_trsm_ln(egraph, children);
-    }
-    case Trsm_LT: {
-        return analyze_trsm_lt(egraph, children);
-    }
-    case Trsm_RN: {
-        return analyze_trsm_rn(egraph, children);
-    }
-    case Trsm_RT: {
-        return analyze_trsm_rt(egraph, children);
-    }
-    case Potrf_L: {
-        return analyze_potrf_l(egraph, children);
-    }
-    case Potrf_U: {
-        return analyze_potrf_u(egraph, children);
-    }
-    case Geqrf: {
-        return analyze_geqrf(egraph, children);
-    }
-    case Trtri: {
-        return analyze_trtri(egraph, children);
-    }
-    case Gemv_N: {
-        return analyze_gemv_n(egraph, children);
-    }
-    case Gemv_T: {
-        return analyze_gemv_t(egraph, children);
-    }
-    case Orgqr:
-        return analyze_orgqr(egraph, children);
-    case Ormqr_LN:
-        return analyze_ormqr_ln(egraph, children);
-    case Ormqr_LT:
-        return analyze_ormqr_lt(egraph, children);
-    case Ormqr_RN:
-        return analyze_ormqr_rn(egraph, children);
-    case Ormqr_RT:
-        return analyze_ormqr_rt(egraph, children);
-    case Axpy:
-        return analyze_axpy(egraph, children);
-    default:
-        throw AnalysisError(std::string("Unknown operation in analysis: ") + std::string(magic_enum::enum_name(op)));
-    }
+    return desc.analyze(egraph, node.get_children());
 }
 } // namespace egraph

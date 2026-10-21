@@ -3,10 +3,10 @@
 #include "basic_types.h"
 #include "errors.h"
 #include "extractor.h"
+#include "op_registry.h"
 #include "parser.h"
 #include "rewriter.h"
 #include "types.h"
-#include <magic_enum/magic_enum.hpp>
 #include <optional>
 #include <random>
 #include <span>
@@ -53,7 +53,7 @@ inline Op parse_op(std::string_view s) {
     if (s == "-")
         return Op::Minus;
 
-    if (auto op = magic_enum::enum_cast<Op>(s)) {
+    if (auto op = OpRegistry::instance().find_by_name(s)) {
         return *op;
     }
     throw InvalidOperationError("Unknown operation: " + std::string(s));
@@ -88,7 +88,7 @@ inline std::string atom_to_string(const Atom &atom) {
         if (op == Op::Minus)
             return "-";
 
-        return std::string(magic_enum::enum_name(op));
+        return std::string(OpRegistry::instance().name(op));
     } else if (std::holds_alternative<uint32_t>(atom)) {
         return get_string_from_lookup(std::get<uint32_t>(atom));
     } else if (std::holds_alternative<int>(atom)) {
