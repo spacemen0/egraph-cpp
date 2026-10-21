@@ -165,12 +165,10 @@ TEST_F(EGraphTest, MultipleExpressionsShareCommonSubexpression) {
 
     auto add1 = make_op(
         "Add",
-        Children{
-            mul_xy_id.value(), egraph.find_node_id(make_op("Tr", {egraph.find_node_id(sym_z).value()})).value()});
+        Children{mul_xy_id.value(), egraph.find_node_id(make_op("Tr", {egraph.find_node_id(sym_z).value()})).value()});
     auto add2 = make_op(
         "Add",
-        Children{
-            mul_xy_id.value(), egraph.find_node_id(make_op("Inv", {egraph.find_node_id(sym_z).value()})).value()});
+        Children{mul_xy_id.value(), egraph.find_node_id(make_op("Inv", {egraph.find_node_id(sym_z).value()})).value()});
     EXPECT_TRUE(egraph.find_node_id(add1).has_value());
     EXPECT_TRUE(egraph.find_node_id(add2).has_value());
 }

@@ -44,7 +44,9 @@ void Rewriter::filter_rewrites_by_disabled_ops() {
     }
     std::unordered_set<Op> disabled(config.disabled_ops.begin(), config.disabled_ops.end());
     std::erase_if(rewrites, [&](const Rewrite &rule) {
-        return std::ranges::any_of(disabled, [&](Op disabled_op) { return rule.contains_op(disabled_op); });
+        return std::ranges::any_of(disabled, [&](Op disabled_op) {
+            return rule.contains_op(disabled_op);
+        });
     });
 }
 
