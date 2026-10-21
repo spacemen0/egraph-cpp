@@ -2,6 +2,7 @@
 
 #include "basic_types.h"
 #include "e_node.h"
+#include "op_registry.h"
 #include <string>
 #include <utility>
 #include <vector>
@@ -29,14 +30,24 @@ struct Expression {
     static std::string render(const Expression &expr, bool readable, int parent_precedence = 0);
 };
 
-inline Expression operator+(const Expression &lhs, const Expression &rhs) { return Expression(Op::Add, {lhs, rhs}); }
-inline Expression operator-(const Expression &lhs, const Expression &rhs) { return Expression(Op::Minus, {lhs, rhs}); }
-inline Expression operator-(const Expression &e) { return Expression(Op::Scale, {e, Expression(-1.0)}); }
-inline Expression operator*(const Expression &lhs, const Expression &rhs) { return Expression(Op::Mul, {lhs, rhs}); }
-inline Expression transpose(const Expression &e) { return Expression(Op::Tr, {e}); }
-inline Expression inverse(const Expression &e) { return Expression(Op::Inv, {e}); }
-inline Expression scale(const Expression &e, const ScalarExpr &s) { return Expression(Op::Scale, {e, Expression(s)}); }
-inline Expression scale(const Expression &e, double v) { return Expression(Op::Scale, {e, Expression(ScalarExpr(v))}); }
+inline Expression operator+(const Expression &lhs, const Expression &rhs) {
+    return Expression(OpRegistry::op("Add"), {lhs, rhs});
+}
+inline Expression operator-(const Expression &lhs, const Expression &rhs) {
+    return Expression(OpRegistry::op("Minus"), {lhs, rhs});
+}
+inline Expression operator-(const Expression &e) { return Expression(OpRegistry::op("Scale"), {e, Expression(-1.0)}); }
+inline Expression operator*(const Expression &lhs, const Expression &rhs) {
+    return Expression(OpRegistry::op("Mul"), {lhs, rhs});
+}
+inline Expression transpose(const Expression &e) { return Expression(OpRegistry::op("Tr"), {e}); }
+inline Expression inverse(const Expression &e) { return Expression(OpRegistry::op("Inv"), {e}); }
+inline Expression scale(const Expression &e, const ScalarExpr &s) {
+    return Expression(OpRegistry::op("Scale"), {e, Expression(s)});
+}
+inline Expression scale(const Expression &e, double v) {
+    return Expression(OpRegistry::op("Scale"), {e, Expression(ScalarExpr(v))});
+}
 
 inline bool is_subexpression(const Expression &parent, const Expression &target) {
     if (parent == target) {

@@ -1,9 +1,9 @@
 #include "op_costs.h"
+#include "op_registry.h"
 #include "utils.h"
 #include <algorithm>
 
 namespace egraph {
-using enum Op;
 
 std::string size_to_symbol(const Size &size) {
     if (const auto *value = std::get_if<int>(&size)) {
@@ -45,14 +45,14 @@ static bool are_transposes(const EGraph &egraph, Id id1, Id id2) {
     Id root1 = egraph.find_class_id(id1);
     Id root2 = egraph.find_class_id(id2);
     for (const auto *n : egraph.get_class_nodes(root1)) {
-        if (std::holds_alternative<Op>(n->get_atom()) && std::get<Op>(n->get_atom()) == Op::Tr) {
+        if (std::holds_alternative<Op>(n->get_atom()) && std::get<Op>(n->get_atom()) == OpRegistry::op("Tr")) {
             if (egraph.find_class_id(n->get_children().at(0)) == root2) {
                 return true;
             }
         }
     }
     for (const auto *n : egraph.get_class_nodes(root2)) {
-        if (std::holds_alternative<Op>(n->get_atom()) && std::get<Op>(n->get_atom()) == Op::Tr) {
+        if (std::holds_alternative<Op>(n->get_atom()) && std::get<Op>(n->get_atom()) == OpRegistry::op("Tr")) {
             if (egraph.find_class_id(n->get_children().at(0)) == root1) {
                 return true;
             }
@@ -173,7 +173,7 @@ Cost compute_get_cost(Op op, const ENode &node, const EGraph &egraph, const Size
     for (const auto *enode : egraph.get_class_nodes(child_id)) {
         Atom child_atom = enode->get_atom();
         if (auto child_op = std::get_if<Op>(&child_atom)) {
-            if (*child_op == Op::Geqrf) {
+            if (*child_op == OpRegistry::op("Geqrf")) {
                 is_geqrf = true;
                 break;
             }
@@ -184,7 +184,7 @@ Cost compute_get_cost(Op op, const ENode &node, const EGraph &egraph, const Size
             Atom index_atom = index_enode->get_atom();
             if (auto val = std::get_if<int>(&index_atom)) {
                 if (*val == 0) {
-                    return compute_orgqr_cost(Op::Orgqr, node, egraph, size_bindings);
+                    return compute_orgqr_cost(OpRegistry::op("Orgqr"), node, egraph, size_bindings);
                 }
             }
         }
@@ -212,15 +212,16 @@ Cost compute_gemm_nn_group_cost(Op op, const ENode &node, const EGraph &egraph, 
     auto shapeA = get_one_shape(egraph, size_bindings, node.get_children().at(0));
     auto shapeB = get_one_shape(egraph, size_bindings, node.get_children().at(1));
     Size M, K, N;
-    if (op == Gemm_NN) {
+    auto op_name = OpRegistry::name(op);
+    if (op_name == "Gemm_NN") {
         M = shapeA.first;
         K = shapeA.second;
         N = shapeB.second;
-    } else if (op == Gemm_TN) {
+    } else if (op_name == "Gemm_TN") {
         M = shapeA.second;
         K = shapeA.first;
         N = shapeB.second;
-    } else if (op == Gemm_NT) {
+    } else if (op_name == "Gemm_NT") {
         M = shapeA.first;
         K = shapeA.second;
         N = shapeB.first;
@@ -245,8 +246,9 @@ Cost compute_gemm_nn_group_cost(Op op, const ENode &node, const EGraph &egraph, 
 
 Cost compute_syrk_n_syrk_t_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
     auto shape = get_one_shape(egraph, size_bindings, node.get_children().at(0));
-    Size N_dim = (op == Syrk_N) ? shape.first : shape.second;
-    Size K_dim = (op == Syrk_N) ? shape.second : shape.first;
+    auto op_name = OpRegistry::name(op);
+    Size N_dim = (op_name == "Syrk_N") ? shape.first : shape.second;
+    Size K_dim = (op_name == "Syrk_N") ? shape.second : shape.first;
 
     if (is_numeric(shape)) {
         int n_val = std::get<int>(N_dim);
@@ -273,7 +275,8 @@ Cost compute_trmm_ln_group_cost(Op op, const ENode &node, const EGraph &egraph, 
     }
 
     Size M_dim, N_dim;
-    bool is_left_solve = (op == Trmm_LN || op == Trmm_LT);
+    auto op_name = OpRegistry::name(op);
+    bool is_left_solve = (op_name == "Trmm_LN" || op_name == "Trmm_LT");
 
     M_dim = shapeB.first;
     N_dim = shapeB.second;
@@ -310,7 +313,8 @@ Cost compute_symm_group_cost(Op op, const ENode &node, const EGraph &egraph, con
     M = shapeB.first;
     N = shapeB.second;
 
-    if (op == Symm_L) {
+    auto op_name = OpRegistry::name(op);
+    if (op_name == "Symm_L") {
         if (std::holds_alternative<int>(M) && std::holds_alternative<int>(N)) {
             return {2.0 * std::get<int>(M) * std::get<int>(M) * std::get<int>(N)};
         }
@@ -335,14 +339,15 @@ Cost compute_trsm_ln_group_cost(Op op, const ENode &node, const EGraph &egraph, 
     auto shapeB = get_one_shape(egraph, size_bindings, node.get_children().at(1));
     Size M_dim, N_dim;
 
-    bool is_left_solve = (op == Trsm_LN || op == Trsm_LT);
+    auto op_name = OpRegistry::name(op);
+    bool is_left_solve = (op_name == "Trsm_LN" || op_name == "Trsm_LT");
 
     if (is_left_solve) {
-        M_dim = (op == Trsm_LN) ? shapeA.first : shapeA.second;
+        M_dim = (op_name == "Trsm_LN") ? shapeA.first : shapeA.second;
         N_dim = shapeB.second;
     } else {
         M_dim = shapeB.first;
-        N_dim = (op == Trsm_RN) ? shapeA.second : shapeA.first;
+        N_dim = (op_name == "Trsm_RN") ? shapeA.second : shapeA.first;
     }
 
     if (is_numeric(shapeA) && is_numeric(shapeB)) {
@@ -492,7 +497,8 @@ Cost compute_ormqr_cost(Op op, const ENode &node, const EGraph &egraph, const Si
             shapeQ = bind_shape((*props)[0].shape, size_bindings);
     }
     auto shapeC = get_one_shape(egraph, size_bindings, node.get_children().at(1));
-    bool is_left = (op == Op::Ormqr_LN || op == Op::Ormqr_LT);
+    auto op_name = OpRegistry::name(op);
+    bool is_left = (op_name == "Ormqr_LN" || op_name == "Ormqr_LT");
     if (is_numeric(shapeQ) && is_numeric(shapeC)) {
         double m = std::get<int>(shapeC.first);
         double n = std::get<int>(shapeC.second);

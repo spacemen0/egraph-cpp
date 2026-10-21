@@ -9,7 +9,7 @@ TEST_F(ExtractorTest, CheaperExtraction) {
     // Expr: A * Identity
     Id id_a = egraph.add_node(make_symbol("A"));
     Id id_identity = egraph.add_node(make_symbol("I_3x3"));
-    Id id_mul = egraph.add_node(make_op(Op::Mul, {id_a, id_identity}));
+    Id id_mul = egraph.add_node(make_op("Mul", {id_a, id_identity}));
 
     egraph.union_classes(id_mul, id_a);
     egraph.rebuild();
@@ -46,16 +46,16 @@ TEST_F(ExtractorTest, RewriteAndExtract) {
 TEST_F(ExtractorTest, SharedSubexpressionDAGCost) {
 
     Id id_x = egraph.add_node(make_symbol("X"));
-    Id id_tr_x = egraph.add_node(make_op(Op::Tr, {id_x}));
+    Id id_tr_x = egraph.add_node(make_op("Tr", {id_x}));
 
     Id id_a = egraph.add_node(make_symbol("A"));
     Id id_z = egraph.add_node(make_symbol("Z"));
 
-    Id id_mul1 = egraph.add_node(make_op(Op::Mul, {id_tr_x, id_a}));
+    Id id_mul1 = egraph.add_node(make_op("Mul", {id_tr_x, id_a}));
 
-    Id id_mul2 = egraph.add_node(make_op(Op::Mul, {id_tr_x, id_z}));
+    Id id_mul2 = egraph.add_node(make_op("Mul", {id_tr_x, id_z}));
 
-    Id id_root = egraph.add_node(make_op(Op::Add, {id_mul1, id_mul2}));
+    Id id_root = egraph.add_node(make_op("Add", {id_mul1, id_mul2}));
 
     auto result = extractor.extract(id_root);
 
@@ -63,7 +63,7 @@ TEST_F(ExtractorTest, SharedSubexpressionDAGCost) {
     EXPECT_EQ(std::get<double>(result.cost), 84.0);
 
     EXPECT_TRUE(std::holds_alternative<Op>(result.expr.atom));
-    EXPECT_EQ(std::get<Op>(result.expr.atom), Op::Add);
+    EXPECT_EQ(std::get<Op>(result.expr.atom), OpRegistry::op("Add"));
     EXPECT_EQ(result.expr.children.size(), 2);
 }
 
@@ -73,12 +73,12 @@ TEST_F(ExtractorTest, ExpensiveSharedWinsWithHighReuse) {
     Id id_y = egraph.add_node(make_symbol("Y")); // 2x3
     Id id_d = egraph.add_node(make_symbol("D")); // 2x2
 
-    Id id_mul_yx = egraph.add_node(make_op(Op::Mul, {id_y, id_x}));  // 2x2, cost 12
-    Id inv_d = egraph.add_node(make_op(Op::Inv, {id_d}));            // 2x2, cost 64
-    Id mul_inv_d = egraph.add_node(make_op(Op::Mul, {inv_d, id_d})); // 2x2, cost 8
+    Id id_mul_yx = egraph.add_node(make_op("Mul", {id_y, id_x}));  // 2x2, cost 12
+    Id inv_d = egraph.add_node(make_op("Inv", {id_d}));            // 2x2, cost 64
+    Id mul_inv_d = egraph.add_node(make_op("Mul", {inv_d, id_d})); // 2x2, cost 8
     egraph.union_classes(id_mul_yx, inv_d);
 
-    Id id_root = egraph.add_node(make_op(Op::Add, {id_mul_yx, mul_inv_d})); // 2x2
+    Id id_root = egraph.add_node(make_op("Add", {id_mul_yx, mul_inv_d})); // 2x2
     egraph.to_img("extractor_test_initial", "svg");
 
     auto result = extractor.extract(id_root);
@@ -110,12 +110,12 @@ TEST_F(ExtractorTest, ExtractSymbolicMultipleDags) {
     Id id_p = egraph.add_node(make_symbol("P"));
     Id id_n = egraph.add_node(make_symbol("n"));
 
-    Id id_tr_m = egraph.add_node(make_op(Op::Tr, {id_m}));
-    Id id_tr_p = egraph.add_node(make_op(Op::Tr, {id_p}));
+    Id id_tr_m = egraph.add_node(make_op("Tr", {id_m}));
+    Id id_tr_p = egraph.add_node(make_op("Tr", {id_p}));
     egraph.union_classes(id_tr_m, id_tr_p);
     egraph.rebuild();
 
-    Id id_root = egraph.add_node(make_op(Op::Mul, {id_tr_m, id_n}));
+    Id id_root = egraph.add_node(make_op("Mul", {id_tr_m, id_n}));
 
     auto results = extractor.extract_symbolic(id_root);
     ASSERT_EQ(results.size(), 2);
@@ -138,7 +138,7 @@ TEST_F(ExtractorTest, ExtractTopNumericDags) {
     Id id_a = egraph.add_node(make_symbol("A"));
     Id id_x = egraph.add_node(make_symbol("X"));
     Id id_y = egraph.add_node(make_symbol("Y"));
-    Id id_mul = egraph.add_node(make_op(Op::Mul, {id_x, id_y}));
+    Id id_mul = egraph.add_node(make_op("Mul", {id_x, id_y}));
 
     egraph.union_classes(id_a, id_mul);
     egraph.rebuild();
@@ -163,7 +163,7 @@ TEST_F(ExtractorTest, ExtractTopDagsWithSizeBindings) {
     Id id_n = egraph.add_node(make_symbol("n"));
     Id id_m = egraph.add_node(make_symbol("M"));
     Id id_p = egraph.add_node(make_symbol("p"));
-    Id id_mul = egraph.add_node(make_op(Op::Mul, {id_m, id_p}));
+    Id id_mul = egraph.add_node(make_op("Mul", {id_m, id_p}));
 
     egraph.union_classes(id_n, id_mul);
     egraph.rebuild();
@@ -184,7 +184,7 @@ TEST_F(ExtractorTest, GreedyExtract) {
     Id id_a = egraph.add_node(make_symbol("A"));
     Id id_x = egraph.add_node(make_symbol("X"));
     Id id_y = egraph.add_node(make_symbol("Y"));
-    Id id_mul = egraph.add_node(make_op(Op::Mul, {id_x, id_y}));
+    Id id_mul = egraph.add_node(make_op("Mul", {id_x, id_y}));
 
     egraph.union_classes(id_a, id_mul);
     egraph.rebuild();
@@ -206,21 +206,21 @@ TEST_F(ExtractorTest, GreedyExtractIgnoresSharing) {
     Id id_b = egraph.add_node(make_symbol("B"));
     Id id_y = egraph.add_node(make_symbol("Y"));
 
-    Id id_qr_x = egraph.add_node(make_op(Op::Mul, {id_x, id_x}));
+    Id id_qr_x = egraph.add_node(make_op("Mul", {id_x, id_x}));
 
     // cost of Add = 100
-    Id id_add1 = egraph.add_node(make_op(Op::Add, {id_qr_x, id_a}));
-    Id id_add2 = egraph.add_node(make_op(Op::Add, {id_qr_x, id_b}));
+    Id id_add1 = egraph.add_node(make_op("Add", {id_qr_x, id_a}));
+    Id id_add2 = egraph.add_node(make_op("Add", {id_qr_x, id_b}));
 
     // cost = 2000
-    Id id_root1 = egraph.add_node(make_op(Op::Mul, {id_add1, id_add2}));
+    Id id_root1 = egraph.add_node(make_op("Mul", {id_add1, id_add2}));
     // DAG cost: Mul(2000) + Add1(100) + Add2(100) + MulXX(2000) = 4200.
     // Tree cost: Mul(2000) + Add1(100) + Add2(100) + 2 * MulXX(2000) = 6200.
 
     // Cost = 2000 + 2000 + 2000 = 6000.
-    Id id_yy = egraph.add_node(make_op(Op::Mul, {id_y, id_y}));
-    Id id_ab = egraph.add_node(make_op(Op::Mul, {id_a, id_b}));
-    Id id_root2 = egraph.add_node(make_op(Op::Mul, {id_yy, id_ab}));
+    Id id_yy = egraph.add_node(make_op("Mul", {id_y, id_y}));
+    Id id_ab = egraph.add_node(make_op("Mul", {id_a, id_b}));
+    Id id_root2 = egraph.add_node(make_op("Mul", {id_yy, id_ab}));
 
     egraph.union_classes(id_root1, id_root2);
     egraph.rebuild();
@@ -247,21 +247,21 @@ TEST_F(ExtractorTest, BudgetedExtractConsidersSharing) {
     Id id_b = egraph.add_node(make_symbol("B"));
     Id id_y = egraph.add_node(make_symbol("Y"));
 
-    Id id_qr_x = egraph.add_node(make_op(Op::Mul, {id_x, id_x}));
+    Id id_qr_x = egraph.add_node(make_op("Mul", {id_x, id_x}));
 
     // cost of Add = 100
-    Id id_add1 = egraph.add_node(make_op(Op::Add, {id_qr_x, id_a}));
-    Id id_add2 = egraph.add_node(make_op(Op::Add, {id_qr_x, id_b}));
+    Id id_add1 = egraph.add_node(make_op("Add", {id_qr_x, id_a}));
+    Id id_add2 = egraph.add_node(make_op("Add", {id_qr_x, id_b}));
 
     // cost = 2000
-    Id id_root1 = egraph.add_node(make_op(Op::Mul, {id_add1, id_add2}));
+    Id id_root1 = egraph.add_node(make_op("Mul", {id_add1, id_add2}));
     // DAG cost: Mul(2000) + Add1(100) + Add2(100) + MulXX(2000) = 4200.
     // Tree cost: Mul(2000) + Add1(100) + Add2(100) + 2 * MulXX(2000) = 6200.
 
     // Cost = 2000 + 2000 + 2000 = 6000.
-    Id id_yy = egraph.add_node(make_op(Op::Mul, {id_y, id_y}));
-    Id id_ab = egraph.add_node(make_op(Op::Mul, {id_a, id_b}));
-    Id id_root2 = egraph.add_node(make_op(Op::Mul, {id_yy, id_ab}));
+    Id id_yy = egraph.add_node(make_op("Mul", {id_y, id_y}));
+    Id id_ab = egraph.add_node(make_op("Mul", {id_a, id_b}));
+    Id id_root2 = egraph.add_node(make_op("Mul", {id_yy, id_ab}));
 
     egraph.union_classes(id_root1, id_root2);
     egraph.rebuild();

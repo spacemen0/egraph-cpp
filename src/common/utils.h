@@ -47,16 +47,13 @@ inline uint32_t register_string_in_lookup(const std::string &s) {
 
 inline Op parse_op(std::string_view s) {
     if (s == "+")
-        return Op::Add;
+        return OpRegistry::op("Add");
     if (s == "*")
-        return Op::Mul;
+        return OpRegistry::op("Mul");
     if (s == "-")
-        return Op::Minus;
+        return OpRegistry::op("Minus");
 
-    if (auto op = OpRegistry::instance().find_by_name(s)) {
-        return *op;
-    }
-    throw InvalidOperationError("Unknown operation: " + std::string(s));
+    return OpRegistry::op(s);
 }
 
 constexpr std::string_view trim(std::string_view sv) {
@@ -81,14 +78,15 @@ inline ParsedAtom string_to_parsed_atom(std::string_view s) { return parser::par
 inline std::string atom_to_string(const Atom &atom) {
     if (std::holds_alternative<Op>(atom)) {
         Op op = std::get<Op>(atom);
-        if (op == Op::Add)
+        auto name = OpRegistry::name(op);
+        if (name == "Add")
             return "+";
-        if (op == Op::Mul)
+        if (name == "Mul")
             return "*";
-        if (op == Op::Minus)
+        if (name == "Minus")
             return "-";
 
-        return std::string(OpRegistry::instance().name(op));
+        return std::string(name);
     } else if (std::holds_alternative<uint32_t>(atom)) {
         return get_string_from_lookup(std::get<uint32_t>(atom));
     } else if (std::holds_alternative<int>(atom)) {

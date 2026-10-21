@@ -11,7 +11,8 @@ Pattern::Pattern(std::string_view s) {
     auto parsed = string_to_parsed_atom(s);
     atom = parsed.atom;
 
-    if (std::holds_alternative<Op>(atom) && std::get<Op>(atom) == Op::Scale && parsed.children_strings.size() == 2) {
+    if (std::holds_alternative<Op>(atom) && std::get<Op>(atom) == OpRegistry::op("Scale") &&
+        parsed.children_strings.size() == 2) {
         children.emplace_back(parsed.children_strings[0]);
         const std::string &scalar_str = parsed.children_strings[1];
         if (scalar_str.starts_with('?')) {

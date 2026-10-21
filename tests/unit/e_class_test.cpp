@@ -1,19 +1,18 @@
 #include "e_class.h"
 #include "e_node.h"
+#include "op_registry.h"
 #include <gtest/gtest.h>
 using namespace egraph;
-
-using enum Op;
 
 TEST(EClass, CleanUpNodes) {
     Children c12 = {1, 2};
     Children c34 = {3, 4};
 
-    ENode nodeA(c12, Add);
-    ENode nodeB(c12, Add);
-    ENode nodeC(c12, Mul);
-    ENode nodeD(c34, Add);
-    ENode nodeE(c12, Add);
+    ENode nodeA(c12, OpRegistry::op("Add"));
+    ENode nodeB(c12, OpRegistry::op("Add"));
+    ENode nodeC(c12, OpRegistry::op("Mul"));
+    ENode nodeD(c34, OpRegistry::op("Add"));
+    ENode nodeE(c12, OpRegistry::op("Add"));
 
     AnalysisData data;
     EClass eclass(0, &nodeA, data);
@@ -49,7 +48,7 @@ TEST(EClass, CleanUpNodes) {
 }
 
 TEST(EClass, ConstructorAndGetters) {
-    ENode nodeA({1, 2}, Add);
+    ENode nodeA({1, 2}, OpRegistry::op("Add"));
     MatrixProperty prop{.shape = {2, 2}, .flags = {.is_identity = true}};
     AnalysisData data{prop};
 
@@ -65,7 +64,7 @@ TEST(EClass, ConstructorAndGetters) {
 }
 
 TEST(EClass, ParentsTracking) {
-    ENode nodeA({1, 2}, Add);
+    ENode nodeA({1, 2}, OpRegistry::op("Add"));
     AnalysisData data;
     EClass eclass(1, &nodeA, data);
 
@@ -78,7 +77,7 @@ TEST(EClass, ParentsTracking) {
 }
 
 TEST(EClass, AnalysisDataMutation) {
-    ENode nodeA({1, 2}, Add);
+    ENode nodeA({1, 2}, OpRegistry::op("Add"));
     AnalysisData data;
     EClass eclass(1, &nodeA, data);
 

@@ -268,13 +268,14 @@ bool EGraph::propagate_involution_properties_for(Id class_id) {
             continue;
 
         Op op = std::get<Op>(node->get_atom());
-        if (op != Op::Tr && op != Op::Inv)
+        auto op_name = OpRegistry::name(op);
+        if (op_name != "Tr" && op_name != "Inv")
             continue;
 
         Id child_id = uf.find_root(node->get_children()[0]);
         const auto parent_property = *get_matrix_data(*this, canonical_class_id);
         auto child_property = *get_matrix_data(*this, child_id);
-        if (op == Op::Tr) {
+        if (op_name == "Tr") {
             child_property.shape = {parent_property.shape.second, parent_property.shape.first};
             child_property.flags.is_tall = parent_property.flags.is_wide;
             child_property.flags.is_wide = parent_property.flags.is_tall;
@@ -304,7 +305,7 @@ bool EGraph::propagate_involution_properties_for(Id class_id) {
             if (update_class_analysis_data(child_id, AnalysisData{child_property})) {
                 any_changed = true;
             }
-        } else if (op == Op::Inv) {
+        } else if (op_name == "Inv") {
             if (parent_property.flags.is_upper_triangular)
                 child_property.flags.is_upper_triangular = true;
             if (parent_property.flags.is_lower_triangular)

@@ -19,7 +19,7 @@ TEST_F(EGraphTest, AddAndLookUpNode) {
 
 TEST_F(EGraphTest, BreakWithInvalidChildId) {
     Id fake_id = 999999;
-    ENode dangerous_node = make_op(Op::Minus, Children{fake_id, fake_id});
+    ENode dangerous_node = make_op("Minus", Children{fake_id, fake_id});
     EXPECT_ANY_THROW(egraph.add_node(dangerous_node));
 }
 
@@ -83,10 +83,10 @@ TEST_F(EGraphTest, RebuildCleanUpEClass) {
     Id x = egraph.add_node(sym_a);
     Id y = egraph.add_node(sym_z);
 
-    ENode node_x = make_op(Op::Minus, {x, x});
+    ENode node_x = make_op("Minus", {x, x});
     Id neg_x = egraph.add_node(node_x);
 
-    ENode node_y = make_op(Op::Minus, {y, y});
+    ENode node_y = make_op("Minus", {y, y});
     Id neg_y = egraph.add_node(node_y);
 
     EXPECT_NE(egraph.find_class_id(neg_x), egraph.find_class_id(neg_y));
@@ -108,13 +108,13 @@ TEST_F(EGraphTest, AddExpression) {
     EXPECT_TRUE(egraph.find_node_id(sym_y).has_value());
     EXPECT_TRUE(egraph.find_node_id(sym_z).has_value());
 
-    auto mul_xy = make_op(Op::Mul, Children{egraph.find_node_id(sym_x).value(), egraph.find_node_id(sym_y).value()});
-    auto transpose_z = make_op(Op::Tr, Children{egraph.find_node_id(sym_z).value()});
+    auto mul_xy = make_op("Mul", Children{egraph.find_node_id(sym_x).value(), egraph.find_node_id(sym_y).value()});
+    auto transpose_z = make_op("Tr", Children{egraph.find_node_id(sym_z).value()});
     EXPECT_TRUE(egraph.find_node_id(mul_xy).has_value());
     EXPECT_TRUE(egraph.find_node_id(transpose_z).has_value());
 
     auto add_expr =
-        make_op(Op::Add, Children{egraph.find_node_id(mul_xy).value(), egraph.find_node_id(transpose_z).value()});
+        make_op("Add", Children{egraph.find_node_id(mul_xy).value(), egraph.find_node_id(transpose_z).value()});
     EXPECT_TRUE(egraph.find_node_id(add_expr).has_value());
     EXPECT_EQ(egraph.find_node_id(add_expr).value(), expr_id);
 
@@ -133,13 +133,13 @@ TEST_F(EGraphTest, ENodeMatching) {
 
     Id id1 = egraph.add_node(sym_x);
 
-    auto node = make_op(Op::Minus, Children{id1, id1});
+    auto node = make_op("Minus", Children{id1, id1});
     Id id2 = egraph.add_node(node);
 
     EXPECT_TRUE(egraph.find_node_id(node).has_value());
     EXPECT_EQ(egraph.find_node_id(node).value(), id2);
 
-    auto node_diff = make_op(Op::Minus, Children{id1 + 1, id1 + 1});
+    auto node_diff = make_op("Minus", Children{id1 + 1, id1 + 1});
     EXPECT_FALSE(egraph.find_node_id(node_diff).has_value());
 }
 
@@ -153,7 +153,7 @@ TEST_F(EGraphTest, MultipleExpressionsShareCommonSubexpression) {
     ASSERT_TRUE(id_x.has_value());
     ASSERT_TRUE(id_y.has_value());
 
-    auto mul_xy = make_op(Op::Mul, Children{id_x.value(), id_y.value()});
+    auto mul_xy = make_op("Mul", Children{id_x.value(), id_y.value()});
     auto mul_xy_id = egraph.find_node_id(mul_xy);
     ASSERT_TRUE(mul_xy_id.has_value());
 
@@ -164,13 +164,13 @@ TEST_F(EGraphTest, MultipleExpressionsShareCommonSubexpression) {
     EXPECT_GE(parents.size(), 2);
 
     auto add1 = make_op(
-        Op::Add,
+        "Add",
         Children{
-            mul_xy_id.value(), egraph.find_node_id(make_op(Op::Tr, {egraph.find_node_id(sym_z).value()})).value()});
+            mul_xy_id.value(), egraph.find_node_id(make_op("Tr", {egraph.find_node_id(sym_z).value()})).value()});
     auto add2 = make_op(
-        Op::Add,
+        "Add",
         Children{
-            mul_xy_id.value(), egraph.find_node_id(make_op(Op::Inv, {egraph.find_node_id(sym_z).value()})).value()});
+            mul_xy_id.value(), egraph.find_node_id(make_op("Inv", {egraph.find_node_id(sym_z).value()})).value()});
     EXPECT_TRUE(egraph.find_node_id(add1).has_value());
     EXPECT_TRUE(egraph.find_node_id(add2).has_value());
 }
@@ -180,8 +180,8 @@ TEST_F(EGraphTest, IsCleanTracking) {
 
     Id id_a = egraph.add_node(sym_a);
     Id id_z = egraph.add_node(sym_z);
-    egraph.add_node(make_op(Op::Add, {id_a, id_a}));
-    egraph.add_node(make_op(Op::Add, {id_z, id_z}));
+    egraph.add_node(make_op("Add", {id_a, id_a}));
+    egraph.add_node(make_op("Add", {id_z, id_z}));
     egraph.rebuild();
     EXPECT_TRUE(egraph.is_clean());
 

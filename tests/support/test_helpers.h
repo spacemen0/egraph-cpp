@@ -16,8 +16,10 @@ using namespace egraph;
 
 static ENode make_symbol(const std::string &name) { return ENode(Children{}, register_string_in_lookup(name)); }
 
+static ENode make_leaf(std::string_view name) { return ENode(Children{}, OpRegistry::op(name)); }
 static ENode make_leaf(Op op) { return ENode(Children{}, op); }
 
+static ENode make_op(std::string_view name, const Children &children) { return ENode(children, OpRegistry::op(name)); }
 static ENode make_op(Op op, const Children &children) { return ENode(children, op); }
 
 static PropertyTable get_property_table() {

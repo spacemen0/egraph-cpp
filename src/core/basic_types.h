@@ -7,44 +7,7 @@
 #include <vector>
 
 namespace egraph {
-// NOLINTNEXTLINE(performance-enum-size) - dynamically extended by OpRegistry at runtime
-enum class Op : std::uint32_t {
-    Add,
-    Mul,
-    Minus,
-    Tr,
-    Inv,
-    Get,      // [tuple, index]
-    Scale,    // [A, int] representing scalar * A
-    Geqrf,    // QR factorization
-    Trtri,    // Inverse of a triangular matrix
-    Gemv_N,   // Gemv(A, x, y) - General Matrix-Vector Multiply
-    Gemv_T,   // Gemv(A, x, y) - General Matrix-Vector Multiply with transposed A
-    Gemm_NN,  // Gemm(A, B, C) - General Matrix-Matrix Multiply
-    Gemm_TN,  // Gemm(A, B, C) - General Matrix-Matrix Multiply with transposed A
-    Gemm_NT,  // Gemm(A, B, C) - General Matrix-Matrix Multiply with transposed B
-    Gemm_TT,  // Gemm(A, B, C) - General Matrix-Matrix Multiply with transposed A and B
-    Syrk_N,   // Syrk(A, C) - Symmetric Rank-K Update
-    Syrk_T,   // Syrk(A, C) - Symmetric Rank-K Update with transposed A
-    Trmm_LN,  // Trmm(A, B, C) - Triangular Matrix Multiply, A is left, no transpose, C = AB + C
-    Trmm_LT,  // Trmm(A, B, C) - Triangular Matrix Multiply, A is left, transposed, C = A^T B + C
-    Trmm_RN,  // Trmm(A, B, C) - Triangular Matrix Multiply, A is right, no transpose, C = BA + C
-    Trmm_RT,  // Trmm(A, B, C) - Triangular Matrix Multiply, A is right, transposed, C = BA^T + C
-    Symm_L,   // Symm(A, B, C) - Symmetric Matrix Multiply, A is left, C = AB + C
-    Symm_R,   // Symm(A, B, C) - Symmetric Matrix Multiply, A is right, C = BA + C
-    Trsm_LN,  // Trsm(A, B) - Triangular Solve with multiple right-hand sides, AX = B, no transpose
-    Trsm_LT,  // Trsm(A, B) - Triangular Solve with multiple right-hand sides, AX = B, transposed
-    Trsm_RN,  // Trsm(A, B) - Triangular Solve with multiple right-hand sides, XA = B, no transpose
-    Trsm_RT,  // Trsm(A, B) - Triangular Solve with multiple right-hand sides, XA = B, transposed
-    Potrf_L,  // Potrf(A) - Cholesky factorization, lower triangular
-    Potrf_U,  // Potrf(A) - Cholesky factorization, upper triangular
-    Orgqr,    // Orgqr(A) - Generate explicit Q from implicit Householder reflectors
-    Ormqr_LN, // Ormqr(A, B) - Multiply B by implicit Q from left, no transpose
-    Ormqr_LT, // Ormqr(A, B) - Multiply B by implicit Q from left, transposed
-    Ormqr_RN, // Ormqr(A, B) - Multiply B by implicit Q from right, no transpose
-    Ormqr_RT, // Ormqr(A, B) - Multiply B by implicit Q from right, transposed
-    Axpy,     // Axpy(x, y) - Addition (y = x + y)
-};
+enum class Op : std::uint32_t {};
 
 using SizeBindings = std::unordered_map<std::string, int>;
 using DataBindings = std::unordered_map<std::string, std::vector<double>>;

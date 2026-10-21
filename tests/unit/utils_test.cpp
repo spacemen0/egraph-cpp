@@ -17,14 +17,14 @@ TEST(UtilsTest, TrimWhitespace) {
 }
 
 TEST(UtilsTest, ParseOpValid) {
-    EXPECT_EQ(parse_op("+"), Op::Add);
-    EXPECT_EQ(parse_op("*"), Op::Mul);
-    EXPECT_EQ(parse_op("-"), Op::Minus);
-    EXPECT_EQ(parse_op("Inv"), Op::Inv);
-    EXPECT_EQ(parse_op("Tr"), Op::Tr);
-    EXPECT_EQ(parse_op("Gemm_NN"), Op::Gemm_NN);
-    EXPECT_EQ(parse_op("Potrf_L"), Op::Potrf_L);
-    EXPECT_EQ(parse_op("Trsm_LN"), Op::Trsm_LN);
+    EXPECT_EQ(parse_op("+"), OpRegistry::op("Add"));
+    EXPECT_EQ(parse_op("*"), OpRegistry::op("Mul"));
+    EXPECT_EQ(parse_op("-"), OpRegistry::op("Minus"));
+    EXPECT_EQ(parse_op("Inv"), OpRegistry::op("Inv"));
+    EXPECT_EQ(parse_op("Tr"), OpRegistry::op("Tr"));
+    EXPECT_EQ(parse_op("Gemm_NN"), OpRegistry::op("Gemm_NN"));
+    EXPECT_EQ(parse_op("Potrf_L"), OpRegistry::op("Potrf_L"));
+    EXPECT_EQ(parse_op("Trsm_LN"), OpRegistry::op("Trsm_LN"));
 }
 
 TEST(UtilsTest, ParseOpInvalidThrows) {
@@ -33,10 +33,10 @@ TEST(UtilsTest, ParseOpInvalidThrows) {
 }
 
 TEST(UtilsTest, AtomToStringConversions) {
-    EXPECT_EQ(atom_to_string(Atom(Op::Add)), "+");
-    EXPECT_EQ(atom_to_string(Atom(Op::Mul)), "*");
-    EXPECT_EQ(atom_to_string(Atom(Op::Minus)), "-");
-    EXPECT_EQ(atom_to_string(Atom(Op::Tr)), "Tr");
+    EXPECT_EQ(atom_to_string(Atom(OpRegistry::op("Add"))), "+");
+    EXPECT_EQ(atom_to_string(Atom(OpRegistry::op("Mul"))), "*");
+    EXPECT_EQ(atom_to_string(Atom(OpRegistry::op("Minus"))), "-");
+    EXPECT_EQ(atom_to_string(Atom(OpRegistry::op("Tr"))), "Tr");
     EXPECT_EQ(atom_to_string(Atom(42)), "42");
 
     uint32_t sym_id = register_string_in_lookup("MyMatrix");

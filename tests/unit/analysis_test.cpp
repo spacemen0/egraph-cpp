@@ -16,13 +16,13 @@ TEST(EGraph, ErrorConditions) {
 
     Id x = egraph.add_node(sym_x); // 3x2
     Id y = egraph.add_node(sym_y); // 2x3
-    ENode mismatch_add = make_op(Op::Add, {x, y});
+    ENode mismatch_add = make_op("Add", {x, y});
     EXPECT_THROW(egraph.add_node(mismatch_add), ShapeMismatchError);
 
-    ENode mismatch_mul = make_op(Op::Mul, {x, x});
+    ENode mismatch_mul = make_op("Mul", {x, x});
     EXPECT_THROW(egraph.add_node(mismatch_mul), ShapeMismatchError);
 
-    ENode invalid_invert = make_op(Op::Inv, {x});
+    ENode invalid_invert = make_op("Inv", {x});
     EXPECT_THROW(egraph.add_node(invalid_invert), InvalidOperationError);
 }
 
@@ -30,8 +30,8 @@ TEST(EGraph, BoundExtractionDoesNotMutateAnalysisData) {
     EGraph egraph(get_property_table());
 
     Id id_m = egraph.add_node(make_symbol("M"));
-    Id id_tr_m = egraph.add_node(make_op(Op::Tr, {id_m}));
-    Id id_mul = egraph.add_node(make_op(Op::Mul, {id_tr_m, id_m}));
+    Id id_tr_m = egraph.add_node(make_op("Tr", {id_m}));
+    Id id_mul = egraph.add_node(make_op("Mul", {id_tr_m, id_m}));
 
     const auto *m_prop_before = std::get_if<MatrixProperty>(&egraph.get_class_analysis_data(id_m).property);
     ASSERT_NE(m_prop_before, nullptr);
@@ -146,7 +146,7 @@ TEST(MatrixAnalysisTest, OpInferenceTranspose) {
     pt.add_or_update_property_entry("U", {.shape = {3, 4}, .flags = {.is_upper_triangular = true}});
     EGraph g(pt);
     Id id_u = g.add_node(make_symbol("U"));
-    Id id_tr = g.add_node(make_op(Op::Tr, {id_u}));
+    Id id_tr = g.add_node(make_op("Tr", {id_u}));
 
     const auto *prop = get_matrix_data(g, id_tr);
     ASSERT_NE(prop, nullptr);
@@ -162,7 +162,7 @@ TEST(MatrixAnalysisTest, OpInferenceMulDimensions) {
     EGraph g(pt);
     Id id_a = g.add_node(make_symbol("A"));
     Id id_b = g.add_node(make_symbol("B"));
-    Id id_ab = g.add_node(make_op(Op::Mul, {id_a, id_b}));
+    Id id_ab = g.add_node(make_op("Mul", {id_a, id_b}));
 
     const auto *prop = get_matrix_data(g, id_ab);
     ASSERT_NE(prop, nullptr);
@@ -175,8 +175,8 @@ TEST(MatrixAnalysisTest, ArityCheckThrowsAnalysisError) {
     EGraph g(pt);
     Id id_a = g.add_node(make_symbol("A"));
 
-    EXPECT_THROW(g.add_node(make_op(Op::Add, {id_a})), AnalysisError);
-    EXPECT_THROW(g.add_node(make_op(Op::Tr, {id_a, id_a})), AnalysisError);
+    EXPECT_THROW(g.add_node(make_op("Add", {id_a})), AnalysisError);
+    EXPECT_THROW(g.add_node(make_op("Tr", {id_a, id_a})), AnalysisError);
 }
 
 TEST(MatrixAnalysisTest, SyrkRankInferenceOnRectangularMatrices) {
@@ -190,7 +190,7 @@ TEST(MatrixAnalysisTest, SyrkRankInferenceOnRectangularMatrices) {
     Id id_t = g.add_node(make_symbol("Tall"));
 
     // Syrk_T(Wide, C5): Wide^T * Wide is 5x5, rank <= 2, singular!
-    Id id_syrk_t = g.add_node(make_op(Op::Syrk_T, {id_w, id_c5}));
+    Id id_syrk_t = g.add_node(make_op("Syrk_T", {id_w, id_c5}));
     const auto *prop_t = get_matrix_data(g, id_syrk_t);
     ASSERT_NE(prop_t, nullptr);
     EXPECT_EQ(prop_t->shape, (Shape{5, 5}));
@@ -199,7 +199,7 @@ TEST(MatrixAnalysisTest, SyrkRankInferenceOnRectangularMatrices) {
     EXPECT_FALSE(prop_t->flags.is_full_rank);
 
     // Syrk_N(Tall, C5): Tall * Tall^T is 5x5, rank <= 2, singular!
-    Id id_syrk_n = g.add_node(make_op(Op::Syrk_N, {id_t, id_c5}));
+    Id id_syrk_n = g.add_node(make_op("Syrk_N", {id_t, id_c5}));
     const auto *prop_n = get_matrix_data(g, id_syrk_n);
     ASSERT_NE(prop_n, nullptr);
     EXPECT_EQ(prop_n->shape, (Shape{5, 5}));
@@ -220,22 +220,24 @@ TEST(MatrixAnalysisTest, AnalysisRejectsNonSquareFactorizationsAndInversion) {
     Id id_sym = g.add_node(make_symbol("RectSym"));
     Id id_num = g.add_node(make_symbol("RectNum"));
 
-    EXPECT_THROW(g.add_node(make_op(Op::Inv, {id_sym})), InvalidOperationError);
-    EXPECT_THROW(g.add_node(make_op(Op::Inv, {id_num})), InvalidOperationError);
-    EXPECT_THROW(g.add_node(make_op(Op::Potrf_L, {id_sym})), InvalidOperationError);
-    EXPECT_THROW(g.add_node(make_op(Op::Potrf_L, {id_num})), InvalidOperationError);
-    EXPECT_THROW(g.add_node(make_op(Op::Potrf_U, {id_sym})), InvalidOperationError);
-    EXPECT_THROW(g.add_node(make_op(Op::Potrf_U, {id_num})), InvalidOperationError);
-    EXPECT_THROW(g.add_node(make_op(Op::Trtri, {id_sym})), InvalidOperationError);
-    EXPECT_THROW(g.add_node(make_op(Op::Trtri, {id_num})), InvalidOperationError);
+    EXPECT_THROW(g.add_node(make_op("Inv", {id_sym})), InvalidOperationError);
+    EXPECT_THROW(g.add_node(make_op("Inv", {id_num})), InvalidOperationError);
+    EXPECT_THROW(g.add_node(make_op("Potrf_L", {id_sym})), InvalidOperationError);
+    EXPECT_THROW(g.add_node(make_op("Potrf_L", {id_num})), InvalidOperationError);
+    EXPECT_THROW(g.add_node(make_op("Potrf_U", {id_sym})), InvalidOperationError);
+    EXPECT_THROW(g.add_node(make_op("Potrf_U", {id_num})), InvalidOperationError);
+    EXPECT_THROW(g.add_node(make_op("Trtri", {id_sym})), InvalidOperationError);
+    EXPECT_THROW(g.add_node(make_op("Trtri", {id_num})), InvalidOperationError);
 }
 
 TEST(OpRegistry, UniformRegistrationAndAnalysis) {
     auto &registry = OpRegistry::instance();
-    EXPECT_TRUE(registry.is_kernel(Op::Gemm_NN));
-    EXPECT_FALSE(registry.is_kernel(Op::Add));
-    EXPECT_EQ(registry.name(Op::Gemm_NN), "Gemm_NN");
-    EXPECT_EQ(parse_op("Gemm_NN"), Op::Gemm_NN);
+    Op gemm = OpRegistry::op("Gemm_NN");
+    Op add = OpRegistry::op("Add");
+    EXPECT_TRUE(registry.is_kernel(gemm));
+    EXPECT_FALSE(registry.is_kernel(add));
+    EXPECT_EQ(registry.name(gemm), "Gemm_NN");
+    EXPECT_EQ(parse_op("Gemm_NN"), gemm);
 
     // Register a new custom vendor kernel using the exact same uniform API
     Op vendor_add = registry.register_op("VendorAdd", true, [](const EGraph &egraph, const std::vector<Id> &children) {

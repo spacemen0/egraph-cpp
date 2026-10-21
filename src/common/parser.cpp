@@ -1,5 +1,6 @@
 #include "parser.h"
 #include "errors.h"
+#include "op_registry.h"
 #include "utils.h"
 #include <cctype>
 #include <cstdint>
@@ -95,15 +96,14 @@ class Lexer {
 };
 
 int op_precedence(Op op) {
-    switch (op) {
-    case Op::Add:
-    case Op::Minus:
+    auto name = OpRegistry::name(op);
+    if (name == "Add" || name == "Minus") {
         return 10;
-    case Op::Mul:
-        return 20;
-    default:
-        return 100;
     }
+    if (name == "Mul") {
+        return 20;
+    }
+    return 100;
 }
 struct ASTNode {
     Atom atom;
@@ -119,11 +119,12 @@ struct ASTNode {
     std::string to_string() const {
         if (std::holds_alternative<Op>(atom)) {
             Op op = std::get<Op>(atom);
-            if (op == Op::Add || op == Op::Mul || op == Op::Minus) {
+            auto name = OpRegistry::name(op);
+            if (name == "Add" || name == "Mul" || name == "Minus") {
                 std::string sym;
-                if (op == Op::Add)
+                if (name == "Add")
                     sym = " + ";
-                else if (op == Op::Mul)
+                else if (name == "Mul")
                     sym = " * ";
                 else
                     sym = " - ";
@@ -138,7 +139,7 @@ struct ASTNode {
                         return s;
                     };
                     return format_child(*children[0]) + sym + format_child(*children[1]);
-                } else if (op == Op::Minus && children.size() == 1) {
+                } else if (name == "Minus" && children.size() == 1) {
                     return "-" + children[0]->to_string();
                 }
             }
@@ -225,7 +226,7 @@ class Parser {
             }
             auto expr = parse_expr(30);
             auto node = std::make_unique<ASTNode>();
-            node->atom = Op::Scale;
+            node->atom = OpRegistry::op("Scale");
 
             auto neg_one = std::make_unique<ASTNode>();
             neg_one->atom = ScalarExpr(-1.0);
@@ -250,7 +251,8 @@ class Parser {
             // Check for function call
             if (curr.type == TokenType::LParen) {
                 Op op = parse_op(name);
-                if (op == Op::Add || op == Op::Mul || op == Op::Minus) {
+                auto op_name = OpRegistry::name(op);
+                if (op_name == "Add" || op_name == "Mul" || op_name == "Minus") {
                     throw ParseError(
                         "Prefix syntax for " + std::string(name) +
                         " is no longer supported. Use infix +, *, or - instead.");
@@ -260,7 +262,7 @@ class Parser {
                 auto node = std::make_unique<ASTNode>();
                 node->atom = op;
 
-                if (op == Op::Get) {
+                if (op_name == "Get") {
                     if (curr.type == TokenType::RParen)
                         throw ParseError("Get requires arguments");
                     node->children.push_back(parse_expr(0));
@@ -282,7 +284,7 @@ class Parser {
                     return node;
                 }
 
-                if (op == Op::Scale) {
+                if (op_name == "Scale") {
                     if (curr.type == TokenType::RParen)
                         throw ParseError("Scale requires arguments");
                     node->children.push_back(parse_expr(0));
@@ -347,11 +349,11 @@ class Parser {
 
         auto node = std::make_unique<ASTNode>();
         if (op_type == TokenType::Plus)
-            node->atom = Op::Add;
+            node->atom = OpRegistry::op("Add");
         else if (op_type == TokenType::Minus)
-            node->atom = Op::Minus;
+            node->atom = OpRegistry::op("Minus");
         else if (op_type == TokenType::Star)
-            node->atom = Op::Mul;
+            node->atom = OpRegistry::op("Mul");
 
         node->children.push_back(std::move(left));
         node->children.push_back(std::move(right));

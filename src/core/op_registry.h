@@ -30,12 +30,11 @@ class OpRegistry {
 
     Op register_op(const std::string &name, bool is_kernel, AnalyzeFn analyze = nullptr);
 
-    void register_op(Op op, const std::string &name, bool is_kernel, AnalyzeFn analyze = nullptr);
-
     // Queries
     bool is_kernel(Op op) const;
-    std::string_view name(Op op) const;
+    static std::string_view name(Op op);
     std::optional<Op> find_by_name(std::string_view name) const;
+    static Op op(std::string_view name);
     const OpDescriptor &get(Op op) const;
     bool contains(Op op) const;
     bool contains(std::string_view name) const;

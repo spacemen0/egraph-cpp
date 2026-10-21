@@ -246,32 +246,33 @@ TEST(Rewrite, DisableKernelFiltersLoweringRules) {
 
     // Verify lowering_set filtering in Rewriter when both Cholesky kernels are disabled
     Rewriter rewriter_cholesky(
-        egraph_instance, lowering_set, EGraphConfig{.disabled_ops = {Op::Potrf_L, Op::Potrf_U}});
+        egraph_instance, lowering_set,
+        EGraphConfig{.disabled_ops = {OpRegistry::op("Potrf_L"), OpRegistry::op("Potrf_U")}});
     const auto &filtered_rules_cholesky = rewriter_cholesky.get_rewrites();
     EXPECT_LT(filtered_rules_cholesky.size(), lowering_set.size());
     for (const auto &rule : filtered_rules_cholesky) {
-        EXPECT_FALSE(rule.lhs.contains_op(Op::Potrf_L) || rule.rhs.contains_op(Op::Potrf_L))
+        EXPECT_FALSE(rule.lhs.contains_op(OpRegistry::op("Potrf_L")) || rule.rhs.contains_op(OpRegistry::op("Potrf_L")))
             << "Rule " << rule.name << " still contains Potrf_L despite Cholesky kernels being disabled";
-        EXPECT_FALSE(rule.lhs.contains_op(Op::Potrf_U) || rule.rhs.contains_op(Op::Potrf_U))
+        EXPECT_FALSE(rule.lhs.contains_op(OpRegistry::op("Potrf_U")) || rule.rhs.contains_op(OpRegistry::op("Potrf_U")))
             << "Rule " << rule.name << " still contains Potrf_U despite Cholesky kernels being disabled";
     }
     // Should still have Geqrf rules
     bool has_geqrf_rule =
         std::any_of(filtered_rules_cholesky.begin(), filtered_rules_cholesky.end(), [](const auto &rule) {
-        return rule.lhs.contains_op(Op::Geqrf) || rule.rhs.contains_op(Op::Geqrf);
+        return rule.lhs.contains_op(OpRegistry::op("Geqrf")) || rule.rhs.contains_op(OpRegistry::op("Geqrf"));
     });
     EXPECT_TRUE(has_geqrf_rule);
 
-    Rewriter rewriter_geqrf(egraph_instance, lowering_set, EGraphConfig{.disabled_ops = {Op::Geqrf}});
+    Rewriter rewriter_geqrf(egraph_instance, lowering_set, EGraphConfig{.disabled_ops = {OpRegistry::op("Geqrf")}});
     const auto &filtered_rules_geqrf = rewriter_geqrf.get_rewrites();
     EXPECT_LT(filtered_rules_geqrf.size(), lowering_set.size());
     for (const auto &rule : filtered_rules_geqrf) {
-        EXPECT_FALSE(rule.lhs.contains_op(Op::Geqrf) || rule.rhs.contains_op(Op::Geqrf))
+        EXPECT_FALSE(rule.lhs.contains_op(OpRegistry::op("Geqrf")) || rule.rhs.contains_op(OpRegistry::op("Geqrf")))
             << "Rule " << rule.name << " still contains Geqrf despite Geqrf being disabled";
     }
     // Should still have Potrf_L rules
     bool has_potrf_l_rule = std::any_of(filtered_rules_geqrf.begin(), filtered_rules_geqrf.end(), [](const auto &rule) {
-        return rule.lhs.contains_op(Op::Potrf_L) || rule.rhs.contains_op(Op::Potrf_L);
+        return rule.lhs.contains_op(OpRegistry::op("Potrf_L")) || rule.rhs.contains_op(OpRegistry::op("Potrf_L"));
     });
     EXPECT_TRUE(has_potrf_l_rule);
 }
@@ -287,7 +288,8 @@ TEST(Rewrite, DisablingKernelPreventsFactorizationInEGraph) {
         bool has_potrf_l_node = false;
         for (Id class_id : egraph_instance.get_all_class_ids()) {
             for (const ENode *node : egraph_instance.get_class_nodes(class_id)) {
-                if (std::holds_alternative<Op>(node->get_atom()) && std::get<Op>(node->get_atom()) == Op::Potrf_L) {
+                if (std::holds_alternative<Op>(node->get_atom()) &&
+                    std::get<Op>(node->get_atom()) == OpRegistry::op("Potrf_L")) {
                     has_potrf_l_node = true;
                     break;
                 }
@@ -302,13 +304,16 @@ TEST(Rewrite, DisablingKernelPreventsFactorizationInEGraph) {
         egraph_instance.add_expression(Expression("Inv(V)"));
         Rewriter rewriter_instance(
             egraph_instance, lowering_set,
-            EGraphConfig{.rewrite = {.node_limit = 100}, .disabled_ops = {Op::Potrf_L, Op::Potrf_U}});
+            EGraphConfig{
+                .rewrite = {.node_limit = 100},
+                .disabled_ops = {OpRegistry::op("Potrf_L"), OpRegistry::op("Potrf_U")}});
         rewriter_instance.apply_rewrites();
 
         bool has_potrf_l_node = false;
         for (Id class_id : egraph_instance.get_all_class_ids()) {
             for (const ENode *node : egraph_instance.get_class_nodes(class_id)) {
-                if (std::holds_alternative<Op>(node->get_atom()) && std::get<Op>(node->get_atom()) == Op::Potrf_L) {
+                if (std::holds_alternative<Op>(node->get_atom()) &&
+                    std::get<Op>(node->get_atom()) == OpRegistry::op("Potrf_L")) {
                     has_potrf_l_node = true;
                     break;
                 }
@@ -322,13 +327,15 @@ TEST(Rewrite, DisablingKernelPreventsFactorizationInEGraph) {
         EGraph egraph_instance(get_property_table());
         egraph_instance.add_expression(Expression("Inv(A)"));
         Rewriter rewriter_instance(
-            egraph_instance, lowering_set, EGraphConfig{.rewrite = {.node_limit = 100}, .disabled_ops = {Op::Geqrf}});
+            egraph_instance, lowering_set,
+            EGraphConfig{.rewrite = {.node_limit = 100}, .disabled_ops = {OpRegistry::op("Geqrf")}});
         rewriter_instance.apply_rewrites();
 
         bool has_geqrf_node = false;
         for (Id class_id : egraph_instance.get_all_class_ids()) {
             for (const ENode *node : egraph_instance.get_class_nodes(class_id)) {
-                if (std::holds_alternative<Op>(node->get_atom()) && std::get<Op>(node->get_atom()) == Op::Geqrf) {
+                if (std::holds_alternative<Op>(node->get_atom()) &&
+                    std::get<Op>(node->get_atom()) == OpRegistry::op("Geqrf")) {
                     has_geqrf_node = true;
                     break;
                 }
@@ -344,11 +351,13 @@ TEST(Rewrite, DynamicSetConfigReFiltersRules) {
     EXPECT_EQ(rewriter_instance.get_rewrites().size(), lowering_set.size());
 
     // Dynamically disable both Potrf_L and Potrf_U
-    rewriter_instance.set_config(EGraphConfig{.disabled_ops = {Op::Potrf_L, Op::Potrf_U}});
+    rewriter_instance.set_config(EGraphConfig{.disabled_ops = {OpRegistry::op("Potrf_L"), OpRegistry::op("Potrf_U")}});
     EXPECT_LT(rewriter_instance.get_rewrites().size(), lowering_set.size());
     for (const auto &rule : rewriter_instance.get_rewrites()) {
-        EXPECT_FALSE(rule.lhs.contains_op(Op::Potrf_L) || rule.rhs.contains_op(Op::Potrf_L));
-        EXPECT_FALSE(rule.lhs.contains_op(Op::Potrf_U) || rule.rhs.contains_op(Op::Potrf_U));
+        EXPECT_FALSE(
+            rule.lhs.contains_op(OpRegistry::op("Potrf_L")) || rule.rhs.contains_op(OpRegistry::op("Potrf_L")));
+        EXPECT_FALSE(
+            rule.lhs.contains_op(OpRegistry::op("Potrf_U")) || rule.rhs.contains_op(OpRegistry::op("Potrf_U")));
     }
 
     // Re-enable everything
@@ -360,34 +369,34 @@ TEST(Rewrite, DynamicRulesFilteringAndTraversal) {
     EGraph egraph_instance(get_property_table());
 
     // 1. When Gemm_NN is disabled, gemm_without_c (dynamic applier rule) must be filtered
-    Rewriter rewriter_gemm(egraph_instance, lowering_set, EGraphConfig{.disabled_ops = {Op::Gemm_NN}});
+    Rewriter rewriter_gemm(egraph_instance, lowering_set, EGraphConfig{.disabled_ops = {OpRegistry::op("Gemm_NN")}});
     for (const auto &rule : rewriter_gemm.get_rewrites()) {
         EXPECT_NE(rule.name, "gemm_without_c");
-        EXPECT_FALSE(rule.contains_op(Op::Gemm_NN));
+        EXPECT_FALSE(rule.contains_op(OpRegistry::op("Gemm_NN")));
     }
 
     // 2. Dynamic rule producing an op:
     auto custom_dynamic_expansion = make_rewrite(
         "custom_dynamic_potrf_l", "Inv(?a)", "Dynamic", false, nullptr, [](EGraph &, const Substitution &, Id id) {
         return std::make_pair(id, false);
-    }, {Op::Potrf_L});
-    EXPECT_TRUE(custom_dynamic_expansion.contains_op(Op::Potrf_L));
+    }, {OpRegistry::op("Potrf_L")});
+    EXPECT_TRUE(custom_dynamic_expansion.contains_op(OpRegistry::op("Potrf_L")));
 
     // Rewriter filtering prunes the custom dynamic expansion rule
     Rewriter rewriter_dyn_expansion(
-        egraph_instance, {custom_dynamic_expansion}, EGraphConfig{.disabled_ops = {Op::Potrf_L}});
+        egraph_instance, {custom_dynamic_expansion}, EGraphConfig{.disabled_ops = {OpRegistry::op("Potrf_L")}});
     EXPECT_TRUE(rewriter_dyn_expansion.get_rewrites().empty());
 
     // 3. Dynamic lowering rule:
     auto custom_dynamic_lowering = make_rewrite(
         "custom_dynamic_geqrf", "Inv(?a)", "Dynamic", false, nullptr, [](EGraph &, const Substitution &, Id id) {
         return std::make_pair(id, false);
-    }, {Op::Geqrf});
-    EXPECT_TRUE(custom_dynamic_lowering.contains_op(Op::Geqrf));
+    }, {OpRegistry::op("Geqrf")});
+    EXPECT_TRUE(custom_dynamic_lowering.contains_op(OpRegistry::op("Geqrf")));
 
     // When Geqrf is disabled, Rewriter filtering prunes the dynamic lowering rule
     Rewriter rewriter_dyn_lowering(
-        egraph_instance, {custom_dynamic_lowering}, EGraphConfig{.disabled_ops = {Op::Geqrf}});
+        egraph_instance, {custom_dynamic_lowering}, EGraphConfig{.disabled_ops = {OpRegistry::op("Geqrf")}});
     EXPECT_TRUE(rewriter_dyn_lowering.get_rewrites().empty());
 }
 

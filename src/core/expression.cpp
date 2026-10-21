@@ -1,5 +1,6 @@
 #include "expression.h"
 #include "basic_types.h"
+#include "op_registry.h"
 #include "utils.h"
 #include <algorithm>
 #include <sstream>
@@ -10,19 +11,17 @@ static int precedence(const Expression &expr) {
         return 100;
     }
 
-    switch (std::get<Op>(expr.atom)) {
-        using enum Op;
-    case Add:
-    case Minus:
+    auto name = OpRegistry::name(std::get<Op>(expr.atom));
+    if (name == "Add" || name == "Minus") {
         return 10;
-    case Mul:
-        return 20;
-    case Tr:
-    case Inv:
-        return 40;
-    default:
-        return 90;
     }
+    if (name == "Mul") {
+        return 20;
+    }
+    if (name == "Tr" || name == "Inv") {
+        return 40;
+    }
+    return 90;
 }
 
 static std::string parenthesize(const Expression &expr, bool readable, int parent_precedence) {
@@ -36,7 +35,7 @@ static std::string parenthesize(const Expression &expr, bool readable, int paren
 static std::string parenthesize_mul_chain(const Expression &expr, bool readable) {
     constexpr int MulPrecedence = 20;
     std::string rendered = Expression::render(expr, readable, MulPrecedence);
-    if (std::holds_alternative<Op>(expr.atom) && std::get<Op>(expr.atom) == Op::Mul) {
+    if (std::holds_alternative<Op>(expr.atom) && std::get<Op>(expr.atom) == OpRegistry::op("Mul")) {
         return "(" + rendered + ")";
     }
     if (precedence(expr) < MulPrecedence) {
@@ -51,47 +50,47 @@ std::string Expression::render(const Expression &expr, bool readable, int parent
     }
 
     const Op op = std::get<Op>(expr.atom);
+    const auto op_name = OpRegistry::name(op);
 
     if (readable) {
-        if (op == Op::Tr) {
+        if (op_name == "Tr") {
             return parenthesize(expr.children[0], readable, precedence(expr)) + "ᵀ";
         }
-        if (op == Op::Inv) {
+        if (op_name == "Inv") {
             return parenthesize(expr.children[0], readable, precedence(expr)) + "⁻¹";
         }
     }
 
-    switch (op) {
-        using enum Op;
-    case Add: {
+    if (op_name == "Add") {
         return parenthesize(expr.children[0], readable, precedence(expr)) + " + " +
                parenthesize(expr.children[1], readable, precedence(expr));
     }
-    case Mul: {
+    if (op_name == "Mul") {
         return parenthesize_mul_chain(expr.children[0], readable) + " * " +
                parenthesize_mul_chain(expr.children[1], readable);
     }
-    case Minus: {
+    if (op_name == "Minus") {
         return parenthesize(expr.children[0], readable, precedence(expr)) + " - " +
                parenthesize(expr.children[1], readable, precedence(expr));
     }
-    case Get: {
+    if (op_name == "Get") {
         if (readable && expr.children.size() == 2) {
             if (const int *idx_ptr = std::get_if<int>(&expr.children[1].atom)) {
                 int index = *idx_ptr;
                 const Expression &tuple_expr = expr.children[0];
                 if (std::holds_alternative<Op>(tuple_expr.atom)) {
                     Op tuple_op = std::get<Op>(tuple_expr.atom);
+                    auto tuple_name = OpRegistry::name(tuple_op);
                     std::string factor_name;
-                    if (tuple_op == Op::Geqrf) {
+                    if (tuple_name == "Geqrf") {
                         if (index == 0)
                             factor_name = "Q";
                         else if (index == 1)
                             factor_name = "R";
-                    } else if (tuple_op == Op::Potrf_L) {
+                    } else if (tuple_name == "Potrf_L") {
                         if (index == 0)
                             factor_name = "CholeL";
-                    } else if (tuple_op == Op::Potrf_U) {
+                    } else if (tuple_name == "Potrf_U") {
                         if (index == 0)
                             factor_name = "CholeU";
                     }
@@ -110,10 +109,6 @@ std::string Expression::render(const Expression &expr, bool readable, int parent
                 }
             }
         }
-        break;
-    }
-    default:
-        break;
     }
 
     // Fallback for all other operations (functional notation)
@@ -134,7 +129,8 @@ std::string Expression::render(const Expression &expr, bool readable, int parent
 Expression::Expression(std::string_view string) {
     auto parsed = string_to_parsed_atom(string);
     atom = parsed.atom;
-    if (std::holds_alternative<Op>(atom) && std::get<Op>(atom) == Op::Scale && parsed.children_strings.size() == 2) {
+    if (std::holds_alternative<Op>(atom) && std::get<Op>(atom) == OpRegistry::op("Scale") &&
+        parsed.children_strings.size() == 2) {
         children.emplace_back(parsed.children_strings[0]);
         children.emplace_back(parser::parse_scalar(parsed.children_strings[1]));
         return;

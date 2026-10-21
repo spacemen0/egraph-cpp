@@ -61,14 +61,14 @@ static const auto scale_inverse =
     // Construct the expression tree directly: Scale(Inv(?a), 1/val)
     std::vector<Expression> inv_children;
     inv_children.emplace_back("?a");
-    Expression inv_node(Atom(Op::Inv), inv_children);
+    Expression inv_node(Atom(OpRegistry::op("Inv")), inv_children);
 
     std::vector<Expression> scale_children;
     scale_children.push_back(inv_node);
     scale_children.emplace_back(ScalarExpr(1.0 / val));
 
-    return std::make_pair(g.add_expression(Expression(Atom(Op::Scale), scale_children), s), false);
-}, 30, {Op::Scale, Op::Inv});
+    return std::make_pair(g.add_expression(Expression(Atom(OpRegistry::op("Scale")), scale_children), s), false);
+}, 30, {OpRegistry::op("Scale"), OpRegistry::op("Inv")});
 
 static const std::vector<Rewrite> transformation_set = {
     mul_assoc,

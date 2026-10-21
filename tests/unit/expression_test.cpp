@@ -1,5 +1,6 @@
 #include "errors.h"
 #include "expression.h"
+#include "op_registry.h"
 #include "utils.h"
 #include <gtest/gtest.h>
 using namespace egraph;
@@ -18,7 +19,7 @@ TEST(Expression, ParseOperationWithoutChildren) {
 
 TEST(Expression, ParseOperationWithChildren) {
     Expression p(" X + Y ");
-    EXPECT_EQ(std::get<Op>(p.atom), Op::Add);
+    EXPECT_EQ(std::get<Op>(p.atom), OpRegistry::op("Add"));
     ASSERT_EQ(p.children.size(), 2);
     EXPECT_TRUE(std::holds_alternative<uint32_t>(p.children[0].atom));
     EXPECT_EQ(std::get<uint32_t>(p.children[0].atom), register_string_in_lookup("X"));
@@ -28,17 +29,17 @@ TEST(Expression, ParseOperationWithChildren) {
 
 TEST(Expression, ParseNestedOperations) {
     Expression p("((X + Y) + Y) * Tr(Z)");
-    EXPECT_EQ(std::get<Op>(p.atom), Op::Mul);
+    EXPECT_EQ(std::get<Op>(p.atom), OpRegistry::op("Mul"));
     ASSERT_EQ(p.children.size(), 2);
     const Expression &add_child = p.children[0];
-    EXPECT_EQ(std::get<Op>(add_child.atom), Op::Add);
+    EXPECT_EQ(std::get<Op>(add_child.atom), OpRegistry::op("Add"));
     ASSERT_EQ(add_child.children.size(), 2);
     EXPECT_TRUE(std::holds_alternative<uint32_t>(add_child.children[0].children[0].atom));
     EXPECT_EQ(std::get<uint32_t>(add_child.children[0].children[0].atom), register_string_in_lookup("X"));
     EXPECT_TRUE(std::holds_alternative<uint32_t>(add_child.children[1].atom));
     EXPECT_EQ(std::get<uint32_t>(add_child.children[1].atom), register_string_in_lookup("Y"));
     const Expression &transpose_child = p.children[1];
-    EXPECT_EQ(std::get<Op>(transpose_child.atom), Op::Tr);
+    EXPECT_EQ(std::get<Op>(transpose_child.atom), OpRegistry::op("Tr"));
     ASSERT_EQ(transpose_child.children.size(), 1);
     EXPECT_TRUE(std::holds_alternative<uint32_t>(transpose_child.children[0].atom));
     EXPECT_EQ(std::get<uint32_t>(transpose_child.children[0].atom), register_string_in_lookup("Z"));
@@ -71,20 +72,20 @@ TEST(Expression, ToStringMulChainPreservesRightGrouping) {
 
 TEST(Expression, ParseGeqrfNode) {
     Expression p("Get(Geqrf(A), 0) * Get(Geqrf(A), 1)");
-    EXPECT_EQ(std::get<Op>(p.atom), Op::Mul);
+    EXPECT_EQ(std::get<Op>(p.atom), OpRegistry::op("Mul"));
     ASSERT_EQ(p.children.size(), 2);
     const Expression &get_q = p.children[0];
-    EXPECT_EQ(std::get<Op>(get_q.atom), Op::Get);
+    EXPECT_EQ(std::get<Op>(get_q.atom), OpRegistry::op("Get"));
     ASSERT_EQ(get_q.children.size(), 2);
     EXPECT_TRUE(std::holds_alternative<Op>(get_q.children[0].atom));
-    EXPECT_EQ(std::get<Op>(get_q.children[0].atom), Op::Geqrf);
+    EXPECT_EQ(std::get<Op>(get_q.children[0].atom), OpRegistry::op("Geqrf"));
     EXPECT_TRUE(std::holds_alternative<int>(get_q.children[1].atom));
     EXPECT_EQ(std::get<int>(get_q.children[1].atom), 0);
     const Expression &get_r = p.children[1];
-    EXPECT_EQ(std::get<Op>(get_r.atom), Op::Get);
+    EXPECT_EQ(std::get<Op>(get_r.atom), OpRegistry::op("Get"));
     ASSERT_EQ(get_r.children.size(), 2);
     EXPECT_TRUE(std::holds_alternative<Op>(get_r.children[0].atom));
-    EXPECT_EQ(std::get<Op>(get_r.children[0].atom), Op::Geqrf);
+    EXPECT_EQ(std::get<Op>(get_r.children[0].atom), OpRegistry::op("Geqrf"));
     EXPECT_TRUE(std::holds_alternative<int>(get_r.children[1].atom));
     EXPECT_EQ(std::get<int>(get_r.children[1].atom), 1);
 }

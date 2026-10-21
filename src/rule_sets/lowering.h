@@ -14,20 +14,21 @@ namespace egraph {
 // gemv
 static const auto gemv_n_with_c = make_rewrite(
     "gemv_n_with_c", "?a * ?b + ?c", "Gemv_N(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
-    return is_matrix("a")(g, s) && is_vector("b")(g, s) && is_vector("c")(g, s) && is_not_op("a", Op::Tr)(g, s);
+    return is_matrix("a")(g, s) && is_vector("b")(g, s) && is_vector("c")(g, s) &&
+           is_not_op("a", OpRegistry::op("Tr"))(g, s);
 });
 
 static const auto gemv_n_without_c =
     make_rewrite("gemv_n_without_c", "?a * ?b", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
-    return is_matrix("a")(g, s) && is_vector("b")(g, s) && is_not_op("a", Op::Tr)(g, s);
+    return is_matrix("a")(g, s) && is_vector("b")(g, s) && is_not_op("a", OpRegistry::op("Tr"))(g, s);
 }, [](EGraph &g, const Substitution &s, Id _) {
     Id a_id = s.at("a");
     Id b_id = s.at("b");
     const auto *a_prop = get_matrix_data(g, a_id);
     const auto *b_prop = get_matrix_data(g, b_id);
     auto zero = make_zero_of_shape(g, {a_prop->shape.first, b_prop->shape.second});
-    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, Op::Gemv_N}), false);
-}, 30, {Op::Gemv_N});
+    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, OpRegistry::op("Gemv_N")}), false);
+}, 30, {OpRegistry::op("Gemv_N")});
 
 static const auto gemv_t_with_c = make_rewrite(
     "gemv_t_with_c", "Tr(?a) * ?b + ?c", "Gemv_T(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
@@ -43,8 +44,8 @@ static const auto gemv_t_without_c =
     const auto *a_prop = get_matrix_data(g, a_id);
     const auto *b_prop = get_matrix_data(g, b_id);
     auto zero = make_zero_of_shape(g, {a_prop->shape.second, b_prop->shape.second});
-    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, Op::Gemv_T}), false);
-}, 30, {Op::Gemv_T});
+    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, OpRegistry::op("Gemv_T")}), false);
+}, 30, {OpRegistry::op("Gemv_T")});
 
 /// symm
 static const auto symm_l_without_c =
@@ -56,8 +57,8 @@ static const auto symm_l_without_c =
     const auto *a_prop = get_matrix_data(g, a_id);
     const auto *b_prop = get_matrix_data(g, b_id);
     auto zero = make_zero_of_shape(g, {a_prop->shape.first, b_prop->shape.second});
-    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, Op::Symm_L}), false);
-}, 30, {Op::Symm_L});
+    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, OpRegistry::op("Symm_L")}), false);
+}, 30, {OpRegistry::op("Symm_L")});
 static const auto symm_l =
     make_rewrite("symm_l", "?a * ?b + ?c", "Symm_L(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
     return is_symmetric("a")(g, s) && is_not_vector("b")(g, s);
@@ -72,8 +73,8 @@ static const auto symm_r_without_c =
     const auto *a_prop = get_matrix_data(g, a_id);
     const auto *b_prop = get_matrix_data(g, b_id);
     auto zero = make_zero_of_shape(g, {b_prop->shape.first, a_prop->shape.second});
-    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, Op::Symm_R}), false);
-}, 30, {Op::Symm_R});
+    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, OpRegistry::op("Symm_R")}), false);
+}, 30, {OpRegistry::op("Symm_R")});
 static const auto symm_r =
     make_rewrite("symm_r", "?b * ?a + ?c", "Symm_R(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
     return is_symmetric("a")(g, s) && is_not_vector("b")(g, s);
@@ -89,8 +90,8 @@ static const auto trmm_ln_without_c =
     const auto *a_prop = get_matrix_data(g, a_id);
     const auto *b_prop = get_matrix_data(g, b_id);
     auto zero = make_zero_of_shape(g, {a_prop->shape.first, b_prop->shape.second});
-    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, Op::Trmm_LN}), false);
-}, 30, {Op::Trmm_LN});
+    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, OpRegistry::op("Trmm_LN")}), false);
+}, 30, {OpRegistry::op("Trmm_LN")});
 static const auto trmm_ln =
     make_rewrite("trmm_ln", "?a * ?b + ?c", "Trmm_LN(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
     return is_triangular("a")(g, s) && is_not_vector("b")(g, s);
@@ -105,8 +106,8 @@ static const auto trmm_lt_without_c =
     const auto *a_prop = get_matrix_data(g, a_id);
     const auto *b_prop = get_matrix_data(g, b_id);
     auto zero = make_zero_of_shape(g, {a_prop->shape.second, b_prop->shape.second});
-    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, Op::Trmm_LT}), false);
-}, 30, {Op::Trmm_LT});
+    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, OpRegistry::op("Trmm_LT")}), false);
+}, 30, {OpRegistry::op("Trmm_LT")});
 static const auto trmm_lt = make_rewrite(
     "trmm_lt", "Tr(?a) * ?b + ?c", "Trmm_LT(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
     return is_triangular("a")(g, s) && is_not_vector("b")(g, s);
@@ -121,8 +122,8 @@ static const auto trmm_rn_without_c =
     const auto *a_prop = get_matrix_data(g, a_id);
     const auto *b_prop = get_matrix_data(g, b_id);
     auto zero = make_zero_of_shape(g, {b_prop->shape.first, a_prop->shape.second});
-    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, Op::Trmm_RN}), false);
-}, 30, {Op::Trmm_RN});
+    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, OpRegistry::op("Trmm_RN")}), false);
+}, 30, {OpRegistry::op("Trmm_RN")});
 static const auto trmm_rn =
     make_rewrite("trmm_rn", "?b * ?a + ?c", "Trmm_RN(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
     return is_triangular("a")(g, s) && is_not_vector("b")(g, s);
@@ -137,8 +138,8 @@ static const auto trmm_rt_without_c =
     const auto *a_prop = get_matrix_data(g, a_id);
     const auto *b_prop = get_matrix_data(g, b_id);
     auto zero = make_zero_of_shape(g, {b_prop->shape.first, a_prop->shape.first});
-    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, Op::Trmm_RT}), false);
-}, 30, {Op::Trmm_RT});
+    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, OpRegistry::op("Trmm_RT")}), false);
+}, 30, {OpRegistry::op("Trmm_RT")});
 static const auto trmm_rt = make_rewrite(
     "trmm_rt", "?b * Tr(?a) + ?c", "Trmm_RT(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
     return is_triangular("a")(g, s) && is_not_vector("b")(g, s);
@@ -154,8 +155,8 @@ static const auto syrk_n_without_c = make_rewrite(
     Id a_id = s.at("a");
     const auto *a_prop = get_matrix_data(g, a_id);
     auto zero = make_zero_of_shape(g, {a_prop->shape.first, a_prop->shape.first});
-    return std::make_pair(g.add_node(ENode{{a_id, zero}, Op::Syrk_N}), false);
-}, 30, {Op::Syrk_N});
+    return std::make_pair(g.add_node(ENode{{a_id, zero}, OpRegistry::op("Syrk_N")}), false);
+}, 30, {OpRegistry::op("Syrk_N")});
 
 static const auto syrk_t_with_c =
     make_rewrite("syrk_t_with_c", "Tr(?a) * ?a + ?c", "Syrk_T(?a, ?c)", false, is_symmetric("c"));
@@ -165,8 +166,8 @@ static const auto syrk_t_without_c = make_rewrite(
     Id a_id = s.at("a");
     const auto *a_prop = get_matrix_data(g, a_id);
     auto zero = make_zero_of_shape(g, {a_prop->shape.second, a_prop->shape.second});
-    return std::make_pair(g.add_node(ENode{{a_id, zero}, Op::Syrk_T}), false);
-}, 30, {Op::Syrk_T});
+    return std::make_pair(g.add_node(ENode{{a_id, zero}, OpRegistry::op("Syrk_T")}), false);
+}, 30, {OpRegistry::op("Syrk_T")});
 
 /// BLAS Level 3: gemm
 /// ----------------------------------------------------------
@@ -179,8 +180,8 @@ static const auto gemm_tn_without_c =
     const auto *a_prop = get_matrix_data(g, a_id);
     const auto *b_prop = get_matrix_data(g, b_id);
     auto zero = make_zero_of_shape(g, {a_prop->shape.second, b_prop->shape.second});
-    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, Op::Gemm_TN}), false);
-}, 30, {Op::Gemm_TN});
+    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, OpRegistry::op("Gemm_TN")}), false);
+}, 30, {OpRegistry::op("Gemm_TN")});
 static const auto gemm_tn = make_rewrite(
     "gemm_tn", "Tr(?a) * ?b + ?c", "Gemm_TN(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
     return is_not_vector("b")(g, s) && is_not_vector("a")(g, s);
@@ -195,8 +196,8 @@ static const auto gemm_nt_without_c =
     const auto *a_prop = get_matrix_data(g, a_id);
     const auto *b_prop = get_matrix_data(g, b_id);
     auto zero = make_zero_of_shape(g, {a_prop->shape.first, b_prop->shape.first});
-    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, Op::Gemm_NT}), false);
-}, 30, {Op::Gemm_NT});
+    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, OpRegistry::op("Gemm_NT")}), false);
+}, 30, {OpRegistry::op("Gemm_NT")});
 static const auto gemm_nt = make_rewrite(
     "gemm_nt", "?a * Tr(?b) + ?c", "Gemm_NT(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
     return is_not_vector("a")(g, s) && is_not_vector("b")(g, s);
@@ -211,8 +212,8 @@ static const auto gemm_tt_without_c =
     const auto *a_prop = get_matrix_data(g, a_id);
     const auto *b_prop = get_matrix_data(g, b_id);
     auto zero = make_zero_of_shape(g, {a_prop->shape.second, b_prop->shape.first});
-    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, Op::Gemm_TT}), false);
-}, 30, {Op::Gemm_TT});
+    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, OpRegistry::op("Gemm_TT")}), false);
+}, 30, {OpRegistry::op("Gemm_TT")});
 static const auto gemm_tt = make_rewrite(
     "gemm_tt", "Tr(?a) * Tr(?b) + ?c", "Gemm_TT(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
     return is_not_vector("b")(g, s) && is_not_vector("a")(g, s);
@@ -229,8 +230,8 @@ static const auto gemm_without_c =
     const auto *a_prop = get_matrix_data(g, a_id);
     const auto *b_prop = get_matrix_data(g, b_id);
     auto zero = make_zero_of_shape(g, {a_prop->shape.first, b_prop->shape.second});
-    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, Op::Gemm_NN}), false);
-}, 30, {Op::Gemm_NN});
+    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, OpRegistry::op("Gemm_NN")}), false);
+}, 30, {OpRegistry::op("Gemm_NN")});
 
 /// BLAS: trsm
 /// ----------------------------------------------------------
@@ -248,14 +249,15 @@ static const auto qr_invert = make_rewrite(
     [](const EGraph &g, const Substitution &s) {
     return is_square("a")(g, s) && is_not_factorized("a")(g, s);
 });
-static const auto qr_leaf =
-    make_rewrite("qr-leaf", "?a", "Get(Geqrf(?a), 0) * Get(Geqrf(?a), 1)", true, [](const EGraph &g, const Substitution &s) {
+static const auto qr_leaf = make_rewrite(
+    "qr-leaf", "?a", "Get(Geqrf(?a), 0) * Get(Geqrf(?a), 1)", true, [](const EGraph &g, const Substitution &s) {
     if (!leaf_and_not_factorized("a")(g, s))
         return false;
     const auto *prop = get_matrix_data(g, s.at("a"));
     if (prop) {
         // Avoid ambiguous symbolic-shape exceptions.
-        return !prop->is_vector() && (prop->is_square() || (prop->is_tall_matrix() && prop->flags.is_full_rank) || prop->is_wide_matrix());
+        return !prop->is_vector() &&
+               (prop->is_square() || (prop->is_tall_matrix() && prop->flags.is_full_rank) || prop->is_wide_matrix());
     }
     return false;
 });

@@ -28,7 +28,8 @@ static auto is_not_transpose = [](std::string_view var) {
     return [var = std::string(var)](const EGraph &g, const Substitution &s) {
         Id id = s.at(var);
         for (const auto *node : g.get_class_nodes(id)) {
-            if (std::holds_alternative<Op>(node->get_atom()) && std::get<Op>(node->get_atom()) == Op::Tr) {
+            if (std::holds_alternative<Op>(node->get_atom()) &&
+                std::get<Op>(node->get_atom()) == OpRegistry::op("Tr")) {
                 return false;
             }
         }

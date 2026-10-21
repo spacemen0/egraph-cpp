@@ -148,7 +148,7 @@ PruneResult Pruner::prune_symbolic_when_kernel_available(EGraph &egraph, const s
                 auto op = std::get<Op>(atom);
                 if (is_kernel_op(op)) {
                     has_kernel = true;
-                    if (op == Op::Orgqr) {
+                    if (op == OpRegistry::op("Orgqr")) {
                         has_orgqr = true;
                         break;
                     }
@@ -163,7 +163,7 @@ PruneResult Pruner::prune_symbolic_when_kernel_available(EGraph &egraph, const s
                     auto op = std::get<Op>(atom);
                     if (is_kernel_op(op)) {
                         keep_choices[class_id].insert(node);
-                    } else if (op == Op::Get) {
+                    } else if (op == OpRegistry::op("Get")) {
                         Id index_id = node->get_children().at(1);
                         if (has_orgqr && get_int_from_eclass(egraph, index_id) == 0) {
                             continue; // Skip Get(Geqrf, 0) if Orgqr is available
