@@ -20,11 +20,11 @@ class Extractor {
     explicit Extractor(EGraph &egraph, EGraphConfig config = EGraphConfig())
         : egraph(egraph), config(std::move(config)) {}
 
-    ExtractionResult extract(Id class_id, const SizeBindings &size_bindings = {}, size_t visit_limit = 0) const;
+    ExtractionResult extract(Id class_id, const SizeBindings &size_bindings, size_t visit_limit = 0) const;
     std::vector<ExtractionResult>
-    extract(Id class_id, size_t max_results, const SizeBindings &size_bindings = {}, size_t visit_limit = 0) const;
+    extract(Id class_id, size_t max_results, const SizeBindings &size_bindings, size_t visit_limit = 0) const;
 
-    ExtractionResult tree_extract(Id class_id, const SizeBindings &size_bindings = {}) const;
+    ExtractionResult tree_extract(Id class_id, const SizeBindings &size_bindings) const;
 
     void collect_selected_nodes_for_binding(
         const std::vector<Id> &roots, const SizeBindings &size_bindings,
@@ -59,22 +59,22 @@ class Extractor {
     // Admissible DAG lower-bound cost for each e-node
     mutable std::unordered_map<const ENode *, double> node_dag_lower_bound;
 
-    void initial_analysis_pass(const SizeBindings *size_bindings) const;
+    void initial_analysis_pass(const SizeBindings &size_bindings) const;
 
     std::pair<double, std::unordered_map<Id, const ENode *>>
-    evaluate_dag(Id root, const std::vector<const ENode *> &choices, const SizeBindings *size_bindings) const;
+    evaluate_dag(Id root, const std::vector<const ENode *> &choices, const SizeBindings &size_bindings) const;
 
-    NumericSearchResult refine_seed_dag(Id root, const SizeBindings *size_bindings) const;
+    NumericSearchResult refine_seed_dag(Id root, const SizeBindings &size_bindings) const;
 
     std::vector<NumericSearchResult> find_top_numeric_dags(
-        Id root_class_id, size_t max_results, const SizeBindings *size_bindings = nullptr,
+        Id root_class_id, size_t max_results, const SizeBindings &size_bindings,
         size_t custom_visit_limit = 0) const;
 
     void search_numeric_dags(
         Id root, std::vector<Id> &pending, std::vector<size_t> &pending_set,
         std::vector<const ENode *> &current_choices, double current_cost, std::vector<NumericSearchResult> &results,
         double &worst_cost, size_t max_results, std::vector<size_t> &visited_buffer, std::vector<Id> &stack_buffer,
-        const SizeBindings *size_bindings, size_t effective_visit_limit) const;
+        const SizeBindings &size_bindings, size_t effective_visit_limit) const;
 
     bool creates_cycle(
         Id current_class, const ENode *candidate, const std::vector<const ENode *> &current_choices,

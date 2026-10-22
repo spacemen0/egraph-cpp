@@ -1,6 +1,7 @@
 #include "egraph_config.h"
 #include "expression.h"
 #include <algorithm>
+#include <iostream>
 
 namespace egraph {
 void initialize_config_for_expression(EGraphConfig &config, const Expression &expr) {

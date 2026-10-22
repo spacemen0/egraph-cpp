@@ -23,7 +23,7 @@ TEST(Integration, MatrixPartialSet) {
     Rewriter rewriter(egraph, rules, EGraphConfig{.rewrite = {.node_limit = 1000}});
     rewriter.apply_rewrites(4);
     Extractor extractor(egraph);
-    auto result = extractor.extract(id);
+    auto result = extractor.extract(id, {});
     EXPECT_EQ(result.cost, Cost(0.0));
     EXPECT_TRUE(std::holds_alternative<uint32_t>(result.expr.atom));
     EXPECT_EQ(std::get<uint32_t>(result.expr.atom), register_string_in_lookup("X"));
@@ -69,7 +69,7 @@ TEST(Integration, MinimalRealisticExplosionRules) {
 
     std::cout << "Num nodes after iterative rewriting/pruning: " << egraph.num_nodes() << '\n';
 
-    auto result = extractor.extract(root_id);
+    auto result = extractor.extract(root_id, {});
     std::cout << "Final extracted expression: " << result.expr.to_string() << '\n';
     std::cout << "Final extracted cost: " << result.cost << '\n';
 
@@ -96,7 +96,7 @@ TEST(Integration, CyclicTermsThatDoNotExplode) {
         // egraph.to_img("cyclic_" + std::to_string(20 - i), "svg");
     }
     Extractor extractor(egraph);
-    auto result = extractor.extract(id);
+    auto result = extractor.extract(id, {});
     std::cout << "Num nodes after rewriting: " << egraph.num_nodes() << '\n';
 
     EXPECT_EQ(result.cost, Cost(0.0));

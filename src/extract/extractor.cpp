@@ -28,7 +28,7 @@ void Extractor::reset() const {
 }
 
 std::pair<double, std::unordered_map<Id, const ENode *>>
-Extractor::evaluate_dag(Id root, const std::vector<const ENode *> &choices, const SizeBindings *size_bindings) const {
+Extractor::evaluate_dag(Id root, const std::vector<const ENode *> &choices, const SizeBindings &size_bindings) const {
     std::unordered_map<Id, const ENode *> map;
     std::unordered_set<Id> visited;
     double total = 0.0;
@@ -70,7 +70,7 @@ Extractor::evaluate_dag(Id root, const std::vector<const ENode *> &choices, cons
     return {total, map};
 }
 
-Extractor::NumericSearchResult Extractor::refine_seed_dag(Id root, const SizeBindings *size_bindings) const {
+Extractor::NumericSearchResult Extractor::refine_seed_dag(Id root, const SizeBindings &size_bindings) const {
     std::vector<const ENode *> dag_choices = tree_choices;
     auto [best_dag_cost, best_dag_map] = evaluate_dag(root, dag_choices, size_bindings);
     if (best_dag_cost == std::numeric_limits<double>::infinity()) {
@@ -115,7 +115,7 @@ Extractor::NumericSearchResult Extractor::refine_seed_dag(Id root, const SizeBin
 }
 
 std::vector<Extractor::NumericSearchResult> Extractor::find_top_numeric_dags(
-    Id root_class_id, size_t max_results, const SizeBindings *size_bindings, size_t custom_visit_limit) const {
+    Id root_class_id, size_t max_results, const SizeBindings &size_bindings, size_t custom_visit_limit) const {
     if (max_results == 0) {
         return {};
     }
@@ -183,7 +183,7 @@ std::vector<Extractor::NumericSearchResult> Extractor::find_top_numeric_dags(
 void Extractor::search_numeric_dags(
     Id root, std::vector<Id> &pending, std::vector<size_t> &pending_set, std::vector<const ENode *> &current_choices,
     double current_cost, std::vector<NumericSearchResult> &results, double &worst_cost, size_t max_results,
-    std::vector<size_t> &visited_buffer, std::vector<Id> &stack_buffer, const SizeBindings *size_bindings,
+    std::vector<size_t> &visited_buffer, std::vector<Id> &stack_buffer, const SizeBindings &size_bindings,
     size_t effective_visit_limit) const {
 
     nodes_visited++;
@@ -299,7 +299,7 @@ Extractor::convert_to_map(const std::vector<const ENode *> &choices, const std::
 // extraction).
 // 2. Compute the best tree cost and corresponding e-node for each e-class.
 // 3. Compute the minimum local cost for each e-class (independent of children).
-void Extractor::initial_analysis_pass(const SizeBindings *size_bindings) const {
+void Extractor::initial_analysis_pass(const SizeBindings &size_bindings) const {
     Id max_id = 0;
     auto all_class_ids = egraph.get_all_class_ids();
     for (Id id : all_class_ids) {
@@ -384,7 +384,7 @@ void Extractor::initial_analysis_pass(const SizeBindings *size_bindings) const {
 
 ExtractionResult Extractor::tree_extract(Id class_id, const SizeBindings &size_bindings) const {
     Id root = egraph.find_class_id(class_id);
-    initial_analysis_pass(size_bindings.empty() ? nullptr : &size_bindings);
+    initial_analysis_pass(size_bindings);
     if (root >= tree_cost.size() || tree_cost[root] == std::numeric_limits<double>::infinity()) {
         throw std::runtime_error("Runtime error: no numeric DAG found for root class under supplied size bindings");
     }
@@ -484,8 +484,7 @@ ExtractionResult Extractor::extract(Id class_id, const SizeBindings &size_bindin
 
 std::vector<ExtractionResult>
 Extractor::extract(Id class_id, size_t max_results, const SizeBindings &size_bindings, size_t visit_limit) const {
-    auto top_dags =
-        find_top_numeric_dags(class_id, max_results, size_bindings.empty() ? nullptr : &size_bindings, visit_limit);
+    auto top_dags = find_top_numeric_dags(class_id, max_results, size_bindings, visit_limit);
     std::vector<ExtractionResult> results;
     results.reserve(top_dags.size());
     for (const auto &dag : top_dags) {

@@ -190,20 +190,16 @@ class Context {
         prune_symbolic_when_kernel_available(effective_roots);
     }
 
-    ExtractionResult extract(Id target_id, const SizeBindings &bindings = {}) {
+    ExtractionResult extract(Id target_id, const SizeBindings &bindings) {
         if (config.enable_logging) {
             std::cout << "[API] Extracting concrete expression for target " << target_id << "...\n";
         }
 
         Extractor extractor(egraph, config);
-        if (bindings.empty()) {
-            return extractor.extract(target_id);
-        } else {
-            return extractor.extract(target_id, bindings);
-        }
+        return extractor.extract(target_id, bindings);
     }
 
-    ExtractionResult extract_greedy(Id target_id, const SizeBindings &bindings = {}) {
+    ExtractionResult extract_greedy(Id target_id, const SizeBindings &bindings) {
         if (config.enable_logging) {
             std::cout << "[API] Fast greedy extraction for target " << target_id << "...\n";
         }
@@ -275,7 +271,7 @@ class Context {
             }
 #endif
         }
-        Evaluator evaluator(egraph, target_result, &size_bindings, bindings, preserved_ids);
+        Evaluator evaluator(egraph, target_result, size_bindings, bindings, preserved_ids);
         if (config.enable_logging) {
             std::cout << "[API] Execution Plan: \n";
             print_execution_plan(target_result, &bindings);

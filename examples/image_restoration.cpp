@@ -52,14 +52,14 @@ int run_image() {
     auto out2 = ctx.evaluate_concrete(concrete_sizes, concrete_data);
 
     auto out1 = ctx.get_preserved(math_1);
-    auto out1_shape = bind_shape(ctx.get_property(math_1).shape, &concrete_sizes);
+    auto out1_shape = bind_shape(ctx.get_property(math_1).shape, concrete_sizes);
     int row1 = std::get<int>(out1_shape.first);
     int col1 = std::get<int>(out1_shape.second);
     std::string out_path1 = "data/image_result_1.csv";
     write_matrix(out_path1, row1, col1, out1);
 
     // Retrieve target math_2
-    auto out2_shape = bind_shape(ctx.get_property().shape, &concrete_sizes);
+    auto out2_shape = bind_shape(ctx.get_property().shape, concrete_sizes);
     int row2 = std::get<int>(out2_shape.first);
     int col2 = std::get<int>(out2_shape.second);
     std::string out_path2 = "data/image_result_2.csv";

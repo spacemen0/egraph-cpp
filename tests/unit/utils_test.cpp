@@ -1,6 +1,5 @@
 #include "basic_types.h"
 #include "errors.h"
-#include "test_helpers.h"
 #include "utils.h"
 #include <gtest/gtest.h>
 
@@ -135,20 +134,20 @@ TEST(UtilsTest, IsNumericCheck) {
 TEST(UtilsTest, BindSizeAndShape) {
     SizeBindings bindings = {{"M", 10}, {"N", 20}};
 
-    Size bound_m = bind_size(Size("M"), &bindings);
+    Size bound_m = bind_size(Size("M"), bindings);
     EXPECT_TRUE(std::holds_alternative<int>(bound_m));
     EXPECT_EQ(std::get<int>(bound_m), 10);
 
-    Size unbound_k = bind_size(Size("K"), &bindings);
+    Size unbound_k = bind_size(Size("K"), bindings);
     EXPECT_TRUE(std::holds_alternative<std::string>(unbound_k));
     EXPECT_EQ(std::get<std::string>(unbound_k), "K");
 
-    Size already_int = bind_size(Size(42), &bindings);
+    Size already_int = bind_size(Size(42), bindings);
     EXPECT_TRUE(std::holds_alternative<int>(already_int));
     EXPECT_EQ(std::get<int>(already_int), 42);
 
     Shape shape = {Size("M"), Size(5)};
-    Shape bound_shape = bind_shape(shape, &bindings);
+    Shape bound_shape = bind_shape(shape, bindings);
     EXPECT_EQ(std::get<int>(bound_shape.first), 10);
     EXPECT_EQ(std::get<int>(bound_shape.second), 5);
 }

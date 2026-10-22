@@ -74,7 +74,7 @@ using DataStorage = std::variant<MatrixNode, TupleNode>;
 class Evaluator {
   public:
     explicit Evaluator(
-        EGraph &egraph, const ExtractionResult &result, const SizeBindings *size_bindings,
+        EGraph &egraph, const ExtractionResult &result, const SizeBindings &size_bindings,
         const DataBindings &data_bindings, const std::vector<Id> &preserved_ids = {});
     std::vector<double> evaluate();
     std::vector<double> get_preserved(Id id) const;

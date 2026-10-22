@@ -14,7 +14,7 @@ class ENode {
 
   public:
     explicit ENode(const Children &children, Atom const &atom) : children(children), atom(atom) {}
-    Cost compute_local_cost(const EGraph &egraph, const SizeBindings *size_bindings = nullptr) const;
+    Cost compute_local_cost(const EGraph &egraph, const SizeBindings &size_bindings) const;
 
     // access children (mutable/immutable)
     const Children &get_children() const;

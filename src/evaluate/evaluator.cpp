@@ -18,7 +18,7 @@
 namespace egraph {
 
 Evaluator::Evaluator(
-    EGraph &egraph, const ExtractionResult &result, const SizeBindings *size_bindings,
+    EGraph &egraph, const ExtractionResult &result, const SizeBindings &size_bindings,
     const DataBindings &data_bindings, const std::vector<Id> &preserved_ids)
     : egraph(egraph), result(result), data_bindings(data_bindings), preserved_ids(preserved_ids) {
 
@@ -67,7 +67,7 @@ Evaluator::Evaluator(
                 node_data.data()[0] = static_cast<double>(*i_val);
                 data_storage[slot] = node_data;
             } else if (auto data = get_matrix_data(egraph, class_id)) {
-                if (data->has_symbolic_shape() && (!size_bindings || size_bindings->empty())) {
+                if (data->has_symbolic_shape() && (size_bindings.empty())) {
                     throw std::runtime_error("Cannot evaluate with symbolic matrices without size bindings.");
                 }
                 Shape shape = bind_shape(data->shape, size_bindings);
@@ -105,7 +105,7 @@ Evaluator::Evaluator(
             } else if (auto data = get_tuple_data(egraph, class_id)) {
                 TupleNode tuple_data;
                 for (const auto &matrix_data : *data) {
-                    if (matrix_data.has_symbolic_shape() && (!size_bindings || size_bindings->empty())) {
+                    if (matrix_data.has_symbolic_shape() && (size_bindings.empty())) {
                         throw std::runtime_error("Cannot evaluate with symbolic matrices without size bindings.");
                     }
                     Shape shape = bind_shape(matrix_data.shape, size_bindings);

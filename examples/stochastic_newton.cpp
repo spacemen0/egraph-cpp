@@ -62,7 +62,7 @@ int run_stochastic_newton() {
                                   {"W_k", w_data}, {"Il", il_data}, {"k", std::vector<double>{10.0}}};
 
     auto out = ctx.evaluate_concrete(concrete_sizes, concrete_data);
-    auto out_shape = bind_shape(ctx.get_property().shape, &concrete_sizes);
+    auto out_shape = bind_shape(ctx.get_property().shape, concrete_sizes);
     int row = std::get<int>(out_shape.first);
     int col = std::get<int>(out_shape.second);
 

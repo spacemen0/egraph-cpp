@@ -155,7 +155,7 @@ void rewrite_e_graph(SessionState &state, std::optional<int> num_iterations) {
 
 void extract_expression(SessionState &state, size_t expression_id) {
     try {
-        Expression expr = state.ctx.extract(expression_id).expr;
+        Expression expr = state.ctx.extract(expression_id, {}).expr;
         std::cout << "Best extracted expression: " << expr.to_string(true) << "\n";
     } catch (const std::exception &e) {
         std::cerr << "Failed to extract expression: " << e.what() << "\n";

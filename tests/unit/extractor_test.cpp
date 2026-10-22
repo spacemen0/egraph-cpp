@@ -14,7 +14,7 @@ TEST_F(ExtractorTest, CheaperExtraction) {
     egraph.union_classes(id_mul, id_a);
     egraph.rebuild();
 
-    auto result = extractor.extract(id_mul);
+    auto result = extractor.extract(id_mul, {});
     // Should extract 'a'
     EXPECT_EQ(result.cost, Cost(0.0));
     EXPECT_TRUE(std::holds_alternative<uint32_t>(result.expr.atom));
@@ -36,7 +36,7 @@ TEST_F(ExtractorTest, RewriteAndExtract) {
     Rewriter rewriter(egraph, rules, EGraphConfig{.rewrite = {.node_limit = 1000}});
     rewriter.apply_rewrites();
 
-    ExtractionResult result = extractor.extract(root_id);
+    ExtractionResult result = extractor.extract(root_id, {});
     EXPECT_EQ(result.cost, Cost(0.0));
 
     EXPECT_TRUE(std::holds_alternative<uint32_t>(result.expr.atom));
@@ -57,7 +57,7 @@ TEST_F(ExtractorTest, SharedSubexpressionDAGCost) {
 
     Id id_root = egraph.add_node(make_op("Add", {id_mul1, id_mul2}));
 
-    auto result = extractor.extract(id_root);
+    auto result = extractor.extract(id_root, {});
 
     EXPECT_DOUBLE_EQ(result.cost, 84.0);
 
@@ -80,7 +80,7 @@ TEST_F(ExtractorTest, ExpensiveSharedWinsWithHighReuse) {
     Id id_root = egraph.add_node(make_op("Add", {id_mul_yx, mul_inv_d})); // 2x2
     egraph.to_img("extractor_test_initial", "svg");
 
-    auto result = extractor.extract(id_root);
+    auto result = extractor.extract(id_root, {});
     EXPECT_DOUBLE_EQ(result.cost, 44.0);
 }
 
@@ -93,7 +93,7 @@ TEST_F(ExtractorTest, ExtractTopNumericDags) {
     egraph.union_classes(id_a, id_mul);
     egraph.rebuild();
 
-    auto results = extractor.extract(id_a, 2);
+    auto results = extractor.extract(id_a, 2, {});
     ASSERT_EQ(results.size(), 2);
     EXPECT_LE(results[0].cost, results[1].cost);
 
@@ -137,7 +137,7 @@ TEST_F(ExtractorTest, GreedyExtract) {
     egraph.union_classes(id_a, id_mul);
     egraph.rebuild();
 
-    auto result = extractor.tree_extract(id_a);
+    auto result = extractor.tree_extract(id_a, {});
     // 'A' has local cost 0, 'X * Y' has local cost > 0.
     EXPECT_EQ(result.cost, Cost(0.0));
     EXPECT_EQ(result.expr.to_string(), "A");
@@ -175,12 +175,12 @@ TEST_F(ExtractorTest, GreedyExtractIgnoresSharing) {
 
     // Greedy should pick root2
     // 6000 < 6200
-    auto greedy_result = extractor.tree_extract(id_root1);
+    auto greedy_result = extractor.tree_extract(id_root1, {});
     EXPECT_EQ(greedy_result.expr.to_string(), "(Y * Y) * (A * B)");
 
     // Regular extract should pick root1
     // 4200 < 6000
-    auto dag_result = extractor.extract(id_root1);
+    auto dag_result = extractor.extract(id_root1, {});
     EXPECT_EQ(dag_result.expr.to_string(), "(X * X + A) * (X * X + B)");
 }
 
@@ -218,4 +218,15 @@ TEST_F(ExtractorTest, BudgetedExtractConsidersSharing) {
     auto result = extractor.extract(id_root1, {}, 50);
     EXPECT_EQ(result.expr.to_string(), "(X * X + A) * (X * X + B)");
     EXPECT_EQ(result.cost, Cost(4200.0));
+}
+
+TEST_F(ExtractorTest, ExtractThrowsOnMissingBinding) {
+    Id id_m = egraph.add_node(make_symbol("M")); // AxB symbolic
+    Id id_add = egraph.add_node(make_op("Add", {id_m, id_m}));
+
+    EXPECT_THROW(extractor.extract(id_add, {}), std::runtime_error);
+
+    SizeBindings bindings = {{"A", 10}, {"B", 20}};
+    auto result = extractor.extract(id_add, bindings);
+    EXPECT_DOUBLE_EQ(result.cost, 200.0);
 }

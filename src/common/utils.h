@@ -1,12 +1,12 @@
 #pragma once
 
 #include "basic_types.h"
-#include "errors.h"
 #include "extractor.h"
 #include "op_registry.h"
 #include "parser.h"
 #include "rewriter.h"
 #include "types.h"
+#include <iostream>
 #include <optional>
 #include <random>
 #include <span>
@@ -97,13 +97,9 @@ inline std::string atom_to_string(const Atom &atom) {
     return "UnknownAtom";
 }
 
-inline Size bind_size(const Size &size, const SizeBindings *size_bindings) {
-    if (!size_bindings) {
-        return size;
-    }
-
+inline Size bind_size(const Size &size, const SizeBindings &size_bindings) {
     if (const auto *symbol = std::get_if<std::string>(&size)) {
-        if (auto it = size_bindings->find(*symbol); it != size_bindings->end()) {
+        if (auto it = size_bindings.find(*symbol); it != size_bindings.end()) {
             return it->second;
         }
     }
@@ -111,7 +107,7 @@ inline Size bind_size(const Size &size, const SizeBindings *size_bindings) {
     return size;
 }
 
-inline Shape bind_shape(const Shape &shape, const SizeBindings *size_bindings) {
+inline Shape bind_shape(const Shape &shape, const SizeBindings &size_bindings) {
     return {bind_size(shape.first, size_bindings), bind_size(shape.second, size_bindings)};
 }
 

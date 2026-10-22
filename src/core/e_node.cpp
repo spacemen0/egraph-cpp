@@ -68,7 +68,7 @@ size_t ENode::hash() const {
 
 bool ENode::is_leaf() const { return children.empty(); }
 
-Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings *size_bindings) const {
+Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings &size_bindings) const {
     if (is_leaf()) {
         return 0.0;
     }

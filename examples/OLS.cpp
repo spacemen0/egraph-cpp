@@ -38,7 +38,7 @@ int run_ols() {
     DataBindings concrete_data = {{"X", x_data}, {"y", y_data}};
 
     auto out = ctx.evaluate_concrete(concrete_sizes, concrete_data);
-    auto out_shape = bind_shape(ctx.get_property().shape, &concrete_sizes);
+    auto out_shape = bind_shape(ctx.get_property().shape, concrete_sizes);
     int row = std::get<int>(out_shape.first);
     int col = std::get<int>(out_shape.second);
 
