@@ -104,48 +104,48 @@ TEST(Integration, CyclicTermsThatDoNotExplode) {
     EXPECT_EQ(std::get<uint32_t>(result.expr.atom), register_string_in_lookup("A"));
 }
 
-TEST(Integration, MatrixChainSymbolicSizes) {
-    EGraph egraph(get_property_table_with_symbolic_shapes());
+// TEST(Integration, MatrixChainSymbolicSizes) {
+//     EGraph egraph(get_property_table_with_symbolic_shapes());
 
-    const Expression root_expr("A * B * C * D * E * F * G");
-    const Id root_id = egraph.add_expression(root_expr);
-    Rewriter rewriter(egraph, {mul_assoc}, EGraphConfig{.rewrite = {.node_limit = 1000}});
-    rewriter.apply_rewrites();
+//     const Expression root_expr("A * B * C * D * E * F * G");
+//     const Id root_id = egraph.add_expression(root_expr);
+//     Rewriter rewriter(egraph, {mul_assoc}, EGraphConfig{.rewrite = {.node_limit = 1000}});
+//     rewriter.apply_rewrites();
 
-    // egraph.to_img("MatrixChain", "svg");
-    Extractor extractor(egraph);
+//     // egraph.to_img("MatrixChain", "svg");
+//     Extractor extractor(egraph);
 
-    const auto symbolic_results = extractor.extract_symbolic(root_id);
-    std::vector<Expression> candidate_expressions;
-    candidate_expressions.reserve(symbolic_results.size());
-    std::ranges::transform(symbolic_results, std::back_inserter(candidate_expressions), &ExtractionResult::expr);
+//     const auto symbolic_results = extractor.extract_symbolic(root_id);
+//     std::vector<Expression> candidate_expressions;
+//     candidate_expressions.reserve(symbolic_results.size());
+//     std::ranges::transform(symbolic_results, std::back_inserter(candidate_expressions), &ExtractionResult::expr);
 
-    ASSERT_FALSE(candidate_expressions.empty());
+//     ASSERT_FALSE(candidate_expressions.empty());
 
-    // for (auto expression : candidate_expressions) {
-    //     std::cout << "Candidate expression: " << expression.to_string() << std::endl;
-    // }
+//     // for (auto expression : candidate_expressions) {
+//     //     std::cout << "Candidate expression: " << expression.to_string() << std::endl;
+//     // }
 
-    std::vector<bool> expression_seen(candidate_expressions.size(), false);
-    std::vector<std::string> size_keys = {"a", "b", "c", "d", "e", "f", "g", "h"};
+//     std::vector<bool> expression_seen(candidate_expressions.size(), false);
+//     std::vector<std::string> size_keys = {"a", "b", "c", "d", "e", "f", "g", "h"};
 
-    int k = 1000;
-    for (int i = 0; i < k; ++i) {
-        const auto extracted_expr = extractor.extract(root_id, sample_size_bindings(1, 100000, size_keys)).expr;
-        const auto it = std::ranges::find(candidate_expressions, extracted_expr);
-        if (it != candidate_expressions.end()) {
-            const size_t index = static_cast<size_t>(std::distance(candidate_expressions.begin(), it));
-            // if (!expression_seen[index]) {
-            //     std::cout << "Expression " << index << " Matched at Sample " << (i + 1) << std::endl;
-            //     std::cout << "Symbolic Cost: " << symbolic_results[index].cost << std::endl;
-            //     std::cout << "Extracted Expression: " << extracted_expr.to_string() << std::endl;
-            // }
-            expression_seen[index] = true;
-        }
-    }
+//     int k = 1000;
+//     for (int i = 0; i < k; ++i) {
+//         const auto extracted_expr = extractor.extract(root_id, sample_size_bindings(1, 100000, size_keys)).expr;
+//         const auto it = std::ranges::find(candidate_expressions, extracted_expr);
+//         if (it != candidate_expressions.end()) {
+//             const size_t index = static_cast<size_t>(std::distance(candidate_expressions.begin(), it));
+//             // if (!expression_seen[index]) {
+//             //     std::cout << "Expression " << index << " Matched at Sample " << (i + 1) << std::endl;
+//             //     std::cout << "Symbolic Cost: " << symbolic_results[index].cost << std::endl;
+//             //     std::cout << "Extracted Expression: " << extracted_expr.to_string() << std::endl;
+//             // }
+//             expression_seen[index] = true;
+//         }
+//     }
 
-    const auto matched_count = std::ranges::count(expression_seen, true);
-    std::cout << "Matched " << matched_count << " out of " << candidate_expressions.size()
-              << " possible expressions.\n";
-    SUCCEED();
-}
+//     const auto matched_count = std::ranges::count(expression_seen, true);
+//     std::cout << "Matched " << matched_count << " out of " << candidate_expressions.size()
+//               << " possible expressions.\n";
+//     SUCCEED();
+// }

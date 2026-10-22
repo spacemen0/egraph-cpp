@@ -26,7 +26,6 @@ class Extractor {
 
     ExtractionResult tree_extract(Id class_id, const SizeBindings &size_bindings = {}) const;
 
-    std::vector<ExtractionResult> extract_symbolic(Id class_id, bool build_expressions = true) const;
     void collect_selected_nodes_for_binding(
         const std::vector<Id> &roots, const SizeBindings &size_bindings,
         std::unordered_map<Id, std::unordered_set<const ENode *>> &selected_choices, bool use_dag_extract,
@@ -43,11 +42,6 @@ class Extractor {
   private:
     struct NumericSearchResult {
         double cost;
-        std::unordered_map<Id, const ENode *> choices;
-    };
-
-    struct SymbolicSearchResult {
-        SymbolicCost cost;
         std::unordered_map<Id, const ENode *> choices;
     };
 
@@ -81,14 +75,6 @@ class Extractor {
         std::vector<const ENode *> &current_choices, double current_cost, std::vector<NumericSearchResult> &results,
         double &worst_cost, size_t max_results, std::vector<size_t> &visited_buffer, std::vector<Id> &stack_buffer,
         const SizeBindings *size_bindings, size_t effective_visit_limit) const;
-
-    std::vector<SymbolicSearchResult> find_symbolic_dags(Id root_class_id) const;
-
-    void search_symbolic_dags(
-        Id root, std::vector<Id> &pending, std::vector<size_t> &pending_set,
-        std::vector<const ENode *> &current_choices, size_t chosen_count, const SymbolicCost &current_cost,
-        std::vector<SymbolicSearchResult> &results, std::vector<size_t> &visited_buffer, std::vector<Id> &stack_buffer,
-        const std::unordered_map<const ENode *, Cost> &node_costs) const;
 
     bool creates_cycle(
         Id current_class, const ENode *candidate, const std::vector<const ENode *> &current_choices,

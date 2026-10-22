@@ -86,54 +86,6 @@ TEST_F(ExtractorTest, ExpensiveSharedWinsWithHighReuse) {
     EXPECT_EQ(std::get<double>(result.cost), 44.0);
 }
 
-TEST_F(ExtractorTest, ExtractSymbolicSingleDag) {
-
-    Id id_root = egraph.add_expression(Expression("Tr(M) * n"));
-
-    auto results = extractor.extract_symbolic(id_root);
-
-    ASSERT_EQ(results.size(), 1);
-    EXPECT_EQ(results[0].expr.to_string(), "Tr(M) * n");
-    ASSERT_TRUE(std::holds_alternative<SymbolicCost>(results[0].cost));
-
-    SymbolicCost expected;
-    expected[Monomial{{"A", "B", "1"}}] = 2.0;
-    expected[Monomial{{"A", "B"}}] = 1.0;
-    EXPECT_EQ(std::get<SymbolicCost>(results[0].cost), expected);
-}
-
-TEST_F(ExtractorTest, ExtractSymbolicMultipleDags) {
-
-    egraph.register_or_update_property("P", MatrixProperty{.shape = std::make_pair(Size("A"), Size("B"))});
-
-    Id id_m = egraph.add_node(make_symbol("M"));
-    Id id_p = egraph.add_node(make_symbol("P"));
-    Id id_n = egraph.add_node(make_symbol("n"));
-
-    Id id_tr_m = egraph.add_node(make_op("Tr", {id_m}));
-    Id id_tr_p = egraph.add_node(make_op("Tr", {id_p}));
-    egraph.union_classes(id_tr_m, id_tr_p);
-    egraph.rebuild();
-
-    Id id_root = egraph.add_node(make_op("Mul", {id_tr_m, id_n}));
-
-    auto results = extractor.extract_symbolic(id_root);
-    ASSERT_EQ(results.size(), 2);
-
-    std::set<std::string> exprs;
-    for (const auto &r : results) {
-        exprs.insert(r.expr.to_string());
-        ASSERT_TRUE(std::holds_alternative<SymbolicCost>(r.cost));
-        SymbolicCost expected;
-        expected[Monomial{{"A", "B", "1"}}] = 2.0;
-        expected[Monomial{{"A", "B"}}] = 1.0;
-        EXPECT_EQ(std::get<SymbolicCost>(r.cost), expected);
-    }
-
-    EXPECT_TRUE(exprs.contains("Tr(M) * n"));
-    EXPECT_TRUE(exprs.contains("Tr(P) * n"));
-}
-
 TEST_F(ExtractorTest, ExtractTopNumericDags) {
     Id id_a = egraph.add_node(make_symbol("A"));
     Id id_x = egraph.add_node(make_symbol("X"));

@@ -212,17 +212,6 @@ class Context {
         return extractor.tree_extract(target_id, bindings);
     }
 
-    std::vector<ExtractionResult> extract_symbolic() { return extract_symbolic(root_expression); }
-
-    std::vector<ExtractionResult> extract_symbolic(Id target_id) {
-        if (config.enable_logging) {
-            std::cout << "[API] Extracting symbolic expressions for target " << target_id << "...\n";
-        }
-
-        Extractor extractor(egraph, config);
-        return extractor.extract_symbolic(target_id);
-    }
-
     Expression optimize_concrete(
         const Expression &target_expr, const std::vector<Expression> &background_exprs = {},
         const std::vector<std::string> &rulesets = {"complete"}) {
@@ -345,7 +334,6 @@ class Context {
             }
         });
         root_expression = egraph.find_class_id(root_id);
-        auto res = extract_symbolic(root_expression);
     }
 
     void print_properties() const { egraph.get_property_table().print_all_properties(); }

@@ -171,24 +171,6 @@ void extract_expression_with_bindings(SessionState &state, size_t expression_id,
     }
 }
 
-void extract_symbolic_expressions(SessionState &state, size_t expression_id) {
-    try {
-        auto results = state.ctx.extract_symbolic(expression_id);
-        if (results.empty()) {
-            std::cout << "No symbolic extraction candidates found.\n";
-            return;
-        }
-
-        std::cout << "Symbolic extraction candidates: " << results.size() << "\n";
-        for (size_t i = 0; i < results.size(); ++i) {
-            std::cout << "  [" << i << "] " << results[i].expr.to_string(true) << "\n";
-            std::cout << "      Cost: " << results[i].cost << "\n";
-        }
-    } catch (const std::exception &e) {
-        std::cerr << "Failed to extract expression: " << e.what() << "\n";
-    }
-}
-
 void print_session_state(const SessionState &state) {
     std::cout << "Expressions:\n";
     if (state.expressions.empty()) {
@@ -387,7 +369,9 @@ void execute_session_command(const std::vector<std::string> &tokens, SessionStat
         try {
             if (!state.numeric_mode) {
                 if (bindings.empty()) {
-                    extract_symbolic_expressions(state, expression_id);
+                    std::cerr
+                        << "Symbolic mode requires size bindings for extraction. Use 'extract [index] A=10 B=20 ...'\n";
+                    return;
                 } else {
                     extract_expression_with_bindings(state, expression_id, bindings);
                 }
