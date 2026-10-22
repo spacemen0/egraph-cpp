@@ -316,6 +316,40 @@ static AnalysisData analyze_geqrf(const EGraph &egraph, const std::vector<Id> &c
     throw AnalysisError("Geqrf expects a Matrix input");
 }
 
+static AnalysisData analyze_qr(const EGraph &egraph, const std::vector<Id> &children) {
+    return analyze_geqrf(egraph, children);
+}
+
+static AnalysisData analyze_lu(const EGraph &egraph, const std::vector<Id> &children) {
+    check_arity(children, 1, "LU");
+    if (auto data = get_matrix_data(egraph, children.at(0))) {
+        if (data->shape.first != data->shape.second) {
+            throw InvalidOperationError("LU operation on non-square matrix");
+        }
+
+        MatrixProperty L;
+        MatrixProperty U;
+        MatrixProperty P;
+
+        L.shape = data->shape;
+        L.flags.is_lower_triangular = true;
+        L.flags.is_non_singular = true;
+
+        U.shape = data->shape;
+        U.flags.is_upper_triangular = true;
+        if (data->flags.is_non_singular) {
+            U.flags.is_non_singular = true;
+        }
+
+        P.shape = data->shape;
+        P.flags.is_permutation = true;
+        auto props = std::vector{L, U, P};
+
+        return make_tuple_property_data(props);
+    }
+    throw AnalysisError("LU expects a Matrix input");
+}
+
 static AnalysisData analyze_get(const EGraph &egraph, const std::vector<Id> &children) {
     check_arity(children, 2, "Get");
     auto tuple_data = egraph.get_class_analysis_data(children.at(0));
@@ -354,6 +388,10 @@ static AnalysisData analyze_potrf_l(const EGraph &egraph, const std::vector<Id> 
         return make_tuple_property_data(props);
     }
     throw AnalysisError("Potrf_L expects a Matrix input");
+}
+
+static AnalysisData analyze_cholel(const EGraph &egraph, const std::vector<Id> &children) {
+    return analyze_potrf_l(egraph, children);
 }
 
 static AnalysisData analyze_gemm_nn(const EGraph &egraph, const std::vector<Id> &children) {
@@ -715,6 +753,10 @@ static AnalysisData analyze_potrf_u(const EGraph &egraph, const std::vector<Id> 
     throw AnalysisError("Potrf_U expects a Matrix input");
 }
 
+static AnalysisData analyze_choleu(const EGraph &egraph, const std::vector<Id> &children) {
+    return analyze_potrf_u(egraph, children);
+}
+
 static AnalysisData analyze_trtri(const EGraph &egraph, const std::vector<Id> &children) {
     check_arity(children, 1, "Trtri");
     if (auto data = get_matrix_data(egraph, children.at(0))) {
@@ -919,6 +961,11 @@ void init_builtin_ops(OpRegistry &registry) {
     registry.register_op("Inv", false, analyze_invert);
     registry.register_op("Get", false, analyze_get);
     registry.register_op("Scale", true, analyze_scale);
+
+    registry.register_op("QR", false, analyze_qr);
+    registry.register_op("LU", false, analyze_lu);
+    registry.register_op("CholeL", false, analyze_cholel);
+    registry.register_op("CholeU", false, analyze_choleu);
 
     registry.register_op("Geqrf", true, analyze_geqrf);
     registry.register_op("Trtri", true, analyze_trtri);

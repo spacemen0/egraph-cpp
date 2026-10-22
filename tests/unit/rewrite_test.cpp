@@ -160,20 +160,20 @@ TEST(Rewrite, CholeLRewrite) {
     bool changed = rewriter.apply_rewrites();
     EXPECT_TRUE(changed);
 
-    Id id_cholel = egraph.add_expression(Expression("Tr(Inv(Get(Potrf_L(V), 0))) * Inv(Get(Potrf_L(V), 0))"));
+    Id id_cholel = egraph.add_expression(Expression("Tr(Inv(Get(CholeL(V), 0))) * Inv(Get(CholeL(V), 0))"));
     EXPECT_EQ(egraph.find_class_id(id_expr), egraph.find_class_id(id_cholel));
 }
 
 TEST(Rewrite, CholeLToCholeURewrite) {
     EGraph egraph(get_property_table());
 
-    Id id_cholel = egraph.add_expression(Expression("Get(Potrf_L(V), 0)"));
+    Id id_cholel = egraph.add_expression(Expression("Get(CholeL(V), 0)"));
 
     Rewriter rewriter(egraph, {cholel_to_choleu}, EGraphConfig{.rewrite = {.node_limit = 100}});
     bool changed = rewriter.apply_rewrites();
     EXPECT_TRUE(changed);
 
-    Id id_choleu = egraph.add_expression(Expression("Tr(Get(Potrf_U(V), 0))"));
+    Id id_choleu = egraph.add_expression(Expression("Tr(Get(CholeU(V), 0))"));
     EXPECT_EQ(egraph.find_class_id(id_cholel), egraph.find_class_id(id_choleu));
 }
 
@@ -237,6 +237,81 @@ TEST(Rewrite, LowerAxpy) {
     EXPECT_EQ(egraph.find_class_id(mat_add_id), egraph.find_class_id(mat_axpy_id));
 }
 
+TEST(Rewrite, DisableKernelPropagatesToSymbolicOps) {
+    // When both Potrf_L and Potrf_U are disabled, all Cholesky lowering paths are blocked -> both CholeL and CholeU are disabled
+    auto effective_disabled_cholesky =
+        Rewriter::compute_effective_disabled_ops({OpRegistry::op("Potrf_L"), OpRegistry::op("Potrf_U")});
+    EXPECT_TRUE(effective_disabled_cholesky.contains(OpRegistry::op("Potrf_L")));
+    EXPECT_TRUE(effective_disabled_cholesky.contains(OpRegistry::op("Potrf_U")));
+    EXPECT_TRUE(effective_disabled_cholesky.contains(OpRegistry::op("CholeL")));
+    EXPECT_TRUE(effective_disabled_cholesky.contains(OpRegistry::op("CholeU")));
+    EXPECT_FALSE(effective_disabled_cholesky.contains(OpRegistry::op("QR")));
+
+    // When only Potrf_L is disabled, CholeL is NOT disabled because it can transition to CholeU via cholel_to_choleu and use Potrf_U
+    auto effective_disabled_potrf_l = Rewriter::compute_effective_disabled_ops({OpRegistry::op("Potrf_L")});
+    EXPECT_TRUE(effective_disabled_potrf_l.contains(OpRegistry::op("Potrf_L")));
+    EXPECT_FALSE(effective_disabled_potrf_l.contains(OpRegistry::op("CholeL")));
+    EXPECT_FALSE(effective_disabled_potrf_l.contains(OpRegistry::op("CholeU")));
+
+    // When only Potrf_U is disabled, CholeU is disabled, but CholeL has a direct lowering path via Potrf_L
+    auto effective_disabled_potrf_u = Rewriter::compute_effective_disabled_ops({OpRegistry::op("Potrf_U")});
+    EXPECT_TRUE(effective_disabled_potrf_u.contains(OpRegistry::op("Potrf_U")));
+    EXPECT_TRUE(effective_disabled_potrf_u.contains(OpRegistry::op("CholeU")));
+    EXPECT_FALSE(effective_disabled_potrf_u.contains(OpRegistry::op("CholeL")));
+
+    // Geqrf -> QR (only single lowering path exists)
+    auto effective_disabled_geqrf = Rewriter::compute_effective_disabled_ops({OpRegistry::op("Geqrf")});
+    EXPECT_TRUE(effective_disabled_geqrf.contains(OpRegistry::op("Geqrf")));
+    EXPECT_TRUE(effective_disabled_geqrf.contains(OpRegistry::op("QR")));
+    EXPECT_FALSE(effective_disabled_geqrf.contains(OpRegistry::op("CholeL")));
+    EXPECT_FALSE(effective_disabled_geqrf.contains(OpRegistry::op("CholeU")));
+
+    // Both Cholesky and QR kernels disabled
+    auto effective_disabled_all_factorizations =
+        Rewriter::compute_effective_disabled_ops({OpRegistry::op("Potrf_L"), OpRegistry::op("Potrf_U"), OpRegistry::op("Geqrf")});
+    EXPECT_TRUE(effective_disabled_all_factorizations.contains(OpRegistry::op("Potrf_L")));
+    EXPECT_TRUE(effective_disabled_all_factorizations.contains(OpRegistry::op("Potrf_U")));
+    EXPECT_TRUE(effective_disabled_all_factorizations.contains(OpRegistry::op("CholeL")));
+    EXPECT_TRUE(effective_disabled_all_factorizations.contains(OpRegistry::op("CholeU")));
+    EXPECT_TRUE(effective_disabled_all_factorizations.contains(OpRegistry::op("Geqrf")));
+    EXPECT_TRUE(effective_disabled_all_factorizations.contains(OpRegistry::op("QR")));
+
+    // Empty disabled_ops -> nothing disabled
+    auto effective_disabled_none = Rewriter::compute_effective_disabled_ops({});
+    EXPECT_TRUE(effective_disabled_none.empty());
+
+    // Verify expansion_set filtering in Rewriter when both Cholesky kernels are disabled
+    EGraph egraph_instance(get_property_table());
+    Rewriter rewriter_cholesky(
+        egraph_instance, expansion_set,
+        EGraphConfig{.disabled_ops = {OpRegistry::op("Potrf_L"), OpRegistry::op("Potrf_U")}});
+    const auto &filtered_rules_cholesky = rewriter_cholesky.get_rewrites();
+    for (const auto &rule : filtered_rules_cholesky) {
+        EXPECT_FALSE(rule.lhs.contains_op(OpRegistry::op("CholeL")) || rule.rhs.contains_op(OpRegistry::op("CholeL")))
+            << "Rule " << rule.name << " still contains CholeL despite Cholesky kernels being disabled";
+        EXPECT_FALSE(rule.lhs.contains_op(OpRegistry::op("CholeU")) || rule.rhs.contains_op(OpRegistry::op("CholeU")))
+            << "Rule " << rule.name << " still contains CholeU despite Cholesky kernels being disabled";
+    }
+    // Should still have QR rules
+    bool has_qr_rule =
+        std::any_of(filtered_rules_cholesky.begin(), filtered_rules_cholesky.end(), [](const auto &rule) {
+        return rule.lhs.contains_op(OpRegistry::op("QR")) || rule.rhs.contains_op(OpRegistry::op("QR"));
+    });
+    EXPECT_TRUE(has_qr_rule);
+
+    Rewriter rewriter_geqrf(egraph_instance, expansion_set, EGraphConfig{.disabled_ops = {OpRegistry::op("Geqrf")}});
+    const auto &filtered_rules_geqrf = rewriter_geqrf.get_rewrites();
+    for (const auto &rule : filtered_rules_geqrf) {
+        EXPECT_FALSE(rule.lhs.contains_op(OpRegistry::op("QR")) || rule.rhs.contains_op(OpRegistry::op("QR")))
+            << "Rule " << rule.name << " still contains QR despite Geqrf being disabled";
+    }
+    // Should still have CholeL rules
+    bool has_cholel_rule = std::any_of(filtered_rules_geqrf.begin(), filtered_rules_geqrf.end(), [](const auto &rule) {
+        return rule.lhs.contains_op(OpRegistry::op("CholeL")) || rule.rhs.contains_op(OpRegistry::op("CholeL"));
+    });
+    EXPECT_TRUE(has_cholel_rule);
+}
+
 TEST(Rewrite, DisableKernelFiltersLoweringRules) {
     EGraph egraph_instance(get_property_table());
 
@@ -278,11 +353,12 @@ TEST(Rewrite, DisableKernelFiltersLoweringRules) {
 }
 
 TEST(Rewrite, DisablingKernelPreventsFactorizationInEGraph) {
-    // 1. Without disabled_ops, Inv(V) expands to Potrf_L
+    // 1. Without disabled_ops, Inv(V) expands to CholeL and lowers to Potrf_L
     {
         EGraph egraph_instance(get_property_table());
         egraph_instance.add_expression(Expression("Inv(V)"));
-        Rewriter rewriter_instance(egraph_instance, lowering_set, EGraphConfig{.rewrite = {.node_limit = 100}});
+        Rewriter rewriter_instance(
+            egraph_instance, build_complete_rewrite_set(), EGraphConfig{.rewrite = {.node_limit = 100}});
         rewriter_instance.apply_rewrites();
 
         bool has_potrf_l_node = false;
@@ -298,50 +374,52 @@ TEST(Rewrite, DisablingKernelPreventsFactorizationInEGraph) {
         EXPECT_TRUE(has_potrf_l_node);
     }
 
-    // 2. With both Potrf_L and Potrf_U disabled, Inv(V) MUST NOT produce Potrf_L
+    // 2. With both Potrf_L and Potrf_U disabled, Inv(V) MUST NOT produce Potrf_L or CholeL
     {
         EGraph egraph_instance(get_property_table());
         egraph_instance.add_expression(Expression("Inv(V)"));
         Rewriter rewriter_instance(
-            egraph_instance, lowering_set,
+            egraph_instance, build_complete_rewrite_set(),
             EGraphConfig{
                 .rewrite = {.node_limit = 100},
                 .disabled_ops = {OpRegistry::op("Potrf_L"), OpRegistry::op("Potrf_U")}});
         rewriter_instance.apply_rewrites();
 
-        bool has_potrf_l_node = false;
+        bool has_potrf_l_or_cholel = false;
         for (Id class_id : egraph_instance.get_all_class_ids()) {
             for (const ENode *node : egraph_instance.get_class_nodes(class_id)) {
                 if (std::holds_alternative<Op>(node->get_atom()) &&
-                    std::get<Op>(node->get_atom()) == OpRegistry::op("Potrf_L")) {
-                    has_potrf_l_node = true;
+                    (std::get<Op>(node->get_atom()) == OpRegistry::op("Potrf_L") ||
+                     std::get<Op>(node->get_atom()) == OpRegistry::op("CholeL"))) {
+                    has_potrf_l_or_cholel = true;
                     break;
                 }
             }
         }
-        EXPECT_FALSE(has_potrf_l_node);
+        EXPECT_FALSE(has_potrf_l_or_cholel);
     }
 
-    // 3. With Geqrf disabled, Inv(A) MUST NOT produce Geqrf
+    // 3. With Geqrf disabled, Inv(A) MUST NOT produce Geqrf or QR
     {
         EGraph egraph_instance(get_property_table());
         egraph_instance.add_expression(Expression("Inv(A)"));
         Rewriter rewriter_instance(
-            egraph_instance, lowering_set,
+            egraph_instance, build_complete_rewrite_set(),
             EGraphConfig{.rewrite = {.node_limit = 100}, .disabled_ops = {OpRegistry::op("Geqrf")}});
         rewriter_instance.apply_rewrites();
 
-        bool has_geqrf_node = false;
+        bool has_geqrf_or_qr = false;
         for (Id class_id : egraph_instance.get_all_class_ids()) {
             for (const ENode *node : egraph_instance.get_class_nodes(class_id)) {
                 if (std::holds_alternative<Op>(node->get_atom()) &&
-                    std::get<Op>(node->get_atom()) == OpRegistry::op("Geqrf")) {
-                    has_geqrf_node = true;
+                    (std::get<Op>(node->get_atom()) == OpRegistry::op("Geqrf") ||
+                     std::get<Op>(node->get_atom()) == OpRegistry::op("QR"))) {
+                    has_geqrf_or_qr = true;
                     break;
                 }
             }
         }
-        EXPECT_FALSE(has_geqrf_node);
+        EXPECT_FALSE(has_geqrf_or_qr);
     }
 }
 

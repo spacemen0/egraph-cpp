@@ -49,6 +49,7 @@ static const std::vector<std::string_view> AvailableRuleSets = {
     "complete",
     "simplification",
     "transformation",
+    "expansion",
     "lowering",
 };
 

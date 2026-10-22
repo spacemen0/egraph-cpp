@@ -221,6 +221,12 @@ TEST(MatrixAnalysisTest, AnalysisRejectsNonSquareFactorizationsAndInversion) {
 
     EXPECT_THROW(g.add_node(make_op("Inv", {id_sym})), InvalidOperationError);
     EXPECT_THROW(g.add_node(make_op("Inv", {id_num})), InvalidOperationError);
+    EXPECT_THROW(g.add_node(make_op("CholeL", {id_sym})), InvalidOperationError);
+    EXPECT_THROW(g.add_node(make_op("CholeL", {id_num})), InvalidOperationError);
+    EXPECT_THROW(g.add_node(make_op("CholeU", {id_sym})), InvalidOperationError);
+    EXPECT_THROW(g.add_node(make_op("CholeU", {id_num})), InvalidOperationError);
+    EXPECT_THROW(g.add_node(make_op("LU", {id_sym})), InvalidOperationError);
+    EXPECT_THROW(g.add_node(make_op("LU", {id_num})), InvalidOperationError);
     EXPECT_THROW(g.add_node(make_op("Potrf_L", {id_sym})), InvalidOperationError);
     EXPECT_THROW(g.add_node(make_op("Potrf_L", {id_num})), InvalidOperationError);
     EXPECT_THROW(g.add_node(make_op("Potrf_U", {id_sym})), InvalidOperationError);

@@ -85,6 +85,14 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings &size_bi
             return compute_inv_cost(*op, *this, egraph, size_bindings);
         if (op_name == "Minus")
             return compute_minus_cost(*op, *this, egraph, size_bindings);
+        if (op_name == "QR")
+            return compute_qr_cost(*op, *this, egraph, size_bindings);
+        if (op_name == "LU")
+            return compute_lu_cost(*op, *this, egraph, size_bindings);
+        if (op_name == "CholeL")
+            return compute_cholel_cost(*op, *this, egraph, size_bindings);
+        if (op_name == "CholeU")
+            return compute_choleu_cost(*op, *this, egraph, size_bindings);
         if (op_name == "Get")
             return compute_get_cost(*op, *this, egraph, size_bindings);
         if (op_name == "Scale")

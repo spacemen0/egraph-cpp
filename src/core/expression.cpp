@@ -82,15 +82,22 @@ std::string Expression::render(const Expression &expr, bool readable, int parent
                     Op tuple_op = std::get<Op>(tuple_expr.atom);
                     auto tuple_name = OpRegistry::name(tuple_op);
                     std::string factor_name;
-                    if (tuple_name == "Geqrf") {
+                    if (tuple_name == "QR" || tuple_name == "Geqrf") {
                         if (index == 0)
                             factor_name = "Q";
                         else if (index == 1)
                             factor_name = "R";
-                    } else if (tuple_name == "Potrf_L") {
+                    } else if (tuple_name == "LU") {
+                        if (index == 0)
+                            factor_name = "L";
+                        else if (index == 1)
+                            factor_name = "U";
+                        else if (index == 2)
+                            factor_name = "P";
+                    } else if (tuple_name == "CholeL" || tuple_name == "Potrf_L") {
                         if (index == 0)
                             factor_name = "CholeL";
-                    } else if (tuple_name == "Potrf_U") {
+                    } else if (tuple_name == "CholeU" || tuple_name == "Potrf_U") {
                         if (index == 0)
                             factor_name = "CholeU";
                     }

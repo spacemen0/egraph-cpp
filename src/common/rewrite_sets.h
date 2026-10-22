@@ -1,5 +1,6 @@
 #pragma once
 
+#include "expansions.h"
 #include "lowering.h"
 #include "properties_discovery.h"
 #include "rewriter.h"
@@ -15,13 +16,14 @@ inline const std::vector<Rewrite> &build_complete_rewrite_set() {
         rewrites.insert(rewrites.end(), property_discovery_set.begin(), property_discovery_set.end());
         rewrites.insert(rewrites.end(), simplification_set.begin(), simplification_set.end());
         rewrites.insert(rewrites.end(), transformation_set.begin(), transformation_set.end());
+        rewrites.insert(rewrites.end(), expansion_set.begin(), expansion_set.end());
         rewrites.insert(rewrites.end(), lowering_set.begin(), lowering_set.end());
         return rewrites;
     }();
     return complete_rewrite_set;
 }
 
-// available rewrite sets: "complete", "property_discovery", "simplification", "transformation",
+// available rewrite sets: "complete", "property_discovery", "simplification", "transformation", "expansion",
 // "lowering", "everything_but_lowering"
 inline std::vector<Rewrite> get_rewrite_set_by_name(const std::string &name) {
     if (name == "complete") {
@@ -36,6 +38,9 @@ inline std::vector<Rewrite> get_rewrite_set_by_name(const std::string &name) {
     if (name == "transformation") {
         return transformation_set;
     }
+    if (name == "expansion") {
+        return expansion_set;
+    }
     if (name == "lowering") {
         return lowering_set;
     }
@@ -44,12 +49,13 @@ inline std::vector<Rewrite> get_rewrite_set_by_name(const std::string &name) {
         rules.insert(rules.end(), property_discovery_set.begin(), property_discovery_set.end());
         rules.insert(rules.end(), simplification_set.begin(), simplification_set.end());
         rules.insert(rules.end(), transformation_set.begin(), transformation_set.end());
+        rules.insert(rules.end(), expansion_set.begin(), expansion_set.end());
         return rules;
     }
     throw std::invalid_argument("Unknown rewrite set name: " + name);
 }
 
-// available rewrite sets: "complete", "simplification", "transformation", "lowering",
+// available rewrite sets: "complete", "simplification", "transformation", "expansion", "lowering",
 // "property_discovery", "everything_but_lowering"
 inline std::vector<Rewrite> build_rewrite_sets(const std::vector<std::string> &set_names) {
     std::vector<Rewrite> rules;

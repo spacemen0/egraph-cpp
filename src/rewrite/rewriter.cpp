@@ -1,5 +1,6 @@
 #include "rewriter.h"
 #include "matcher.h"
+#include "rewrite_sets.h"
 #include "utils.h"
 #include <algorithm>
 #include <iostream>
@@ -7,6 +8,82 @@
 // Instantiate a pattern into the EGraph
 
 namespace egraph {
+
+static inline bool is_primitive_math_op(Op op) {
+    auto name = OpRegistry::name(op);
+    return name == "Add" || name == "Mul" || name == "Minus" || name == "Tr" || name == "Inv" || name == "Get";
+}
+
+static inline bool is_symbolic_op(Op op) { return !is_kernel_op(op) && !is_primitive_math_op(op); }
+
+std::unordered_set<Op> Rewriter::compute_effective_disabled_ops(
+    const std::vector<Op> &disabled_ops, const std::vector<Rewrite> *rules_to_inspect) {
+    if (disabled_ops.empty()) {
+        return {};
+    }
+
+    std::unordered_set<Op> effective_disabled_operations(disabled_ops.begin(), disabled_ops.end());
+
+    // Map each symbolic operation to its list of alternative lowering paths.
+    // Each lowering path is a set of ops (kernels or symbolic ops) required to lower it.
+    std::unordered_map<Op, std::vector<std::unordered_set<Op>>> symbolic_op_to_alternative_lowering_paths;
+
+    const auto &candidate_rules = rules_to_inspect ? *rules_to_inspect : build_complete_rewrite_set();
+
+    for (const auto &rule : candidate_rules) {
+        std::unordered_set<Op> lhs_ops;
+        std::unordered_set<Op> rhs_ops;
+        rule.lhs.collect_ops(lhs_ops);
+        rule.collect_rhs_ops(rhs_ops);
+
+        for (Op symbolic_op : lhs_ops) {
+            // A rule is a lowering path when sym op appears on lhs and is eliminated on rhs.
+            if (is_symbolic_op(symbolic_op) && !rhs_ops.contains(symbolic_op)) {
+                std::unordered_set<Op> required_ops_in_path;
+                for (Op rhs_op : rhs_ops) {
+                    if (is_kernel_op(rhs_op) || is_symbolic_op(rhs_op)) {
+                        required_ops_in_path.insert(rhs_op);
+                    }
+                }
+                if (!required_ops_in_path.empty()) {
+                    symbolic_op_to_alternative_lowering_paths[symbolic_op].push_back(std::move(required_ops_in_path));
+                }
+            }
+        }
+    }
+
+    // A single lowering path is blocked if any of its required ops is disabled.
+    // A symbolic operation is blocked if all of its alternative lowering paths are blocked.
+    bool has_newly_disabled_operation = true;
+    while (has_newly_disabled_operation) {
+        has_newly_disabled_operation = false;
+        for (const auto &[symbolic_op, alternative_paths] : symbolic_op_to_alternative_lowering_paths) {
+            if (effective_disabled_operations.contains(symbolic_op)) {
+                continue;
+            }
+            bool are_all_alternative_paths_blocked = true;
+            for (const auto &required_ops_in_path : alternative_paths) {
+                bool is_current_path_blocked = false;
+                for (Op required_op : required_ops_in_path) {
+                    if (effective_disabled_operations.contains(required_op)) {
+                        is_current_path_blocked = true;
+                        break;
+                    }
+                }
+                if (!is_current_path_blocked) {
+                    are_all_alternative_paths_blocked = false;
+                    break;
+                }
+            }
+            if (are_all_alternative_paths_blocked) {
+                effective_disabled_operations.insert(symbolic_op);
+                has_newly_disabled_operation = true;
+            }
+        }
+    }
+
+    return effective_disabled_operations;
+}
 
 Rewriter::Rewriter(EGraph &egraph, std::vector<Rewrite> rewrites, const EGraphConfig &config)
     : egraph(egraph), config(config), all_rewrites(std::move(rewrites)), rewrites(all_rewrites) {
@@ -39,12 +116,12 @@ void Rewriter::set_config(const EGraphConfig &cfg) {
 
 void Rewriter::filter_rewrites_by_disabled_ops() {
     rewrites = all_rewrites;
-    if (config.disabled_ops.empty()) {
+    auto effective_disabled_operations = compute_effective_disabled_ops(config.disabled_ops);
+    if (effective_disabled_operations.empty()) {
         return;
     }
-    std::unordered_set<Op> disabled(config.disabled_ops.begin(), config.disabled_ops.end());
     std::erase_if(rewrites, [&](const Rewrite &rule) {
-        return std::ranges::any_of(disabled, [&](Op disabled_op) {
+        return std::ranges::any_of(effective_disabled_operations, [&](Op disabled_op) {
             return rule.contains_op(disabled_op);
         });
     });

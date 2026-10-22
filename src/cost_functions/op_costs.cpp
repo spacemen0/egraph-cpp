@@ -124,6 +124,45 @@ Cost compute_minus_cost(Op op, const ENode &node, const EGraph &egraph, const Si
     return static_cast<double>(rows * cols);
 }
 
+Cost compute_qr_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings &size_bindings) {
+    auto shape = get_one_shape(egraph, size_bindings, node.get_children().at(0));
+    if (is_numeric(shape)) {
+        double rows = std::get<int>(shape.first);
+        double cols = std::get<int>(shape.second);
+        auto min_dim = std::min(rows, cols);
+        auto max_dim = std::max(rows, cols);
+        return 2.0 * min_dim * min_dim * max_dim - (2.0 / 3.0) * min_dim * min_dim * min_dim;
+    }
+    throw std::runtime_error("Cannot compute cost: missing size binding for symbolic dimension");
+}
+
+Cost compute_lu_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings &size_bindings) {
+    auto shape = get_one_shape(egraph, size_bindings, node.get_children().at(0));
+    if (is_numeric(shape)) {
+        double rows = std::get<int>(shape.first);
+        return (2.0 / 3.0) * rows * rows * rows;
+    }
+    throw std::runtime_error("Cannot compute cost: missing size binding for symbolic dimension");
+}
+
+Cost compute_cholel_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings &size_bindings) {
+    auto shape = get_one_shape(egraph, size_bindings, node.get_children().at(0));
+    if (is_numeric(shape)) {
+        double rows = std::get<int>(shape.first);
+        return (1.0 / 3.0) * rows * rows * rows;
+    }
+    throw std::runtime_error("Cannot compute cost: missing size binding for symbolic dimension");
+}
+
+Cost compute_choleu_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings &size_bindings) {
+    auto shape = get_one_shape(egraph, size_bindings, node.get_children().at(0));
+    if (is_numeric(shape)) {
+        double rows = std::get<int>(shape.first);
+        return (1.0 / 3.0) * rows * rows * rows;
+    }
+    throw std::runtime_error("Cannot compute cost: missing size binding for symbolic dimension");
+}
+
 Cost compute_get_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings &size_bindings) {
     Id child_id = node.get_children().at(0);
     Id index_id = node.get_children().at(1);
