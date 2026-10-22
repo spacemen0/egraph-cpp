@@ -49,14 +49,10 @@ Extractor::evaluate_dag(Id root, const std::vector<const ENode *> &choices, cons
         const ENode *node = choices[curr];
         map[curr] = node;
         Cost c = node->compute_local_cost(egraph, size_bindings);
-        if (!std::holds_alternative<double>(c)) {
+        if (c == std::numeric_limits<double>::infinity()) {
             return false;
         }
-        double val = std::get<double>(c);
-        if (val == std::numeric_limits<double>::infinity()) {
-            return false;
-        }
-        total += val;
+        total += c;
 
         visited.insert(curr);
         for (Id child : node->get_children()) {
@@ -234,15 +230,11 @@ void Extractor::search_numeric_dags(
 
     for (const ENode *node : candidate_nodes) {
         Cost local_c = node->compute_local_cost(egraph, size_bindings);
-        if (!std::holds_alternative<double>(local_c)) {
-            continue;
-        }
-        double local_val = std::get<double>(local_c);
-        if (local_val == std::numeric_limits<double>::infinity()) {
+        if (local_c == std::numeric_limits<double>::infinity()) {
             continue;
         }
 
-        double next_cost = current_cost + local_val;
+        double next_cost = current_cost + local_c;
         if (next_cost >= worst_cost) {
             continue;
         }
@@ -333,18 +325,17 @@ void Extractor::initial_analysis_pass(const SizeBindings *size_bindings) const {
     };
     std::vector<CandidateNode> candidates;
 
-    // Compute minimum local cost per class and precompute candidate nodes
+    // Precompute candidate nodes
     for (Id class_id : all_class_ids) {
         for (const ENode *node : egraph.get_class_nodes(class_id)) {
             Cost local_cost = node->compute_local_cost(egraph, size_bindings);
-            if (std::holds_alternative<double>(local_cost)) {
-                double local_val = std::get<double>(local_cost);
+            if (local_cost != std::numeric_limits<double>::infinity()) {
                 std::vector<Id> canon_children;
                 canon_children.reserve(node->get_children().size());
                 for (Id child : node->get_children()) {
                     canon_children.push_back(egraph.find_class_id(child));
                 }
-                candidates.push_back({class_id, node, local_val, std::move(canon_children)});
+                candidates.push_back({class_id, node, local_cost, std::move(canon_children)});
             }
         }
     }

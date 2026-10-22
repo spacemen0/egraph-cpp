@@ -2,15 +2,9 @@
 #include "op_registry.h"
 #include "utils.h"
 #include <algorithm>
+#include <limits>
 
 namespace egraph {
-
-std::string size_to_symbol(const Size &size) {
-    if (const auto *value = std::get_if<int>(&size)) {
-        return std::to_string(*value);
-    }
-    return std::get<std::string>(size);
-}
 
 static Shape get_one_shape(const EGraph &egraph, const SizeBindings *size_bindings, Id child_id) {
     auto data = get_matrix_data(egraph, child_id);
@@ -33,12 +27,8 @@ Cost compute_add_cost(Op op, const ENode &node, const EGraph &egraph, const Size
         int rows = std::get<int>(shape.first);
         int cols = std::get<int>(shape.second);
         return static_cast<double>(rows * cols);
-    } else {
-        Monomial m = {{size_to_symbol(shape.first), size_to_symbol(shape.second)}};
-        SymbolicCost sc;
-        sc[m] = 1.0;
-        return sc;
     }
+    return std::numeric_limits<double>::infinity();
 }
 
 static bool are_transposes(const EGraph &egraph, Id id1, Id id2) {
@@ -77,14 +67,8 @@ Cost compute_mul_cost(Op op, const ENode &node, const EGraph &egraph, const Size
             int n_val = std::get<int>(N_dim);
             int k_val = std::get<int>(K_dim);
             return 1.0 * n_val * (n_val + 1.0) * k_val;
-        } else {
-            Monomial n2k = {{size_to_symbol(N_dim), size_to_symbol(N_dim), size_to_symbol(K_dim)}};
-            Monomial nk = {{size_to_symbol(N_dim), size_to_symbol(K_dim)}};
-            SymbolicCost sc;
-            sc[n2k] = 1.0;
-            sc[nk] = 1.0;
-            return sc;
         }
+        return std::numeric_limits<double>::infinity();
     }
 
     auto prop0 = get_matrix_data(egraph, node.get_children().at(0));
@@ -94,7 +78,6 @@ Cost compute_mul_cost(Op op, const ENode &node, const EGraph &egraph, const Size
     bool is_sq1 = prop1 && (prop1->is_square() || shapes.second.first == shapes.second.second);
 
     bool is_trmm_left = is_sq0 && (prop0->flags.is_upper_triangular || prop0->flags.is_lower_triangular);
-
     bool is_trmm_right = is_sq1 && (prop1->flags.is_upper_triangular || prop1->flags.is_lower_triangular);
 
     double coeff = (is_trmm_left || is_trmm_right) ? 1.0 : 2.0;
@@ -104,32 +87,20 @@ Cost compute_mul_cost(Op op, const ENode &node, const EGraph &egraph, const Size
         int cols1 = std::get<int>(shapes.first.second);
         int cols2 = std::get<int>(shapes.second.second);
         return coeff * rows1 * cols1 * cols2;
-    } else {
-        Monomial m = {
-            {size_to_symbol(shapes.first.first), size_to_symbol(shapes.first.second),
-             size_to_symbol(shapes.second.second)}};
-        SymbolicCost sc;
-        sc[m] = coeff;
-        return sc;
     }
+    return std::numeric_limits<double>::infinity();
 }
 
 Cost compute_tr_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
-    // future: should occur as zero cost if consumed as kernel parameter
     auto shape = get_one_shape(egraph, size_bindings, node.get_children().at(0));
     if (is_numeric(shape)) {
         int rows = std::get<int>(shape.first);
         int cols = std::get<int>(shape.second);
         return static_cast<double>(rows * cols);
-    } else {
-        Monomial m = {{size_to_symbol(shape.first), size_to_symbol(shape.second)}};
-        SymbolicCost sc;
-        sc[m] = 1.0;
-        return sc;
     }
+    return std::numeric_limits<double>::infinity();
 }
 
-// deliberately made really high to avoid explicit inversion
 Cost compute_inv_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
     auto shape = get_one_shape(egraph, size_bindings, node.get_children().at(0));
     auto data = get_matrix_data(egraph, node.get_children().at(0));
@@ -139,16 +110,8 @@ Cost compute_inv_cost(Op op, const ENode &node, const EGraph &egraph, const Size
             return (1.0 / 3.0) * rows * rows * rows;
         }
         return 24.0 * rows * rows * rows;
-    } else {
-        Monomial m = {{size_to_symbol(shape.first), size_to_symbol(shape.first), size_to_symbol(shape.first)}};
-        SymbolicCost sc;
-        if (data && (data->flags.is_upper_triangular || data->flags.is_lower_triangular || data->flags.is_diagonal)) {
-            sc[m] = 1.0 / 3.0;
-        } else {
-            sc[m] = 24.0;
-        }
-        return sc;
     }
+    return std::numeric_limits<double>::infinity();
 }
 
 Cost compute_minus_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
@@ -157,16 +120,11 @@ Cost compute_minus_cost(Op op, const ENode &node, const EGraph &egraph, const Si
         int rows = std::get<int>(shape.first);
         int cols = std::get<int>(shape.second);
         return static_cast<double>(rows * cols);
-    } else {
-        Monomial m = {{size_to_symbol(shape.first), size_to_symbol(shape.second)}};
-        SymbolicCost sc;
-        sc[m] = 1.0;
-        return sc;
     }
+    return std::numeric_limits<double>::infinity();
 }
 
 Cost compute_get_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
-    // If Get's first child is Geqrf, and index is 0 assign cost of Orgqr to Get, otherwise 0
     Id child_id = node.get_children().at(0);
     Id index_id = node.get_children().at(1);
     bool is_geqrf = false;
@@ -198,14 +156,8 @@ Cost compute_scale_cost(Op op, const ENode &node, const EGraph &egraph, const Si
         double rows = std::get<int>(shape.first);
         double cols = std::get<int>(shape.second);
         return rows * cols;
-    } else {
-        std::string r = size_to_symbol(shape.first);
-        std::string c = size_to_symbol(shape.second);
-        Monomial rc = {{r, c}};
-        SymbolicCost sc;
-        sc[rc] = 1.0;
-        return sc;
     }
+    return std::numeric_limits<double>::infinity();
 }
 
 Cost compute_gemm_nn_group_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
@@ -236,12 +188,8 @@ Cost compute_gemm_nn_group_cost(Op op, const ENode &node, const EGraph &egraph, 
         int k_val = std::get<int>(K);
         int n_val = std::get<int>(N);
         return 2.0 * m_val * k_val * n_val;
-    } else {
-        Monomial m = {{size_to_symbol(M), size_to_symbol(K), size_to_symbol(N)}};
-        SymbolicCost sc;
-        sc[m] = 2.0;
-        return sc;
     }
+    return std::numeric_limits<double>::infinity();
 }
 
 Cost compute_syrk_n_syrk_t_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
@@ -254,14 +202,8 @@ Cost compute_syrk_n_syrk_t_cost(Op op, const ENode &node, const EGraph &egraph, 
         int n_val = std::get<int>(N_dim);
         int k_val = std::get<int>(K_dim);
         return 1.0 * n_val * (n_val + 1.0) * k_val;
-    } else {
-        Monomial n2k = {{size_to_symbol(N_dim), size_to_symbol(N_dim), size_to_symbol(K_dim)}};
-        Monomial nk = {{size_to_symbol(N_dim), size_to_symbol(K_dim)}};
-        SymbolicCost sc;
-        sc[n2k] = 1.0;
-        sc[nk] = 1.0;
-        return sc;
     }
+    return std::numeric_limits<double>::infinity();
 }
 
 Cost compute_trmm_ln_group_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
@@ -274,12 +216,11 @@ Cost compute_trmm_ln_group_cost(Op op, const ENode &node, const EGraph &egraph, 
         is_c_zero = p->flags.is_zero;
     }
 
-    Size M_dim, N_dim;
     auto op_name = OpRegistry::name(op);
     bool is_left_solve = (op_name == "Trmm_LN" || op_name == "Trmm_LT");
 
-    M_dim = shapeB.first;
-    N_dim = shapeB.second;
+    Size M_dim = shapeB.first;
+    Size N_dim = shapeB.second;
 
     if (std::holds_alternative<int>(M_dim) && std::holds_alternative<int>(N_dim)) {
         double M = std::get<int>(M_dim);
@@ -288,50 +229,25 @@ Cost compute_trmm_ln_group_cost(Op op, const ENode &node, const EGraph &egraph, 
         if (!is_c_zero) {
             cost += M * N; // cost of daxpy
         }
-        return Cost(cost);
+        return cost;
     }
-
-    SymbolicCost sc;
-    if (is_left_solve) {
-        Monomial m = {{size_to_symbol(M_dim), size_to_symbol(M_dim), size_to_symbol(N_dim)}};
-        sc[m] = 1.0;
-    } else {
-        Monomial m = {{size_to_symbol(M_dim), size_to_symbol(N_dim), size_to_symbol(N_dim)}};
-        sc[m] = 1.0;
-    }
-
-    if (!is_c_zero) {
-        Monomial m_add = {{size_to_symbol(M_dim), size_to_symbol(N_dim)}};
-        sc[m_add] += 1.0; // cost of daxpy
-    }
-    return sc;
+    return std::numeric_limits<double>::infinity();
 }
 
 Cost compute_symm_group_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
     auto shapeB = get_one_shape(egraph, size_bindings, node.get_children().at(1));
-    Size M, N;
-    M = shapeB.first;
-    N = shapeB.second;
+    Size M = shapeB.first;
+    Size N = shapeB.second;
 
     auto op_name = OpRegistry::name(op);
-    if (op_name == "Symm_L") {
-        if (std::holds_alternative<int>(M) && std::holds_alternative<int>(N)) {
-            return {2.0 * std::get<int>(M) * std::get<int>(M) * std::get<int>(N)};
+    if (std::holds_alternative<int>(M) && std::holds_alternative<int>(N)) {
+        if (op_name == "Symm_L") {
+            return 2.0 * std::get<int>(M) * std::get<int>(M) * std::get<int>(N);
+        } else {
+            return 2.0 * std::get<int>(M) * std::get<int>(N) * std::get<int>(N);
         }
-        Monomial m = {{size_to_symbol(M), size_to_symbol(M), size_to_symbol(N)}};
-        SymbolicCost sc;
-        sc[m] = 2.0;
-        return sc;
-    } else {
-        if (std::holds_alternative<int>(M) && std::holds_alternative<int>(N)) {
-
-            return {2.0 * std::get<int>(M) * std::get<int>(N) * std::get<int>(N)};
-        }
-        Monomial m = {{size_to_symbol(M), size_to_symbol(N), size_to_symbol(N)}};
-        SymbolicCost sc;
-        sc[m] = 2.0;
-        return sc;
     }
+    return std::numeric_limits<double>::infinity();
 }
 
 Cost compute_trsm_ln_group_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
@@ -354,23 +270,13 @@ Cost compute_trsm_ln_group_cost(Op op, const ENode &node, const EGraph &egraph, 
         int m_val = std::get<int>(M_dim);
         int n_val = std::get<int>(N_dim);
 
-        // Branch the calculation based on solve side
         if (is_left_solve) {
             return 1.0 * m_val * m_val * n_val; // M^2 * N
         } else {
             return 1.0 * m_val * n_val * n_val; // M * N^2
         }
-    } else {
-        SymbolicCost sc;
-        if (is_left_solve) {
-            Monomial m = {{size_to_symbol(M_dim), size_to_symbol(M_dim), size_to_symbol(N_dim)}};
-            sc[m] = 1.0;
-        } else {
-            Monomial m = {{size_to_symbol(M_dim), size_to_symbol(N_dim), size_to_symbol(N_dim)}};
-            sc[m] = 1.0;
-        }
-        return sc;
     }
+    return std::numeric_limits<double>::infinity();
 }
 
 Cost compute_potrf_l_potrf_u_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
@@ -378,13 +284,8 @@ Cost compute_potrf_l_potrf_u_cost(Op op, const ENode &node, const EGraph &egraph
     if (is_numeric(shape)) {
         double rows = std::get<int>(shape.first);
         return (1.0 / 3.0) * rows * rows * rows;
-    } else {
-        std::string n = size_to_symbol(shape.first);
-        Monomial n3 = {{n, n, n}};
-        SymbolicCost sc;
-        sc[n3] = 1.0 / 3.0;
-        return sc;
     }
+    return std::numeric_limits<double>::infinity();
 }
 
 Cost compute_geqrf_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
@@ -395,22 +296,8 @@ Cost compute_geqrf_cost(Op op, const ENode &node, const EGraph &egraph, const Si
         auto min_dim = std::min(rows, cols);
         auto max_dim = std::max(rows, cols);
         return 2.0 * min_dim * min_dim * max_dim - (2.0 / 3.0) * min_dim * min_dim * min_dim;
-    } else {
-        std::string r = size_to_symbol(shape.first);
-        std::string c = size_to_symbol(shape.second);
-        if (auto data = get_matrix_data(egraph, node.get_children().at(0))) {
-            if (data->is_wide_matrix()) {
-                std::swap(r, c);
-            }
-        }
-        Monomial mn2 = {{r, c, c}};
-        Monomial n3 = {{c, c, c}};
-
-        SymbolicCost sc;
-        sc[mn2] = 2.0;
-        sc[n3] = -2.0 / 3.0;
-        return sc;
     }
+    return std::numeric_limits<double>::infinity();
 }
 
 Cost compute_trtri_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
@@ -418,13 +305,8 @@ Cost compute_trtri_cost(Op op, const ENode &node, const EGraph &egraph, const Si
     if (is_numeric(shape)) {
         double rows = std::get<int>(shape.first);
         return (1.0 / 3.0) * rows * rows * rows;
-    } else {
-        std::string n = size_to_symbol(shape.first);
-        Monomial n3 = {{n, n, n}};
-        SymbolicCost sc;
-        sc[n3] = 1.0 / 3.0;
-        return sc;
     }
+    return std::numeric_limits<double>::infinity();
 }
 
 Cost compute_gemv_n_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
@@ -433,12 +315,8 @@ Cost compute_gemv_n_cost(Op op, const ENode &node, const EGraph &egraph, const S
         int rows = std::get<int>(shapes.first.first);
         int cols = std::get<int>(shapes.first.second);
         return 2.0 * rows * cols;
-    } else {
-        Monomial m = {{size_to_symbol(shapes.first.first), size_to_symbol(shapes.first.second)}};
-        SymbolicCost sc;
-        sc[m] = 2.0;
-        return sc;
     }
+    return std::numeric_limits<double>::infinity();
 }
 
 Cost compute_gemv_t_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
@@ -447,12 +325,8 @@ Cost compute_gemv_t_cost(Op op, const ENode &node, const EGraph &egraph, const S
         int rows = std::get<int>(shapes.first.first);
         int cols = std::get<int>(shapes.first.second);
         return 2.0 * rows * cols;
-    } else {
-        Monomial m = {{size_to_symbol(shapes.first.first), size_to_symbol(shapes.first.second)}};
-        SymbolicCost sc;
-        sc[m] = 2.0;
-        return sc;
     }
+    return std::numeric_limits<double>::infinity();
 }
 
 Cost compute_orgqr_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
@@ -469,23 +343,8 @@ Cost compute_orgqr_cost(Op op, const ENode &node, const EGraph &egraph, const Si
         auto min_dim = std::min(rows, cols);
         auto max_dim = std::max(rows, cols);
         return 2.0 * min_dim * min_dim * max_dim - (2.0 / 3.0) * min_dim * min_dim * min_dim;
-    } else {
-        std::string r = size_to_symbol(shape.first);
-        std::string c = size_to_symbol(shape.second);
-        if (auto props = std::get_if<TupleProperty>(&tuple_data.property)) {
-            if ((*props)[0].is_wide_matrix()) {
-                std::swap(r, c);
-            }
-        }
-        std::vector<std::string> mn2_vec{r, c, c};
-
-        std::vector<std::string> n3_vec{c, c, c};
-
-        SymbolicCost sc;
-        sc[Monomial(mn2_vec)] = 2.0;
-        sc[Monomial(n3_vec)] = -2.0 / 3.0;
-        return sc;
     }
+    return std::numeric_limits<double>::infinity();
 }
 
 Cost compute_ormqr_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {
@@ -510,32 +369,8 @@ Cost compute_ormqr_cost(Op op, const ENode &node, const EGraph &egraph, const Si
         } else {
             return 4.0 * m * n * k - 2.0 * m * k * k + 3.0 * m * k;
         }
-    } else {
-        std::string m = size_to_symbol(shapeC.first);
-        std::string n = size_to_symbol(shapeC.second);
-        std::string k = size_to_symbol(shapeQ.second);
-        if (auto props = std::get_if<TupleProperty>(&tuple_data.property)) {
-            if (!props->empty() && (*props)[0].is_wide_matrix()) {
-                k = size_to_symbol(shapeQ.first);
-            }
-        }
-
-        std::vector<std::string> mnk_vec{m, n, k};
-        SymbolicCost sc;
-        sc[Monomial(mnk_vec)] = 4.0;
-        if (is_left) {
-            std::vector<std::string> nkk_vec{n, k, k};
-            std::vector<std::string> nk_vec{n, k};
-            sc[Monomial(nkk_vec)] = -2.0;
-            sc[Monomial(nk_vec)] = 3.0;
-        } else {
-            std::vector<std::string> mkk_vec{m, k, k};
-            std::vector<std::string> mk_vec{m, k};
-            sc[Monomial(mkk_vec)] = -2.0;
-            sc[Monomial(mk_vec)] = 3.0;
-        }
-        return sc;
     }
+    return std::numeric_limits<double>::infinity();
 }
 
 Cost compute_axpy_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings) {

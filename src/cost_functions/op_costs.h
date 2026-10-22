@@ -5,7 +5,6 @@
 #include "types.h"
 
 namespace egraph {
-std::string size_to_symbol(const Size &size);
 
 Cost compute_add_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);
 Cost compute_mul_cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings *size_bindings);

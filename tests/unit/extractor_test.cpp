@@ -59,8 +59,7 @@ TEST_F(ExtractorTest, SharedSubexpressionDAGCost) {
 
     auto result = extractor.extract(id_root);
 
-    EXPECT_TRUE(std::holds_alternative<double>(result.cost));
-    EXPECT_EQ(std::get<double>(result.cost), 84.0);
+    EXPECT_DOUBLE_EQ(result.cost, 84.0);
 
     EXPECT_TRUE(std::holds_alternative<Op>(result.expr.atom));
     EXPECT_EQ(std::get<Op>(result.expr.atom), OpRegistry::op("Add"));
@@ -82,8 +81,7 @@ TEST_F(ExtractorTest, ExpensiveSharedWinsWithHighReuse) {
     egraph.to_img("extractor_test_initial", "svg");
 
     auto result = extractor.extract(id_root);
-    EXPECT_TRUE(std::holds_alternative<double>(result.cost));
-    EXPECT_EQ(std::get<double>(result.cost), 44.0);
+    EXPECT_DOUBLE_EQ(result.cost, 44.0);
 }
 
 TEST_F(ExtractorTest, ExtractTopNumericDags) {
@@ -97,9 +95,7 @@ TEST_F(ExtractorTest, ExtractTopNumericDags) {
 
     auto results = extractor.extract(id_a, 2);
     ASSERT_EQ(results.size(), 2);
-    EXPECT_TRUE(std::holds_alternative<double>(results[0].cost));
-    EXPECT_TRUE(std::holds_alternative<double>(results[1].cost));
-    EXPECT_LE(std::get<double>(results[0].cost), std::get<double>(results[1].cost));
+    EXPECT_LE(results[0].cost, results[1].cost);
 
     std::set<std::string> exprs;
     for (const auto &result : results) {
