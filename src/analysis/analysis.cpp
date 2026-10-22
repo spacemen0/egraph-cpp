@@ -957,7 +957,7 @@ void init_builtin_ops(OpRegistry &registry) {
     registry.register_op("Add", false, analyze_add);
     registry.register_op("Mul", false, analyze_mul);
     registry.register_op("Minus", false, analyze_minus);
-    registry.register_op("Tr", false, analyze_transpose);
+    registry.register_op("Tr", true, analyze_transpose);
     registry.register_op("Inv", false, analyze_invert);
     registry.register_op("Get", false, analyze_get);
     registry.register_op("Scale", true, analyze_scale);
