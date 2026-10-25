@@ -98,12 +98,12 @@ class Context {
         return id;
     }
 
-    Op register_op(const std::string &name, bool is_kernel, AnalyzeFn analyze = nullptr) {
-        return OpRegistry::instance().register_op(name, is_kernel, std::move(analyze));
+    Op register_op(const std::string &name, bool is_kernel, AnalyzeFn analyze = nullptr, CostFn cost = nullptr) {
+        return OpRegistry::instance().register_op(name, is_kernel, std::move(analyze), std::move(cost));
     }
 
-    Op register_kernel(const std::string &name, AnalyzeFn analyze = nullptr) {
-        return register_op(name, true, std::move(analyze));
+    Op register_kernel(const std::string &name, AnalyzeFn analyze = nullptr, CostFn cost = nullptr) {
+        return register_op(name, true, std::move(analyze), std::move(cost));
     }
 
     void rewrite(const std::vector<std::string> &rulesets = {"complete"}, int max_iterations = -1) {

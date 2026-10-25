@@ -1,6 +1,7 @@
 #include "analysis.h"
 #include "e_graph.h"
 #include "errors.h"
+#include "op_costs.h"
 #include "op_registry.h"
 #include "property_table.h"
 #include "utils.h"
@@ -954,47 +955,47 @@ static AnalysisData analyze_scale(const EGraph &egraph, const std::vector<Id> &c
 }
 
 void init_builtin_ops(OpRegistry &registry) {
-    registry.register_op("Add", false, analyze_add);
-    registry.register_op("Mul", false, analyze_mul);
-    registry.register_op("Minus", false, analyze_minus);
-    registry.register_op("Tr", true, analyze_transpose);
-    registry.register_op("Inv", false, analyze_invert);
-    registry.register_op("Get", false, analyze_get);
-    registry.register_op("Scale", true, analyze_scale);
+    registry.register_op("Add", false, analyze_add, compute_add_cost);
+    registry.register_op("Mul", false, analyze_mul, compute_mul_cost);
+    registry.register_op("Minus", false, analyze_minus, compute_minus_cost);
+    registry.register_op("Tr", true, analyze_transpose, compute_tr_cost);
+    registry.register_op("Inv", false, analyze_invert, compute_inv_cost);
+    registry.register_op("Get", false, analyze_get, compute_get_cost);
+    registry.register_op("Scale", true, analyze_scale, compute_scale_cost);
 
-    registry.register_op("QR", false, analyze_qr);
-    registry.register_op("LU", false, analyze_lu);
-    registry.register_op("CholeL", false, analyze_cholel);
-    registry.register_op("CholeU", false, analyze_choleu);
+    registry.register_op("QR", false, analyze_qr, compute_qr_cost);
+    registry.register_op("LU", false, analyze_lu, compute_lu_cost);
+    registry.register_op("CholeL", false, analyze_cholel, compute_cholel_cost);
+    registry.register_op("CholeU", false, analyze_choleu, compute_choleu_cost);
 
-    registry.register_op("Geqrf", true, analyze_geqrf);
-    registry.register_op("Trtri", true, analyze_trtri);
-    registry.register_op("Gemv_N", true, analyze_gemv_n);
-    registry.register_op("Gemv_T", true, analyze_gemv_t);
-    registry.register_op("Gemm_NN", true, analyze_gemm_nn);
-    registry.register_op("Gemm_TN", true, analyze_gemm_tn);
-    registry.register_op("Gemm_NT", true, analyze_gemm_nt);
-    registry.register_op("Gemm_TT", true, analyze_gemm_tt);
-    registry.register_op("Syrk_N", true, analyze_syrk_n);
-    registry.register_op("Syrk_T", true, analyze_syrk_t);
-    registry.register_op("Trmm_LN", true, analyze_trmm_ln);
-    registry.register_op("Trmm_LT", true, analyze_trmm_lt);
-    registry.register_op("Trmm_RN", true, analyze_trmm_rn);
-    registry.register_op("Trmm_RT", true, analyze_trmm_rt);
-    registry.register_op("Symm_L", true, analyze_symm_l);
-    registry.register_op("Symm_R", true, analyze_symm_r);
-    registry.register_op("Trsm_LN", true, analyze_trsm_ln);
-    registry.register_op("Trsm_LT", true, analyze_trsm_lt);
-    registry.register_op("Trsm_RN", true, analyze_trsm_rn);
-    registry.register_op("Trsm_RT", true, analyze_trsm_rt);
-    registry.register_op("Potrf_L", true, analyze_potrf_l);
-    registry.register_op("Potrf_U", true, analyze_potrf_u);
-    registry.register_op("Orgqr", true, analyze_orgqr);
-    registry.register_op("Ormqr_LN", true, analyze_ormqr_ln);
-    registry.register_op("Ormqr_LT", true, analyze_ormqr_lt);
-    registry.register_op("Ormqr_RN", true, analyze_ormqr_rn);
-    registry.register_op("Ormqr_RT", true, analyze_ormqr_rt);
-    registry.register_op("Axpy", true, analyze_axpy);
+    registry.register_op("Geqrf", true, analyze_geqrf, compute_geqrf_cost);
+    registry.register_op("Trtri", true, analyze_trtri, compute_trtri_cost);
+    registry.register_op("Gemv_N", true, analyze_gemv_n, compute_gemv_n_cost);
+    registry.register_op("Gemv_T", true, analyze_gemv_t, compute_gemv_t_cost);
+    registry.register_op("Gemm_NN", true, analyze_gemm_nn, compute_gemm_nn_group_cost);
+    registry.register_op("Gemm_TN", true, analyze_gemm_tn, compute_gemm_nn_group_cost);
+    registry.register_op("Gemm_NT", true, analyze_gemm_nt, compute_gemm_nn_group_cost);
+    registry.register_op("Gemm_TT", true, analyze_gemm_tt, compute_gemm_nn_group_cost);
+    registry.register_op("Syrk_N", true, analyze_syrk_n, compute_syrk_n_syrk_t_cost);
+    registry.register_op("Syrk_T", true, analyze_syrk_t, compute_syrk_n_syrk_t_cost);
+    registry.register_op("Trmm_LN", true, analyze_trmm_ln, compute_trmm_ln_group_cost);
+    registry.register_op("Trmm_LT", true, analyze_trmm_lt, compute_trmm_ln_group_cost);
+    registry.register_op("Trmm_RN", true, analyze_trmm_rn, compute_trmm_ln_group_cost);
+    registry.register_op("Trmm_RT", true, analyze_trmm_rt, compute_trmm_ln_group_cost);
+    registry.register_op("Symm_L", true, analyze_symm_l, compute_symm_group_cost);
+    registry.register_op("Symm_R", true, analyze_symm_r, compute_symm_group_cost);
+    registry.register_op("Trsm_LN", true, analyze_trsm_ln, compute_trsm_ln_group_cost);
+    registry.register_op("Trsm_LT", true, analyze_trsm_lt, compute_trsm_ln_group_cost);
+    registry.register_op("Trsm_RN", true, analyze_trsm_rn, compute_trsm_ln_group_cost);
+    registry.register_op("Trsm_RT", true, analyze_trsm_rt, compute_trsm_ln_group_cost);
+    registry.register_op("Potrf_L", true, analyze_potrf_l, compute_potrf_l_potrf_u_cost);
+    registry.register_op("Potrf_U", true, analyze_potrf_u, compute_potrf_l_potrf_u_cost);
+    registry.register_op("Orgqr", true, analyze_orgqr, compute_orgqr_cost);
+    registry.register_op("Ormqr_LN", true, analyze_ormqr_ln, compute_ormqr_cost);
+    registry.register_op("Ormqr_LT", true, analyze_ormqr_lt, compute_ormqr_cost);
+    registry.register_op("Ormqr_RN", true, analyze_ormqr_rn, compute_ormqr_cost);
+    registry.register_op("Ormqr_RT", true, analyze_ormqr_rt, compute_ormqr_cost);
+    registry.register_op("Axpy", true, analyze_axpy, compute_axpy_cost);
 }
 
 AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode &node, Op op) {

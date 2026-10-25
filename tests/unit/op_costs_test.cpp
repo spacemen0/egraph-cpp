@@ -159,3 +159,33 @@ TEST(OpCostsTest, ComputeCostThrowsOnMissingBinding) {
     Cost cost = compute_add_cost(OpRegistry::op("Add"), node, egraph, bindings);
     EXPECT_DOUBLE_EQ(cost, 200.0);
 }
+
+TEST(OpCostsTest, PluggableCustomOpCost) {
+    auto &registry = OpRegistry::instance();
+    Op custom_op = registry.register_op("CustomNorm", true, [](const EGraph &, const std::vector<Id> &) {
+        MatrixProperty p;
+        p.shape = Shape{1, 1};
+        return AnalysisData{p};
+    }, [](Op, const ENode &, const EGraph &, const SizeBindings &) -> Cost {
+        return 42.0;
+    });
+
+    EGraph egraph(get_property_table());
+    Id id_a = egraph.add_node(make_symbol("A"));
+    ENode node{Children{id_a}, custom_op};
+
+    EXPECT_DOUBLE_EQ(node.compute_local_cost(egraph, {}), 42.0);
+}
+
+TEST(OpCostsTest, OpWithoutCostThrows) {
+    auto &registry = OpRegistry::instance();
+    Op op_no_cost = registry.register_op("OpNoCost", true, [](const EGraph &, const std::vector<Id> &) {
+        return AnalysisData{MatrixProperty{}};
+    }, nullptr);
+
+    EGraph egraph(get_property_table());
+    Id id_a = egraph.add_node(make_symbol("A"));
+    ENode node{Children{id_a}, op_no_cost};
+
+    EXPECT_THROW(node.compute_local_cost(egraph, {}), std::invalid_argument);
+}

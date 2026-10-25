@@ -1,7 +1,7 @@
 #include "e_node.h"
 #include "basic_types.h"
 #include "e_graph.h"
-#include "op_costs.h"
+#include "op_registry.h"
 #include "types.h"
 #include "utils.h"
 #include <algorithm>
@@ -74,56 +74,11 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings &size_bi
     }
 
     if (auto op = std::get_if<Op>(&atom)) {
-        auto op_name = OpRegistry::name(*op);
-        if (op_name == "Add")
-            return compute_add_cost(*op, *this, egraph, size_bindings);
-        if (op_name == "Mul")
-            return compute_mul_cost(*op, *this, egraph, size_bindings);
-        if (op_name == "Tr")
-            return compute_tr_cost(*op, *this, egraph, size_bindings);
-        if (op_name == "Inv")
-            return compute_inv_cost(*op, *this, egraph, size_bindings);
-        if (op_name == "Minus")
-            return compute_minus_cost(*op, *this, egraph, size_bindings);
-        if (op_name == "QR")
-            return compute_qr_cost(*op, *this, egraph, size_bindings);
-        if (op_name == "LU")
-            return compute_lu_cost(*op, *this, egraph, size_bindings);
-        if (op_name == "CholeL")
-            return compute_cholel_cost(*op, *this, egraph, size_bindings);
-        if (op_name == "CholeU")
-            return compute_choleu_cost(*op, *this, egraph, size_bindings);
-        if (op_name == "Get")
-            return compute_get_cost(*op, *this, egraph, size_bindings);
-        if (op_name == "Scale")
-            return compute_scale_cost(*op, *this, egraph, size_bindings);
-        if (op_name == "Gemm_NN" || op_name == "Gemm_TN" || op_name == "Gemm_NT" || op_name == "Gemm_TT")
-            return compute_gemm_nn_group_cost(*op, *this, egraph, size_bindings);
-        if (op_name == "Syrk_N" || op_name == "Syrk_T")
-            return compute_syrk_n_syrk_t_cost(*op, *this, egraph, size_bindings);
-        if (op_name == "Symm_L" || op_name == "Symm_R")
-            return compute_symm_group_cost(*op, *this, egraph, size_bindings);
-        if (op_name == "Trmm_LN" || op_name == "Trmm_LT" || op_name == "Trmm_RN" || op_name == "Trmm_RT")
-            return compute_trmm_ln_group_cost(*op, *this, egraph, size_bindings);
-        if (op_name == "Trsm_LN" || op_name == "Trsm_LT" || op_name == "Trsm_RN" || op_name == "Trsm_RT")
-            return compute_trsm_ln_group_cost(*op, *this, egraph, size_bindings);
-        if (op_name == "Potrf_L" || op_name == "Potrf_U")
-            return compute_potrf_l_potrf_u_cost(*op, *this, egraph, size_bindings);
-        if (op_name == "Geqrf")
-            return compute_geqrf_cost(*op, *this, egraph, size_bindings);
-        if (op_name == "Trtri")
-            return compute_trtri_cost(*op, *this, egraph, size_bindings);
-        if (op_name == "Gemv_N")
-            return compute_gemv_n_cost(*op, *this, egraph, size_bindings);
-        if (op_name == "Gemv_T")
-            return compute_gemv_t_cost(*op, *this, egraph, size_bindings);
-        if (op_name == "Orgqr")
-            return compute_orgqr_cost(*op, *this, egraph, size_bindings);
-        if (op_name == "Ormqr_LN" || op_name == "Ormqr_LT" || op_name == "Ormqr_RN" || op_name == "Ormqr_RT")
-            return compute_ormqr_cost(*op, *this, egraph, size_bindings);
-        if (op_name == "Axpy")
-            return compute_axpy_cost(*op, *this, egraph, size_bindings);
-        throw std::invalid_argument("Unknown Op in compute_local_cost");
+        const auto &desc = OpRegistry::instance().get(*op);
+        if (!desc.cost) {
+            throw std::invalid_argument("Operation has no cost function registered: " + desc.name);
+        }
+        return desc.cost(*op, *this, egraph, size_bindings);
     }
     throw std::invalid_argument("ENode with non-Op atom should not have children");
 }

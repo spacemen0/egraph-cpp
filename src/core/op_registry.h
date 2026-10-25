@@ -1,7 +1,9 @@
 #pragma once
 
 #include "basic_types.h"
+#include "e_node.h"
 #include "property_table.h"
+#include "types.h"
 #include <functional>
 #include <optional>
 #include <string>
@@ -14,12 +16,13 @@ namespace egraph {
 class EGraph;
 
 using AnalyzeFn = std::function<AnalysisData(const EGraph &egraph, const std::vector<Id> &children)>;
-
+using CostFn = std::function<Cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings &size_bindings)>;
 struct OpDescriptor {
     Op op{};
     std::string name;
     bool is_kernel = false;
     AnalyzeFn analyze = nullptr;
+    CostFn cost = nullptr;
 };
 
 void init_builtin_ops(class OpRegistry &registry);
@@ -28,7 +31,7 @@ class OpRegistry {
   public:
     static OpRegistry &instance();
 
-    Op register_op(const std::string &name, bool is_kernel, AnalyzeFn analyze = nullptr);
+    Op register_op(const std::string &name, bool is_kernel, AnalyzeFn analyze = nullptr, CostFn cost = nullptr);
 
     // Queries
     bool is_kernel(Op op) const;

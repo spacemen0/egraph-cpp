@@ -94,3 +94,18 @@ TEST(ApiTest, ConcreteMatrixChainEvaluation) {
     EXPECT_NEAR(res[2], 3.0, 1e-6);
     EXPECT_NEAR(res[3], 15.0, 1e-6);
 }
+
+TEST(ApiTest, ContextRegisterKernelWithCost) {
+    Context ctx;
+    Op custom_kernel = ctx.register_kernel("CustomKernel", [](const EGraph &, const std::vector<Id> &) {
+        MatrixProperty p;
+        p.shape = Shape{2, 2};
+        return AnalysisData{p};
+    }, [](Op, const ENode &, const EGraph &, const SizeBindings &) -> Cost {
+        return 10.0;
+    });
+
+    EXPECT_TRUE(is_kernel_op(custom_kernel));
+    const auto &desc = OpRegistry::instance().get(custom_kernel);
+    EXPECT_NE(desc.cost, nullptr);
+}

@@ -14,14 +14,14 @@ OpRegistry::OpRegistry() { init_builtins(); }
 
 void OpRegistry::init_builtins() { init_builtin_ops(*this); }
 
-Op OpRegistry::register_op(const std::string &name, bool is_kernel, AnalyzeFn analyze) {
+Op OpRegistry::register_op(const std::string &name, bool is_kernel, AnalyzeFn analyze, CostFn cost) {
     if (auto it = name_to_op_.find(name); it != name_to_op_.end()) {
         std::string error_msg = "Operation already registered: " + name;
         throw InvalidOperationError(error_msg);
     }
 
     auto new_op = static_cast<Op>(ops.size());
-    ops.push_back(OpDescriptor{new_op, name, is_kernel, std::move(analyze)});
+    ops.push_back(OpDescriptor{new_op, name, is_kernel, std::move(analyze), std::move(cost)});
     name_to_op_[name] = new_op;
     return new_op;
 }
