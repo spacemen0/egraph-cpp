@@ -45,7 +45,8 @@ TEST(EGraph, BoundExtractionDoesNotMutateAnalysisData) {
 
     Extractor extractor(egraph);
     auto result = extractor.extract(id_mul, {{"A", 5}, {"B", 3}});
-    EXPECT_DOUBLE_EQ(result.cost, 75.0);
+    // Cost of Tr (15) + Cost of Mul (2 * 3 * 5 * 3 = 90) = 105.0
+    EXPECT_DOUBLE_EQ(result.cost, 105.0);
 
     const auto *m_prop_after = std::get_if<MatrixProperty>(&egraph.get_class_analysis_data(id_m).property);
     ASSERT_NE(m_prop_after, nullptr);

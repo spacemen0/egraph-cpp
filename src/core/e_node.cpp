@@ -73,14 +73,51 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings &size_bi
         return 0.0;
     }
 
-    if (auto op = std::get_if<Op>(&atom)) {
-        const auto &desc = OpRegistry::instance().get(*op);
-        if (!desc.cost) {
-            throw std::invalid_argument("Operation has no cost function registered: " + desc.name);
-        }
-        return desc.cost(*op, *this, egraph, size_bindings);
+    auto op = std::get_if<Op>(&atom);
+    if (!op) {
+        throw std::invalid_argument("ENode with non-Op atom should not have children");
     }
-    throw std::invalid_argument("ENode with non-Op atom should not have children");
+
+    const auto &desc = OpRegistry::instance().get(*op);
+    if (!desc.cost) {
+        throw std::invalid_argument("Operation has no cost function registered: " + desc.name);
+    }
+
+    std::vector<Operand> operands;
+    operands.reserve(children.size());
+
+    for (Id child_id : children) {
+        Operand operand;
+
+        const auto &class_data = egraph.get_class_analysis_data(child_id);
+        if (auto prop = std::get_if<MatrixProperty>(&class_data.property)) {
+            operand.property = *prop;
+            Shape bound = bind_shape(prop->shape, size_bindings);
+            if (!is_numeric(bound)) {
+                throw std::runtime_error("Cannot compute cost: missing size binding for symbolic dimension");
+            }
+            operand.rows = std::get<int>(bound.first);
+            operand.cols = std::get<int>(bound.second);
+            operand.property.shape = bound;
+        } else if (auto tuple_prop = std::get_if<TupleProperty>(&class_data.property)) {
+            for (const auto &elem_prop : *tuple_prop) {
+                Operand elem;
+                elem.property = elem_prop;
+                Shape bound = bind_shape(elem_prop.shape, size_bindings);
+                if (!is_numeric(bound)) {
+                    throw std::runtime_error("Cannot compute cost: missing size binding for symbolic dimension");
+                }
+                elem.rows = std::get<int>(bound.first);
+                elem.cols = std::get<int>(bound.second);
+                elem.property.shape = bound;
+                operand.tuple.push_back(elem);
+            }
+        }
+
+        operands.push_back(operand);
+    }
+
+    return desc.cost(*op, operands);
 }
 
 } // namespace egraph

@@ -101,7 +101,7 @@ TEST(ApiTest, ContextRegisterKernelWithCost) {
         MatrixProperty p;
         p.shape = Shape{2, 2};
         return AnalysisData{p};
-    }, [](Op, const ENode &, const EGraph &, const SizeBindings &) -> Cost {
+    }, [](Op, const std::vector<Operand> &) -> Cost {
         return 10.0;
     });
 

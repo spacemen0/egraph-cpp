@@ -1,7 +1,6 @@
 #pragma once
 
 #include "basic_types.h"
-#include "e_node.h"
 #include "property_table.h"
 #include "types.h"
 #include <functional>
@@ -15,8 +14,23 @@ namespace egraph {
 
 class EGraph;
 
+struct Operand {
+    int rows = 0;
+    int cols = 0;
+    MatrixProperty property{};
+    std::vector<Operand> tuple{};
+
+    bool is_tuple() const { return !tuple.empty(); }
+    bool is_square() const { return rows > 0 && rows == cols; }
+    bool is_zero() const { return property.flags.is_zero; }
+    bool is_symmetric() const { return property.flags.is_symmetric; }
+    bool is_upper_triangular() const { return property.flags.is_upper_triangular; }
+    bool is_lower_triangular() const { return property.flags.is_lower_triangular; }
+    bool is_diagonal() const { return property.flags.is_diagonal; }
+};
+
 using AnalyzeFn = std::function<AnalysisData(const EGraph &egraph, const std::vector<Id> &children)>;
-using CostFn = std::function<Cost(Op op, const ENode &node, const EGraph &egraph, const SizeBindings &size_bindings)>;
+using CostFn = std::function<Cost(Op op, const std::vector<Operand> &operands)>;
 struct OpDescriptor {
     Op op{};
     std::string name;
