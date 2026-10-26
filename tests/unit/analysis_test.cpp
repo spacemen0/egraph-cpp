@@ -246,20 +246,20 @@ TEST(OpRegistry, UniformRegistrationAndAnalysis) {
     EXPECT_EQ(parse_op("Gemm_NN"), gemm);
 
     // Register a new custom vendor kernel using the exact same uniform API
-    Op vendor_add = registry.register_op("VendorAdd", true, [](const EGraph &egraph, const std::vector<Id> &children) {
-        if (children.size() != 2) {
+    Op vendor_add = registry.register_op("VendorAdd", true, [](const std::vector<Operand> &operands) {
+        if (operands.size() != 2) {
             throw AnalysisError("VendorAdd expects 2 children");
         }
-        auto *p1 = get_matrix_data(egraph, children[0]);
-        auto *p2 = get_matrix_data(egraph, children[1]);
-        if (!p1 || !p2) {
+        const auto *mat0 = as_matrix(operands[0]);
+        const auto *mat1 = as_matrix(operands[1]);
+        if (!mat0 || !mat1) {
             throw AnalysisError("VendorAdd expects matrix inputs");
         }
-        if (p1->shape != p2->shape) {
+        if (mat0->property.shape != mat1->property.shape) {
             throw ShapeMismatchError("Shape mismatch in VendorAdd");
         }
         MatrixProperty prop;
-        prop.shape = p1->shape;
+        prop.shape = mat0->property.shape;
         return AnalysisData{prop};
     });
 

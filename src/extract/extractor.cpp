@@ -89,6 +89,11 @@ Extractor::NumericSearchResult Extractor::refine_seed_dag(Id root, const SizeBin
         }
 
         for (Id class_id : reachable_classes) {
+
+            // If we swap candidates previously, other original classes may no longer be in the best_dag_map.
+            if (!best_dag_map.contains(class_id)) {
+                continue;
+            }
             const ENode *original_node = dag_choices[class_id];
             for (const ENode *candidate : egraph.get_class_nodes(class_id)) {
                 if (candidate == original_node) {

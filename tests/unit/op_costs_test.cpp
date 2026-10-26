@@ -13,7 +13,7 @@ TEST(OpCostsTest, ComputeAddCostNumeric) {
     EXPECT_DOUBLE_EQ(cost, 9.0);
 
     // Direct invocation with Operand vector
-    EXPECT_DOUBLE_EQ(compute_add_cost(OpRegistry::op("Add"), {{.rows = 3, .cols = 3}}), 9.0);
+    EXPECT_DOUBLE_EQ(compute_add_cost(OpRegistry::op("Add"), {MatrixOperand{.rows = 3, .cols = 3}}), 9.0);
 }
 
 TEST(OpCostsTest, ComputeMulCostNumeric) {
@@ -26,7 +26,10 @@ TEST(OpCostsTest, ComputeMulCostNumeric) {
     // 2.0 * rows1 * cols1 * cols2 = 2.0 * 3 * 2 * 3 = 36.0
     EXPECT_DOUBLE_EQ(cost, 36.0);
 
-    EXPECT_DOUBLE_EQ(compute_mul_cost(OpRegistry::op("Mul"), {{.rows = 3, .cols = 2}, {.rows = 2, .cols = 3}}), 36.0);
+    EXPECT_DOUBLE_EQ(
+        compute_mul_cost(
+            OpRegistry::op("Mul"), {MatrixOperand{.rows = 3, .cols = 2}, MatrixOperand{.rows = 2, .cols = 3}}),
+        36.0);
 }
 
 TEST(OpCostsTest, ComputeTrCostNumeric) {
@@ -37,7 +40,7 @@ TEST(OpCostsTest, ComputeTrCostNumeric) {
     Cost cost = node.compute_local_cost(egraph, {});
     EXPECT_DOUBLE_EQ(cost, 6.0);
 
-    EXPECT_DOUBLE_EQ(compute_tr_cost(OpRegistry::op("Tr"), {{.rows = 3, .cols = 2}}), 6.0);
+    EXPECT_DOUBLE_EQ(compute_tr_cost(OpRegistry::op("Tr"), {MatrixOperand{.rows = 3, .cols = 2}}), 6.0);
 }
 
 TEST(OpCostsTest, ComputeInvCostGeneralSquare) {
@@ -49,7 +52,7 @@ TEST(OpCostsTest, ComputeInvCostGeneralSquare) {
     // 24.0 * 3^3 = 648.0
     EXPECT_DOUBLE_EQ(cost, 648.0);
 
-    EXPECT_DOUBLE_EQ(compute_inv_cost(OpRegistry::op("Inv"), {{.rows = 3, .cols = 3}}), 648.0);
+    EXPECT_DOUBLE_EQ(compute_inv_cost(OpRegistry::op("Inv"), {MatrixOperand{.rows = 3, .cols = 3}}), 648.0);
 }
 
 TEST(OpCostsTest, ComputeInvCostTriangularSquare) {
@@ -64,7 +67,7 @@ TEST(OpCostsTest, ComputeInvCostTriangularSquare) {
     // (1.0 / 3.0) * 3^3 = 9.0
     EXPECT_DOUBLE_EQ(cost, 9.0);
 
-    Operand tri_operand{.rows = 3, .cols = 3};
+    MatrixOperand tri_operand{.rows = 3, .cols = 3};
     tri_operand.property.flags.is_upper_triangular = true;
     EXPECT_DOUBLE_EQ(compute_inv_cost(OpRegistry::op("Inv"), {tri_operand}), 9.0);
 }
@@ -77,7 +80,7 @@ TEST(OpCostsTest, ComputeMinusCostNumeric) {
     Cost cost = node.compute_local_cost(egraph, {});
     EXPECT_DOUBLE_EQ(cost, 9.0);
 
-    EXPECT_DOUBLE_EQ(compute_minus_cost(OpRegistry::op("Minus"), {{.rows = 3, .cols = 3}}), 9.0);
+    EXPECT_DOUBLE_EQ(compute_minus_cost(OpRegistry::op("Minus"), {MatrixOperand{.rows = 3, .cols = 3}}), 9.0);
 }
 
 TEST(OpCostsTest, ComputeScaleCostNumeric) {
@@ -88,7 +91,7 @@ TEST(OpCostsTest, ComputeScaleCostNumeric) {
     Cost cost = node.compute_local_cost(egraph, {});
     EXPECT_DOUBLE_EQ(cost, 6.0);
 
-    EXPECT_DOUBLE_EQ(compute_scale_cost(OpRegistry::op("Scale"), {{.rows = 3, .cols = 2}}), 6.0);
+    EXPECT_DOUBLE_EQ(compute_scale_cost(OpRegistry::op("Scale"), {MatrixOperand{.rows = 3, .cols = 2}}), 6.0);
 }
 
 TEST(OpCostsTest, ComputePotrfCostNumeric) {
@@ -100,7 +103,8 @@ TEST(OpCostsTest, ComputePotrfCostNumeric) {
     // (1.0 / 3.0) * 3^3 = 9.0
     EXPECT_DOUBLE_EQ(cost, 9.0);
 
-    EXPECT_DOUBLE_EQ(compute_potrf_l_potrf_u_cost(OpRegistry::op("Potrf_L"), {{.rows = 3, .cols = 3}}), 9.0);
+    EXPECT_DOUBLE_EQ(
+        compute_potrf_l_potrf_u_cost(OpRegistry::op("Potrf_L"), {MatrixOperand{.rows = 3, .cols = 3}}), 9.0);
 }
 
 TEST(OpCostsTest, ComputeGemvCostNumeric) {
@@ -115,8 +119,8 @@ TEST(OpCostsTest, ComputeGemvCostNumeric) {
     EXPECT_DOUBLE_EQ(cost_n, 12.0); // 2 * 3 * 2
     EXPECT_DOUBLE_EQ(cost_t, 12.0);
 
-    EXPECT_DOUBLE_EQ(compute_gemv_n_cost(OpRegistry::op("Gemv_N"), {{.rows = 3, .cols = 2}}), 12.0);
-    EXPECT_DOUBLE_EQ(compute_gemv_t_cost(OpRegistry::op("Gemv_T"), {{.rows = 3, .cols = 2}}), 12.0);
+    EXPECT_DOUBLE_EQ(compute_gemv_n_cost(OpRegistry::op("Gemv_N"), {MatrixOperand{.rows = 3, .cols = 2}}), 12.0);
+    EXPECT_DOUBLE_EQ(compute_gemv_t_cost(OpRegistry::op("Gemv_T"), {MatrixOperand{.rows = 3, .cols = 2}}), 12.0);
 }
 
 TEST(OpCostsTest, ComputeTrtriCostNumeric) {
@@ -128,7 +132,7 @@ TEST(OpCostsTest, ComputeTrtriCostNumeric) {
     // (1.0 / 3.0) * 27 = 9.0
     EXPECT_DOUBLE_EQ(cost, 9.0);
 
-    EXPECT_DOUBLE_EQ(compute_trtri_cost(OpRegistry::op("Trtri"), {{.rows = 3, .cols = 3}}), 9.0);
+    EXPECT_DOUBLE_EQ(compute_trtri_cost(OpRegistry::op("Trtri"), {MatrixOperand{.rows = 3, .cols = 3}}), 9.0);
 }
 
 TEST(OpCostsTest, ComputeSyrkCostNumeric) {
@@ -140,7 +144,7 @@ TEST(OpCostsTest, ComputeSyrkCostNumeric) {
     // Syrk_T cost on 3x2 matrix: 1.0 * n * (n + 1) * k = 2 * 3 * 3 = 18.0
     EXPECT_DOUBLE_EQ(cost, 18.0);
 
-    EXPECT_DOUBLE_EQ(compute_syrk_n_syrk_t_cost(OpRegistry::op("Syrk_T"), {{.rows = 3, .cols = 2}}), 18.0);
+    EXPECT_DOUBLE_EQ(compute_syrk_n_syrk_t_cost(OpRegistry::op("Syrk_T"), {MatrixOperand{.rows = 3, .cols = 2}}), 18.0);
 }
 
 TEST(OpCostsTest, ComputeMulCostTriangularLeftNumeric) {
@@ -187,7 +191,7 @@ TEST(OpCostsTest, ComputeCostThrowsOnMissingBinding) {
 
 TEST(OpCostsTest, PluggableCustomOpCost) {
     auto &registry = OpRegistry::instance();
-    Op custom_op = registry.register_op("CustomNorm", true, [](const EGraph &, const std::vector<Id> &) {
+    Op custom_op = registry.register_op("CustomNorm", true, [](const std::vector<Operand> &) {
         MatrixProperty p;
         p.shape = Shape{1, 1};
         return AnalysisData{p};
@@ -204,7 +208,7 @@ TEST(OpCostsTest, PluggableCustomOpCost) {
 
 TEST(OpCostsTest, OpWithoutCostThrows) {
     auto &registry = OpRegistry::instance();
-    Op op_no_cost = registry.register_op("OpNoCost", true, [](const EGraph &, const std::vector<Id> &) {
+    Op op_no_cost = registry.register_op("OpNoCost", true, [](const std::vector<Operand> &) {
         return AnalysisData{MatrixProperty{}};
     }, nullptr);
 

@@ -9,6 +9,14 @@ namespace egraph {
 static auto is_leaf = [](std::string_view var) {
     return [var = std::string(var)](const EGraph &g, const Substitution &s) {
         Id id = s.at(var);
+        if (get_int_from_eclass(g, id) || get_double_from_eclass(g, id)) {
+            return false;
+        }
+        for (const auto &node : g.get_class_nodes(id)) {
+            if (std::holds_alternative<ScalarExpr>(node->get_atom())) {
+                return false;
+            }
+        }
         return g.at(id).get_children().empty();
     };
 };

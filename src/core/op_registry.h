@@ -14,22 +14,49 @@ namespace egraph {
 
 class EGraph;
 
-struct Operand {
+struct MatrixOperand {
     int rows = 0;
     int cols = 0;
     MatrixProperty property{};
-    std::vector<Operand> tuple{};
 
-    bool is_tuple() const { return !tuple.empty(); }
-    bool is_square() const { return rows > 0 && rows == cols; }
+    bool is_square() const { return rows > 0 ? (rows == cols) : property.is_square(); }
+    bool is_tall_matrix() const { return property.is_tall_matrix(); }
+    bool is_wide_matrix() const { return property.is_wide_matrix(); }
+    bool is_vector() const { return property.is_vector(); }
+    bool is_scalar() const { return property.is_scalar(); }
+
     bool is_zero() const { return property.flags.is_zero; }
     bool is_symmetric() const { return property.flags.is_symmetric; }
     bool is_upper_triangular() const { return property.flags.is_upper_triangular; }
     bool is_lower_triangular() const { return property.flags.is_lower_triangular; }
     bool is_diagonal() const { return property.flags.is_diagonal; }
+    bool is_full_rank() const { return property.flags.is_full_rank; }
+    bool is_non_singular() const { return property.flags.is_non_singular; }
+    bool is_positive_definite() const { return property.flags.is_positive_definite; }
+    bool is_orthogonal() const { return property.flags.is_orthogonal; }
 };
 
-using AnalyzeFn = std::function<AnalysisData(const EGraph &egraph, const std::vector<Id> &children)>;
+using TupleOperand = std::vector<MatrixOperand>;
+
+using IndexOperand = int;
+
+using ScalarOperand = double;
+
+using Operand = std::variant<MatrixOperand, TupleOperand, IndexOperand, ScalarOperand>;
+
+inline const MatrixOperand *as_matrix(const Operand &op) { return std::get_if<MatrixOperand>(&op); }
+inline MatrixOperand *as_matrix(Operand &op) { return std::get_if<MatrixOperand>(&op); }
+
+inline const TupleOperand *as_tuple(const Operand &op) { return std::get_if<TupleOperand>(&op); }
+inline TupleOperand *as_tuple(Operand &op) { return std::get_if<TupleOperand>(&op); }
+
+inline const IndexOperand *as_index(const Operand &op) { return std::get_if<IndexOperand>(&op); }
+inline IndexOperand *as_index(Operand &op) { return std::get_if<IndexOperand>(&op); }
+
+inline const ScalarOperand *as_scalar(const Operand &op) { return std::get_if<ScalarOperand>(&op); }
+inline ScalarOperand *as_scalar(Operand &op) { return std::get_if<ScalarOperand>(&op); }
+
+using AnalyzeFn = std::function<AnalysisData(const std::vector<Operand> &operands)>;
 using CostFn = std::function<Cost(Op op, const std::vector<Operand> &operands)>;
 struct OpDescriptor {
     Op op{};

@@ -97,7 +97,7 @@ TEST(ApiTest, ConcreteMatrixChainEvaluation) {
 
 TEST(ApiTest, ContextRegisterKernelWithCost) {
     Context ctx;
-    Op custom_kernel = ctx.register_kernel("CustomKernel", [](const EGraph &, const std::vector<Id> &) {
+    Op custom_kernel = ctx.register_kernel("CustomKernel", [](const std::vector<Operand> &) {
         MatrixProperty p;
         p.shape = Shape{2, 2};
         return AnalysisData{p};
