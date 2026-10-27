@@ -99,6 +99,5 @@ class Evaluator {
     // index is the index of the slot in execution_order (stores how many times a node will be referenced in the
     // execution chain.)
     mutable std::vector<int> use_counts;
-    std::unordered_map<Id, bool> prefer_upper_triangular;
 };
 } // namespace egraph

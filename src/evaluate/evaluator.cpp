@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -128,14 +129,6 @@ Evaluator::Evaluator(
         const ENode *node = result.choices.at(class_id);
         if (node) {
             const Atom &atom = node->get_atom();
-            if (const auto *op = std::get_if<Op>(&atom)) {
-                auto op_name = OpRegistry::name(*op);
-                if (op_name == "Potrf_L") {
-                    prefer_upper_triangular[node->get_children()[0]] = false;
-                } else if (op_name == "Potrf_U") {
-                    prefer_upper_triangular[node->get_children()[0]] = true;
-                }
-            }
             for (Id child_id : node->get_children()) {
                 if (child_id < slot_map.size() && slot_map[child_id] != -1) {
                     use_counts[slot_map[child_id]]++;
@@ -178,7 +171,7 @@ std::vector<double> Evaluator::evaluate() {
                 auto &storage = data_storage[slot];
                 auto op_name = OpRegistry::name(*op);
                 if (op_name == "Get") {
-                    MatrixNode &output = std::get<MatrixNode>(storage);
+                    auto &output = std::get<MatrixNode>(storage);
                     Id tuple_id = node->get_children()[0];
                     Id index_id = node->get_children()[1];
                     const TupleNode &input_tuple = std::get<TupleNode>(data_storage[slot_map[tuple_id]]);
@@ -188,12 +181,12 @@ std::vector<double> Evaluator::evaluate() {
                     }
                     dispatch_get(input_tuple, index, output);
                 } else if (std::holds_alternative<TupleNode>(storage)) {
-                    TupleNode &output = std::get<TupleNode>(storage);
+                    auto &output = std::get<TupleNode>(storage);
                     Id input_id = node->get_children()[0];
-                    const MatrixNode &input = std::get<MatrixNode>(data_storage[slot_map[input_id]]);
+                    const auto &input = std::get<MatrixNode>(data_storage[slot_map[input_id]]);
                     dispatch_factorization(*op, input, output, node);
                 } else {
-                    MatrixNode &output = std::get<MatrixNode>(storage);
+                    auto &output = std::get<MatrixNode>(storage);
                     dispatch_matrix_kernel(*op, output, node, class_id);
                 }
             }
@@ -330,16 +323,12 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         }
 
         CBLAS_UPLO uplo = CblasLower;
-        if (prefer_upper_triangular.count(class_id)) {
-            uplo = prefer_upper_triangular.at(class_id) ? CblasUpper : CblasLower;
-        }
-
         double alpha = 1.0;
         cblas_dsyrk(
             CblasColMajor, uplo, trans, output.rows, k, alpha, inputs[0]->data(), inputs[0]->rows, beta, output.data(),
             output.rows);
 
-        output.format = (uplo == CblasUpper) ? StorageFormat::SymmetricUpper : StorageFormat::SymmetricLower;
+        output.format = StorageFormat::SymmetricLower;
     } else if (op_name == "Trtri") {
         int n = output.rows;
         setup_in_place_output(node->get_children()[0], output);
@@ -477,7 +466,7 @@ void Evaluator::dispatch_factorization(Op op, const MatrixNode &input, TupleNode
 }
 
 void Evaluator::dispatch_get(const TupleNode &input_tuple, int index, MatrixNode &output) {
-    if (index < 0 || index >= static_cast<int>(input_tuple.matrices.size())) {
+    if (index < 0 || std::cmp_greater_equal(index, input_tuple.matrices.size())) {
         throw std::runtime_error("Index out of bounds in Get evaluation: " + std::to_string(index));
     }
     const MatrixNode &source = input_tuple.matrices[index];
