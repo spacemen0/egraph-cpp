@@ -1,4 +1,5 @@
 #pragma once
+#include "basic_types.h"
 #include "e_graph.h"
 #include "extractor.h"
 
@@ -86,6 +87,7 @@ class Evaluator {
     void dispatch_get(const TupleNode &input_tuple, int index, MatrixNode &output);
     EGraph &egraph;
     ExtractionResult result;
+    const SizeBindings &size_bindings;
     const DataBindings &data_bindings;
     std::vector<Id> preserved_ids;
 

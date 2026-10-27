@@ -1,5 +1,6 @@
 #include "evaluator.h"
 #include "basic_types.h"
+#include "op_registry.h"
 #include "utils.h"
 #include <cstddef>
 #include <cstdint>
@@ -21,7 +22,8 @@ namespace egraph {
 Evaluator::Evaluator(
     EGraph &egraph, const ExtractionResult &result, const SizeBindings &size_bindings,
     const DataBindings &data_bindings, const std::vector<Id> &preserved_ids)
-    : egraph(egraph), result(result), data_bindings(data_bindings), preserved_ids(preserved_ids) {
+    : egraph(egraph), result(result), data_bindings(data_bindings), preserved_ids(preserved_ids),
+      size_bindings(size_bindings) {
 
     size_t N = this->result.execution_order.size();
     data_storage.resize(N);
@@ -225,7 +227,8 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const Children
             }
         }
     }
-
+    std::vector<Operand> operands;
+    init_operands(egraph, children, operands, &size_bindings);
     const auto &desc = OpRegistry::instance().get(op);
     if (desc.eval) {
         if (desc.in_place_input.has_value()) {
@@ -235,19 +238,11 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const Children
                 output.ensure_general();
             }
         }
-        desc.eval(inputs, output);
+        desc.eval(operands, inputs, output);
         return;
     }
     if (op_name == "Symm_L" || op_name == "Symm_R") {
-        auto c_prop = egraph.get_class_analysis_data(children[2]);
-        bool is_c_zero = false;
-        if (auto p = std::get_if<MatrixProperty>(&c_prop.property)) {
-            is_c_zero = p->flags.is_zero;
-        }
-        if (!is_c_zero) {
-            setup_in_place_output(children[2], output);
-            output.ensure_general();
-        }
+        bool is_c_zero = as_matrix(operands[2])->is_zero();
         CBLAS_SIDE side = (op_name == "Symm_L") ? CblasLeft : CblasRight;
         CBLAS_UPLO uplo_cblas = CblasLower;
         if (inputs[0]->format == StorageFormat::SymmetricUpper || inputs[0]->format == StorageFormat::TriangularUpper) {

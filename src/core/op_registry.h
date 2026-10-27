@@ -59,7 +59,8 @@ inline ScalarOperand *as_scalar(Operand &op) { return std::get_if<ScalarOperand>
 
 using AnalyzeFn = std::function<AnalysisData(const std::vector<Operand> &operands)>;
 using CostFn = std::function<Cost(Op op, const std::vector<Operand> &operands)>;
-using EvalFn = std::function<void(const std::vector<const MatrixNode *> &inputs, MatrixNode &output)>;
+using EvalFn = std::function<void(
+    const std::vector<Operand> &operands, const std::vector<const MatrixNode *> &inputs, MatrixNode &output)>;
 struct OpDescriptor {
     Op op{};
     std::string name;
