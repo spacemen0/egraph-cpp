@@ -13,6 +13,7 @@
 namespace egraph {
 
 class EGraph;
+struct MatrixNode;
 
 struct MatrixOperand {
     int rows = 0;
@@ -58,12 +59,15 @@ inline ScalarOperand *as_scalar(Operand &op) { return std::get_if<ScalarOperand>
 
 using AnalyzeFn = std::function<AnalysisData(const std::vector<Operand> &operands)>;
 using CostFn = std::function<Cost(Op op, const std::vector<Operand> &operands)>;
+using EvalFn = std::function<void(const std::vector<const MatrixNode *> &inputs, MatrixNode &output)>;
 struct OpDescriptor {
     Op op{};
     std::string name;
     bool is_kernel = false;
     AnalyzeFn analyze = nullptr;
     CostFn cost = nullptr;
+    EvalFn eval = nullptr;
+    std::optional<int> in_place_input = std::nullopt;
 };
 
 void init_builtin_ops(class OpRegistry &registry);
@@ -75,7 +79,9 @@ class OpRegistry {
   public:
     static OpRegistry &instance();
 
-    Op register_op(const std::string &name, bool is_kernel, AnalyzeFn analyze = nullptr, CostFn cost = nullptr);
+    Op register_op(
+        const std::string &name, bool is_kernel, AnalyzeFn analyze = nullptr, CostFn cost = nullptr,
+        EvalFn eval = nullptr, std::optional<int> in_place_input = std::nullopt);
 
     // Queries
     bool is_kernel(Op op) const;

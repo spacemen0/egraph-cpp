@@ -2,6 +2,8 @@
 #include "api.h"
 #include "test_helpers.h"
 #include <gtest/gtest.h>
+
+#include <cstddef>
 using namespace egraph;
 
 using namespace EGraphRunner;
@@ -108,4 +110,77 @@ TEST(ApiTest, ContextRegisterKernelWithCost) {
     EXPECT_TRUE(is_kernel_op(custom_kernel));
     const auto &desc = OpRegistry::instance().get(custom_kernel);
     EXPECT_NE(desc.cost, nullptr);
+}
+
+TEST(ApiTest, ContextCustomKernelEvaluation) {
+    Context ctx;
+    Op double_kernel = ctx.register_kernel("DoubleElements", [](const std::vector<Operand> &operands) {
+        const auto *m = as_matrix(operands[0]);
+        MatrixProperty p = m->property;
+        return AnalysisData{p};
+    }, [](Op, const std::vector<Operand> &operands) -> Cost {
+        const auto *m = as_matrix(operands[0]);
+        return static_cast<double>(m->rows * m->cols);
+    }, [](const std::vector<const MatrixNode *> &inputs, MatrixNode &output) {
+        const double *in = inputs[0]->data();
+        double *out = output.data();
+        size_t n = static_cast<long>(output.rows) * output.cols;
+        for (size_t i = 0; i < n; ++i) {
+            out[i] = in[i] * 2.0;
+        }
+    });
+
+    auto a = ctx.define_matrix("A", 2, 2);
+    Expression custom_expr(double_kernel, {a});
+    ctx.optimize_concrete(custom_expr);
+
+    DataBindings bindings;
+    bindings["A"] = {1.0, 2.0, 3.0, 4.0};
+
+    auto res = ctx.evaluate_concrete({}, bindings);
+    ASSERT_EQ(res.size(), 4);
+    EXPECT_DOUBLE_EQ(res[0], 2.0);
+    EXPECT_DOUBLE_EQ(res[1], 4.0);
+    EXPECT_DOUBLE_EQ(res[2], 6.0);
+    EXPECT_DOUBLE_EQ(res[3], 8.0);
+}
+
+TEST(ApiTest, ContextCustomInPlaceKernelEvaluation) {
+    Context ctx;
+    Op add_to_kernel = ctx.register_kernel(
+        "AddToB",
+        [](const std::vector<Operand> &operands) {
+        const auto *m = as_matrix(operands[1]);
+        MatrixProperty p = m->property;
+        return AnalysisData{p};
+    },
+        [](Op, const std::vector<Operand> &operands) -> Cost {
+        const auto *m = as_matrix(operands[1]);
+        return static_cast<double>(m->rows * m->cols);
+    },
+        [](const std::vector<const MatrixNode *> &inputs, MatrixNode &output) {
+        const double *a = inputs[0]->data();
+        double *b = output.data();
+        size_t n = output.rows * output.cols;
+        for (size_t i = 0; i < n; ++i) {
+            b[i] += a[i];
+        }
+    },
+        /*in_place_input=*/1);
+
+    auto a = ctx.define_matrix("A", 2, 2);
+    auto b = ctx.define_matrix("B", 2, 2);
+    Expression custom_expr(add_to_kernel, {a, b});
+    ctx.optimize_concrete(custom_expr);
+
+    DataBindings bindings;
+    bindings["A"] = {1.0, 2.0, 3.0, 4.0};
+    bindings["B"] = {10.0, 20.0, 30.0, 40.0};
+
+    auto res = ctx.evaluate_concrete({}, bindings);
+    ASSERT_EQ(res.size(), 4);
+    EXPECT_DOUBLE_EQ(res[0], 11.0);
+    EXPECT_DOUBLE_EQ(res[1], 22.0);
+    EXPECT_DOUBLE_EQ(res[2], 33.0);
+    EXPECT_DOUBLE_EQ(res[3], 44.0);
 }

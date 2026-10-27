@@ -15,14 +15,25 @@ OpRegistry::OpRegistry() { init_builtins(); }
 
 void OpRegistry::init_builtins() { init_builtin_ops(*this); }
 
-Op OpRegistry::register_op(const std::string &name, bool is_kernel, AnalyzeFn analyze, CostFn cost) {
+Op OpRegistry::register_op(
+    const std::string &name, bool is_kernel, AnalyzeFn analyze, CostFn cost, EvalFn eval,
+    std::optional<int> in_place_input) {
     if (auto it = name_to_op_.find(name); it != name_to_op_.end()) {
         std::string error_msg = "Operation already registered: " + name;
         throw InvalidOperationError(error_msg);
     }
 
     auto new_op = static_cast<Op>(ops.size());
-    ops.push_back(OpDescriptor{new_op, name, is_kernel, std::move(analyze), std::move(cost)});
+    ops.push_back(
+        OpDescriptor{
+            .op = new_op,
+            .name = name,
+            .is_kernel = is_kernel,
+            .analyze = std::move(analyze),
+            .cost = std::move(cost),
+            .eval = std::move(eval),
+            .in_place_input = in_place_input,
+        });
     name_to_op_[name] = new_op;
     return new_op;
 }
@@ -73,8 +84,7 @@ bool OpRegistry::contains(Op op) const {
 bool OpRegistry::contains(std::string_view name) const { return name_to_op_.contains(std::string(name)); }
 
 void init_operands(
-    const EGraph &egraph, const Children &children, std::vector<Operand> &operands,
-    const SizeBindings *bindings) {
+    const EGraph &egraph, const Children &children, std::vector<Operand> &operands, const SizeBindings *bindings) {
     operands.reserve(children.size());
 
     for (Id child_id : children) {

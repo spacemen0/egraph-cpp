@@ -225,6 +225,19 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const Children
             }
         }
     }
+
+    const auto &desc = OpRegistry::instance().get(op);
+    if (desc.eval) {
+        if (desc.in_place_input.has_value()) {
+            int target_idx = *desc.in_place_input;
+            if (target_idx >= 0 && std::cmp_less(target_idx, children.size())) {
+                setup_in_place_output(children[target_idx], output);
+                output.ensure_general();
+            }
+        }
+        desc.eval(inputs, output);
+        return;
+    }
     if (op_name == "Symm_L" || op_name == "Symm_R") {
         auto c_prop = egraph.get_class_analysis_data(children[2]);
         bool is_c_zero = false;
