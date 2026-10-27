@@ -167,13 +167,14 @@ std::vector<double> Evaluator::evaluate() {
         const ENode *node = result.choices.at(class_id);
         if (node) {
             const Atom &atom = node->get_atom();
+            auto children = node->get_children();
             if (const auto *op = std::get_if<Op>(&atom)) {
                 auto &storage = data_storage[slot];
                 auto op_name = OpRegistry::name(*op);
                 if (op_name == "Get") {
                     auto &output = std::get<MatrixNode>(storage);
-                    Id tuple_id = node->get_children()[0];
-                    Id index_id = node->get_children()[1];
+                    Id tuple_id = children[0];
+                    Id index_id = children[1];
                     const TupleNode &input_tuple = std::get<TupleNode>(data_storage[slot_map[tuple_id]]);
                     int index = 0;
                     if (auto idx_opt = get_int_from_eclass(egraph, index_id); idx_opt.has_value()) {
@@ -182,12 +183,12 @@ std::vector<double> Evaluator::evaluate() {
                     dispatch_get(input_tuple, index, output);
                 } else if (std::holds_alternative<TupleNode>(storage)) {
                     auto &output = std::get<TupleNode>(storage);
-                    Id input_id = node->get_children()[0];
+                    Id input_id = children[0];
                     const auto &input = std::get<MatrixNode>(data_storage[slot_map[input_id]]);
-                    dispatch_factorization(*op, input, output, node);
+                    dispatch_factorization(*op, input, output, children);
                 } else {
                     auto &output = std::get<MatrixNode>(storage);
-                    dispatch_matrix_kernel(*op, output, node, class_id);
+                    dispatch_matrix_kernel(*op, output, children);
                 }
             }
         }
@@ -212,11 +213,11 @@ std::vector<double> Evaluator::get_preserved(Id id) const {
     throw std::runtime_error("Preserved ID not found in evaluator storage.");
 }
 
-void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *node, Id class_id) {
+void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const Children &children) {
     auto op_name = OpRegistry::name(op);
 
     std::vector<const MatrixNode *> inputs;
-    for (Id child_id : node->get_children()) {
+    for (Id child_id : children) {
         if (child_id < slot_map.size() && slot_map[child_id] != -1) {
             int slot = slot_map[child_id];
             if (std::holds_alternative<MatrixNode>(data_storage[slot])) {
@@ -225,13 +226,13 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         }
     }
     if (op_name == "Symm_L" || op_name == "Symm_R") {
-        auto c_prop = egraph.get_class_analysis_data(node->get_children()[2]);
+        auto c_prop = egraph.get_class_analysis_data(children[2]);
         bool is_c_zero = false;
         if (auto p = std::get_if<MatrixProperty>(&c_prop.property)) {
             is_c_zero = p->flags.is_zero;
         }
         if (!is_c_zero) {
-            setup_in_place_output(node->get_children()[2], output);
+            setup_in_place_output(children[2], output);
             output.ensure_general();
         }
         CBLAS_SIDE side = (op_name == "Symm_L") ? CblasLeft : CblasRight;
@@ -242,7 +243,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
             inputs[0]->format == StorageFormat::SymmetricLower || inputs[0]->format == StorageFormat::TriangularLower) {
             uplo_cblas = CblasLower;
         } else {
-            auto a_prop = egraph.get_class_analysis_data(node->get_children()[0]);
+            auto a_prop = egraph.get_class_analysis_data(children[0]);
             if (auto p = std::get_if<MatrixProperty>(&a_prop.property)) {
                 uplo_cblas = (p->flags.is_upper_triangular && !p->flags.is_lower_triangular) ? CblasUpper : CblasLower;
             }
@@ -253,29 +254,29 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
             CblasColMajor, side, uplo_cblas, output.rows, output.cols, alpha, inputs[0]->data(), inputs[0]->rows,
             inputs[1]->data(), inputs[1]->rows, beta, output.data(), output.rows);
     } else if (op_name == "Trmm_LN" || op_name == "Trmm_LT" || op_name == "Trmm_RN" || op_name == "Trmm_RT") {
-        auto c_prop = egraph.get_class_analysis_data(node->get_children()[2]);
+        auto c_prop = egraph.get_class_analysis_data(children[2]);
         bool is_c_zero = false;
         if (auto p = std::get_if<MatrixProperty>(&c_prop.property)) {
             is_c_zero = p->flags.is_zero;
         }
 
-        auto a_prop = egraph.get_class_analysis_data(node->get_children()[0]);
+        auto a_prop = egraph.get_class_analysis_data(children[0]);
         CBLAS_UPLO uplo = std::get<MatrixProperty>(a_prop.property).flags.is_lower_triangular ? CblasLower : CblasUpper;
         CBLAS_SIDE side = (op_name == "Trmm_LN" || op_name == "Trmm_LT") ? CblasLeft : CblasRight;
         CBLAS_TRANSPOSE trans = (op_name == "Trmm_LN" || op_name == "Trmm_RN") ? CblasNoTrans : CblasTrans;
 
         if (is_c_zero) {
-            setup_in_place_output(node->get_children()[1], output);
+            setup_in_place_output(children[1], output);
             output.ensure_general();
             double alpha = 1.0;
             cblas_dtrmm(
                 CblasColMajor, side, uplo, trans, CblasNonUnit, output.rows, output.cols, alpha, inputs[0]->data(),
                 inputs[0]->rows, output.data(), output.rows);
         } else {
-            setup_in_place_output(node->get_children()[2], output);
+            setup_in_place_output(children[2], output);
             output.ensure_general();
             MatrixNode tempB;
-            setup_in_place_output(node->get_children()[1], tempB);
+            setup_in_place_output(children[1], tempB);
             tempB.ensure_general();
             cblas_dtrmm(
                 CblasColMajor, side, uplo, trans, CblasNonUnit, tempB.rows, tempB.cols, 1.0, inputs[0]->data(),
@@ -283,9 +284,9 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
             cblas_daxpy(output.rows * output.cols, 1.0, tempB.data(), 1, output.data(), 1);
         }
     } else if (op_name == "Trsm_LN" || op_name == "Trsm_LT" || op_name == "Trsm_RN" || op_name == "Trsm_RT") {
-        setup_in_place_output(node->get_children()[1], output);
+        setup_in_place_output(children[1], output);
         output.ensure_general();
-        auto is_lower = egraph.get_class_analysis_data(node->get_children()[0]);
+        auto is_lower = egraph.get_class_analysis_data(children[0]);
         CBLAS_UPLO uplo =
             std::get<MatrixProperty>(is_lower.property).flags.is_lower_triangular ? CblasLower : CblasUpper;
 
@@ -300,11 +301,10 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         inputs[0]->ensure_general();
         inputs[1]->ensure_general();
         CBLAS_TRANSPOSE trans = (op_name == "Gemv_T") ? CblasTrans : CblasNoTrans;
-        bool c_is_zero =
-            std::get<MatrixProperty>(egraph.get_class_analysis_data(node->get_children()[2]).property).flags.is_zero;
+        bool c_is_zero = std::get<MatrixProperty>(egraph.get_class_analysis_data(children[2]).property).flags.is_zero;
         double beta = c_is_zero ? 0.0 : 1.0;
         if (!c_is_zero) {
-            setup_in_place_output(node->get_children()[2], output);
+            setup_in_place_output(children[2], output);
             output.ensure_general();
         }
         double alpha = 1.0;
@@ -315,11 +315,10 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         inputs[0]->ensure_general();
         CBLAS_TRANSPOSE trans = (op_name == "Syrk_T") ? CblasTrans : CblasNoTrans;
         int k = (trans == CblasNoTrans) ? inputs[0]->cols : inputs[0]->rows;
-        bool c_is_zero =
-            std::get<MatrixProperty>(egraph.get_class_analysis_data(node->get_children()[1]).property).flags.is_zero;
+        bool c_is_zero = std::get<MatrixProperty>(egraph.get_class_analysis_data(children[1]).property).flags.is_zero;
         double beta = c_is_zero ? 0.0 : 1.0;
         if (!c_is_zero) {
-            setup_in_place_output(node->get_children()[1], output);
+            setup_in_place_output(children[1], output);
         }
 
         CBLAS_UPLO uplo = CblasLower;
@@ -331,8 +330,8 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         output.format = StorageFormat::SymmetricLower;
     } else if (op_name == "Trtri") {
         int n = output.rows;
-        setup_in_place_output(node->get_children()[0], output);
-        auto is_lower = egraph.get_class_analysis_data(node->get_children()[0]);
+        setup_in_place_output(children[0], output);
+        auto is_lower = egraph.get_class_analysis_data(children[0]);
         char uplo = std::get<MatrixProperty>(is_lower.property).flags.is_lower_triangular ? 'L' : 'U';
         LAPACKE_dtrtri(LAPACK_COL_MAJOR, uplo, 'N', n, output.data(), n);
     } else if (op_name == "Tr") {
@@ -345,11 +344,11 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
             }
         }
     } else if (op_name == "Scale") {
-        setup_in_place_output(node->get_children()[0], output);
+        setup_in_place_output(children[0], output);
         double scalar_val = inputs[1]->data()[0];
         cblas_dscal(output.rows * output.cols, scalar_val, output.data(), 1);
     } else if (op_name == "Orgqr") {
-        Id geqrf_id = node->get_children()[0];
+        Id geqrf_id = children[0];
         const TupleNode &geqrf_tuple = std::get<TupleNode>(data_storage[slot_map[geqrf_id]]);
         const MatrixNode &q_node = geqrf_tuple.matrices[0];
         int k = std::min(q_node.rows, q_node.cols);
@@ -357,8 +356,8 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         LAPACKE_dorgqr(
             LAPACK_COL_MAJOR, output.rows, output.cols, k, output.data(), output.rows, geqrf_tuple.tau.data());
     } else if (op_name == "Ormqr_LN" || op_name == "Ormqr_LT" || op_name == "Ormqr_RN" || op_name == "Ormqr_RT") {
-        Id geqrf_id = node->get_children()[0];
-        Id c_id = node->get_children()[1];
+        Id geqrf_id = children[0];
+        Id c_id = children[1];
         const TupleNode &geqrf_tuple = std::get<TupleNode>(data_storage[slot_map[geqrf_id]]);
         const MatrixNode &c_node = std::get<MatrixNode>(data_storage[slot_map[c_id]]);
         const MatrixNode &a_node = geqrf_tuple.matrices[0]; // householder
@@ -372,7 +371,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         // dormqr requires C to be m x n and overwrites it.
         int out_rows = output.rows;
         int out_cols = output.cols;
-        setup_in_place_output(node->get_children()[1], output);
+        setup_in_place_output(children[1], output);
         output.ensure_general();
 
         LAPACKE_dormqr(
@@ -400,11 +399,10 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
         int k = (transA == CblasNoTrans) ? a_node.cols : a_node.rows;
 
         // If c_node is Zero, beta = 0.0 and no copy is needed.
-        bool c_is_zero =
-            std::get<MatrixProperty>(egraph.get_class_analysis_data(node->get_children()[2]).property).flags.is_zero;
+        bool c_is_zero = std::get<MatrixProperty>(egraph.get_class_analysis_data(children[2]).property).flags.is_zero;
         double beta = c_is_zero ? 0.0 : 1.0;
         if (!c_is_zero) {
-            setup_in_place_output(node->get_children()[2], output);
+            setup_in_place_output(children[2], output);
             output.ensure_general();
         }
         double alpha = 1.0;
@@ -414,7 +412,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
     } else if (op_name == "Axpy") {
         // memory is always allocated in continuous space so that we can use axpy directly
         inputs[0]->ensure_general();
-        setup_in_place_output(node->get_children()[1], output);
+        setup_in_place_output(children[1], output);
         output.ensure_general();
         cblas_daxpy(inputs[0]->rows * inputs[0]->cols, 1.0, inputs[0]->data(), 1, output.data(), 1);
     } else {
@@ -422,24 +420,24 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const ENode *n
     }
 }
 
-void Evaluator::dispatch_factorization(Op op, const MatrixNode &input, TupleNode &output, const ENode *node) {
+void Evaluator::dispatch_factorization(Op op, const MatrixNode &input, TupleNode &output, const Children &children) {
     auto op_name = OpRegistry::name(op);
     if (op_name == "Potrf_U") {
         MatrixNode &res = output.matrices[0];
-        setup_in_place_output(node->get_children()[0], res);
+        setup_in_place_output(children[0], res);
         if (res.format != StorageFormat::SymmetricUpper)
             res.ensure_general();
         LAPACKE_dpotrf(LAPACK_COL_MAJOR, 'U', res.rows, res.data(), res.rows);
         res.format = StorageFormat::TriangularUpper;
     } else if (op_name == "Potrf_L") {
         MatrixNode &res = output.matrices[0];
-        setup_in_place_output(node->get_children()[0], res);
+        setup_in_place_output(children[0], res);
         if (res.format != StorageFormat::SymmetricLower)
             res.ensure_general();
         LAPACKE_dpotrf(LAPACK_COL_MAJOR, 'L', res.rows, res.data(), res.rows);
         res.format = StorageFormat::TriangularLower;
     } else if (op_name == "Geqrf") {
-        setup_in_place_output(node->get_children()[0], output.matrices[0]);
+        setup_in_place_output(children[0], output.matrices[0]);
         output.matrices[0].ensure_general();
         double *a_data = output.matrices[0].data();
         LAPACKE_dgeqrf(
