@@ -81,69 +81,21 @@ static const auto symm_r =
 });
 
 /// trmm
-static const auto trmm_ln_without_c =
-    make_rewrite("trmm_ln_without_c", "?a * ?b", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
-    return is_triangular("a")(g, s) && is_not_vector("b")(g, s);
-}, [](EGraph &g, const Substitution &s, Id _) {
-    Id a_id = s.at("a");
-    Id b_id = s.at("b");
-    const auto *a_prop = get_matrix_data(g, a_id);
-    const auto *b_prop = get_matrix_data(g, b_id);
-    auto zero = make_zero_of_shape(g, {a_prop->shape.first, b_prop->shape.second});
-    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, OpRegistry::op("Trmm_LN")}), false);
-}, 30, {OpRegistry::op("Trmm_LN")});
-static const auto trmm_ln =
-    make_rewrite("trmm_ln", "?a * ?b + ?c", "Trmm_LN(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
-    return is_triangular("a")(g, s) && is_not_vector("b")(g, s);
-});
+static const auto trmm_ln = make_rewrite(
+    "trmm_ln", "?a * ?b", "Trmm_LN(?a, ?b)", false,
+    [](const EGraph &g, const Substitution &s) { return is_triangular("a")(g, s) && is_not_vector("b")(g, s); });
 
-static const auto trmm_lt_without_c =
-    make_rewrite("trmm_lt_without_c", "Tr(?a) * ?b", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
-    return is_triangular("a")(g, s) && is_not_vector("b")(g, s);
-}, [](EGraph &g, const Substitution &s, Id _) {
-    Id a_id = s.at("a");
-    Id b_id = s.at("b");
-    const auto *a_prop = get_matrix_data(g, a_id);
-    const auto *b_prop = get_matrix_data(g, b_id);
-    auto zero = make_zero_of_shape(g, {a_prop->shape.second, b_prop->shape.second});
-    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, OpRegistry::op("Trmm_LT")}), false);
-}, 30, {OpRegistry::op("Trmm_LT")});
 static const auto trmm_lt = make_rewrite(
-    "trmm_lt", "Tr(?a) * ?b + ?c", "Trmm_LT(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
-    return is_triangular("a")(g, s) && is_not_vector("b")(g, s);
-});
+    "trmm_lt", "Tr(?a) * ?b", "Trmm_LT(?a, ?b)", false,
+    [](const EGraph &g, const Substitution &s) { return is_triangular("a")(g, s) && is_not_vector("b")(g, s); });
 
-static const auto trmm_rn_without_c =
-    make_rewrite("trmm_rn_without_c", "?b * ?a", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
-    return is_triangular("a")(g, s) && is_not_vector("b")(g, s);
-}, [](EGraph &g, const Substitution &s, Id _) {
-    Id a_id = s.at("a");
-    Id b_id = s.at("b");
-    const auto *a_prop = get_matrix_data(g, a_id);
-    const auto *b_prop = get_matrix_data(g, b_id);
-    auto zero = make_zero_of_shape(g, {b_prop->shape.first, a_prop->shape.second});
-    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, OpRegistry::op("Trmm_RN")}), false);
-}, 30, {OpRegistry::op("Trmm_RN")});
-static const auto trmm_rn =
-    make_rewrite("trmm_rn", "?b * ?a + ?c", "Trmm_RN(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
-    return is_triangular("a")(g, s) && is_not_vector("b")(g, s);
-});
+static const auto trmm_rn = make_rewrite(
+    "trmm_rn", "?b * ?a", "Trmm_RN(?a, ?b)", false,
+    [](const EGraph &g, const Substitution &s) { return is_triangular("a")(g, s) && is_not_vector("b")(g, s); });
 
-static const auto trmm_rt_without_c =
-    make_rewrite("trmm_rt_without_c", "?b * Tr(?a)", "Dynamic", false, [](const EGraph &g, const Substitution &s) {
-    return is_triangular("a")(g, s) && is_not_vector("b")(g, s);
-}, [](EGraph &g, const Substitution &s, Id _) {
-    Id a_id = s.at("a");
-    Id b_id = s.at("b");
-    const auto *a_prop = get_matrix_data(g, a_id);
-    const auto *b_prop = get_matrix_data(g, b_id);
-    auto zero = make_zero_of_shape(g, {b_prop->shape.first, a_prop->shape.first});
-    return std::make_pair(g.add_node(ENode{{a_id, b_id, zero}, OpRegistry::op("Trmm_RT")}), false);
-}, 30, {OpRegistry::op("Trmm_RT")});
 static const auto trmm_rt = make_rewrite(
-    "trmm_rt", "?b * Tr(?a) + ?c", "Trmm_RT(?a, ?b, ?c)", false, [](const EGraph &g, const Substitution &s) {
-    return is_triangular("a")(g, s) && is_not_vector("b")(g, s);
-});
+    "trmm_rt", "?b * Tr(?a)", "Trmm_RT(?a, ?b)", false,
+    [](const EGraph &g, const Substitution &s) { return is_triangular("a")(g, s) && is_not_vector("b")(g, s); });
 
 /// BLAS Level 3: syrk
 /// ----------------------------------------------------------
@@ -277,13 +229,9 @@ static const std::vector<Rewrite> lowering_set = {
     symm_l,
     symm_r_without_c,
     symm_r,
-    trmm_ln_without_c,
     trmm_ln,
-    trmm_lt_without_c,
     trmm_lt,
-    trmm_rn_without_c,
     trmm_rn,
-    trmm_rt_without_c,
     trmm_rt,
     syrk_n_with_c,
     syrk_n_without_c,

@@ -108,19 +108,13 @@ Cost compute_syrk_n_syrk_t_cost(Op op, const std::vector<Operand> &operands) {
 }
 
 Cost compute_trmm_ln_group_cost(Op op, const std::vector<Operand> &operands) {
-    const auto *matC = (operands.size() > 2) ? as_matrix(operands[2]) : nullptr;
-    bool is_c_zero = matC && matC->is_zero();
     auto op_name = OpRegistry::name(op);
     bool is_left_solve = (op_name == "Trmm_LN" || op_name == "Trmm_LT");
 
     const auto *mat1 = as_matrix(operands[1]);
     double M = mat1->rows;
     double N = mat1->cols;
-    double cost = is_left_solve ? (M * M * N) : (M * N * N);
-    if (!is_c_zero) {
-        cost += M * N; // cost of daxpy
-    }
-    return cost;
+    return is_left_solve ? (M * M * N) : (M * N * N);
 }
 
 Cost compute_symm_group_cost(Op op, const std::vector<Operand> &operands) {

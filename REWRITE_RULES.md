@@ -26,10 +26,10 @@ enum class Op {
     Gemm_TT,  // Gemm(A, B, C) - General Matrix-Matrix Multiply with transposed A and B
     Syrk_N,   // Syrk(A, C) - Symmetric Rank-K Update
     Syrk_T,   // Syrk(A, C) - Symmetric Rank-K Update with transposed A
-    Trmm_LN,  // Trmm(A, B, C) - Triangular Matrix Multiply, A is left, no transpose, C = AB + C
-    Trmm_LT,  // Trmm(A, B, C) - Triangular Matrix Multiply, A is left, transposed, C = A^T B + C
-    Trmm_RN,  // Trmm(A, B, C) - Triangular Matrix Multiply, A is right, no transpose, C = BA + C
-    Trmm_RT,  // Trmm(A, B, C) - Triangular Matrix Multiply, A is right, transposed, C = BA^T + C
+    Trmm_LN,  // Trmm(A, B) - Triangular Matrix Multiply, A is left, no transpose, B = AB
+    Trmm_LT,  // Trmm(A, B) - Triangular Matrix Multiply, A is left, transposed, B = A^T B
+    Trmm_RN,  // Trmm(A, B) - Triangular Matrix Multiply, A is right, no transpose, B = BA
+    Trmm_RT,  // Trmm(A, B) - Triangular Matrix Multiply, A is right, transposed, B = BA^T
     Symm_L,   // Symm(A, B, C) - Symmetric Matrix Multiply, A is left, C = AB + C
     Symm_R,   // Symm(A, B, C) - Symmetric Matrix Multiply, A is right, C = BA + C
     Trsm_LN,  // Trsm(A, B) - Triangular Solve with multiple right-hand sides, AX = B, no transpose
@@ -296,37 +296,21 @@ not factorized means the matrix is not one of these: triangular, diagonal, ident
 
 ### BLAS Level 3: Trmm
 
-#### `trmm_ln_without_c`
-- **Pattern:** `?a * ?b` -> `Trmm_LN(?a, ?b, 0)` (Dynamic)
+#### `trmm_ln`
+- **Pattern:** `?a * ?b` -> `Trmm_LN(?a, ?b)`
 - **Description:** When `a` is triangular and `b` is not a vector. Computes $A B$.
 
-#### `trmm_ln`
-- **Pattern:** `?a * ?b + ?c` -> `Trmm_LN(?a, ?b, ?c)`
-- **Description:** When `a` is triangular and `b` is not a vector. Computes $A B + C$.
-
-#### `trmm_lt_without_c`
-- **Pattern:** `Tr(?a) * ?b` -> `Trmm_LT(?a, ?b, 0)` (Dynamic)
+#### `trmm_lt`
+- **Pattern:** `Tr(?a) * ?b` -> `Trmm_LT(?a, ?b)`
 - **Description:** When `a` is triangular and `b` is not a vector. Computes $A^T B$.
 
-#### `trmm_lt`
-- **Pattern:** `Tr(?a) * ?b + ?c` -> `Trmm_LT(?a, ?b, ?c)`
-- **Description:** When `a` is triangular and `b` is not a vector. Computes $A^T B + C$.
-
-#### `trmm_rn_without_c`
-- **Pattern:** `?b * ?a` -> `Trmm_RN(?a, ?b, 0)` (Dynamic)
+#### `trmm_rn`
+- **Pattern:** `?b * ?a` -> `Trmm_RN(?a, ?b)`
 - **Description:** When `a` is triangular and `b` is not a vector. Computes $B A$.
 
-#### `trmm_rn`
-- **Pattern:** `?b * ?a + ?c` -> `Trmm_RN(?a, ?b, ?c)`
-- **Description:** When `a` is triangular and `b` is not a vector. Computes $B A + C$.
-
-#### `trmm_rt_without_c`
-- **Pattern:** `?b * Tr(?a)` -> `Trmm_RT(?a, ?b, 0)` (Dynamic)
-- **Description:** When `a` is triangular and `b` is not a vector. Computes $B A^T$.
-
 #### `trmm_rt`
-- **Pattern:** `?b * Tr(?a) + ?c` -> `Trmm_RT(?a, ?b, ?c)`
-- **Description:** When `a` is triangular and `b` is not a vector. Computes $B A^T + C$.
+- **Pattern:** `?b * Tr(?a)` -> `Trmm_RT(?a, ?b)`
+- **Description:** When `a` is triangular and `b` is not a vector. Computes $B A^T$.
 
 ---
 

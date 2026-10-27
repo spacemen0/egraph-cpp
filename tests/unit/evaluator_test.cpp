@@ -213,3 +213,28 @@ TEST(EvaluatorTest, MissingSizeBindingsThrowsRuntimeErrorInsteadOfCrashing) {
     SizeBindings incomplete_sizes;
     EXPECT_THROW(ctx.evaluate_concrete(incomplete_sizes, data), std::runtime_error);
 }
+
+TEST(EvaluatorTest, EvaluateTrmm) {
+    EGraphRunner::Context ctx;
+    ctx.define_matrix("L", 2, 2, {"lower_triangular"});
+    ctx.define_matrix("B", 2, 2);
+
+    Expression L("L");
+    Expression B("B");
+    ctx.optimize_concrete(L * B);
+
+    // L = [2 0; 1 3] -> col-major: [2, 1, 0, 3]
+    // B = [1 4; 2 5] -> col-major: [1, 2, 4, 5]
+    // L * B = [2 8; 7 19] -> col-major: [2, 7, 8, 19]
+    DataBindings data = {
+        {"L", {2.0, 1.0, 0.0, 3.0}},
+        {"B", {1.0, 2.0, 4.0, 5.0}}
+    };
+
+    auto result = ctx.evaluate_concrete({}, data);
+    ASSERT_EQ(result.size(), 4);
+    EXPECT_DOUBLE_EQ(result[0], 2.0);
+    EXPECT_DOUBLE_EQ(result[1], 7.0);
+    EXPECT_DOUBLE_EQ(result[2], 8.0);
+    EXPECT_DOUBLE_EQ(result[3], 19.0);
+}

@@ -530,25 +530,22 @@ static AnalysisData analyze_syrk_t(const std::vector<Operand> &operands) {
 }
 
 static AnalysisData analyze_trmm_ln(const std::vector<Operand> &operands) {
-    check_arity(operands, 3, "Trmm_LN");
+    check_arity(operands, 2, "Trmm_LN");
     const auto *matA = as_matrix(operands[0]);
     const auto *matB = as_matrix(operands[1]);
-    const auto *matC = as_matrix(operands[2]);
-    if (matA && matB && matC) {
+    if (matA && matB) {
         const auto &dataA = matA->property;
         const auto &dataB = matB->property;
-        const auto &dataC = matC->property;
         if (!dataA.is_square())
             throw InvalidOperationError("Trmm_LN expects square A");
         if (!dataA.flags.is_lower_triangular && !dataA.flags.is_upper_triangular) {
             throw InvalidOperationError("Trmm_LN operation on non-triangular matrix A");
         }
-        if (dataA.shape.second != dataB.shape.first || dataA.shape.first != dataC.shape.first ||
-            dataB.shape.second != dataC.shape.second) {
+        if (dataA.shape.second != dataB.shape.first) {
             throw ShapeMismatchError("Trmm_LN operation with incompatible sizes");
         }
         MatrixProperty prop;
-        prop.shape = dataC.shape;
+        prop.shape = std::make_pair(dataA.shape.first, dataB.shape.second);
         prop.flags.is_full_rank = dataB.flags.is_full_rank && dataA.flags.is_full_rank;
         prop.flags.is_non_singular = prop.flags.is_full_rank && prop.is_square();
         return make_matrix_property_data(prop);
@@ -557,25 +554,22 @@ static AnalysisData analyze_trmm_ln(const std::vector<Operand> &operands) {
 }
 
 static AnalysisData analyze_trmm_lt(const std::vector<Operand> &operands) {
-    check_arity(operands, 3, "Trmm_LT");
+    check_arity(operands, 2, "Trmm_LT");
     const auto *matA = as_matrix(operands[0]);
     const auto *matB = as_matrix(operands[1]);
-    const auto *matC = as_matrix(operands[2]);
-    if (matA && matB && matC) {
+    if (matA && matB) {
         const auto &dataA = matA->property;
         const auto &dataB = matB->property;
-        const auto &dataC = matC->property;
         if (!dataA.is_square())
             throw InvalidOperationError("Trmm_LT expects square A");
         if (!dataA.flags.is_lower_triangular && !dataA.flags.is_upper_triangular) {
             throw InvalidOperationError("Trmm_LT operation on non-triangular matrix A");
         }
-        if (dataA.shape.first != dataB.shape.first || dataA.shape.second != dataC.shape.first ||
-            dataB.shape.second != dataC.shape.second) {
+        if (dataA.shape.first != dataB.shape.first) {
             throw ShapeMismatchError("Trmm_LT operation with incompatible sizes");
         }
         MatrixProperty prop;
-        prop.shape = dataC.shape;
+        prop.shape = std::make_pair(dataA.shape.second, dataB.shape.second);
         prop.flags.is_full_rank = dataB.flags.is_full_rank && dataA.flags.is_full_rank;
         prop.flags.is_non_singular = prop.flags.is_full_rank && prop.is_square();
         return make_matrix_property_data(prop);
@@ -584,25 +578,22 @@ static AnalysisData analyze_trmm_lt(const std::vector<Operand> &operands) {
 }
 
 static AnalysisData analyze_trmm_rn(const std::vector<Operand> &operands) {
-    check_arity(operands, 3, "Trmm_RN");
+    check_arity(operands, 2, "Trmm_RN");
     const auto *matA = as_matrix(operands[0]);
     const auto *matB = as_matrix(operands[1]);
-    const auto *matC = as_matrix(operands[2]);
-    if (matA && matB && matC) {
+    if (matA && matB) {
         const auto &dataA = matA->property;
         const auto &dataB = matB->property;
-        const auto &dataC = matC->property;
         if (!dataA.is_square())
             throw InvalidOperationError("Trmm_RN expects square A");
         if (!dataA.flags.is_lower_triangular && !dataA.flags.is_upper_triangular) {
             throw InvalidOperationError("Trmm_RN operation on non-triangular matrix A");
         }
-        if (dataB.shape.second != dataA.shape.first || dataB.shape.first != dataC.shape.first ||
-            dataA.shape.second != dataC.shape.second) {
+        if (dataB.shape.second != dataA.shape.first) {
             throw ShapeMismatchError("Trmm_RN operation with incompatible sizes");
         }
         MatrixProperty prop;
-        prop.shape = dataC.shape;
+        prop.shape = std::make_pair(dataB.shape.first, dataA.shape.second);
         prop.flags.is_full_rank = dataB.flags.is_full_rank && dataA.flags.is_full_rank;
         prop.flags.is_non_singular = prop.flags.is_full_rank && prop.is_square();
         return make_matrix_property_data(prop);
@@ -611,25 +602,22 @@ static AnalysisData analyze_trmm_rn(const std::vector<Operand> &operands) {
 }
 
 static AnalysisData analyze_trmm_rt(const std::vector<Operand> &operands) {
-    check_arity(operands, 3, "Trmm_RT");
+    check_arity(operands, 2, "Trmm_RT");
     const auto *matA = as_matrix(operands[0]);
     const auto *matB = as_matrix(operands[1]);
-    const auto *matC = as_matrix(operands[2]);
-    if (matA && matB && matC) {
+    if (matA && matB) {
         const auto &dataA = matA->property;
         const auto &dataB = matB->property;
-        const auto &dataC = matC->property;
         if (!dataA.is_square())
             throw InvalidOperationError("Trmm_RT expects square A");
         if (!dataA.flags.is_lower_triangular && !dataA.flags.is_upper_triangular) {
             throw InvalidOperationError("Trmm_RT operation on non-triangular matrix A");
         }
-        if (dataB.shape.second != dataA.shape.second || dataB.shape.first != dataC.shape.first ||
-            dataA.shape.first != dataC.shape.second) {
+        if (dataB.shape.second != dataA.shape.second) {
             throw ShapeMismatchError("Trmm_RT operation with incompatible sizes");
         }
         MatrixProperty prop;
-        prop.shape = dataC.shape;
+        prop.shape = std::make_pair(dataB.shape.first, dataA.shape.first);
         prop.flags.is_full_rank = dataB.flags.is_full_rank && dataA.flags.is_full_rank;
         prop.flags.is_non_singular = prop.flags.is_full_rank && prop.is_square();
         return make_matrix_property_data(prop);

@@ -179,6 +179,25 @@ TEST(MatrixAnalysisTest, ArityCheckThrowsAnalysisError) {
     EXPECT_THROW(g.add_node(make_op("Tr", {id_a, id_a})), AnalysisError);
 }
 
+TEST(MatrixAnalysisTest, TrmmAnalysisArityAndShape) {
+    PropertyTable pt;
+    pt.add_or_update_property_entry("L", {.shape = {2, 2}, .flags = {.is_lower_triangular = true}});
+    pt.add_or_update_property_entry("B", {.shape = {2, 3}});
+    EGraph g(pt);
+    Id id_l = g.add_node(make_symbol("L"));
+    Id id_b = g.add_node(make_symbol("B"));
+
+    // Arity checks: binary only
+    EXPECT_THROW(g.add_node(make_op("Trmm_LN", {id_l})), AnalysisError);
+    EXPECT_THROW(g.add_node(make_op("Trmm_LN", {id_l, id_b, id_b})), AnalysisError);
+
+    // Valid binary Trmm
+    Id id_trmm = g.add_node(make_op("Trmm_LN", {id_l, id_b}));
+    const auto *prop = get_matrix_data(g, id_trmm);
+    ASSERT_NE(prop, nullptr);
+    EXPECT_EQ(prop->shape, (Shape{2, 3}));
+}
+
 TEST(MatrixAnalysisTest, SyrkRankInferenceOnRectangularMatrices) {
     PropertyTable pt;
     pt.add_or_update_property_entry("Wide", {.shape = {2, 5}, .flags = {.is_full_rank = true}});

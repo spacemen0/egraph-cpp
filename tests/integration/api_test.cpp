@@ -121,7 +121,7 @@ TEST(ApiTest, ContextCustomKernelEvaluation) {
     }, [](Op, const std::vector<Operand> &operands) -> Cost {
         const auto *m = as_matrix(operands[0]);
         return static_cast<double>(m->rows * m->cols);
-    }, [](const std::vector<const MatrixNode *> &inputs, MatrixNode &output) {
+    }, [](const std::vector<Operand> &, const std::vector<const MatrixNode *> &inputs, MatrixNode &output) {
         const double *in = inputs[0]->data();
         double *out = output.data();
         size_t n = static_cast<long>(output.rows) * output.cols;
@@ -158,7 +158,7 @@ TEST(ApiTest, ContextCustomInPlaceKernelEvaluation) {
         const auto *m = as_matrix(operands[1]);
         return static_cast<double>(m->rows * m->cols);
     },
-        [](const std::vector<const MatrixNode *> &inputs, MatrixNode &output) {
+        [](const std::vector<Operand> &, const std::vector<const MatrixNode *> &inputs, MatrixNode &output) {
         const double *a = inputs[0]->data();
         double *b = output.data();
         size_t n = output.rows * output.cols;

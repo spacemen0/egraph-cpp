@@ -262,35 +262,17 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const Children
             CblasColMajor, side, uplo_cblas, output.rows, output.cols, alpha, inputs[0]->data(), inputs[0]->rows,
             inputs[1]->data(), inputs[1]->rows, beta, output.data(), output.rows);
     } else if (op_name == "Trmm_LN" || op_name == "Trmm_LT" || op_name == "Trmm_RN" || op_name == "Trmm_RT") {
-        auto c_prop = egraph.get_class_analysis_data(children[2]);
-        bool is_c_zero = false;
-        if (auto p = std::get_if<MatrixProperty>(&c_prop.property)) {
-            is_c_zero = p->flags.is_zero;
-        }
-
+        setup_in_place_output(children[1], output);
+        output.ensure_general();
         auto a_prop = egraph.get_class_analysis_data(children[0]);
         CBLAS_UPLO uplo = std::get<MatrixProperty>(a_prop.property).flags.is_lower_triangular ? CblasLower : CblasUpper;
         CBLAS_SIDE side = (op_name == "Trmm_LN" || op_name == "Trmm_LT") ? CblasLeft : CblasRight;
         CBLAS_TRANSPOSE trans = (op_name == "Trmm_LN" || op_name == "Trmm_RN") ? CblasNoTrans : CblasTrans;
 
-        if (is_c_zero) {
-            setup_in_place_output(children[1], output);
-            output.ensure_general();
-            double alpha = 1.0;
-            cblas_dtrmm(
-                CblasColMajor, side, uplo, trans, CblasNonUnit, output.rows, output.cols, alpha, inputs[0]->data(),
-                inputs[0]->rows, output.data(), output.rows);
-        } else {
-            setup_in_place_output(children[2], output);
-            output.ensure_general();
-            MatrixNode tempB;
-            setup_in_place_output(children[1], tempB);
-            tempB.ensure_general();
-            cblas_dtrmm(
-                CblasColMajor, side, uplo, trans, CblasNonUnit, tempB.rows, tempB.cols, 1.0, inputs[0]->data(),
-                inputs[0]->rows, tempB.data(), tempB.rows);
-            cblas_daxpy(output.rows * output.cols, 1.0, tempB.data(), 1, output.data(), 1);
-        }
+        double alpha = 1.0;
+        cblas_dtrmm(
+            CblasColMajor, side, uplo, trans, CblasNonUnit, output.rows, output.cols, alpha, inputs[0]->data(),
+            inputs[0]->rows, output.data(), output.rows);
     } else if (op_name == "Trsm_LN" || op_name == "Trsm_LT" || op_name == "Trsm_RN" || op_name == "Trsm_RT") {
         setup_in_place_output(children[1], output);
         output.ensure_general();
