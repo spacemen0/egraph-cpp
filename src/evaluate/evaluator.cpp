@@ -7,6 +7,7 @@
 #include <string>
 #include <utility>
 #include <variant>
+#include <vecLib/cblas_new.h>
 #include <vector>
 
 #ifdef __APPLE__
@@ -251,10 +252,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const Children
             inputs[0]->format == StorageFormat::SymmetricLower || inputs[0]->format == StorageFormat::TriangularLower) {
             uplo_cblas = CblasLower;
         } else {
-            auto a_prop = egraph.get_class_analysis_data(children[0]);
-            if (auto p = std::get_if<MatrixProperty>(&a_prop.property)) {
-                uplo_cblas = (p->flags.is_upper_triangular && !p->flags.is_lower_triangular) ? CblasUpper : CblasLower;
-            }
+            uplo_cblas = as_matrix(operands[0])->is_upper_triangular() ? CblasUpper : CblasLower;
         }
         double alpha = 1.0;
         double beta = is_c_zero ? 0.0 : 1.0;
