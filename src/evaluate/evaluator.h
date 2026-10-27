@@ -102,4 +102,11 @@ class Evaluator {
     // execution chain.)
     mutable std::vector<int> use_counts;
 };
+
+void eval_symm_group(
+    std::string_view op_name, const std::vector<Operand> &operands, const std::vector<const MatrixNode *> &inputs,
+    MatrixNode &output);
+void eval_trmm_group(
+    std::string_view op_name, const std::vector<Operand> &operands, const std::vector<const MatrixNode *> &inputs,
+    MatrixNode &output);
 } // namespace egraph

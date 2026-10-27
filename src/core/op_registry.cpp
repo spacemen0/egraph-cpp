@@ -1,6 +1,7 @@
 #include "op_registry.h"
 #include "analysis.h"
 #include "errors.h"
+#include "evaluator.h"
 #include "op_costs.h"
 #include "utils.h"
 
@@ -184,12 +185,12 @@ void init_builtin_ops(OpRegistry &registry) {
     registry.register_op("Gemm_TT", true, analyze_gemm_tt, compute_gemm_nn_group_cost);
     registry.register_op("Syrk_N", true, analyze_syrk_n, compute_syrk_n_syrk_t_cost);
     registry.register_op("Syrk_T", true, analyze_syrk_t, compute_syrk_n_syrk_t_cost);
-    registry.register_op("Trmm_LN", true, analyze_trmm_ln, compute_trmm_ln_group_cost);
-    registry.register_op("Trmm_LT", true, analyze_trmm_lt, compute_trmm_ln_group_cost);
-    registry.register_op("Trmm_RN", true, analyze_trmm_rn, compute_trmm_ln_group_cost);
-    registry.register_op("Trmm_RT", true, analyze_trmm_rt, compute_trmm_ln_group_cost);
-    registry.register_op("Symm_L", true, analyze_symm_l, compute_symm_group_cost);
-    registry.register_op("Symm_R", true, analyze_symm_r, compute_symm_group_cost);
+    registry.register_op("Trmm_LN", true, analyze_trmm_ln, compute_trmm_ln_group_cost, eval_trmm_group, 1);
+    registry.register_op("Trmm_LT", true, analyze_trmm_lt, compute_trmm_ln_group_cost, eval_trmm_group, 1);
+    registry.register_op("Trmm_RN", true, analyze_trmm_rn, compute_trmm_ln_group_cost, eval_trmm_group, 1);
+    registry.register_op("Trmm_RT", true, analyze_trmm_rt, compute_trmm_ln_group_cost, eval_trmm_group, 1);
+    registry.register_op("Symm_L", true, analyze_symm_l, compute_symm_group_cost, eval_symm_group, 2);
+    registry.register_op("Symm_R", true, analyze_symm_r, compute_symm_group_cost, eval_symm_group, 2);
     registry.register_op("Trsm_LN", true, analyze_trsm_ln, compute_trsm_ln_group_cost);
     registry.register_op("Trsm_LT", true, analyze_trsm_lt, compute_trsm_ln_group_cost);
     registry.register_op("Trsm_RN", true, analyze_trsm_rn, compute_trsm_ln_group_cost);

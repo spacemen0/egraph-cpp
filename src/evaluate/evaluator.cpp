@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <variant>
 #include <vecLib/cblas_new.h>
@@ -239,31 +240,14 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const Children
                 output.ensure_general();
             }
         }
-        desc.eval(operands, inputs, output);
+        desc.eval(op_name, operands, inputs, output);
         return;
     }
     if (op_name == "Symm_L" || op_name == "Symm_R") {
-        bool is_c_zero = as_matrix(operands[2])->is_zero();
-        CBLAS_SIDE side = (op_name == "Symm_L") ? CblasLeft : CblasRight;
-        CBLAS_UPLO uplo_cblas = CblasLower;
-        if (inputs[0]->format == StorageFormat::SymmetricUpper || inputs[0]->format == StorageFormat::TriangularUpper) {
-            uplo_cblas = CblasUpper;
-        } else if (
-            inputs[0]->format == StorageFormat::SymmetricLower || inputs[0]->format == StorageFormat::TriangularLower) {
-            uplo_cblas = CblasLower;
-        } else {
-            uplo_cblas = as_matrix(operands[0])->is_upper_triangular() ? CblasUpper : CblasLower;
-        }
-        double alpha = 1.0;
-        double beta = is_c_zero ? 0.0 : 1.0;
-        cblas_dsymm(
-            CblasColMajor, side, uplo_cblas, output.rows, output.cols, alpha, inputs[0]->data(), inputs[0]->rows,
-            inputs[1]->data(), inputs[1]->rows, beta, output.data(), output.rows);
+
     } else if (op_name == "Trmm_LN" || op_name == "Trmm_LT" || op_name == "Trmm_RN" || op_name == "Trmm_RT") {
-        setup_in_place_output(children[1], output);
         output.ensure_general();
-        auto a_prop = egraph.get_class_analysis_data(children[0]);
-        CBLAS_UPLO uplo = std::get<MatrixProperty>(a_prop.property).flags.is_lower_triangular ? CblasLower : CblasUpper;
+        CBLAS_UPLO uplo = as_matrix(operands[0])->is_lower_triangular() ? CblasLower : CblasUpper;
         CBLAS_SIDE side = (op_name == "Trmm_LN" || op_name == "Trmm_LT") ? CblasLeft : CblasRight;
         CBLAS_TRANSPOSE trans = (op_name == "Trmm_LN" || op_name == "Trmm_RN") ? CblasNoTrans : CblasTrans;
 
@@ -459,4 +443,38 @@ void Evaluator::dispatch_get(const TupleNode &input_tuple, int index, MatrixNode
     output = source;
 }
 
+void eval_symm_group(
+    std::string_view op_name, const std::vector<Operand> &operands, const std::vector<const MatrixNode *> &inputs,
+    MatrixNode &output) {
+    bool is_c_zero = as_matrix(operands[2])->is_zero();
+    CBLAS_SIDE side = (op_name == "Symm_L") ? CblasLeft : CblasRight;
+    CBLAS_UPLO uplo_cblas = CblasLower;
+    if (inputs[0]->format == StorageFormat::SymmetricUpper || inputs[0]->format == StorageFormat::TriangularUpper) {
+        uplo_cblas = CblasUpper;
+    } else if (
+        inputs[0]->format == StorageFormat::SymmetricLower || inputs[0]->format == StorageFormat::TriangularLower) {
+        uplo_cblas = CblasLower;
+    } else {
+        uplo_cblas = as_matrix(operands[0])->is_upper_triangular() ? CblasUpper : CblasLower;
+    }
+    inputs[1]->ensure_general();
+    double alpha = 1.0;
+    double beta = is_c_zero ? 0.0 : 1.0;
+    cblas_dsymm(
+        CblasColMajor, side, uplo_cblas, output.rows, output.cols, alpha, inputs[0]->data(), inputs[0]->rows,
+        inputs[1]->data(), inputs[1]->rows, beta, output.data(), output.rows);
+}
+void eval_trmm_group(
+    std::string_view op_name, const std::vector<Operand> &operands, const std::vector<const MatrixNode *> &inputs,
+    MatrixNode &output) {
+    output.ensure_general();
+    CBLAS_UPLO uplo = as_matrix(operands[0])->is_lower_triangular() ? CblasLower : CblasUpper;
+    CBLAS_SIDE side = (op_name == "Trmm_LN" || op_name == "Trmm_LT") ? CblasLeft : CblasRight;
+    CBLAS_TRANSPOSE trans = (op_name == "Trmm_LN" || op_name == "Trmm_RN") ? CblasNoTrans : CblasTrans;
+
+    double alpha = 1.0;
+    cblas_dtrmm(
+        CblasColMajor, side, uplo, trans, CblasNonUnit, output.rows, output.cols, alpha, inputs[0]->data(),
+        inputs[0]->rows, output.data(), output.rows);
+}
 } // namespace egraph
