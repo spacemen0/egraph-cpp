@@ -6,7 +6,6 @@
 #include "property_table.h"
 #include "utils.h"
 #include <cmath>
-#include <limits>
 #include <variant>
 
 namespace egraph {
@@ -1048,43 +1047,7 @@ AnalysisData MatrixAnalysis::analyze_matrix_op(const EGraph &egraph, const ENode
 
     const auto &children = node.get_children();
     std::vector<Operand> operands;
-    operands.reserve(children.size());
-
-    for (Id child_id : children) {
-        if (auto idx = get_int_from_eclass(egraph, child_id)) {
-            operands.push_back(*idx);
-        } else if (auto dbl = get_double_from_eclass(egraph, child_id)) {
-            operands.push_back(*dbl);
-        } else {
-            bool is_symbolic_scalar = false;
-            for (const auto &cnode : egraph.get_class_nodes(child_id)) {
-                if (std::holds_alternative<ScalarExpr>(cnode->get_atom())) {
-                    is_symbolic_scalar = true;
-                    break;
-                }
-            }
-            if (is_symbolic_scalar) {
-                operands.push_back(std::numeric_limits<double>::quiet_NaN());
-                continue;
-            }
-
-            const auto &class_data = egraph.get_class_analysis_data(child_id);
-            if (const auto *mat_prop = std::get_if<MatrixProperty>(&class_data.property)) {
-                MatrixOperand mat;
-                mat.property = *mat_prop;
-                operands.push_back(mat);
-            } else if (const auto *tuple_prop = std::get_if<TupleProperty>(&class_data.property)) {
-                TupleOperand tuple;
-                tuple.reserve(tuple_prop->size());
-                for (const auto &elem_prop : *tuple_prop) {
-                    MatrixOperand elem;
-                    elem.property = elem_prop;
-                    tuple.push_back(elem);
-                }
-                operands.push_back(tuple);
-            }
-        }
-    }
+    init_operands(egraph, children, operands);
 
     return desc.analyze(operands);
 }

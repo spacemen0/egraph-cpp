@@ -2,6 +2,7 @@
 
 #include "types.h"
 #include <string>
+#include <utility>
 #include <variant>
 
 namespace egraph {
@@ -13,7 +14,7 @@ class ENode {
     Atom atom;
 
   public:
-    explicit ENode(const Children &children, Atom const &atom) : children(children), atom(atom) {}
+    explicit ENode(Children children, Atom atom) : children(std::move(children)), atom(std::move(atom)) {}
     Cost compute_local_cost(const EGraph &egraph, const SizeBindings &size_bindings) const;
 
     // access children (mutable/immutable)

@@ -67,6 +67,9 @@ struct OpDescriptor {
 };
 
 void init_builtin_ops(class OpRegistry &registry);
+void init_operands(
+    const EGraph &egraph, const Children &children, std::vector<Operand> &operands,
+    const SizeBindings *bindings = nullptr);
 
 class OpRegistry {
   public:

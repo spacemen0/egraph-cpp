@@ -6,7 +6,6 @@
 #include "utils.h"
 #include <algorithm>
 #include <functional>
-#include <limits>
 #include <numeric>
 #include <stdexcept>
 #include <string>
@@ -85,57 +84,7 @@ Cost ENode::compute_local_cost(const EGraph &egraph, const SizeBindings &size_bi
     }
 
     std::vector<Operand> operands;
-    operands.reserve(children.size());
-
-    for (Id child_id : children) {
-        if (auto idx = get_int_from_eclass(egraph, child_id)) {
-            operands.emplace_back(*idx);
-        } else if (auto dbl = get_double_from_eclass(egraph, child_id)) {
-            operands.emplace_back(*dbl);
-        } else {
-            bool is_symbolic_scalar = false;
-            for (const auto &cnode : egraph.get_class_nodes(child_id)) {
-                if (std::holds_alternative<ScalarExpr>(cnode->get_atom())) {
-                    is_symbolic_scalar = true;
-                    break;
-                }
-            }
-            if (is_symbolic_scalar) {
-                operands.emplace_back(std::numeric_limits<double>::quiet_NaN());
-                continue;
-            }
-
-            const auto &class_data = egraph.get_class_analysis_data(child_id);
-            if (auto prop = std::get_if<MatrixProperty>(&class_data.property)) {
-                MatrixOperand mat;
-                mat.property = *prop;
-                Shape bound = bind_shape(prop->shape, size_bindings);
-                if (!is_numeric(bound)) {
-                    throw std::runtime_error("Cannot compute cost: missing size binding for symbolic dimension");
-                }
-                mat.rows = std::get<int>(bound.first);
-                mat.cols = std::get<int>(bound.second);
-                mat.property.shape = bound;
-                operands.emplace_back(mat);
-            } else if (auto tuple_prop = std::get_if<TupleProperty>(&class_data.property)) {
-                TupleOperand tuple;
-                tuple.reserve(tuple_prop->size());
-                for (const auto &elem_prop : *tuple_prop) {
-                    MatrixOperand elem;
-                    elem.property = elem_prop;
-                    Shape bound = bind_shape(elem_prop.shape, size_bindings);
-                    if (!is_numeric(bound)) {
-                        throw std::runtime_error("Cannot compute cost: missing size binding for symbolic dimension");
-                    }
-                    elem.rows = std::get<int>(bound.first);
-                    elem.cols = std::get<int>(bound.second);
-                    elem.property.shape = bound;
-                    tuple.push_back(elem);
-                }
-                operands.emplace_back(tuple);
-            }
-        }
-    }
+    init_operands(egraph, children, operands, &size_bindings);
 
     return desc.cost(*op, operands);
 }
