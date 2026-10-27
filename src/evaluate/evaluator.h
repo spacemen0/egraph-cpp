@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <string_view>
 
 namespace egraph {
 enum class StorageFormat : std::uint8_t { General, SymmetricUpper, SymmetricLower, TriangularUpper, TriangularLower };
@@ -107,6 +108,30 @@ void eval_symm_group(
     std::string_view op_name, const std::vector<Operand> &operands, const std::vector<const MatrixNode *> &inputs,
     MatrixNode &output);
 void eval_trmm_group(
+    std::string_view op_name, const std::vector<Operand> &operands, const std::vector<const MatrixNode *> &inputs,
+    MatrixNode &output);
+void eval_trsm_group(
+    std::string_view op_name, const std::vector<Operand> &operands, const std::vector<const MatrixNode *> &inputs,
+    MatrixNode &output);
+void eval_gemm_group(
+    std::string_view op_name, const std::vector<Operand> &operands, const std::vector<const MatrixNode *> &inputs,
+    MatrixNode &output);
+void eval_gemv_group(
+    std::string_view op_name, const std::vector<Operand> &operands, const std::vector<const MatrixNode *> &inputs,
+    MatrixNode &output);
+void eval_syrk_group(
+    std::string_view op_name, const std::vector<Operand> &operands, const std::vector<const MatrixNode *> &inputs,
+    MatrixNode &output);
+void eval_trtri(
+    std::string_view op_name, const std::vector<Operand> &operands, const std::vector<const MatrixNode *> &inputs,
+    MatrixNode &output);
+void eval_transpose(
+    std::string_view op_name, const std::vector<Operand> &operands, const std::vector<const MatrixNode *> &inputs,
+    MatrixNode &output);
+void eval_scale(
+    std::string_view op_name, const std::vector<Operand> &operands, const std::vector<const MatrixNode *> &inputs,
+    MatrixNode &output);
+void eval_axpy(
     std::string_view op_name, const std::vector<Operand> &operands, const std::vector<const MatrixNode *> &inputs,
     MatrixNode &output);
 } // namespace egraph

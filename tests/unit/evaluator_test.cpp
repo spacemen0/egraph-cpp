@@ -238,3 +238,33 @@ TEST(EvaluatorTest, EvaluateTrmm) {
     EXPECT_DOUBLE_EQ(result[2], 8.0);
     EXPECT_DOUBLE_EQ(result[3], 19.0);
 }
+
+TEST(EvaluatorTest, EvaluateSymmLWithNonZeroC) {
+    EGraphRunner::Context ctx;
+    ctx.define_matrix("A", 2, 2, {"symmetric"});
+    ctx.define_matrix("B", 2, 2);
+    ctx.define_matrix("C", 2, 2);
+
+    Expression A("A");
+    Expression B("B");
+    Expression C("C");
+    ctx.optimize_concrete(A * B + C);
+
+    // A = [1 2; 2 3] -> col-major: [1, 2, 2, 3]
+    // B = [4 5; 6 7] -> col-major: [4, 6, 5, 7]
+    // C = [10 20; 30 40] -> col-major: [10, 30, 20, 40]
+    // A * B = [16 19; 26 31]
+    // A * B + C = [26 39; 56 71] -> col-major: [26, 56, 39, 71]
+    DataBindings data = {
+        {"A", {1.0, 2.0, 2.0, 3.0}},
+        {"B", {4.0, 6.0, 5.0, 7.0}},
+        {"C", {10.0, 30.0, 20.0, 40.0}}
+    };
+
+    auto result = ctx.evaluate_concrete({}, data);
+    ASSERT_EQ(result.size(), 4);
+    EXPECT_DOUBLE_EQ(result[0], 26.0);
+    EXPECT_DOUBLE_EQ(result[1], 56.0);
+    EXPECT_DOUBLE_EQ(result[2], 39.0);
+    EXPECT_DOUBLE_EQ(result[3], 71.0);
+}

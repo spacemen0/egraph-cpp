@@ -243,83 +243,7 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const Children
         desc.eval(op_name, operands, inputs, output);
         return;
     }
-    if (op_name == "Symm_L" || op_name == "Symm_R") {
-
-    } else if (op_name == "Trmm_LN" || op_name == "Trmm_LT" || op_name == "Trmm_RN" || op_name == "Trmm_RT") {
-        output.ensure_general();
-        CBLAS_UPLO uplo = as_matrix(operands[0])->is_lower_triangular() ? CblasLower : CblasUpper;
-        CBLAS_SIDE side = (op_name == "Trmm_LN" || op_name == "Trmm_LT") ? CblasLeft : CblasRight;
-        CBLAS_TRANSPOSE trans = (op_name == "Trmm_LN" || op_name == "Trmm_RN") ? CblasNoTrans : CblasTrans;
-
-        double alpha = 1.0;
-        cblas_dtrmm(
-            CblasColMajor, side, uplo, trans, CblasNonUnit, output.rows, output.cols, alpha, inputs[0]->data(),
-            inputs[0]->rows, output.data(), output.rows);
-    } else if (op_name == "Trsm_LN" || op_name == "Trsm_LT" || op_name == "Trsm_RN" || op_name == "Trsm_RT") {
-        setup_in_place_output(children[1], output);
-        output.ensure_general();
-        auto is_lower = egraph.get_class_analysis_data(children[0]);
-        CBLAS_UPLO uplo =
-            std::get<MatrixProperty>(is_lower.property).flags.is_lower_triangular ? CblasLower : CblasUpper;
-
-        CBLAS_SIDE side = (op_name == "Trsm_LN" || op_name == "Trsm_LT") ? CblasLeft : CblasRight;
-        CBLAS_TRANSPOSE trans = (op_name == "Trsm_LN" || op_name == "Trsm_RN") ? CblasNoTrans : CblasTrans;
-
-        double alpha = 1.0;
-        cblas_dtrsm(
-            CblasColMajor, side, uplo, trans, CblasNonUnit, output.rows, output.cols, alpha, inputs[0]->data(),
-            inputs[0]->rows, output.data(), output.rows);
-    } else if (op_name == "Gemv_N" || op_name == "Gemv_T") {
-        inputs[0]->ensure_general();
-        inputs[1]->ensure_general();
-        CBLAS_TRANSPOSE trans = (op_name == "Gemv_T") ? CblasTrans : CblasNoTrans;
-        bool c_is_zero = std::get<MatrixProperty>(egraph.get_class_analysis_data(children[2]).property).flags.is_zero;
-        double beta = c_is_zero ? 0.0 : 1.0;
-        if (!c_is_zero) {
-            setup_in_place_output(children[2], output);
-            output.ensure_general();
-        }
-        double alpha = 1.0;
-        cblas_dgemv(
-            CblasColMajor, trans, inputs[0]->rows, inputs[0]->cols, alpha, inputs[0]->data(), inputs[0]->rows,
-            inputs[1]->data(), 1, beta, output.data(), 1);
-    } else if (op_name == "Syrk_N" || op_name == "Syrk_T") {
-        inputs[0]->ensure_general();
-        CBLAS_TRANSPOSE trans = (op_name == "Syrk_T") ? CblasTrans : CblasNoTrans;
-        int k = (trans == CblasNoTrans) ? inputs[0]->cols : inputs[0]->rows;
-        bool c_is_zero = std::get<MatrixProperty>(egraph.get_class_analysis_data(children[1]).property).flags.is_zero;
-        double beta = c_is_zero ? 0.0 : 1.0;
-        if (!c_is_zero) {
-            setup_in_place_output(children[1], output);
-        }
-
-        CBLAS_UPLO uplo = CblasLower;
-        double alpha = 1.0;
-        cblas_dsyrk(
-            CblasColMajor, uplo, trans, output.rows, k, alpha, inputs[0]->data(), inputs[0]->rows, beta, output.data(),
-            output.rows);
-
-        output.format = StorageFormat::SymmetricLower;
-    } else if (op_name == "Trtri") {
-        int n = output.rows;
-        setup_in_place_output(children[0], output);
-        auto is_lower = egraph.get_class_analysis_data(children[0]);
-        char uplo = std::get<MatrixProperty>(is_lower.property).flags.is_lower_triangular ? 'L' : 'U';
-        LAPACKE_dtrtri(LAPACK_COL_MAJOR, uplo, 'N', n, output.data(), n);
-    } else if (op_name == "Tr") {
-        inputs[0]->ensure_general();
-        int rows = inputs[0]->rows;
-        int cols = inputs[0]->cols;
-        for (int i = 0; i < rows; ++i) {
-            for (int j = 0; j < cols; ++j) {
-                output.data()[j + i * cols] = inputs[0]->data()[i + j * rows];
-            }
-        }
-    } else if (op_name == "Scale") {
-        setup_in_place_output(children[0], output);
-        double scalar_val = inputs[1]->data()[0];
-        cblas_dscal(output.rows * output.cols, scalar_val, output.data(), 1);
-    } else if (op_name == "Orgqr") {
+    if (op_name == "Orgqr") {
         Id geqrf_id = children[0];
         const TupleNode &geqrf_tuple = std::get<TupleNode>(data_storage[slot_map[geqrf_id]]);
         const MatrixNode &q_node = geqrf_tuple.matrices[0];
@@ -360,33 +284,6 @@ void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const Children
             }
             output.vec().resize(static_cast<long>(out_rows) * out_cols);
         }
-    } else if (op_name == "Gemm_NN" || op_name == "Gemm_NT" || op_name == "Gemm_TN" || op_name == "Gemm_TT") {
-        inputs[0]->ensure_general();
-        inputs[1]->ensure_general();
-        const MatrixNode &a_node = *inputs[0];
-        const MatrixNode &b_node = *inputs[1];
-
-        CBLAS_TRANSPOSE transA = (op_name == "Gemm_TN" || op_name == "Gemm_TT") ? CblasTrans : CblasNoTrans;
-        CBLAS_TRANSPOSE transB = (op_name == "Gemm_NT" || op_name == "Gemm_TT") ? CblasTrans : CblasNoTrans;
-        int k = (transA == CblasNoTrans) ? a_node.cols : a_node.rows;
-
-        // If c_node is Zero, beta = 0.0 and no copy is needed.
-        bool c_is_zero = std::get<MatrixProperty>(egraph.get_class_analysis_data(children[2]).property).flags.is_zero;
-        double beta = c_is_zero ? 0.0 : 1.0;
-        if (!c_is_zero) {
-            setup_in_place_output(children[2], output);
-            output.ensure_general();
-        }
-        double alpha = 1.0;
-        cblas_dgemm(
-            CblasColMajor, transA, transB, output.rows, output.cols, k, alpha, a_node.data(), a_node.rows,
-            b_node.data(), b_node.rows, beta, output.data(), output.rows);
-    } else if (op_name == "Axpy") {
-        // memory is always allocated in continuous space so that we can use axpy directly
-        inputs[0]->ensure_general();
-        setup_in_place_output(children[1], output);
-        output.ensure_general();
-        cblas_daxpy(inputs[0]->rows * inputs[0]->cols, 1.0, inputs[0]->data(), 1, output.data(), 1);
     } else {
         throw std::runtime_error("Kernel not implemented for this operation: " + atom_to_string(op));
     }
@@ -476,5 +373,110 @@ void eval_trmm_group(
     cblas_dtrmm(
         CblasColMajor, side, uplo, trans, CblasNonUnit, output.rows, output.cols, alpha, inputs[0]->data(),
         inputs[0]->rows, output.data(), output.rows);
+}
+
+void eval_trsm_group(
+    std::string_view op_name, const std::vector<Operand> &operands, const std::vector<const MatrixNode *> &inputs,
+    MatrixNode &output) {
+    CBLAS_UPLO uplo = as_matrix(operands[0])->is_lower_triangular() ? CblasLower : CblasUpper;
+    CBLAS_SIDE side = (op_name == "Trsm_LN" || op_name == "Trsm_LT") ? CblasLeft : CblasRight;
+    CBLAS_TRANSPOSE trans = (op_name == "Trsm_LN" || op_name == "Trsm_RN") ? CblasNoTrans : CblasTrans;
+
+    double alpha = 1.0;
+    cblas_dtrsm(
+        CblasColMajor, side, uplo, trans, CblasNonUnit, output.rows, output.cols, alpha, inputs[0]->data(),
+        inputs[0]->rows, output.data(), output.rows);
+}
+
+void eval_gemm_group(
+    std::string_view op_name, const std::vector<Operand> &operands, const std::vector<const MatrixNode *> &inputs,
+    MatrixNode &output) {
+    inputs[0]->ensure_general();
+    inputs[1]->ensure_general();
+    const MatrixNode &a_node = *inputs[0];
+    const MatrixNode &b_node = *inputs[1];
+
+    CBLAS_TRANSPOSE transA = (op_name == "Gemm_TN" || op_name == "Gemm_TT") ? CblasTrans : CblasNoTrans;
+    CBLAS_TRANSPOSE transB = (op_name == "Gemm_NT" || op_name == "Gemm_TT") ? CblasTrans : CblasNoTrans;
+    int k = (transA == CblasNoTrans) ? a_node.cols : a_node.rows;
+
+    bool is_c_zero = as_matrix(operands[2])->is_zero();
+    double beta = is_c_zero ? 0.0 : 1.0;
+    double alpha = 1.0;
+    cblas_dgemm(
+        CblasColMajor, transA, transB, output.rows, output.cols, k, alpha, a_node.data(), a_node.rows,
+        b_node.data(), b_node.rows, beta, output.data(), output.rows);
+}
+
+void eval_gemv_group(
+    std::string_view op_name, const std::vector<Operand> &operands, const std::vector<const MatrixNode *> &inputs,
+    MatrixNode &output) {
+    inputs[0]->ensure_general();
+    inputs[1]->ensure_general();
+    CBLAS_TRANSPOSE trans = (op_name == "Gemv_T") ? CblasTrans : CblasNoTrans;
+    bool is_c_zero = as_matrix(operands[2])->is_zero();
+    double beta = is_c_zero ? 0.0 : 1.0;
+    double alpha = 1.0;
+    cblas_dgemv(
+        CblasColMajor, trans, inputs[0]->rows, inputs[0]->cols, alpha, inputs[0]->data(), inputs[0]->rows,
+        inputs[1]->data(), 1, beta, output.data(), 1);
+}
+
+void eval_syrk_group(
+    std::string_view op_name, const std::vector<Operand> &operands, const std::vector<const MatrixNode *> &inputs,
+    MatrixNode &output) {
+    inputs[0]->ensure_general();
+    CBLAS_TRANSPOSE trans = (op_name == "Syrk_T") ? CblasTrans : CblasNoTrans;
+    int k = (trans == CblasNoTrans) ? inputs[0]->cols : inputs[0]->rows;
+    bool is_c_zero = as_matrix(operands[1])->is_zero();
+    double beta = is_c_zero ? 0.0 : 1.0;
+
+    CBLAS_UPLO uplo = CblasLower;
+    double alpha = 1.0;
+    cblas_dsyrk(
+        CblasColMajor, uplo, trans, output.rows, k, alpha, inputs[0]->data(), inputs[0]->rows, beta, output.data(),
+        output.rows);
+
+    output.format = StorageFormat::SymmetricLower;
+}
+
+void eval_trtri(
+    std::string_view, const std::vector<Operand> &operands, const std::vector<const MatrixNode *> &,
+    MatrixNode &output) {
+    int n = output.rows;
+    char uplo = as_matrix(operands[0])->is_lower_triangular() ? 'L' : 'U';
+    LAPACKE_dtrtri(LAPACK_COL_MAJOR, uplo, 'N', n, output.data(), n);
+}
+
+void eval_transpose(
+    std::string_view, const std::vector<Operand> &, const std::vector<const MatrixNode *> &inputs,
+    MatrixNode &output) {
+    inputs[0]->ensure_general();
+    int rows = inputs[0]->rows;
+    int cols = inputs[0]->cols;
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            output.data()[j + i * cols] = inputs[0]->data()[i + j * rows];
+        }
+    }
+}
+
+void eval_scale(
+    std::string_view, const std::vector<Operand> &operands, const std::vector<const MatrixNode *> &inputs,
+    MatrixNode &output) {
+    double scalar_val = 1.0;
+    if (const auto *s = as_scalar(operands[1])) {
+        scalar_val = *s;
+    } else if (inputs.size() > 1 && inputs[1]) {
+        scalar_val = inputs[1]->data()[0];
+    }
+    cblas_dscal(output.rows * output.cols, scalar_val, output.data(), 1);
+}
+
+void eval_axpy(
+    std::string_view, const std::vector<Operand> &, const std::vector<const MatrixNode *> &inputs,
+    MatrixNode &output) {
+    inputs[0]->ensure_general();
+    cblas_daxpy(inputs[0]->rows * inputs[0]->cols, 1.0, inputs[0]->data(), 1, output.data(), 1);
 }
 } // namespace egraph
