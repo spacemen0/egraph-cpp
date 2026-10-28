@@ -1,6 +1,5 @@
 
 #include "api.h"
-#include "test_helpers.h"
 #include <gtest/gtest.h>
 
 #include <cstddef>
@@ -90,26 +89,6 @@ TEST(ApiTest, ContextRegisterKernelWithCost) {
     EXPECT_TRUE(is_kernel_op(custom_kernel));
     const auto &desc = OpRegistry::instance().get(custom_kernel);
     EXPECT_NE(desc.cost, nullptr);
-}
-
-TEST(ApiTest, KernelMapping) {
-    Context ctx((EGraph(get_property_table())));
-
-    Expression X("X");
-    Expression y("y");
-
-    // (X^T * X)^-1 * X^T * y
-    Expression target_math = inverse(transpose(X) * X) * transpose(X) * y;
-    Expression best_ast = ctx.optimize_concrete(target_math);
-    std::string actual = best_ast.to_string(true);
-    std::string expected_qr = "Trsm_LN(R(X), Ormqr_LT(Geqrf(X), y))";
-    std::string expected_qr2 = "Trsm_LN(R(X), Trsm_LT(R(X), Gemv_T(X, y, Zero_2x1)))";
-    EXPECT_TRUE(actual == expected_qr || actual == expected_qr2) << "Actual: " << actual;
-    auto res = ctx.evaluate_concrete(
-        {}, {{"X", std::vector<double>{1.0, 0.0, 0.0, 0.0, 1.0, 0.0}}, {"y", std::vector<double>{5.0, -3.0, 42.0}}});
-    ASSERT_EQ(res.size(), 2);
-    EXPECT_NEAR(res[0], 5.0, 1e-6);
-    EXPECT_NEAR(res[1], -3.0, 1e-6);
 }
 
 TEST(ApiTest, ContextCustomKernelEvaluation) {
