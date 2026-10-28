@@ -268,3 +268,45 @@ TEST(EvaluatorTest, EvaluateSymmLWithNonZeroC) {
     EXPECT_DOUBLE_EQ(result[2], 39.0);
     EXPECT_DOUBLE_EQ(result[3], 71.0);
 }
+
+TEST(EvaluatorTest, EvaluateScaleWithSymbolicScalar) {
+    EGraphRunner::Context ctx;
+    ctx.define_matrix("A", 2, 2);
+    Expression A("A");
+    ScalarExpr k('k');
+    ScalarExpr factor = k / (k - 1.0);
+    ctx.optimize_concrete(scale(A, factor));
+
+    DataBindings data = {
+        {"A", {2.0, 4.0, 6.0, 8.0}},
+        {"k", {3.0}} // factor = 3 / (3 - 1) = 1.5
+    };
+
+    auto result = ctx.evaluate_concrete({}, data);
+    ASSERT_EQ(result.size(), 4);
+    EXPECT_DOUBLE_EQ(result[0], 3.0);
+    EXPECT_DOUBLE_EQ(result[1], 6.0);
+    EXPECT_DOUBLE_EQ(result[2], 9.0);
+    EXPECT_DOUBLE_EQ(result[3], 12.0);
+}
+
+TEST(EvaluatorTest, EvaluateAxpyMinus) {
+    EGraphRunner::Context ctx;
+    ctx.define_matrix("A", 2, 2);
+    ctx.define_matrix("B", 2, 2);
+    Expression A("A");
+    Expression B("B");
+    ctx.optimize_concrete(A - B);
+
+    DataBindings data = {
+        {"A", {10.0, 20.0, 30.0, 40.0}},
+        {"B", {1.0, 2.0, 3.0, 4.0}}
+    };
+
+    auto result = ctx.evaluate_concrete({}, data);
+    ASSERT_EQ(result.size(), 4);
+    EXPECT_DOUBLE_EQ(result[0], 9.0);
+    EXPECT_DOUBLE_EQ(result[1], 18.0);
+    EXPECT_DOUBLE_EQ(result[2], 27.0);
+    EXPECT_DOUBLE_EQ(result[3], 36.0);
+}

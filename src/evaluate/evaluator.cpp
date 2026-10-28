@@ -465,10 +465,16 @@ void eval_scale(
     std::string_view, const std::vector<Operand> &operands, const std::vector<const MatrixNode *> &inputs,
     MatrixNode &output) {
     double scalar_val = 1.0;
-    if (const auto *s = as_scalar(operands[1])) {
-        scalar_val = *s;
-    } else if (inputs.size() > 1 && inputs[1]) {
+    if (inputs.size() > 1 && inputs[1]) {
         scalar_val = inputs[1]->data()[0];
+    } else if (operands.size() > 1) {
+        if (const auto *s = as_scalar(operands[1])) {
+            if (!std::isnan(*s)) {
+                scalar_val = *s;
+            }
+        } else if (const auto *i = as_index(operands[1])) {
+            scalar_val = static_cast<double>(*i);
+        }
     }
     cblas_dscal(output.rows * output.cols, scalar_val, output.data(), 1);
 }
