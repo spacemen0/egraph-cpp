@@ -5,8 +5,7 @@
 #include <iostream>
 #include <sstream>
 
-namespace egraph {
-namespace EGraphVisualization {
+namespace egraph::EGraphVisualization {
 std::string to_dot(const EGraph &egraph) {
     std::ostringstream oss;
     oss << "digraph egraph {\n";
@@ -36,7 +35,7 @@ std::string to_dot(const EGraph &egraph) {
 
         for (const auto &node : egraph.get_class_nodes(class_id)) {
             int arg_i = 0;
-            int len = node->get_children().size();
+            auto len = node->get_children().size();
 
             for (auto child_id : node->get_children()) {
                 auto child_leader = egraph.find_class_id(child_id);
@@ -114,6 +113,4 @@ void to_img(const EGraph &egraph, const std::string &filename, const std::string
     }
     // std::remove(dot_filename.c_str());
 }
-} // namespace EGraphVisualization
-
-} // namespace egraph
+} // namespace egraph::EGraphVisualization
