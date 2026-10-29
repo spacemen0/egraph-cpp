@@ -1,0 +1,79 @@
+program = symbols_block , expressions_block , operations_block ;
+
+  
+(* Basic character sets *)
+letter      = "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" 
+
+            | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" 
+            | "u" | "v" | "w" | "x" | "y" | "z" 
+            | "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" 
+            | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" 
+            | "U" | "V" | "W" | "X" | "Y" | "Z" ;
+
+digit       = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+
+(* 1. Identifier *)
+identifier  = ( letter | "_" ) , { letter | digit | "_" } ;
+
+(* 2. Integer *)
+unsigned_integer     = digit , { digit } ;
+
+(* 3. Double (Floating-Point Number) *)
+double      = [ "+" | "-" ] , ( ( digit , { digit } , "." , { digit } ) 
+                              | ( "." , digit , { digit } ) ) 
+            , [ ( "e" | "E" ) , [ "+" | "-" ] , digit , { digit } ] ;
+
+
+(* Block 1: Symbols and Property Declarations *)
+number_literal = double | unsigned_integer ;
+symbols_block = "symbols" , "{" , { symbol_decl } , "}" , [ ";" ] ;
+
+symbol_decl = identifier , ":" , type_spec , [ property_flags ] , ";" ;
+
+type_spec = "Matrix" | "Scalar" |"ColVector" |"RowVector";
+
+
+property_flags = "{" , identifier , { "," , identifier } , "}" ;
+
+  
+
+(* Block 2: Expressions *)
+
+expressions_block = "expressions" , "{" , { expression_decl } , "}" , [ ";" ] ;
+
+expression_decl = identifier , "=" , expr , ";" ;
+
+  
+
+expr = term , { ( "+" | "-" ) , term } ;
+
+term = factor , { ( "*" | "/" ) , factor } ;
+
+factor = prefix_op , factor | primary ;
+
+prefix_op = "-" ;
+
+primary = identifier , [ property_flags ]
+        | number_literal
+        | matrix_op
+        | "(" , expr , ")" ;
+
+matrix_op = ( "trans" | "inv" ) , "(" , expr , ")" ;
+
+  
+
+(* Block 3: Operations Directives *)
+
+operations_block = "operations" , "{" , { operation_decl } , "}" , [ ";" ] ;
+
+operation_decl = "optimize" , identifier , [ "using" , "rulesets" , "(" , identifier_list , ")" ] , ";"
+
+| "extract" , identifier , [ "greedy" ] , ";"
+
+| "evaluate" , identifier , [ "with" , "data" , "(" , data_binding_list , ")" ] , ";" ;
+
+identifier_list = identifier , { "," , identifier } ;
+
+data_binding_list = data_binding , { "," , data_binding } ;
+
+data_binding = identifier , "=" , ( string_literal | number_literal ) ;
