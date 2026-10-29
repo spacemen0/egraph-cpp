@@ -187,14 +187,10 @@ operation_call
 
 extract_call
         = ( "extract_best"
-        | "extract_all" ), "(", identifier, [ ",", call_options ], ")", ";";
+        | "extract_all" ), "(", identifier, data_bindings, [ effort_spec ], ")", ";";
 
 evaluate_call
-        = "evaluate", "(", identifier, [ ",", call_options ], ")", ";";
-
-call_options
-        = ( effort_spec, [ ",", data_bindings ] )
-        | data_bindings;
+        = "evaluate", "(", identifier, data_bindings, [ effort_spec ], ")", ";";
 
 effort_spec
         = [ "effort", "=" ], effort_level;
