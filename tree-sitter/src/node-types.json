@@ -1,0 +1,610 @@
+[
+  {
+    "type": "binary_expression",
+    "named": true,
+    "fields": {
+      "left": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "expr",
+            "named": true
+          }
+        ]
+      },
+      "operator": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "*",
+            "named": false
+          },
+          {
+            "type": "+",
+            "named": false
+          },
+          {
+            "type": "-",
+            "named": false
+          },
+          {
+            "type": "/",
+            "named": false
+          }
+        ]
+      },
+      "right": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "expr",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "call_options",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "data_bindings",
+          "named": true
+        },
+        {
+          "type": "effort_spec",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "data_binding",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "identifier",
+          "named": true
+        },
+        {
+          "type": "string_literal",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "data_binding_list",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "data_binding",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "data_bindings",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "data_binding_list",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "effort_level",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "effort_spec",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "effort_level",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "evaluate_call",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "call_options",
+          "named": true
+        },
+        {
+          "type": "identifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "expr",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "binary_expression",
+          "named": true
+        },
+        {
+          "type": "primary",
+          "named": true
+        },
+        {
+          "type": "unary_expression",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "expression_decl",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "expr",
+          "named": true
+        },
+        {
+          "type": "identifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "expressions_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "expression_decl",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "extract_call",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "call_options",
+          "named": true
+        },
+        {
+          "type": "identifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "matrix_op",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "expr",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "operation_call",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "evaluate_call",
+          "named": true
+        },
+        {
+          "type": "extract_call",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "operations_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "operation_call",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "primary",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "double",
+          "named": true
+        },
+        {
+          "type": "expr",
+          "named": true
+        },
+        {
+          "type": "identifier",
+          "named": true
+        },
+        {
+          "type": "matrix_op",
+          "named": true
+        },
+        {
+          "type": "property_flags",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "program",
+    "named": true,
+    "root": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "expressions_block",
+          "named": true
+        },
+        {
+          "type": "operations_block",
+          "named": true
+        },
+        {
+          "type": "symbols_block",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "property_flags",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "property_literal",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "property_literal",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "symbol_decl",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "identifier",
+          "named": true
+        },
+        {
+          "type": "property_flags",
+          "named": true
+        },
+        {
+          "type": "type_spec",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "symbols_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "symbol_decl",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "type_spec",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "unary_expression",
+    "named": true,
+    "fields": {
+      "argument": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "primary",
+            "named": true
+          }
+        ]
+      },
+      "operator": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "-",
+            "named": false
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "(",
+    "named": false
+  },
+  {
+    "type": ")",
+    "named": false
+  },
+  {
+    "type": "*",
+    "named": false
+  },
+  {
+    "type": "+",
+    "named": false
+  },
+  {
+    "type": ",",
+    "named": false
+  },
+  {
+    "type": "-",
+    "named": false
+  },
+  {
+    "type": "/",
+    "named": false
+  },
+  {
+    "type": ":",
+    "named": false
+  },
+  {
+    "type": ";",
+    "named": false
+  },
+  {
+    "type": "=",
+    "named": false
+  },
+  {
+    "type": "ColVector",
+    "named": false
+  },
+  {
+    "type": "Matrix",
+    "named": false
+  },
+  {
+    "type": "RowVector",
+    "named": false
+  },
+  {
+    "type": "Scalar",
+    "named": false
+  },
+  {
+    "type": "diagonal",
+    "named": false
+  },
+  {
+    "type": "double",
+    "named": true
+  },
+  {
+    "type": "effort",
+    "named": false
+  },
+  {
+    "type": "evaluate",
+    "named": false
+  },
+  {
+    "type": "expressions",
+    "named": false
+  },
+  {
+    "type": "extract_all",
+    "named": false
+  },
+  {
+    "type": "extract_best",
+    "named": false
+  },
+  {
+    "type": "full_rank",
+    "named": false
+  },
+  {
+    "type": "high",
+    "named": false
+  },
+  {
+    "type": "identifier",
+    "named": true
+  },
+  {
+    "type": "identity",
+    "named": false
+  },
+  {
+    "type": "inv",
+    "named": false
+  },
+  {
+    "type": "low",
+    "named": false
+  },
+  {
+    "type": "lower_triangular",
+    "named": false
+  },
+  {
+    "type": "medium",
+    "named": false
+  },
+  {
+    "type": "non_singular",
+    "named": false
+  },
+  {
+    "type": "operations",
+    "named": false
+  },
+  {
+    "type": "orthogonal",
+    "named": false
+  },
+  {
+    "type": "orthonormal",
+    "named": false
+  },
+  {
+    "type": "permutation",
+    "named": false
+  },
+  {
+    "type": "positive_definite",
+    "named": false
+  },
+  {
+    "type": "positive_semi_definite",
+    "named": false
+  },
+  {
+    "type": "string_literal",
+    "named": true
+  },
+  {
+    "type": "symbols",
+    "named": false
+  },
+  {
+    "type": "symmetric",
+    "named": false
+  },
+  {
+    "type": "tall",
+    "named": false
+  },
+  {
+    "type": "trans",
+    "named": false
+  },
+  {
+    "type": "upper_triangular",
+    "named": false
+  },
+  {
+    "type": "wide",
+    "named": false
+  },
+  {
+    "type": "zero",
+    "named": false
+  },
+  {
+    "type": "{",
+    "named": false
+  },
+  {
+    "type": "}",
+    "named": false
+  }
+]

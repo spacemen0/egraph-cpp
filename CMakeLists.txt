@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
-project(egraph-cpp LANGUAGES CXX)
+project(egraph-cpp LANGUAGES C CXX)
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")

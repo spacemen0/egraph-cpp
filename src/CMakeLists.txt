@@ -1,3 +1,14 @@
+add_library(symbolic_dsl_parser STATIC
+    ${CMAKE_SOURCE_DIR}/tree-sitter/src/parser.c
+)
+target_include_directories(symbolic_dsl_parser PUBLIC
+    ${CMAKE_SOURCE_DIR}/tree-sitter/src
+)
+set_target_properties(symbolic_dsl_parser PROPERTIES
+    C_STANDARD 11
+    C_STANDARD_REQUIRED ON
+)
+
 add_library(egraph_core_lib STATIC 
     core/union_find.cpp
     core/e_node.cpp
@@ -18,6 +29,7 @@ add_library(egraph_core_lib STATIC
     evaluate/evaluator.cpp
     cost_functions/op_costs.cpp
 )
+target_link_libraries(egraph_core_lib PUBLIC symbolic_dsl_parser)
 target_include_directories(egraph_core_lib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/core
