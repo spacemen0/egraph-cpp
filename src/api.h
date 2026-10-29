@@ -141,6 +141,15 @@ class Context {
         }
     }
 
+    void apply_rewrites(const std::vector<Rewrite> &rewrites, int max_iterations = -1) {
+        Rewriter rewriter(egraph, rewrites, config);
+        if (max_iterations > 0) {
+            rewriter.apply_rewrites(max_iterations);
+        } else {
+            rewriter.apply_rewrites();
+        }
+    }
+
     void prune_symbolic_when_kernel_available(const std::vector<Id> &roots = {}) {
         std::vector<Id> effective_roots = roots;
         if (effective_roots.empty()) {

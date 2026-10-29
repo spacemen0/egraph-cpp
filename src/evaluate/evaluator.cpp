@@ -280,6 +280,9 @@ void eval_get(
     } else {
         throw std::runtime_error("Invalid operands in Get Operation");
     }
+    if (index < 0 || std::cmp_greater_equal(index, tuple.matrices.size())) {
+        throw std::runtime_error("Index out of bounds in Get evaluation: " + std::to_string(index));
+    }
     auto &out_mat = std::get<MatrixNode>(output);
     out_mat = tuple.matrices[index];
 }

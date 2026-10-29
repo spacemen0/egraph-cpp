@@ -310,3 +310,27 @@ TEST(EvaluatorTest, EvaluateAxpyMinus) {
     EXPECT_DOUBLE_EQ(result[2], 27.0);
     EXPECT_DOUBLE_EQ(result[3], 36.0);
 }
+
+TEST(EvaluatorTest, EvalGetOutOfBoundsThrows) {
+    TupleNode tuple;
+    tuple.matrices.emplace_back(2, 2);
+    EvalValue input_val = tuple;
+    EvalValue output_val = MatrixNode(2, 2);
+    std::vector<const EvalValue *> inputs = {&input_val};
+
+    // Valid index 0
+    std::vector<Operand> valid_operands = {TupleOperand{}, IndexOperand(0)};
+    EXPECT_NO_THROW(eval_get("Get", valid_operands, inputs, output_val));
+
+    // Out of bounds index 1 (tuple only has 1 matrix)
+    std::vector<Operand> oob_operands = {TupleOperand{}, IndexOperand(1)};
+    EXPECT_THROW(eval_get("Get", oob_operands, inputs, output_val), std::runtime_error);
+
+    // Negative index
+    std::vector<Operand> neg_operands = {TupleOperand{}, IndexOperand(-1)};
+    EXPECT_THROW(eval_get("Get", neg_operands, inputs, output_val), std::runtime_error);
+
+    // Invalid operand type (e.g. scalar instead of index)
+    std::vector<Operand> invalid_operands = {TupleOperand{}, ScalarOperand(3.14)};
+    EXPECT_THROW(eval_get("Get", invalid_operands, inputs, output_val), std::runtime_error);
+}
