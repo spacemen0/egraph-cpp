@@ -105,9 +105,22 @@ class Context {
             name, is_kernel, std::move(analyze), std::move(cost), std::move(eval), in_place_input);
     }
 
+    Op register_op(
+        const std::string &name, bool is_kernel, AnalyzeFn analyze, CostFn cost,
+        MatrixEvalFn eval, std::optional<int> in_place_input = std::nullopt) {
+        return OpRegistry::instance().register_op(
+            name, is_kernel, std::move(analyze), std::move(cost), std::move(eval), in_place_input);
+    }
+
     Op register_kernel(
         const std::string &name, AnalyzeFn analyze = nullptr, CostFn cost = nullptr,
         EvalFn eval = nullptr, std::optional<int> in_place_input = std::nullopt) {
+        return register_op(name, true, std::move(analyze), std::move(cost), std::move(eval), in_place_input);
+    }
+
+    Op register_kernel(
+        const std::string &name, AnalyzeFn analyze, CostFn cost,
+        MatrixEvalFn eval, std::optional<int> in_place_input = std::nullopt) {
         return register_op(name, true, std::move(analyze), std::move(cost), std::move(eval), in_place_input);
     }
 

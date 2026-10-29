@@ -2,6 +2,7 @@
 
 #include "basic_types.h"
 #include "property_table.h"
+#include "storage_node.h"
 #include "types.h"
 #include <functional>
 #include <optional>
@@ -13,7 +14,6 @@
 namespace egraph {
 
 class EGraph;
-struct MatrixNode;
 
 struct MatrixOperand {
     int rows = 0;
@@ -60,6 +60,9 @@ inline ScalarOperand *as_scalar(Operand &op) { return std::get_if<ScalarOperand>
 using AnalyzeFn = std::function<AnalysisData(const std::vector<Operand> &operands)>;
 using CostFn = std::function<Cost(Op op, const std::vector<Operand> &operands)>;
 using EvalFn = std::function<void(
+    std::string_view op_name, const std::vector<Operand> &operands, const std::vector<const EvalValue *> &inputs,
+    EvalValue &output)>;
+using MatrixEvalFn = std::function<void(
     std::string_view op_name, const std::vector<Operand> &operands, const std::vector<const MatrixNode *> &inputs,
     MatrixNode &output)>;
 struct OpDescriptor {
@@ -84,6 +87,10 @@ class OpRegistry {
     Op register_op(
         const std::string &name, bool is_kernel, AnalyzeFn analyze = nullptr, CostFn cost = nullptr,
         EvalFn eval = nullptr, std::optional<int> in_place_input = std::nullopt);
+
+    Op register_op(
+        const std::string &name, bool is_kernel, AnalyzeFn analyze, CostFn cost,
+        MatrixEvalFn eval, std::optional<int> in_place_input = std::nullopt);
 
     // Queries
     bool is_kernel(Op op) const;

@@ -4,6 +4,7 @@
 #include "utils.h"
 #include <cstddef>
 #include <cstdint>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -164,6 +165,20 @@ void Evaluator::setup_in_place_output(Id child_id, MatrixNode &output) {
     output.format = child_node.format;
 }
 
+void Evaluator::prepare_in_place(Id child_id, EvalValue &output) {
+    if (std::holds_alternative<MatrixNode>(output)) {
+        setup_in_place_output(child_id, std::get<MatrixNode>(output));
+        std::get<MatrixNode>(output).ensure_general();
+    } else if (std::holds_alternative<TupleNode>(output)) {
+        auto &tuple = std::get<TupleNode>(output);
+        if (!tuple.matrices.empty()) {
+
+            // If introduce new factorizations, we will need mapping for which tuple value to write into
+            setup_in_place_output(child_id, tuple.matrices[0]);
+        }
+    }
+}
+
 std::vector<double> Evaluator::evaluate() {
     size_t N = result.execution_order.size();
     for (size_t slot = 0; slot < N; ++slot) {
@@ -173,26 +188,27 @@ std::vector<double> Evaluator::evaluate() {
             const Atom &atom = node->get_atom();
             auto children = node->get_children();
             if (const auto *op = std::get_if<Op>(&atom)) {
-                auto &storage = data_storage[slot];
-                auto op_name = OpRegistry::name(*op);
-                if (op_name == "Get") {
-                    auto &output = std::get<MatrixNode>(storage);
-                    Id tuple_id = children[0];
-                    Id index_id = children[1];
-                    const TupleNode &input_tuple = std::get<TupleNode>(data_storage[slot_map[tuple_id]]);
-                    int index = 0;
-                    if (auto idx_opt = get_int_from_eclass(egraph, index_id); idx_opt.has_value()) {
-                        index = idx_opt.value();
+                std::vector<const EvalValue *> inputs;
+                inputs.reserve(children.size());
+                for (Id child_id : children) {
+                    if (child_id < slot_map.size() && slot_map[child_id] != -1) {
+                        inputs.push_back(&data_storage[slot_map[child_id]]);
                     }
-                    dispatch_get(input_tuple, index, output);
-                } else if (std::holds_alternative<TupleNode>(storage)) {
-                    auto &output = std::get<TupleNode>(storage);
-                    Id input_id = children[0];
-                    const auto &input = std::get<MatrixNode>(data_storage[slot_map[input_id]]);
-                    dispatch_factorization(*op, input, output, children);
+                }
+                std::vector<Operand> operands;
+                init_operands(egraph, children, operands, &size_bindings);
+
+                const auto &desc = OpRegistry::instance().get(*op);
+                if (desc.eval) {
+                    if (desc.in_place_input.has_value()) {
+                        int target_idx = *desc.in_place_input;
+                        if (target_idx >= 0 && std::cmp_less(target_idx, children.size())) {
+                            prepare_in_place(children[target_idx], data_storage[slot]);
+                        }
+                    }
+                    desc.eval(desc.name, operands, inputs, data_storage[slot]);
                 } else {
-                    auto &output = std::get<MatrixNode>(storage);
-                    dispatch_matrix_kernel(*op, output, children);
+                    throw std::runtime_error("Kernel not implemented for this operation: " + desc.name);
                 }
             }
         }
@@ -217,127 +233,119 @@ std::vector<double> Evaluator::get_preserved(Id id) const {
     throw std::runtime_error("Preserved ID not found in evaluator storage.");
 }
 
-void Evaluator::dispatch_matrix_kernel(Op op, MatrixNode &output, const Children &children) {
-    auto op_name = OpRegistry::name(op);
-
-    std::vector<const MatrixNode *> inputs;
-    for (Id child_id : children) {
-        if (child_id < slot_map.size() && slot_map[child_id] != -1) {
-            int slot = slot_map[child_id];
-            if (std::holds_alternative<MatrixNode>(data_storage[slot])) {
-                inputs.push_back(&std::get<MatrixNode>(data_storage[slot]));
-            }
-        }
-    }
-    std::vector<Operand> operands;
-    init_operands(egraph, children, operands, &size_bindings);
-    const auto &desc = OpRegistry::instance().get(op);
-    if (desc.eval) {
-        if (desc.in_place_input.has_value()) {
-            int target_idx = *desc.in_place_input;
-            if (target_idx >= 0 && std::cmp_less(target_idx, children.size())) {
-                setup_in_place_output(children[target_idx], output);
-                output.ensure_general();
-            }
-        }
-        desc.eval(op_name, operands, inputs, output);
-        return;
-    }
-    if (op_name == "Orgqr") {
-        Id geqrf_id = children[0];
-        const TupleNode &geqrf_tuple = std::get<TupleNode>(data_storage[slot_map[geqrf_id]]);
-        const MatrixNode &q_node = geqrf_tuple.matrices[0];
-        int k = std::min(q_node.rows, q_node.cols);
-        output = q_node; // always overwrite q_node with the result of orgqr (which is Q)
-        LAPACKE_dorgqr(
-            LAPACK_COL_MAJOR, output.rows, output.cols, k, output.data(), output.rows, geqrf_tuple.tau.data());
-    } else if (op_name == "Ormqr_LN" || op_name == "Ormqr_LT" || op_name == "Ormqr_RN" || op_name == "Ormqr_RT") {
-        Id geqrf_id = children[0];
-        Id c_id = children[1];
-        const TupleNode &geqrf_tuple = std::get<TupleNode>(data_storage[slot_map[geqrf_id]]);
-        const MatrixNode &c_node = std::get<MatrixNode>(data_storage[slot_map[c_id]]);
-        const MatrixNode &a_node = geqrf_tuple.matrices[0]; // householder
-
-        char side = (op_name == "Ormqr_LN" || op_name == "Ormqr_LT") ? 'L' : 'R';
-        char trans = (op_name == "Ormqr_LN" || op_name == "Ormqr_RN") ? 'N' : 'T';
-        int m = c_node.rows;
-        int n = c_node.cols;
-        int k = std::min(a_node.rows, a_node.cols);
-
-        // dormqr requires C to be m x n and overwrites it.
-        int out_rows = output.rows;
-        int out_cols = output.cols;
-        setup_in_place_output(children[1], output);
-        output.ensure_general();
-
-        LAPACKE_dormqr(
-            LAPACK_COL_MAJOR, side, trans, m, n, k, a_node.data(), a_node.rows, geqrf_tuple.tau.data(), output.data(),
-            m);
-
-        // Extract the relevant part into output in-place
-        if (out_rows != m) {
-            double *out_data = output.data();
-            for (int j = 0; j < out_cols; ++j) {
-                for (int i = 0; i < out_rows; ++i) {
-                    out_data[i + j * out_rows] = out_data[i + j * m];
-                }
-            }
-            output.vec().resize(static_cast<long>(out_rows) * out_cols);
-        }
-    } else {
-        throw std::runtime_error("Kernel not implemented for this operation: " + atom_to_string(op));
-    }
+void eval_potrf_group(
+    std::string_view op_name, const std::vector<Operand> &operands, const std::vector<const EvalValue *> &inputs,
+    EvalValue &output) {
+    auto &tuple = std::get<TupleNode>(output);
+    MatrixNode &res = tuple.matrices[0];
+    char uplo = (op_name == "Potrf_U") ? 'U' : 'L';
+    auto expected_format = (uplo == 'U') ? StorageFormat::SymmetricUpper : StorageFormat::SymmetricLower;
+    if (res.format != expected_format)
+        res.ensure_general();
+    LAPACKE_dpotrf(LAPACK_COL_MAJOR, uplo, res.rows, res.data(), res.rows);
+    res.format = (uplo == 'U') ? StorageFormat::TriangularUpper : StorageFormat::TriangularLower;
 }
 
-void Evaluator::dispatch_factorization(Op op, const MatrixNode &input, TupleNode &output, const Children &children) {
-    auto op_name = OpRegistry::name(op);
-    if (op_name == "Potrf_U") {
-        MatrixNode &res = output.matrices[0];
-        setup_in_place_output(children[0], res);
-        if (res.format != StorageFormat::SymmetricUpper)
-            res.ensure_general();
-        LAPACKE_dpotrf(LAPACK_COL_MAJOR, 'U', res.rows, res.data(), res.rows);
-        res.format = StorageFormat::TriangularUpper;
-    } else if (op_name == "Potrf_L") {
-        MatrixNode &res = output.matrices[0];
-        setup_in_place_output(children[0], res);
-        if (res.format != StorageFormat::SymmetricLower)
-            res.ensure_general();
-        LAPACKE_dpotrf(LAPACK_COL_MAJOR, 'L', res.rows, res.data(), res.rows);
-        res.format = StorageFormat::TriangularLower;
-    } else if (op_name == "Geqrf") {
-        setup_in_place_output(children[0], output.matrices[0]);
-        output.matrices[0].ensure_general();
-        double *a_data = output.matrices[0].data();
-        LAPACKE_dgeqrf(
-            LAPACK_COL_MAJOR, input.rows, input.cols, output.matrices[0].data(), input.rows, output.tau.data());
+void eval_geqrf(
+    std::string_view op_name, const std::vector<Operand> &operands, const std::vector<const EvalValue *> &inputs,
+    EvalValue &output) {
+    auto &tuple = std::get<TupleNode>(output);
+    MatrixNode &a_node = tuple.matrices[0];
+    a_node.ensure_general();
+    double *a_data = a_node.data();
+    LAPACKE_dgeqrf(LAPACK_COL_MAJOR, a_node.rows, a_node.cols, a_data, a_node.rows, tuple.tau.data());
 
-        // Fill the R matrix (upper triangular) in the output tuple, should be handled by storage format in the
-        // future
-        if (output.matrices.size() > 1) {
-            MatrixNode &r_node = output.matrices[1];
-            double *r_data = r_node.data();
-            for (int j = 0; j < r_node.cols; ++j) {
-                for (int i = 0; i < r_node.rows; ++i) {
-                    if (i > j) {
-                        r_data[i + j * r_node.rows] = 0.0;
-                    } else {
-                        r_data[i + j * r_node.rows] = a_data[i + j * input.rows];
-                    }
+    if (tuple.matrices.size() > 1) {
+        MatrixNode &r_node = tuple.matrices[1];
+        double *r_data = r_node.data();
+        for (int j = 0; j < r_node.cols; ++j) {
+            for (int i = 0; i < r_node.rows; ++i) {
+                if (i > j) {
+                    r_data[i + j * r_node.rows] = 0.0;
+                } else {
+                    r_data[i + j * r_node.rows] = a_data[i + j * a_node.rows];
                 }
             }
         }
-    } else {
-        throw std::runtime_error("Factorization not implemented for this operation: " + atom_to_string(op));
     }
 }
 
-void Evaluator::dispatch_get(const TupleNode &input_tuple, int index, MatrixNode &output) {
-    if (index < 0 || std::cmp_greater_equal(index, input_tuple.matrices.size())) {
-        throw std::runtime_error("Index out of bounds in Get evaluation: " + std::to_string(index));
+void eval_get(
+    std::string_view op_name, const std::vector<Operand> &operands, const std::vector<const EvalValue *> &inputs,
+    EvalValue &output) {
+    const auto &tuple = std::get<TupleNode>(*inputs[0]);
+    int index = 0;
+    if (const auto *idx_op = as_index(operands[1])) {
+        index = *idx_op;
+    } else {
+        throw std::runtime_error("Invalid operands in Get Operation");
     }
-    const MatrixNode &source = input_tuple.matrices[index];
-    output = source;
+    auto &out_mat = std::get<MatrixNode>(output);
+    out_mat = tuple.matrices[index];
+}
+
+void eval_orgqr(
+    std::string_view op_name, const std::vector<Operand> &operands, const std::vector<const EvalValue *> &inputs,
+    EvalValue &output) {
+    const auto &tuple = std::get<TupleNode>(*inputs[0]);
+    const MatrixNode &q_node = tuple.matrices[0];
+    auto &out_mat = std::get<MatrixNode>(output);
+    int k = std::min(q_node.rows, q_node.cols);
+    out_mat = q_node;
+    LAPACKE_dorgqr(LAPACK_COL_MAJOR, out_mat.rows, out_mat.cols, k, out_mat.data(), out_mat.rows, tuple.tau.data());
+}
+
+void eval_ormqr_group(
+    std::string_view op_name, const std::vector<Operand> &operands, const std::vector<const EvalValue *> &inputs,
+    EvalValue &output) {
+    const auto &tuple = std::get<TupleNode>(*inputs[0]);
+    const auto &a_node = tuple.matrices[0];
+    auto &out_mat = std::get<MatrixNode>(output);
+
+    char side = (op_name == "Ormqr_LN" || op_name == "Ormqr_LT") ? 'L' : 'R';
+    char trans = (op_name == "Ormqr_LN" || op_name == "Ormqr_RN") ? 'N' : 'T';
+    int m = out_mat.rows;
+    int n = out_mat.cols;
+    int k = std::min(a_node.rows, a_node.cols);
+
+    int out_rows = m;
+    int out_cols = n;
+    const auto *tuple_op = as_tuple(operands[0]);
+    const auto *c_op = as_matrix(operands[1]);
+    if (tuple_op && !tuple_op->empty() && c_op) {
+        int q_rows = (*tuple_op)[0].rows;
+        int q_cols = (*tuple_op)[0].cols;
+        int c_r = c_op->rows;
+        int c_c = c_op->cols;
+        if (op_name == "Ormqr_LN") {
+            out_rows = q_rows;
+            out_cols = c_c;
+        } else if (op_name == "Ormqr_LT") {
+            out_rows = q_cols;
+            out_cols = c_c;
+        } else if (op_name == "Ormqr_RN") {
+            out_rows = c_r;
+            out_cols = q_cols;
+        } else if (op_name == "Ormqr_RT") {
+            out_rows = c_r;
+            out_cols = q_rows;
+        }
+    }
+
+    LAPACKE_dormqr(
+        LAPACK_COL_MAJOR, side, trans, m, n, k, a_node.data(), a_node.rows, tuple.tau.data(), out_mat.data(), m);
+
+    if (out_rows != m || out_cols != n) {
+        double *out_data = out_mat.data();
+        for (int j = 0; j < out_cols; ++j) {
+            for (int i = 0; i < out_rows; ++i) {
+                out_data[i + j * out_rows] = out_data[i + j * m];
+            }
+        }
+        out_mat.vec().resize(static_cast<long>(out_rows) * out_cols);
+        out_mat.rows = out_rows;
+        out_mat.cols = out_cols;
+    }
 }
 
 void eval_symm_group(
@@ -404,8 +412,8 @@ void eval_gemm_group(
     double beta = is_c_zero ? 0.0 : 1.0;
     double alpha = 1.0;
     cblas_dgemm(
-        CblasColMajor, transA, transB, output.rows, output.cols, k, alpha, a_node.data(), a_node.rows,
-        b_node.data(), b_node.rows, beta, output.data(), output.rows);
+        CblasColMajor, transA, transB, output.rows, output.cols, k, alpha, a_node.data(), a_node.rows, b_node.data(),
+        b_node.rows, beta, output.data(), output.rows);
 }
 
 void eval_gemv_group(
@@ -449,8 +457,7 @@ void eval_trtri(
 }
 
 void eval_transpose(
-    std::string_view, const std::vector<Operand> &, const std::vector<const MatrixNode *> &inputs,
-    MatrixNode &output) {
+    std::string_view, const std::vector<Operand> &, const std::vector<const MatrixNode *> &inputs, MatrixNode &output) {
     inputs[0]->ensure_general();
     int rows = inputs[0]->rows;
     int cols = inputs[0]->cols;
@@ -480,8 +487,7 @@ void eval_scale(
 }
 
 void eval_axpy(
-    std::string_view, const std::vector<Operand> &, const std::vector<const MatrixNode *> &inputs,
-    MatrixNode &output) {
+    std::string_view, const std::vector<Operand> &, const std::vector<const MatrixNode *> &inputs, MatrixNode &output) {
     inputs[0]->ensure_general();
     cblas_daxpy(inputs[0]->rows * inputs[0]->cols, 1.0, inputs[0]->data(), 1, output.data(), 1);
 }

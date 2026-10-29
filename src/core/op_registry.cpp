@@ -41,6 +41,25 @@ Op OpRegistry::register_op(
     return new_op;
 }
 
+Op OpRegistry::register_op(
+    const std::string &name, bool is_kernel, AnalyzeFn analyze, CostFn cost, MatrixEvalFn eval,
+    std::optional<int> in_place_input) {
+    EvalFn wrapped = nullptr;
+    if (eval) {
+        wrapped = [fn = std::move(eval)](
+            std::string_view op_name, const std::vector<Operand> &operands,
+            const std::vector<const EvalValue *> &inputs, EvalValue &output) {
+            std::vector<const MatrixNode *> mat_inputs;
+            mat_inputs.reserve(inputs.size());
+            for (const auto *in : inputs) {
+                mat_inputs.push_back(&std::get<MatrixNode>(*in));
+            }
+            fn(op_name, operands, mat_inputs, std::get<MatrixNode>(output));
+        };
+    }
+    return register_op(name, is_kernel, std::move(analyze), std::move(cost), std::move(wrapped), in_place_input);
+}
+
 bool OpRegistry::is_kernel(Op op) const {
     auto idx = static_cast<size_t>(op);
     if (idx < ops.size()) {
@@ -167,14 +186,14 @@ void init_builtin_ops(OpRegistry &registry) {
     registry.register_op("Minus", false, analyze_minus, compute_minus_cost);
     registry.register_op("Tr", true, analyze_transpose, compute_tr_cost, eval_transpose);
     registry.register_op("Inv", false, analyze_invert, compute_inv_cost);
-    registry.register_op("Get", false, analyze_get, compute_get_cost);
+    registry.register_op("Get", false, analyze_get, compute_get_cost, eval_get);
     registry.register_op("Scale", true, analyze_scale, compute_scale_cost, eval_scale, 0);
 
     registry.register_op("QR", false, analyze_qr, compute_qr_cost);
     registry.register_op("LU", false, analyze_lu, compute_lu_cost);
     registry.register_op("CholeL", false, analyze_cholel, compute_cholel_cost);
     registry.register_op("CholeU", false, analyze_choleu, compute_choleu_cost);
-    registry.register_op("Geqrf", true, analyze_geqrf, compute_geqrf_cost);
+    registry.register_op("Geqrf", true, analyze_geqrf, compute_geqrf_cost, eval_geqrf, 0);
 
     registry.register_op("Trtri", true, analyze_trtri, compute_trtri_cost, eval_trtri, 0);
     registry.register_op("Gemv_N", true, analyze_gemv_n, compute_gemv_n_cost, eval_gemv_group, 2);
@@ -195,13 +214,13 @@ void init_builtin_ops(OpRegistry &registry) {
     registry.register_op("Trsm_LT", true, analyze_trsm_lt, compute_trsm_ln_group_cost, eval_trsm_group, 1);
     registry.register_op("Trsm_RN", true, analyze_trsm_rn, compute_trsm_ln_group_cost, eval_trsm_group, 1);
     registry.register_op("Trsm_RT", true, analyze_trsm_rt, compute_trsm_ln_group_cost, eval_trsm_group, 1);
-    registry.register_op("Potrf_L", true, analyze_potrf_l, compute_potrf_l_potrf_u_cost);
-    registry.register_op("Potrf_U", true, analyze_potrf_u, compute_potrf_l_potrf_u_cost);
-    registry.register_op("Orgqr", true, analyze_orgqr, compute_orgqr_cost);
-    registry.register_op("Ormqr_LN", true, analyze_ormqr_ln, compute_ormqr_cost);
-    registry.register_op("Ormqr_LT", true, analyze_ormqr_lt, compute_ormqr_cost);
-    registry.register_op("Ormqr_RN", true, analyze_ormqr_rn, compute_ormqr_cost);
-    registry.register_op("Ormqr_RT", true, analyze_ormqr_rt, compute_ormqr_cost);
+    registry.register_op("Potrf_L", true, analyze_potrf_l, compute_potrf_l_potrf_u_cost, eval_potrf_group, 0);
+    registry.register_op("Potrf_U", true, analyze_potrf_u, compute_potrf_l_potrf_u_cost, eval_potrf_group, 0);
+    registry.register_op("Orgqr", true, analyze_orgqr, compute_orgqr_cost, eval_orgqr);
+    registry.register_op("Ormqr_LN", true, analyze_ormqr_ln, compute_ormqr_cost, eval_ormqr_group, 1);
+    registry.register_op("Ormqr_LT", true, analyze_ormqr_lt, compute_ormqr_cost, eval_ormqr_group, 1);
+    registry.register_op("Ormqr_RN", true, analyze_ormqr_rn, compute_ormqr_cost, eval_ormqr_group, 1);
+    registry.register_op("Ormqr_RT", true, analyze_ormqr_rt, compute_ormqr_cost, eval_ormqr_group, 1);
     registry.register_op("Axpy", true, analyze_axpy, compute_axpy_cost, eval_axpy, 1);
 }
 
