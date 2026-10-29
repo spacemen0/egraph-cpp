@@ -1,6 +1,8 @@
+(* Program structure *)
 program
         = symbols_block, expressions_block, operations_block;
 
+(* Lexical definitions *)
 letter
         = "a"
         | "b"
@@ -67,35 +69,63 @@ digit
         | "8"
         | "9";
 
+(* All keywords are reserved and case-sensitive. *)
+reserved_keyword
+        = "symbols"
+        | "expressions"
+        | "operations"
+        | "Matrix"
+        | "Scalar"
+        | "ColVector"
+        | "RowVector"
+        | "symmetric"
+        | "orthogonal"
+        | "orthonormal"
+        | "identity"
+        | "zero"
+        | "upper_triangular"
+        | "lower_triangular"
+        | "diagonal"
+        | "positive_definite"
+        | "positive_semi_definite"
+        | "full_rank"
+        | "non_singular"
+        | "permutation"
+        | "tall"
+        | "wide"
+        | "trans"
+        | "inv"
+        | "extract_best"
+        | "extract_all"
+        | "evaluate"
+        | "effort"
+        | "low"
+        | "medium"
+        | "high";
+
+(* Identifiers cannot equal reserved keywords. *)
 identifier
-        = ( letter
+        = ( ( letter
         | "_" ), { letter
         | digit
-        | "_" };
+        | "_" } ) - reserved_keyword;
 
-(* integers are only used as indices for get *)
-unsigned_integer
-        = digit, { digit };
-
-(* we force constant scalars to be doubles *)
+(* Constant scalars require a decimal point. *)
+(* Signs are handled by unary negate *)
 double
-        = unsigned_integer, ".", unsigned_integer;
+        = digit, { digit }, ".", digit, { digit };
 
+(* Quoted file paths *)
 string_literal
         = '"', { ? character - '"' ? }, '"';
 
-(* Block 1 *)
-number_literal
-        = double
-        | unsigned_integer;
-
+(* Block 1: Symbols *)
 symbols_block
         = "symbols", "{", { symbol_decl }, "}", [ ";" ];
 
 symbol_decl
         = identifier, ":", type_spec, [ property_flags ], ";";
 
-(* Maybe internally we map ColVector and RowVector into Matrices *)
 type_spec
         = "Matrix"
         | "Scalar"
@@ -103,9 +133,26 @@ type_spec
         | "RowVector";
 
 property_flags
-        = "{", identifier, { ",", identifier }, "}";
+        = "{", property_literal, { ",", property_literal }, "}";
 
-(* Block 2 *)
+property_literal
+        = "symmetric"
+        | "orthogonal"
+        | "orthonormal"
+        | "identity"
+        | "zero"
+        | "upper_triangular"
+        | "lower_triangular"
+        | "diagonal"
+        | "positive_definite"
+        | "positive_semi_definite"
+        | "full_rank"
+        | "non_singular"
+        | "permutation"
+        | "tall"
+        | "wide";
+
+(* Block 2: Expressions *)
 expressions_block
         = "expressions", "{", { expression_decl }, "}", [ ";" ];
 
@@ -122,7 +169,7 @@ term
 
 primary
         = identifier, [ property_flags ]
-        | number_literal
+        | double
         | matrix_op
         | "(", expr, ")";
 
@@ -130,7 +177,7 @@ matrix_op
         = ( "trans"
         | "inv" ), "(", expr, ")";
 
-(* Block 3: Operations Directives *)
+(* Block 3: Operation directives *)
 operations_block
         = "operations", "{", { operation_call }, "}", [ ";" ];
 
@@ -138,7 +185,6 @@ operation_call
         = extract_call
         | evaluate_call;
 
-(* technically we only need sizes but we can deduce sizes from the data *)
 extract_call
         = ( "extract_best"
         | "extract_all" ), "(", identifier, [ ",", call_options ], ")", ";";
@@ -148,7 +194,7 @@ evaluate_call
 
 call_options
         = ( effort_spec, [ ",", data_bindings ] )
-        | ( data_bindings );
+        | data_bindings;
 
 effort_spec
         = [ "effort", "=" ], effort_level;
