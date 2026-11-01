@@ -103,19 +103,18 @@ reserved_keyword
         | "medium"
         | "high";
 
-(* Identifiers cannot equal reserved keywords. *)
+(* Identifiers (matrices, scalar variables) cannot equal reserved keywords. *)
 identifier
         = ( ( letter
         | "_" ), { letter
         | digit
         | "_" } ) - reserved_keyword;
 
-(* Constant scalars require a decimal point. *)
 (* Signs are handled by unary negate *)
 double
         = digit, { digit }, ".", digit, { digit };
 
-(* Quoted file paths *)
+(* For data binding file paths only *)
 string_literal
         = '"', { ? character - '"' ? }, '"';
 
@@ -126,6 +125,7 @@ symbols_block
 symbol_decl
         = identifier, ":", type_spec, [ property_flags ], ";";
 
+(* Provide vector types but internally represented as matrices *)
 type_spec
         = "Matrix"
         | "Scalar"
@@ -163,12 +163,13 @@ expr
         = term, { ( "+"
         | "-" ), term };
 
+(* We should support negation (I think linnea does not) *)
 term
         = [ "-" ], primary, { ( "*"
         | "/" ), [ "-" ], primary };
 
 primary
-        = identifier, [ property_flags ]
+        = identifier
         | double
         | matrix_op
         | "(", expr, ")";
@@ -195,6 +196,7 @@ evaluate_call
 effort_spec
         = [ "effort", "=" ], effort_level;
 
+(* A parameter which affects the scaling factor of the config numbers (for instance max nodes, num iterations, etc). *)
 effort_level
         = "low"
         | "medium"

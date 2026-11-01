@@ -160,10 +160,7 @@ module.exports = grammar({
         ),
 
         primary: $ => choice(
-            seq(
-                $.identifier,
-                optional($.property_flags),
-            ),
+            $.identifier,
             $.double,
             $.matrix_op,
             seq('(', $.expr, ')'),
