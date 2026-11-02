@@ -334,3 +334,38 @@ TEST(EvaluatorTest, EvalGetOutOfBoundsThrows) {
     std::vector<Operand> invalid_operands = {TupleOperand{}, ScalarOperand(3.14)};
     EXPECT_THROW(eval_get("Get", invalid_operands, inputs, output_val), std::runtime_error);
 }
+
+TEST(EvaluatorTest, EvalGeqrfExtractsUpperTriangularR) {
+    TupleNode tuple;
+    // Tall matrix: 3 rows, 2 cols -> R has 2 rows, 2 cols
+    tuple.matrices.emplace_back(3, 2, std::vector<double>{1.0, 1.0, 0.0, 1.0, 0.0, 1.0});
+    tuple.matrices.emplace_back(2, 2); // R placeholder
+    tuple.tau = std::vector<double>(2);
+
+    EvalValue output_val = tuple;
+    std::vector<const EvalValue *> inputs;
+    std::vector<Operand> operands;
+
+    eval_geqrf("Geqrf", operands, inputs, output_val);
+
+    auto &res_tuple = std::get<TupleNode>(output_val);
+    const MatrixNode &r_node = res_tuple.matrices[1];
+    EXPECT_EQ(r_node.format, StorageFormat::TriangularUpper);
+    EXPECT_EQ(r_node.rows, 2);
+    EXPECT_EQ(r_node.cols, 2);
+
+    // Call ensure_general() to verify that strictly lower triangle (1, 0) is zero
+    r_node.ensure_general();
+    EXPECT_EQ(r_node.format, StorageFormat::General);
+    // col-major order: (0,0), (1,0), (0,1), (1,1)
+    double r00 = r_node.data()[0];
+    double r10 = r_node.data()[1]; // must be 0.0
+    double r01 = r_node.data()[2];
+    double r11 = r_node.data()[3];
+
+    EXPECT_DOUBLE_EQ(r10, 0.0);
+    EXPECT_NEAR(r00 * r00, 2.0, 1e-12);
+    EXPECT_NEAR(r00 * r01, 1.0, 1e-12);
+    EXPECT_NEAR(r01 * r01 + r11 * r11, 2.0, 1e-12);
+}
+

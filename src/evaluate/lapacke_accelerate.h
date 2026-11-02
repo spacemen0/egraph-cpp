@@ -76,6 +76,22 @@ inline int LAPACKE_dgeqrf(int matrix_layout, int m, int n, double *a, int lda, d
     delete[] work;
     return info;
 }
+
+inline int LAPACKE_dlacpy(
+    int matrix_layout, char uplo, int m, int n, const double *a, int lda, double *b, int ldb) {
+    if (matrix_layout != LAPACK_COL_MAJOR)
+        return -1;
+    dlacpy_(&uplo, &m, &n, const_cast<double *>(a), &lda, b, &ldb);
+    return 0;
+}
+
+inline int LAPACKE_dlaset(
+    int matrix_layout, char uplo, int m, int n, double alpha, double beta, double *a, int lda) {
+    if (matrix_layout != LAPACK_COL_MAJOR)
+        return -1;
+    dlaset_(&uplo, &m, &n, &alpha, &beta, a, &lda);
+    return 0;
+}
 #endif
 
 } // namespace egraph

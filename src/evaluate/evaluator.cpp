@@ -172,7 +172,6 @@ void Evaluator::prepare_in_place(Id child_id, EvalValue &output) {
     } else if (std::holds_alternative<TupleNode>(output)) {
         auto &tuple = std::get<TupleNode>(output);
         if (!tuple.matrices.empty()) {
-
             // If introduce new factorizations, we will need mapping for which tuple value to write into
             setup_in_place_output(child_id, tuple.matrices[0]);
         }
@@ -257,16 +256,9 @@ void eval_geqrf(
 
     if (tuple.matrices.size() > 1) {
         MatrixNode &r_node = tuple.matrices[1];
-        double *r_data = r_node.data();
-        for (int j = 0; j < r_node.cols; ++j) {
-            for (int i = 0; i < r_node.rows; ++i) {
-                if (i > j) {
-                    r_data[i + j * r_node.rows] = 0.0;
-                } else {
-                    r_data[i + j * r_node.rows] = a_data[i + j * a_node.rows];
-                }
-            }
-        }
+        LAPACKE_dlacpy(
+            LAPACK_COL_MAJOR, 'U', r_node.rows, r_node.cols, a_data, a_node.rows, r_node.data(), r_node.rows);
+        r_node.format = StorageFormat::TriangularUpper;
     }
 }
 

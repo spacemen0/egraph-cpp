@@ -72,6 +72,9 @@ struct OpDescriptor {
     AnalyzeFn analyze = nullptr;
     CostFn cost = nullptr;
     EvalFn eval = nullptr;
+
+    // when this is set, the output buffer will be written with the same buffer as the input at this index, before the
+    // evaluation function is called.
     std::optional<int> in_place_input = std::nullopt;
 };
 
@@ -89,8 +92,8 @@ class OpRegistry {
         EvalFn eval = nullptr, std::optional<int> in_place_input = std::nullopt);
 
     Op register_op(
-        const std::string &name, bool is_kernel, AnalyzeFn analyze, CostFn cost,
-        MatrixEvalFn eval, std::optional<int> in_place_input = std::nullopt);
+        const std::string &name, bool is_kernel, AnalyzeFn analyze, CostFn cost, MatrixEvalFn eval,
+        std::optional<int> in_place_input = std::nullopt);
 
     // Queries
     bool is_kernel(Op op) const;
