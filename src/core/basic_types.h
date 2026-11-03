@@ -17,14 +17,16 @@ enum class ScalarOp : std::uint8_t { Value, Var, Add, Sub, Mul, Div, Neg };
 struct ScalarExpr {
     ScalarOp op = ScalarOp::Value;
     double val = 0.0;
-    char var = '\0';
+    std::string var;
     std::vector<ScalarExpr> children;
 
     ScalarExpr() = default;
     // NOLINTNEXTLINE(misc-explicit-constructor)
     ScalarExpr(double v) : val(v) {}
     // NOLINTNEXTLINE(misc-explicit-constructor)
-    ScalarExpr(char c) : op(ScalarOp::Var), var(c) {}
+    ScalarExpr(char c) : op(ScalarOp::Var), var(1, c) {}
+    explicit ScalarExpr(std::string v) : op(ScalarOp::Var), var(std::move(v)) {}
+    explicit ScalarExpr(const char *v) : op(ScalarOp::Var), var(v) {}
     ScalarExpr(ScalarOp op, std::vector<ScalarExpr> children) : op(op), children(std::move(children)) {}
 
     bool operator==(const ScalarExpr &other) const {
@@ -47,8 +49,7 @@ struct ScalarExpr {
         case ScalarOp::Value:
             return val;
         case ScalarOp::Var: {
-            std::string s(1, var);
-            auto it = bindings.find(s);
+            auto it = bindings.find(var);
             return (it != bindings.end() && !it->second.empty()) ? it->second[0] : 0.0;
         }
         case ScalarOp::Add:
@@ -75,8 +76,7 @@ struct ScalarExpr {
             return s;
         }
         case ScalarOp::Var:
-            // NOLINTNEXTLINE(modernize-return-braced-init-list) - braced init would call initializer_list<char>{1, var}
-            return std::string(1, var);
+            return var;
         case ScalarOp::Add:
             return "(" + children[0].to_string() + " + " + children[1].to_string() + ")";
         case ScalarOp::Sub:
