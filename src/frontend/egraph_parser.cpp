@@ -16,7 +16,7 @@ using egraph::Expression;
 namespace {
 
 const char *GRAMMAR = R"(
-    Program          <- (SymbolsBlock / ExpressionsBlock / OperationsBlock)*
+    Program          <- SymbolsBlock ExpressionsBlock OperationsBlock
     
     # Block 1: Symbols
     SymbolsBlock     <- 'symbols' '{' SymbolDecl* '}' ';'?
@@ -45,9 +45,8 @@ const char *GRAMMAR = R"(
 
     # Block 3: Operations
     OperationsBlock  <- 'operations' '{' OperationCall* '}' ';'?
-    OperationCall    <- OpKind '(' Identifier OpArg* ')' ';'
+    OperationCall    <- OpKind '(' Identifier ',' DataBindings (',' EffortSpec)? ')' ';'
     OpKind           <- 'extract_best' / 'extract_all' / 'evaluate'
-    OpArg            <- ','? (DataBindings / EffortSpec)
     DataBindings     <- '{' (DataBinding (',' DataBinding)*)? '}'
     DataBinding      <- Identifier '=' StringLiteral
     EffortSpec       <- ('effort' '=')? EffortLevel
@@ -73,6 +72,7 @@ const char *GRAMMAR = R"(
     
     # Automatic whitespace and comment skipping
     %whitespace      <- ([ \t\r\n] / Comment)*
+    %word            <- [a-zA-Z0-9_]+
     Comment          <- '//' [^\r\n]* / '#' [^\r\n]*
 )";
 
@@ -137,7 +137,14 @@ peg::parser create_parser() {
         auto name = std::any_cast<std::string>(vs[0]);
         const auto &ctx = get_context(dt);
         auto it = ctx.types.find(name);
-        if (it != ctx.types.end() && it->second == SymbolKind::Scalar) {
+        // if not defined in symbols
+        if (it == ctx.types.end()) {
+            auto [line, col] = vs.line_info();
+            throw CompileError(
+                "Undefined identifier '" + name + "'",
+                SourceLocation{static_cast<uint32_t>(line), static_cast<uint32_t>(col)});
+        }
+        if (it->second == SymbolKind::Scalar) {
             return Expression(ScalarExpr(name));
         }
         return Expression(Atom(register_string_in_lookup(name)), {});
@@ -187,7 +194,7 @@ peg::parser create_parser() {
                 auto [line, col] = vs.line_info();
                 SourceLocation loc{static_cast<uint32_t>(line), static_cast<uint32_t>(col)};
                 if (!rhs_s) {
-                    throw CompileError("Direct matrix division is unsupported; express via inv() or linear solve", loc);
+                    throw CompileError("Direct matrix division is unsupported; express via inv", loc);
                 }
                 if (rhs_s->op == ScalarOp::Value && rhs_s->val == 0.0) {
                     throw CompileError("Division by zero", loc);
@@ -196,7 +203,7 @@ peg::parser create_parser() {
                     acc = (acc_s->op == ScalarOp::Value && rhs_s->op == ScalarOp::Value)
                               ? Expression(acc_s->val / rhs_s->val)
                               : Expression(*acc_s / *rhs_s);
-                } else {
+                } else { // Matrix / scalar
                     acc = (rhs_s->op == ScalarOp::Value) ? scale(acc, 1.0 / rhs_s->val)
                                                          : scale(acc, ScalarExpr(1.0) / *rhs_s);
                 }
@@ -225,6 +232,7 @@ peg::parser create_parser() {
                           ? Expression(op == '+' ? acc_s->val + rhs_s->val : acc_s->val - rhs_s->val)
                           : Expression(op == '+' ? *acc_s + *rhs_s : *acc_s - *rhs_s);
             } else {
+                // Both are matrices
                 acc = (op == '+') ? (acc + rhs) : (acc - rhs);
             }
         }
@@ -301,7 +309,12 @@ peg::parser create_parser() {
         map.reserve(vs.size());
         for (const auto &v : vs) {
             auto pair = std::any_cast<std::pair<std::string, std::string>>(v);
-            map[pair.first] = pair.second;
+            if (!map.emplace(pair.first, pair.second).second) {
+                auto [line, col] = vs.line_info();
+                throw CompileError(
+                    "Duplicate data binding for '" + pair.first + "'",
+                    SourceLocation{static_cast<uint32_t>(line), static_cast<uint32_t>(col)});
+            }
         }
         return map;
     };
@@ -310,18 +323,18 @@ peg::parser create_parser() {
         return std::any_cast<EffortLevel>(vs[0]);
     };
 
-    p["OperationCall"] = [](const peg::SemanticValues &vs) -> OperationDirective {
+    p["OperationCall"] = [](const peg::SemanticValues &vs, std::any &dt) -> OperationDirective {
         OperationDirective op;
         auto [line, col] = vs.line_info();
         op.loc = SourceLocation{static_cast<uint32_t>(line), static_cast<uint32_t>(col)};
         op.kind = std::any_cast<OperationKind>(vs[0]);
         op.target_variable = std::any_cast<std::string>(vs[1]);
-        for (size_t i = 2; i < vs.size(); ++i) {
-            if (vs[i].type() == typeid(std::unordered_map<std::string, std::string>)) {
-                op.data_bindings = std::any_cast<std::unordered_map<std::string, std::string>>(vs[i]);
-            } else if (vs[i].type() == typeid(EffortLevel)) {
-                op.effort = std::any_cast<EffortLevel>(vs[i]);
-            }
+        if (!get_context(dt).types.contains(op.target_variable)) {
+            throw CompileError("Undefined operation target '" + op.target_variable + "'", op.loc);
+        }
+        op.data_bindings = std::any_cast<std::unordered_map<std::string, std::string>>(vs[2]);
+        if (vs.size() > 3) {
+            op.effort = std::any_cast<EffortLevel>(vs[3]);
         }
         if (op.data_bindings.empty()) {
             throw CompileError("Missing required data_bindings for operation directive", op.loc);
@@ -339,20 +352,11 @@ peg::parser create_parser() {
     };
 
     p["Program"] = [](const peg::SemanticValues &vs) -> ProgramManifest {
-        ProgramManifest prog;
-        for (const auto &v : vs) {
-            if (v.type() == typeid(std::vector<SymbolDecl>)) {
-                auto syms = std::any_cast<std::vector<SymbolDecl>>(v);
-                prog.symbols.insert(prog.symbols.end(), syms.begin(), syms.end());
-            } else if (v.type() == typeid(std::vector<NamedExpr>)) {
-                auto exprs = std::any_cast<std::vector<NamedExpr>>(v);
-                prog.expressions.insert(prog.expressions.end(), exprs.begin(), exprs.end());
-            } else if (v.type() == typeid(std::vector<OperationDirective>)) {
-                auto ops = std::any_cast<std::vector<OperationDirective>>(v);
-                prog.operations.insert(prog.operations.end(), ops.begin(), ops.end());
-            }
-        }
-        return prog;
+        return {
+            std::any_cast<std::vector<SymbolDecl>>(vs[0]),
+            std::any_cast<std::vector<NamedExpr>>(vs[1]),
+            std::any_cast<std::vector<OperationDirective>>(vs[2]),
+        };
     };
 
     return p;
@@ -360,11 +364,13 @@ peg::parser create_parser() {
 
 Expression substitute_identifiers(
     const Expression &expr, const std::unordered_map<std::string, Expression> &expr_map,
-    std::unordered_set<std::string> &active_stack, const std::unordered_map<std::string, SourceLocation> &expr_locs);
+    std::unordered_set<std::string> &active_stack, const std::unordered_map<std::string, SourceLocation> &expr_locs,
+    SourceLocation loc);
 
 ScalarExpr substitute_scalar(
     const ScalarExpr &s, const std::unordered_map<std::string, Expression> &expr_map,
-    std::unordered_set<std::string> &active_stack, const std::unordered_map<std::string, SourceLocation> &expr_locs) {
+    std::unordered_set<std::string> &active_stack, const std::unordered_map<std::string, SourceLocation> &expr_locs,
+    SourceLocation loc) {
     if (s.op == ScalarOp::Var) {
         auto it = expr_map.find(s.var);
         if (it != expr_map.end()) {
@@ -373,7 +379,7 @@ ScalarExpr substitute_scalar(
                     "Cyclic dependency detected in expression definitions for '" + s.var + "'", expr_locs.at(s.var));
             }
             active_stack.insert(s.var);
-            Expression inlined = substitute_identifiers(it->second, expr_map, active_stack, expr_locs);
+            Expression inlined = substitute_identifiers(it->second, expr_map, active_stack, expr_locs, loc);
             active_stack.erase(s.var);
             if (const auto *inlined_s = std::get_if<ScalarExpr>(&inlined.atom)) {
                 return *inlined_s;
@@ -383,15 +389,25 @@ ScalarExpr substitute_scalar(
         return s;
     }
     ScalarExpr res = s;
+    bool all_constant = true;
     for (auto &child : res.children) {
-        child = substitute_scalar(child, expr_map, active_stack, expr_locs);
+        child = substitute_scalar(child, expr_map, active_stack, expr_locs, loc);
+        all_constant = all_constant && child.op == ScalarOp::Value;
+    }
+    // Fold as substitution returns, including constant denominators with symbolic numerators.
+    if (res.op == ScalarOp::Div && res.children[1].op == ScalarOp::Value && res.children[1].val == 0.0) {
+        throw CompileError("Division by zero", loc);
+    }
+    if (all_constant) {
+        return {res.evaluate()};
     }
     return res;
 }
 
 Expression substitute_identifiers(
     const Expression &expr, const std::unordered_map<std::string, Expression> &expr_map,
-    std::unordered_set<std::string> &active_stack, const std::unordered_map<std::string, SourceLocation> &expr_locs) {
+    std::unordered_set<std::string> &active_stack, const std::unordered_map<std::string, SourceLocation> &expr_locs,
+    SourceLocation loc) {
 
     if (const auto *sym = std::get_if<uint32_t>(&expr.atom)) {
         std::string name = get_string_from_lookup(*sym);
@@ -402,7 +418,7 @@ Expression substitute_identifiers(
                     "Cyclic dependency detected in expression definitions for '" + name + "'", expr_locs.at(name));
             }
             active_stack.insert(name);
-            Expression inlined = substitute_identifiers(it->second, expr_map, active_stack, expr_locs);
+            Expression inlined = substitute_identifiers(it->second, expr_map, active_stack, expr_locs, loc);
             active_stack.erase(name);
             return inlined;
         }
@@ -410,12 +426,12 @@ Expression substitute_identifiers(
     }
 
     if (const auto *scalar = std::get_if<ScalarExpr>(&expr.atom)) {
-        return Expression(substitute_scalar(*scalar, expr_map, active_stack, expr_locs));
+        return Expression(substitute_scalar(*scalar, expr_map, active_stack, expr_locs, loc));
     }
 
     Expression res = expr;
     for (size_t i = 0; i < expr.children.size(); ++i) {
-        res.children[i] = substitute_identifiers(expr.children[i], expr_map, active_stack, expr_locs);
+        res.children[i] = substitute_identifiers(expr.children[i], expr_map, active_stack, expr_locs, loc);
     }
     return res;
 }
@@ -431,7 +447,7 @@ void inline_intermediate_expressions(ProgramManifest &prog) {
     for (auto &ed : prog.expressions) {
         std::unordered_set<std::string> active_stack;
         active_stack.insert(ed.name);
-        ed.expr = substitute_identifiers(ed.expr, raw_map, active_stack, loc_map);
+        ed.expr = substitute_identifiers(ed.expr, raw_map, active_stack, loc_map, ed.loc);
     }
 }
 

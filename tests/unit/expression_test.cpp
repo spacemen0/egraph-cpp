@@ -5,6 +5,19 @@
 #include <gtest/gtest.h>
 using namespace egraph;
 
+TEST(ScalarExpression, RejectsZeroDenominatorAtEvaluation) {
+    const auto expr = ScalarExpr(1.0) / ScalarExpr("alpha");
+    EXPECT_THROW(expr.evaluate({{"alpha", {0.0}}}), std::domain_error);
+    EXPECT_THROW(expr.evaluate({{"alpha", {-0.0}}}), std::domain_error);
+    EXPECT_DOUBLE_EQ(expr.evaluate({{"alpha", {4.0}}}), 0.25);
+}
+
+TEST(ScalarExpression, RejectsComputedZeroDenominatorAtEvaluation) {
+    const auto expr = ScalarExpr(2.0) / (ScalarExpr("alpha") - 1.0);
+    EXPECT_THROW(expr.evaluate({{"alpha", {1.0}}}), std::domain_error);
+    EXPECT_DOUBLE_EQ(expr.evaluate({{"alpha", {3.0}}}), 1.0);
+}
+
 TEST(Expression, ParseVariable) {
     Expression p("X");
     EXPECT_EQ(std::get<uint32_t>(p.atom), register_string_in_lookup("X"));

@@ -25,59 +25,86 @@ protected:
 
 } // namespace
 
+TEST_F(EGraphParserTest, AcceptsRequiredEmptyBlocks) {
+    auto manifest = parse_program("symbols {} expressions {} operations {}");
+    EXPECT_TRUE(manifest.symbols.empty());
+    EXPECT_TRUE(manifest.expressions.empty());
+    EXPECT_TRUE(manifest.operations.empty());
+}
+
+TEST_F(EGraphParserTest, RejectsMissingProgramBlocks) {
+    for (const auto *script :
+         {"", "symbols {}", "expressions {}", "operations {}", "symbols {} expressions {}", "symbols {} operations {}",
+          "expressions {} operations {}"}) {
+        SCOPED_TRACE(script);
+        EXPECT_THROW(parse_program(script), SyntaxError);
+    }
+}
+
+TEST_F(EGraphParserTest, RejectsReorderedOrRepeatedProgramBlocks) {
+    for (const auto *script :
+         {"symbols {} operations {} expressions {}", "expressions {} symbols {} operations {}",
+          "expressions {} operations {} symbols {}", "operations {} symbols {} expressions {}",
+          "operations {} expressions {} symbols {}", "symbols {} symbols {} expressions {} operations {}",
+          "symbols {} expressions {} expressions {} operations {}",
+          "symbols {} expressions {} operations {} operations {}"}) {
+        SCOPED_TRACE(script);
+        EXPECT_THROW(parse_program(script), SyntaxError);
+    }
+}
+
 TEST_F(EGraphParserTest, RegressionTestsSyntaxValidity) {
     // 1. x = 2.5; -> Valid
-    EXPECT_TRUE(parse_and_check_syntax("expressions { x = 2.5; }"));
+    EXPECT_TRUE(parse_and_check_syntax("symbols {} expressions { x = 2.5; } operations {}"));
 
     // 2. x = -2.5; -> Valid
-    EXPECT_TRUE(parse_and_check_syntax("expressions { x = -2.5; }"));
+    EXPECT_TRUE(parse_and_check_syntax("symbols {} expressions { x = -2.5; } operations {}"));
 
     // 3. x = 2; -> Invalid (double requires decimal dot and fractional digits)
-    EXPECT_FALSE(parse_and_check_syntax("expressions { x = 2; }"));
+    EXPECT_FALSE(parse_and_check_syntax("symbols {} expressions { x = 2; } operations {}"));
 
     // 4. x = 2.; -> Invalid (double requires trailing fractional digits)
-    EXPECT_FALSE(parse_and_check_syntax("expressions { x = 2.; }"));
+    EXPECT_FALSE(parse_and_check_syntax("symbols {} expressions { x = 2.; } operations {}"));
 
     // 5. x = a-2.5; -> Valid
-    EXPECT_TRUE(parse_and_check_syntax("expressions { x = a - 2.5; }"));
+    EXPECT_TRUE(parse_and_check_syntax("symbols { a: Scalar; } expressions { x = a - 2.5; } operations {}"));
 
     // 6. x = a--2.5; -> Valid
-    EXPECT_TRUE(parse_and_check_syntax("expressions { x = a - -2.5; }"));
+    EXPECT_TRUE(parse_and_check_syntax("symbols { a: Scalar; } expressions { x = a - -2.5; } operations {}"));
 
     // 7. Matrix: Scalar; -> Invalid (Matrix is reserved keyword)
-    EXPECT_FALSE(parse_and_check_syntax("symbols { Matrix : Scalar; }"));
+    EXPECT_FALSE(parse_and_check_syntax("symbols { Matrix : Scalar; } expressions {} operations {}"));
 
     // 8. Matrix2: Scalar; -> Valid
-    EXPECT_TRUE(parse_and_check_syntax("symbols { Matrix2 : Scalar; }"));
+    EXPECT_TRUE(parse_and_check_syntax("symbols { Matrix2 : Scalar; } expressions {} operations {}"));
 
     // 9. trans: Matrix; -> Invalid (trans is reserved keyword)
-    EXPECT_FALSE(parse_and_check_syntax("symbols { trans : Matrix; }"));
+    EXPECT_FALSE(parse_and_check_syntax("symbols { trans : Matrix; } expressions {} operations {}"));
 
     // 10. transpose: Matrix; -> Valid
-    EXPECT_TRUE(parse_and_check_syntax("symbols { transpose : Matrix; }"));
+    EXPECT_TRUE(parse_and_check_syntax("symbols { transpose : Matrix; } expressions {} operations {}"));
 
     // 11. x = 1.0e3; -> Invalid (scientific exponent notation not allowed)
-    EXPECT_FALSE(parse_and_check_syntax("expressions { x = 1.0e3; }"));
+    EXPECT_FALSE(parse_and_check_syntax("symbols {} expressions { x = 1.0e3; } operations {}"));
 
     // 12. evaluate(A,{file="a.csv"}); -> Valid
     EXPECT_TRUE(parse_and_check_syntax(
         "symbols { A : Matrix; }\n"
         "expressions { e = A; }\n"
-        "operations { evaluate(e, { A = \"a.csv\" }); }"
-    ));
+        "operations { evaluate(e, { A = \"a.csv\" }); }"));
 
     // 13. evaluate(A,{count=10}); -> Invalid (count=10 is not string literal)
     EXPECT_FALSE(parse_and_check_syntax(
         "symbols { A : Matrix; }\n"
         "expressions { e = A; }\n"
-        "operations { evaluate(e, { count = 10 }); }"
-    ));
+        "operations { evaluate(e, { count = 10 }); }"));
 
     // 14. Valid property literals
-    EXPECT_TRUE(parse_and_check_syntax("symbols { A : Matrix { symmetric, positive_definite }; }"));
+    EXPECT_TRUE(parse_and_check_syntax(
+        "symbols { A : Matrix { symmetric, positive_definite }; } expressions {} operations {}"));
 
     // 15. Invalid property literal
-    EXPECT_FALSE(parse_and_check_syntax("symbols { A : Matrix { unknown_prop }; }"));
+    EXPECT_FALSE(parse_and_check_syntax("symbols { A : Matrix { unknown_prop }; } expressions {} operations {}"));
 }
 
 TEST_F(EGraphParserTest, LowersCompleteValidProgram) {
@@ -92,7 +119,7 @@ TEST_F(EGraphParserTest, LowersCompleteValidProgram) {
             e2 = e1 + A;
         }
         operations {
-            extract_best(e2, effort = high, { A = "a.csv", B = "b.csv" });
+            extract_best(e2, { A = "a.csv", B = "b.csv" }, effort = high);
         }
     )";
 
@@ -127,7 +154,7 @@ TEST_F(EGraphParserTest, LowersCompleteValidProgram) {
     EXPECT_EQ(op.data_bindings.at("B"), "b.csv");
 }
 
-TEST_F(EGraphParserTest, LowersOperationsWithDifferentArgOrderAndCommas) {
+TEST_F(EGraphParserTest, LowersOperationsWithOptionalEffortAfterBindings) {
     std::string script = R"(
         symbols {
             A : Matrix;
@@ -137,7 +164,7 @@ TEST_F(EGraphParserTest, LowersOperationsWithDifferentArgOrderAndCommas) {
         }
         operations {
             extract_best(e, { A = "a.csv" }, effort = low);
-            evaluate(e, effort = medium, { A = "a.csv" });
+            evaluate(e, { A = "a.csv" }, effort = medium);
             extract_all(e, { A = "a.csv" });
         }
     )";
@@ -174,6 +201,100 @@ TEST_F(EGraphParserTest, DesugarsScalarDivision) {
     ProgramManifest manifest = parse_program(script);
     ASSERT_EQ(manifest.expressions.size(), 1);
     EXPECT_EQ(manifest.expressions[0].expr, scale(Expression("A"), 0.5));
+}
+
+TEST_F(EGraphParserTest, RejectsMalformedOrRepeatedOperationArguments) {
+    for (const auto *call : {
+             "evaluate(e { A=\"a.csv\" } lowhigh);",
+             "evaluate(e { A=\"a.csv\" });",
+             "evaluate(e, { A=\"a.csv\" } effort=low);",
+             "evaluate(e, effort=low { A=\"a.csv\" });",
+             "evaluate(e, { A=\"a.csv\" }, lowhigh);",
+             "evaluate(e, { A=\"a.csv\" }, low1);",
+             "evaluate(e, effort=low, effort=high, { A=\"a.csv\" });",
+             "evaluate(e, { A=\"a.csv\" }, low, high);",
+             "evaluate(e, { A=\"a.csv\" }, { A=\"b.csv\" });",
+             "evaluate(e, high, { A=\"a.csv\" }, { A=\"b.csv\" });",
+         }) {
+        SCOPED_TRACE(call);
+        const std::string script =
+            "symbols { A: Matrix; } expressions { e=A; } operations { " + std::string(call) + " }";
+        EXPECT_THROW(parse_program(script), SyntaxError);
+    }
+}
+
+TEST_F(EGraphParserTest, RejectsEffortBeforeBindings) {
+    for (const auto *call :
+         {"evaluate(e, low, { A=\"a.csv\" });", "extract_best(e, effort=high, { A=\"a.csv\" });",
+          "extract_all(e, medium, { A=\"a.csv\" });"}) {
+        SCOPED_TRACE(call);
+        const std::string script =
+            "symbols { A: Matrix; } expressions { e=A; } operations { " + std::string(call) + " }";
+        EXPECT_THROW(parse_program(script), SyntaxError);
+    }
+}
+
+TEST_F(EGraphParserTest, AcceptsBareEffortAfterBindings) {
+    auto manifest = parse_program(R"(
+        symbols { A: Matrix; }
+        expressions { e=A; }
+        operations {
+            evaluate(e, { A="a.csv" }, low);
+            extract_best(e, { A="a.csv" }, high);
+        }
+    )");
+    ASSERT_EQ(manifest.operations.size(), 2);
+    EXPECT_EQ(manifest.operations[0].effort, EffortLevel::Low);
+    EXPECT_EQ(manifest.operations[1].effort, EffortLevel::High);
+    EXPECT_EQ(manifest.operations[0].data_bindings.at("A"), "a.csv");
+    EXPECT_EQ(manifest.operations[1].data_bindings.at("A"), "a.csv");
+}
+
+TEST_F(EGraphParserTest, RejectsDuplicateBindingKeys) {
+    EXPECT_THROW(
+        parse_program(R"(
+        symbols { A: Matrix; }
+        expressions { e=A; }
+        operations { evaluate(e, { A="a.csv", A="b.csv" }); }
+    )"),
+        CompileError);
+}
+
+TEST_F(EGraphParserTest, RejectsUnknownExpressionReferences) {
+    for (const auto *expression : {"typo", "A * typo", "typo + A", "e", "later"}) {
+        SCOPED_TRACE(expression);
+        const std::string script =
+            "symbols { A: Matrix; }\nexpressions {\n e=" + std::string(expression) + ";\n later=A;\n} operations {}";
+        try {
+            parse_program(script);
+            FAIL() << "Expected unknown reference to be rejected";
+        } catch (const CompileError &err) {
+            EXPECT_NE(std::string(err.what()).find("Undefined identifier"), std::string::npos);
+            EXPECT_EQ(err.location().line, 3);
+        }
+    }
+}
+
+TEST_F(EGraphParserTest, RejectsUnknownOperationTarget) {
+    try {
+        parse_program(R"(symbols { A: Matrix; }
+expressions { e=A; }
+operations { evaluate(missing, { A="a.csv" }); })");
+        FAIL() << "Expected unknown operation target to be rejected";
+    } catch (const CompileError &err) {
+        EXPECT_NE(std::string(err.what()).find("Undefined operation target"), std::string::npos);
+        EXPECT_EQ(err.location().line, 3);
+    }
+}
+
+TEST_F(EGraphParserTest, AcceptsDeclaredSymbolOperationTarget) {
+    auto manifest = parse_program(R"(
+        symbols { A: Matrix; }
+        expressions {}
+        operations { evaluate(A, { A="a.csv" }); }
+    )");
+    ASSERT_EQ(manifest.operations.size(), 1);
+    EXPECT_EQ(manifest.operations[0].target_variable, "A");
 }
 
 TEST_F(EGraphParserTest, RejectsMatrixDivision) {
@@ -227,6 +348,70 @@ TEST_F(EGraphParserTest, RejectsDivisionByZero) {
         CompileError);
 }
 
+TEST_F(EGraphParserTest, RejectsZeroDenominatorsAfterScalarSubstitution) {
+    for (const auto *expression : {"A / z", "1.0 / z", "alpha / z", "A / (two - two)", "A / (alpha * (1.0 / z))"}) {
+        SCOPED_TRACE(expression);
+        const std::string script = "symbols { A : Matrix; alpha : Scalar; }\n"
+                                   "expressions {\n"
+                                   "  two = 2.0;\n"
+                                   "  z = two - two;\n"
+                                   "  e = " +
+                                   std::string(expression) + ";\n} operations {}";
+        try {
+            parse_program(script);
+            FAIL() << "Expected division by zero to be rejected";
+        } catch (const CompileError &err) {
+            EXPECT_NE(std::string(err.what()).find("Division by zero"), std::string::npos);
+            EXPECT_EQ(err.location().line, 5);
+        }
+    }
+}
+
+TEST_F(EGraphParserTest, FoldsScalarAliasesInsideMatrixExpressions) {
+    auto manifest = parse_program(R"(
+        symbols { A : Matrix; }
+        expressions {
+            s = 2.0;
+            t = s + 2.0;
+            e = A + trans(A / t);
+        }
+        operations {}
+    )");
+    EXPECT_EQ(manifest.expressions[1].expr, Expression(4.0));
+    EXPECT_EQ(manifest.expressions[2].expr, Expression("A") + transpose(scale(Expression("A"), 0.25)));
+}
+
+TEST_F(EGraphParserTest, FoldsScalarArithmeticAfterSubstitution) {
+    auto manifest = parse_program(R"(
+        symbols {}
+        expressions {
+            s = 2.0;
+            e = -(s + 4.0) * (s - 1.0) / s;
+        }
+        operations {}
+    )");
+    EXPECT_EQ(manifest.expressions[1].expr, Expression(-3.0));
+}
+
+TEST_F(EGraphParserTest, PreservesSymbolicScalarPayloadAfterFoldingConstants) {
+    auto manifest = parse_program(R"(
+        symbols { A : Matrix; alpha : Scalar; }
+        expressions {
+            s = 2.0;
+            e = A / (alpha + s * s);
+        }
+        operations {}
+    )");
+    const auto &expr = manifest.expressions[1].expr;
+    ASSERT_EQ(expr.children.size(), 2);
+    const auto &coefficient = expr.children[1];
+    EXPECT_TRUE(coefficient.children.empty());
+    ASSERT_TRUE(std::holds_alternative<ScalarExpr>(coefficient.atom));
+    const auto &scalar = std::get<ScalarExpr>(coefficient.atom);
+    EXPECT_EQ(scalar, ScalarExpr(1.0) / (ScalarExpr("alpha") + 4.0));
+    EXPECT_DOUBLE_EQ(scalar.evaluate({{"alpha", {4.0}}}), 0.125);
+}
+
 TEST_F(EGraphParserTest, ArithmeticPrecedenceAndParentheses) {
     std::string script = R"(
         symbols {
@@ -254,7 +439,7 @@ TEST_F(EGraphParserTest, ArithmeticPrecedenceAndParentheses) {
     EXPECT_EQ(manifest.expressions[3].expr, -Expression("A"));
 }
 
-TEST_F(EGraphParserTest, DetectsCyclicDependency) {
+TEST_F(EGraphParserTest, RejectsForwardReferenceBeforeCycleCanBeFormed) {
     std::string script = R"(
         symbols {
             A : Matrix;
@@ -273,7 +458,7 @@ TEST_F(EGraphParserTest, DetectsCyclicDependency) {
             try {
                 parse_program(script);
             } catch (const CompileError &err) {
-                EXPECT_TRUE(std::string(err.what()).find("Cyclic dependency") != std::string::npos);
+                EXPECT_TRUE(std::string(err.what()).find("Undefined identifier 'e2'") != std::string::npos);
                 throw;
             }
         },
@@ -289,7 +474,7 @@ TEST_F(EGraphParserTest, MissingDataBindingsThrowsCompileError) {
             e = A;
         }
         operations {
-            extract_best(e {} effort = low);
+            extract_best(e, {}, effort = low);
         }
     )";
 
