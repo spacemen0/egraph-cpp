@@ -9,12 +9,13 @@
 #include <string_view>
 #include <utility>
 #include <variant>
-#include <vecLib/cblas_new.h>
+
 #include <vector>
 
 #ifdef __APPLE__
 #include "lapacke_accelerate.h"
 #include <vecLib/cblas.h>
+#include <vecLib/cblas_new.h>
 #else
 #include <cblas.h>
 #include <lapacke.h>
