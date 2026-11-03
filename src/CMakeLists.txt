@@ -18,6 +18,7 @@ add_library(egraph_core_lib STATIC
     evaluate/evaluator.cpp
     cost_functions/op_costs.cpp
     frontend/egraph_parser.cpp
+    frontend/manifest_writer.cpp
 )
 target_link_libraries(egraph_core_lib PUBLIC peglib)
 target_include_directories(egraph_core_lib PUBLIC

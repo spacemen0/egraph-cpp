@@ -16,6 +16,7 @@ add_executable(unit_tests
     unit/utils_test.cpp
     unit/config_test.cpp
     unit/egraph_parser_test.cpp
+    unit/manifest_writer_test.cpp
     integration/api_test.cpp
     integration/integration_test.cpp
     integration/pruner_test.cpp
