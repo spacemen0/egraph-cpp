@@ -84,6 +84,17 @@ if(TARGET mimalloc)
     target_link_options(mimalloc PRIVATE -fno-sanitize=address)
 endif()
 
+set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(
+  peglib
+  GIT_REPOSITORY https://github.com/yhirose/cpp-peglib.git
+  GIT_TAG        v1.9.1
+)
+FetchContent_MakeAvailable(peglib)
+if(TARGET peglib)
+    target_include_directories(peglib SYSTEM INTERFACE ${peglib_SOURCE_DIR})
+endif()
+
 if(ENABLE_ASAN AND WIN32 AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     execute_process(
         COMMAND ${CMAKE_CXX_COMPILER} -print-resource-dir
