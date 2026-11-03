@@ -160,10 +160,7 @@ module.exports = grammar({
         ),
 
         primary: $ => choice(
-            seq(
-                $.identifier,
-                optional($.property_flags),
-            ),
+            $.identifier,
             $.double,
             $.matrix_op,
             seq('(', $.expr, ')'),
@@ -195,7 +192,8 @@ module.exports = grammar({
             choice('extract_best', 'extract_all'),
             '(',
             $.identifier,
-            optional(seq(',', $.call_options)),
+            $.data_bindings,
+            optional($.effort_spec),
             ')',
             ';',
         ),
@@ -204,17 +202,10 @@ module.exports = grammar({
             'evaluate',
             '(',
             $.identifier,
-            optional(seq(',', $.call_options)),
+            $.data_bindings,
+            optional($.effort_spec),
             ')',
             ';',
-        ),
-
-        call_options: $ => choice(
-            seq(
-                $.effort_spec,
-                optional(seq(',', $.data_bindings)),
-            ),
-            $.data_bindings,
         ),
 
         effort_spec: $ => seq(

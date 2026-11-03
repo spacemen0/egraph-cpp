@@ -48,25 +48,6 @@
     }
   },
   {
-    "type": "call_options",
-    "named": true,
-    "fields": {},
-    "children": {
-      "multiple": true,
-      "required": true,
-      "types": [
-        {
-          "type": "data_bindings",
-          "named": true
-        },
-        {
-          "type": "effort_spec",
-          "named": true
-        }
-      ]
-    }
-  },
-  {
     "type": "data_binding",
     "named": true,
     "fields": {},
@@ -144,7 +125,11 @@
       "required": true,
       "types": [
         {
-          "type": "call_options",
+          "type": "data_bindings",
+          "named": true
+        },
+        {
+          "type": "effort_spec",
           "named": true
         },
         {
@@ -220,7 +205,11 @@
       "required": true,
       "types": [
         {
-          "type": "call_options",
+          "type": "data_bindings",
+          "named": true
+        },
+        {
+          "type": "effort_spec",
           "named": true
         },
         {
@@ -284,7 +273,7 @@
     "named": true,
     "fields": {},
     "children": {
-      "multiple": true,
+      "multiple": false,
       "required": true,
       "types": [
         {
@@ -301,10 +290,6 @@
         },
         {
           "type": "matrix_op",
-          "named": true
-        },
-        {
-          "type": "property_flags",
           "named": true
         }
       ]

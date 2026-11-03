@@ -412,25 +412,8 @@
       "type": "CHOICE",
       "members": [
         {
-          "type": "SEQ",
-          "members": [
-            {
-              "type": "SYMBOL",
-              "name": "identifier"
-            },
-            {
-              "type": "CHOICE",
-              "members": [
-                {
-                  "type": "SYMBOL",
-                  "name": "property_flags"
-                },
-                {
-                  "type": "BLANK"
-                }
-              ]
-            }
-          ]
+          "type": "SYMBOL",
+          "name": "identifier"
         },
         {
           "type": "SYMBOL",
@@ -563,20 +546,15 @@
           "name": "identifier"
         },
         {
+          "type": "SYMBOL",
+          "name": "data_bindings"
+        },
+        {
           "type": "CHOICE",
           "members": [
             {
-              "type": "SEQ",
-              "members": [
-                {
-                  "type": "STRING",
-                  "value": ","
-                },
-                {
-                  "type": "SYMBOL",
-                  "name": "call_options"
-                }
-              ]
+              "type": "SYMBOL",
+              "name": "effort_spec"
             },
             {
               "type": "BLANK"
@@ -609,20 +587,15 @@
           "name": "identifier"
         },
         {
+          "type": "SYMBOL",
+          "name": "data_bindings"
+        },
+        {
           "type": "CHOICE",
           "members": [
             {
-              "type": "SEQ",
-              "members": [
-                {
-                  "type": "STRING",
-                  "value": ","
-                },
-                {
-                  "type": "SYMBOL",
-                  "name": "call_options"
-                }
-              ]
+              "type": "SYMBOL",
+              "name": "effort_spec"
             },
             {
               "type": "BLANK"
@@ -636,45 +609,6 @@
         {
           "type": "STRING",
           "value": ";"
-        }
-      ]
-    },
-    "call_options": {
-      "type": "CHOICE",
-      "members": [
-        {
-          "type": "SEQ",
-          "members": [
-            {
-              "type": "SYMBOL",
-              "name": "effort_spec"
-            },
-            {
-              "type": "CHOICE",
-              "members": [
-                {
-                  "type": "SEQ",
-                  "members": [
-                    {
-                      "type": "STRING",
-                      "value": ","
-                    },
-                    {
-                      "type": "SYMBOL",
-                      "name": "data_bindings"
-                    }
-                  ]
-                },
-                {
-                  "type": "BLANK"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "SYMBOL",
-          "name": "data_bindings"
         }
       ]
     },
