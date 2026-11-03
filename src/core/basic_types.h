@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdexcept>
 #include <string>
 #include <sys/types.h>
 #include <unordered_map>
@@ -58,12 +59,17 @@ struct ScalarExpr {
             return children[0].evaluate(bindings) - children[1].evaluate(bindings);
         case ScalarOp::Mul:
             return children[0].evaluate(bindings) * children[1].evaluate(bindings);
-        case ScalarOp::Div:
-            return children[0].evaluate(bindings) / children[1].evaluate(bindings);
+        case ScalarOp::Div: {
+            const double denominator = children[1].evaluate(bindings);
+            if (denominator == 0.0) {
+                throw std::domain_error("Division by zero");
+            }
+            return children[0].evaluate(bindings) / denominator;
+        }
         case ScalarOp::Neg:
             return -children[0].evaluate(bindings);
         }
-        return 0.0;
+        throw std::runtime_error("No Valid ScalarOp for evaluation");
     }
 
     std::string to_string() const {
