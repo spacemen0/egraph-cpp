@@ -6,7 +6,6 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -86,6 +85,7 @@ struct ParseContext {
     // expression can either eventually represent a matrix or s scalar
     // a symbol is either a matrix or a scalar
     std::unordered_map<std::string, SymbolKind> types;
+    std::unordered_map<std::string, Expression> expressions;
 };
 
 inline ParseContext &get_context(std::any &dt) { return *std::any_cast<ParseContext *>(dt); }
@@ -166,6 +166,9 @@ peg::parser create_parser() {
             throw CompileError(
                 "Undefined identifier '" + name + "'",
                 SourceLocation{static_cast<uint32_t>(line), static_cast<uint32_t>(col)});
+        }
+        if (ctx.expressions.contains(name)) {
+            return ctx.expressions.at(name);
         }
         if (it->second == SymbolKind::Scalar) {
             return Expression(ScalarExpr(name));
@@ -273,6 +276,7 @@ peg::parser create_parser() {
         }
         ctx.types[decl.name] =
             std::holds_alternative<ScalarExpr>(decl.expr.atom) ? SymbolKind::Scalar : SymbolKind::Matrix;
+        ctx.expressions[decl.name] = decl.expr;
         return decl;
     };
 
@@ -387,94 +391,6 @@ peg::parser create_parser() {
     return p;
 }
 
-Expression substitute_identifiers(
-    const Expression &expr, const std::unordered_map<std::string, Expression> &expr_map,
-    std::unordered_set<std::string> &active_stack, const std::unordered_map<std::string, SourceLocation> &expr_locs,
-    SourceLocation loc);
-
-ScalarExpr substitute_scalar(
-    const ScalarExpr &s, const std::unordered_map<std::string, Expression> &expr_map,
-    std::unordered_set<std::string> &active_stack, const std::unordered_map<std::string, SourceLocation> &expr_locs,
-    SourceLocation loc) {
-    if (s.op == ScalarOp::Var) {
-        auto it = expr_map.find(s.var);
-        if (it != expr_map.end()) {
-            if (active_stack.contains(s.var)) {
-                throw CompileError(
-                    "Cyclic dependency detected in expression definitions for '" + s.var + "'", expr_locs.at(s.var));
-            }
-            active_stack.insert(s.var);
-            Expression inlined = substitute_identifiers(it->second, expr_map, active_stack, expr_locs, loc);
-            active_stack.erase(s.var);
-            if (const auto *inlined_s = std::get_if<ScalarExpr>(&inlined.atom)) {
-                return *inlined_s;
-            }
-            throw CompileError("Referenced expression '" + s.var + "' is not a scalar expression", expr_locs.at(s.var));
-        }
-        return s;
-    }
-    ScalarExpr res = s;
-    bool all_constant = true;
-    for (auto &child : res.children) {
-        child = substitute_scalar(child, expr_map, active_stack, expr_locs, loc);
-        all_constant = all_constant && child.op == ScalarOp::Value;
-    }
-    // Fold as substitution returns, including constant denominators with symbolic numerators.
-    if (res.op == ScalarOp::Div && res.children[1].op == ScalarOp::Value && res.children[1].val == 0.0) {
-        throw CompileError("Division by zero", loc);
-    }
-    if (all_constant) {
-        return {res.evaluate()};
-    }
-    return res;
-}
-
-Expression substitute_identifiers(
-    const Expression &expr, const std::unordered_map<std::string, Expression> &expr_map,
-    std::unordered_set<std::string> &active_stack, const std::unordered_map<std::string, SourceLocation> &expr_locs,
-    SourceLocation loc) {
-
-    if (const auto *sym = std::get_if<uint32_t>(&expr.atom)) {
-        std::string name = get_string_from_lookup(*sym);
-        auto it = expr_map.find(name);
-        if (it != expr_map.end()) {
-            if (active_stack.contains(name)) {
-                throw CompileError(
-                    "Cyclic dependency detected in expression definitions for '" + name + "'", expr_locs.at(name));
-            }
-            active_stack.insert(name);
-            Expression inlined = substitute_identifiers(it->second, expr_map, active_stack, expr_locs, loc);
-            active_stack.erase(name);
-            return inlined;
-        }
-        return expr;
-    }
-
-    if (const auto *scalar = std::get_if<ScalarExpr>(&expr.atom)) {
-        return Expression(substitute_scalar(*scalar, expr_map, active_stack, expr_locs, loc));
-    }
-
-    Expression res = expr;
-    for (size_t i = 0; i < expr.children.size(); ++i) {
-        res.children[i] = substitute_identifiers(expr.children[i], expr_map, active_stack, expr_locs, loc);
-    }
-    return res;
-}
-
-void inline_intermediate_expressions(ProgramManifest &prog) {
-    std::unordered_map<std::string, Expression> raw_map;
-    std::unordered_map<std::string, SourceLocation> loc_map;
-    for (const auto &ed : prog.expressions) {
-        raw_map[ed.name] = ed.expr;
-        loc_map[ed.name] = ed.loc;
-    }
-
-    for (auto &ed : prog.expressions) {
-        std::unordered_set<std::string> active_stack;
-        active_stack.insert(ed.name);
-        ed.expr = substitute_identifiers(ed.expr, raw_map, active_stack, loc_map, ed.loc);
-    }
-}
 } // namespace
 
 ProgramManifest parse_program(std::string_view source) {
@@ -494,7 +410,6 @@ ProgramManifest parse_program(std::string_view source) {
         throw SyntaxError(err_msg, err_loc);
     }
 
-    inline_intermediate_expressions(prog);
     return prog;
 }
 
