@@ -44,7 +44,7 @@ const char *GRAMMAR = R"(
     Factor           <- UnaryMinus / Primary
     UnaryMinus       <- '-' Factor
     Primary          <- Constant / Variable / MatrixOp / '(' Expr ')'
-    Constant         <- Double
+    Constant         <- Number
     Variable         <- Identifier
     MatrixOp         <- 'trans' '(' Expr ')' / 'inv' '(' Expr ')'
 
@@ -72,7 +72,7 @@ const char *GRAMMAR = R"(
                         ) ![a-zA-Z0-9_]
 
     Identifier       <- !ReservedWord < [a-zA-Z_][a-zA-Z0-9_]* >
-    Double           <- < [0-9]+ '.' [0-9]+ > ![eE0-9a-zA-Z_]
+    Number           <- < [0-9]+ '.' [0-9]+ / [0-9]+ > ![eE0-9a-zA-Z_]
     StringLiteral    <- < '"' [^"\r\n]* '"' >
     
     # Automatic whitespace and comment skipping
@@ -101,7 +101,7 @@ peg::parser create_parser() {
         return vs.token_to_string();
     };
 
-    p["Double"] = [](const peg::SemanticValues &vs) -> double {
+    p["Number"] = [](const peg::SemanticValues &vs) -> double {
         return std::stod(vs.token_to_string());
     };
 

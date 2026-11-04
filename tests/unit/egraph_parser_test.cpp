@@ -60,8 +60,8 @@ TEST_F(EGraphParserTest, RegressionTestsSyntaxValidity) {
     // 2. x = -2.5; -> Valid
     EXPECT_TRUE(parse_and_check_syntax("symbols {} expressions { x = -2.5; } operations {}"));
 
-    // 3. x = 2; -> Invalid (double requires decimal dot and fractional digits)
-    EXPECT_FALSE(parse_and_check_syntax("symbols {} expressions { x = 2; } operations {}"));
+    // 3. x = 2; -> Valid (int or double scalar constant)
+    EXPECT_TRUE(parse_and_check_syntax("symbols {} expressions { x = 2; } operations {}"));
 
     // 4. x = 2.; -> Invalid (double requires trailing fractional digits)
     EXPECT_FALSE(parse_and_check_syntax("symbols {} expressions { x = 2.; } operations {}"));
@@ -760,4 +760,12 @@ TEST_F(EGraphParserTest, RejectsInvalidDimensionSyntax) {
 
     // Dimensions after property flags
     EXPECT_THROW(parse_program("symbols { A : Matrix { symmetric } (10, 20); } expressions {} operations {}"), SyntaxError);
+}
+
+TEST_F(EGraphParserTest, ParsesIntegerConstantAsDouble) {
+    auto manifest = parse_program("symbols {} expressions { x = 2; y = -5; z = 2 * 3; } operations {}");
+    ASSERT_EQ(manifest.expressions.size(), 3);
+    EXPECT_EQ(manifest.expressions[0].expr, Expression(2.0));
+    EXPECT_EQ(manifest.expressions[1].expr, Expression(-5.0));
+    EXPECT_EQ(manifest.expressions[2].expr, Expression(6.0));
 }
