@@ -323,8 +323,8 @@ peg::parser create_parser() {
         return std::any_cast<EffortLevel>(vs[0]);
     };
 
-    p["OperationCall"] = [](const peg::SemanticValues &vs, std::any &dt) -> OperationDirective {
-        OperationDirective op;
+    p["OperationCall"] = [](const peg::SemanticValues &vs, std::any &dt) -> OperationDesc {
+        OperationDesc op;
         auto [line, col] = vs.line_info();
         op.loc = SourceLocation{static_cast<uint32_t>(line), static_cast<uint32_t>(col)};
         op.kind = std::any_cast<OperationKind>(vs[0]);
@@ -342,11 +342,11 @@ peg::parser create_parser() {
         return op;
     };
 
-    p["OperationsBlock"] = [](const peg::SemanticValues &vs) -> std::vector<OperationDirective> {
-        std::vector<OperationDirective> ops;
+    p["OperationsBlock"] = [](const peg::SemanticValues &vs) -> std::vector<OperationDesc> {
+        std::vector<OperationDesc> ops;
         ops.reserve(vs.size());
         for (const auto &v : vs) {
-            ops.push_back(std::any_cast<OperationDirective>(v));
+            ops.push_back(std::any_cast<OperationDesc>(v));
         }
         return ops;
     };
@@ -355,7 +355,7 @@ peg::parser create_parser() {
         return {
             std::any_cast<std::vector<SymbolDecl>>(vs[0]),
             std::any_cast<std::vector<NamedExpr>>(vs[1]),
-            std::any_cast<std::vector<OperationDirective>>(vs[2]),
+            std::any_cast<std::vector<OperationDesc>>(vs[2]),
         };
     };
 

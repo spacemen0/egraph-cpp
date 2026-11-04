@@ -32,7 +32,7 @@ struct NamedExpr {
     SourceLocation loc;
 };
 
-struct OperationDirective {
+struct OperationDesc {
     OperationKind kind = OperationKind::ExtractBest;
     std::string target_variable;
     EffortLevel effort = EffortLevel::Medium;
@@ -43,7 +43,7 @@ struct OperationDirective {
 struct ProgramManifest {
     std::vector<SymbolDecl> symbols;
     std::vector<NamedExpr> expressions;
-    std::vector<OperationDirective> operations;
+    std::vector<OperationDesc> operations;
 };
 
 } // namespace egraph::frontend
