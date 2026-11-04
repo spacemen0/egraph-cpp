@@ -27,7 +27,8 @@ TEST(SystemTest, OLS) {
     Expression y = ctx.define_matrix("y", "a", 1);
     Expression target_math = (inverse(transpose(X) * X) * transpose(X)) * y;
 
-    ctx.optimize_symbolic(target_math);
+    auto ctx_output = ctx.add_output(target_math);
+    ctx.optimize();
     auto [x_sizes, x_data] = read_matrix("data/ols_x.csv");
     auto [y_sizes, y_data] = read_matrix("data/ols_y.csv");
 
@@ -47,8 +48,10 @@ TEST(SystemTest, OLS) {
     SizeBindings concrete_sizes = {{"a", x_sizes.first}, {"b", x_sizes.second}};
     DataBindings concrete_data = {{"X", x_data}, {"y", y_data}};
 
-    auto out = ctx.evaluate_concrete(concrete_sizes, concrete_data);
-    auto out_shape = bind_shape(ctx.get_property().shape, concrete_sizes);
+    auto ctx_results = ctx.evaluate(concrete_sizes, concrete_data);
+
+    const auto &out = ctx_results.get(ctx_output);
+    auto out_shape = bind_shape(ctx.get_property(ctx_output).shape, concrete_sizes);
     int row = std::get<int>(out_shape.first);
     int col = std::get<int>(out_shape.second);
 
@@ -69,7 +72,8 @@ TEST(SystemTest, GLS) {
     Expression y = ctx.define_matrix("y", "a", 1);
     Expression M = ctx.define_matrix("M", "a", "a", {"symmetric", "positive_definite"});
     Expression target_math = inverse(transpose(X) * inverse(M) * X) * transpose(X) * inverse(M) * y;
-    ctx.optimize_symbolic(target_math);
+    auto ctx_output = ctx.add_output(target_math);
+    ctx.optimize();
     auto [m_sizes, m_data] = read_matrix("data/gls_m.csv");
     auto [x_sizes, x_data] = read_matrix("data/gls_x.csv");
     auto [y_sizes, y_data] = read_matrix("data/gls_y.csv");
@@ -90,8 +94,10 @@ TEST(SystemTest, GLS) {
     SizeBindings concrete_sizes = {{"a", x_sizes.first}, {"b", x_sizes.second}};
     DataBindings concrete_data = {{"X", x_data}, {"M", m_data}, {"y", y_data}};
 
-    auto out = ctx.evaluate_concrete(concrete_sizes, concrete_data);
-    auto out_shape = bind_shape(ctx.get_property().shape, concrete_sizes);
+    auto ctx_results = ctx.evaluate(concrete_sizes, concrete_data);
+
+    const auto &out = ctx_results.get(ctx_output);
+    auto out_shape = bind_shape(ctx.get_property(ctx_output).shape, concrete_sizes);
     int row = std::get<int>(out_shape.first);
     int col = std::get<int>(out_shape.second);
 
@@ -125,7 +131,8 @@ TEST(SystemTest, StochasticNewton) {
     Expression inner_term = In - transpose(A) * W_k * inner_inv * transpose(W_k) * A * B;
     Expression target_math = scale(B * inner_term, scale_factor);
 
-    ctx.optimize_symbolic(target_math);
+    auto ctx_output = ctx.add_output(target_math);
+    ctx.optimize();
 
     // Read concrete matrix files
     auto [b_sizes, b_data] = read_matrix("data/stochastic_newton_b.csv");
@@ -155,8 +162,10 @@ TEST(SystemTest, StochasticNewton) {
     DataBindings concrete_data = {{"B", b_data},   {"In", in_data}, {"A", a_data},
                                   {"W_k", w_data}, {"Il", il_data}, {"k", std::vector<double>{10.0}}};
 
-    auto out = ctx.evaluate_concrete(concrete_sizes, concrete_data);
-    auto out_shape = bind_shape(ctx.get_property().shape, concrete_sizes);
+    auto ctx_results = ctx.evaluate(concrete_sizes, concrete_data);
+
+    const auto &out = ctx_results.get(ctx_output);
+    auto out_shape = bind_shape(ctx.get_property(ctx_output).shape, concrete_sizes);
     int row = std::get<int>(out_shape.first);
     int col = std::get<int>(out_shape.second);
 
@@ -202,24 +211,27 @@ TEST(SystemTest, ImageRestoration) {
     Expression math_2 = math_1 * y + (I - math_1 * H) * x;
 
     // math_1 passed as a background expression
-    ctx.optimize_symbolic(math_2, {math_1});
+    auto ctx_output = ctx.add_output(math_2);
+    auto ctx_math_1_output = ctx.add_output(math_1);
+    ctx.optimize();
 
     DataBindings concrete_data = {
         {"y", y_data}, {"H", h_data}, {"I", generate_identity_matrix(h_sizes.second)}, {"x", x_data}};
 
     // run extraction for both math_1 and math_2 if math_1 is not computed explicitly when computing math_2 (does not
     // appear as a e-class in the extraction result of math_2)
-    auto out2 = ctx.evaluate_concrete(concrete_sizes, concrete_data);
+    auto ctx_results = ctx.evaluate(concrete_sizes, concrete_data);
+    const auto &out2 = ctx_results.get(ctx_output);
 
-    auto out1 = ctx.get_preserved(math_1);
-    auto out1_shape = bind_shape(ctx.get_property(math_1).shape, concrete_sizes);
+    const auto &out1 = ctx_results.get(ctx_math_1_output);
+    auto out1_shape = bind_shape(ctx.get_property(ctx_math_1_output).shape, concrete_sizes);
     int row1 = std::get<int>(out1_shape.first);
     int col1 = std::get<int>(out1_shape.second);
     std::string out_path1 = "data/image_result_1.csv";
     write_matrix(out_path1, row1, col1, out1);
 
     // Retrieve target math_2
-    auto out2_shape = bind_shape(ctx.get_property().shape, concrete_sizes);
+    auto out2_shape = bind_shape(ctx.get_property(ctx_output).shape, concrete_sizes);
     int row2 = std::get<int>(out2_shape.first);
     int col2 = std::get<int>(out2_shape.second);
     std::string out_path2 = "data/image_result_2.csv";
@@ -268,11 +280,14 @@ TEST(SystemTest, KalmanGain) {
     Expression S_n = H * P_n_n_1 * transpose(H) + R_n;
     Expression K_n = P_n_n_1 * transpose(H) * inverse(S_n);
 
-    ctx.optimize_symbolic(K_n);
+    auto ctx_output = ctx.add_output(K_n);
+    ctx.optimize();
 
     DataBindings concrete_data = {{"P_n_n_1", P_n_n_1_data}, {"H", H_data}, {"R_n", R_n_data}};
 
-    auto out_K_n = ctx.evaluate_concrete(concrete_sizes, concrete_data);
+    auto ctx_results = ctx.evaluate(concrete_sizes, concrete_data);
+
+    const auto &out_K_n = ctx_results.get(ctx_output);
 
     write_matrix("data/kalman_result_K_n.csv", m_val, p_val, out_K_n);
 
@@ -333,7 +348,9 @@ TEST(SystemTest, KalmanFilter) {
     Expression K_n = P_n_n_1 * transpose(H) * inverse(S_n);
     Expression x_hat_n_n = x_hat_n_n_1 + K_n * (z_n - H * x_hat_n_n_1);
 
-    ctx_state.optimize_symbolic(x_hat_n_n, {K_n});
+    auto ctx_state_output = ctx_state.add_output(x_hat_n_n);
+    auto ctx_state_K_n_output = ctx_state.add_output(K_n);
+    ctx_state.optimize();
 
     DataBindings state_data = {
         {"P_n_n_1", P_n_n_1_data},
@@ -342,8 +359,10 @@ TEST(SystemTest, KalmanFilter) {
         {"x_hat_n_n_1", x_hat_n_n_1_data},
         {"z_n", z_n_data}};
 
-    auto out_x_hat_n_n = ctx_state.evaluate_concrete(concrete_sizes, state_data);
-    auto out_K_n = ctx_state.get_preserved(K_n);
+    auto ctx_state_results = ctx_state.evaluate(concrete_sizes, state_data);
+
+    const auto &out_x_hat_n_n = ctx_state_results.get(ctx_state_output);
+    const auto &out_K_n = ctx_state_results.get(ctx_state_K_n_output);
 
     // Save exact matrices 1 & 2: K_n and \hat{x}_{n, n}
     write_matrix("data/kalman_result_K_n.csv", m_val, p_val, out_K_n);
@@ -365,12 +384,15 @@ TEST(SystemTest, KalmanFilter) {
     Expression I_K_n_H = I - K_n_cov * H_cov;
     Expression P_n_n = I_K_n_H * P_n_n_1_cov * transpose(I_K_n_H) + K_n_cov * R_n_cov * transpose(K_n_cov);
 
-    ctx_cov.optimize_symbolic(P_n_n, {K_n_cov});
+    auto ctx_cov_output = ctx_cov.add_output(P_n_n);
+    ctx_cov.optimize();
 
     DataBindings cov_data = {
         {"P_n_n_1", P_n_n_1_data}, {"H", H_data}, {"R_n", R_n_data}, {"I", generate_identity_matrix(m_val)}};
 
-    auto out_P_n_n = ctx_cov.evaluate_concrete(concrete_sizes, cov_data);
+    auto ctx_cov_results = ctx_cov.evaluate(concrete_sizes, cov_data);
+
+    const auto &out_P_n_n = ctx_cov_results.get(ctx_cov_output);
 
     // Save exact matrix 3: P_{n, n}
     write_matrix("data/kalman_result_P_n_n.csv", m_val, m_val, out_P_n_n);

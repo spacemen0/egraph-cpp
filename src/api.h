@@ -9,31 +9,33 @@
 #include "pruner.h"
 #include "rewrite_sets.h"
 #include "rewriter.h"
-#include <array>
+#include <algorithm>
 #include <chrono>
 #include <iostream>
-#ifdef _WIN32
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#else
-#include <dlfcn.h>
-#endif
-#include <ostream>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
-namespace egraph {
-extern "C" void cblas_dgemm(
-    const int Order, const int TransA, const int TransB, const int M, const int N, const int K, const double alpha,
-    const double *A, const int lda, const double *B, const int ldb, const double beta, double *C, const int ldc);
+namespace egraph::EGraphRunner {
 
-namespace EGraphRunner {
+// Owns numerical values; later graph changes/evaluations do not invalidate them.
+class EvaluationResults {
+  public:
+    EvaluationResults() = default;
+    EvaluationResults(const EvaluationResults &) = default;
+    EvaluationResults &operator=(const EvaluationResults &) = default;
+    // MSVC's unordered_map move constructor can allocate and throw.
+    EvaluationResults(EvaluationResults &&) noexcept(false) = default;
+    EvaluationResults &operator=(EvaluationResults &&) noexcept(false) = default;
+
+    const std::vector<double> &get(Id output) const { return values.at(output); }
+
+  private:
+    std::unordered_map<Id, std::vector<double>> values;
+    friend class Context;
+};
 
 // --- Optimization Context ---
 class Context {
@@ -91,10 +93,12 @@ class Context {
         return Expression(name);
     }
 
-    Id add(const Expression &expr) {
-        Id id = egraph.add_expression(expr);
-        all_expressions.push_back(id);
-        root_expression = id;
+    //
+    Id add(const Expression &expr) { return egraph.add_expression(expr); }
+
+    Id add_output(const Expression &expr) {
+        Id id = add(expr);
+        outputs.emplace_back(id, expr);
         return id;
     }
 
@@ -151,14 +155,7 @@ class Context {
     }
 
     void prune_symbolic_when_kernel_available(const std::vector<Id> &roots = {}) {
-        std::vector<Id> effective_roots = roots;
-        if (effective_roots.empty()) {
-            if (!all_expressions.empty()) {
-                effective_roots = all_expressions;
-            } else if (root_expression != 0) {
-                effective_roots = {root_expression};
-            }
-        }
+        auto effective_roots = with_output_roots(roots);
         if (config.enable_logging) {
             std::cout << "[API] Pruning symbolic nodes\n";
         }
@@ -189,18 +186,12 @@ class Context {
         Extractor extractor(egraph, config);
         Pruner pruner(egraph, extractor, config);
 
-        pruner.rewrite_and_prune(target_ids, rewriter, size_keys, onIterationStart, onIterationFinish);
+        pruner.rewrite_and_prune(
+            with_output_roots(target_ids), rewriter, size_keys, onIterationStart, onIterationFinish);
     }
 
     void lower_to_kernels(const std::vector<Id> &roots = {}) {
-        std::vector<Id> effective_roots = roots;
-        if (effective_roots.empty()) {
-            if (!all_expressions.empty()) {
-                effective_roots = all_expressions;
-            } else if (root_expression != 0) {
-                effective_roots = {root_expression};
-            }
-        }
+        auto effective_roots = with_output_roots(roots);
         if (!effective_roots.empty()) {
             Pruner::eliminate_unreachable_classes(egraph, effective_roots);
         }
@@ -235,128 +226,59 @@ class Context {
         return extractor.tree_extract(target_id, bindings);
     }
 
-    Expression optimize_concrete(
-        const Expression &target_expr, const std::vector<Expression> &background_exprs = {},
-        const std::vector<std::string> &rulesets = {"complete"}) {
-        if (config.enable_logging) {
-            std::cout << "[API] Optimizing concrete expression: " << target_expr.to_string() << "\n";
-        }
-        initialize_config_for_expression(config, target_expr);
-        Id target_id = add(target_expr);
-        for (const auto &bg_expr : background_exprs) {
-            add(bg_expr);
-        }
-        rewrite(rulesets);
-        lower_to_kernels();
-        return extract(target_id, {}).expr;
-    }
-
-    std::vector<double> evaluate_concrete(const SizeBindings &size_bindings, const DataBindings &bindings = {}) {
-        return evaluate_concrete(root_expression, size_bindings, bindings);
-    }
-
-    std::vector<double>
-    evaluate_concrete(Id target_id, const SizeBindings &size_bindings, const DataBindings &bindings = {}) {
-        auto start_final_extraction = std::chrono::high_resolution_clock::now();
-        auto target_result = extract(target_id, size_bindings);
-
-        std::vector<Id> preserved_ids;
-        for (const auto &[expr, id] : preserved_exprs) {
-            Id class_id = egraph.find_class_id(id);
-            preserved_ids.push_back(class_id);
-            if (!target_result.choices.contains(class_id)) {
-                auto bg_result = extract(class_id, size_bindings);
-                target_result.choices.insert(bg_result.choices.begin(), bg_result.choices.end());
-            }
-        }
-        if (!preserved_ids.empty()) {
-            std::vector<Id> all_roots = preserved_ids;
-            all_roots.push_back(target_id);
-            Extractor extractor(egraph, config);
-            target_result.execution_order = extractor.build_execution_order(all_roots, target_result.choices);
-        }
-
-        if (config.enable_logging) {
-            egraph.to_img("expression_" + std::to_string(target_id), "png");
-            std::cout << "[API] EGraph Size: " << egraph.num_nodes() << "\n";
-            std::cout << "[API] Extracted expression: " << target_result.expr.to_string() << "\n";
-            std::cout << "[API] Evaluating concrete expression...\n";
-#ifdef _WIN32
-            HMODULE hModule = nullptr;
-            if (GetModuleHandleExA(
-                    GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                    reinterpret_cast<LPCSTR>(cblas_dgemm), &hModule)) {
-                std::array<char, MAX_PATH> path{};
-                if (GetModuleFileNameA(hModule, path.data(), sizeof(path))) {
-                    std::cout << "[API] Active BLAS Kernel:   " << path.data() << "\n";
-                }
-            }
-#else
-            Dl_info info;
-            if (dladdr(reinterpret_cast<void *>(cblas_dgemm), &info)) {
-                std::cout << "[API] Active BLAS Kernel:   " << info.dli_fname << "\n";
-            }
-#endif
-        }
-        Evaluator evaluator(egraph, target_result, size_bindings, bindings, preserved_ids);
-        if (config.enable_logging) {
-            std::cout << "[API] Execution Plan: \n";
-            print_execution_plan(target_result, &bindings);
-        }
-        auto start_evaluate = std::chrono::high_resolution_clock::now();
-        auto target_eval = evaluator.evaluate();
-        auto end_evaluate = std::chrono::high_resolution_clock::now();
-        auto extraction_duration =
-            std::chrono::duration_cast<std::chrono::microseconds>(start_evaluate - start_final_extraction);
-        auto evaluation_duration = std::chrono::duration_cast<std::chrono::microseconds>(end_evaluate - start_evaluate);
-        last_extraction_duration = extraction_duration;
-        last_evaluation_duration = evaluation_duration;
-        std::cout << extraction_duration.count() << '\n';
-        std::cout << evaluation_duration.count() << '\n';
-
-        preserved_results.clear();
-        for (Id id : preserved_ids) {
-            preserved_results[id] = evaluator.get_preserved(id);
-        }
-        return target_eval;
-    }
-
-    void optimize_symbolic(
-        const Expression &target_expr, const std::vector<Expression> &background_exprs = {},
-        const std::vector<std::string> &rulesets = {"everything_but_lowering"}) {
-        initialize_config_for_expression(config, target_expr);
-        if (config.enable_logging) {
-            std::cout << "[API] Optimizing symbolic expression: " << target_expr.to_string() << "\n";
-            config.print_config();
-        }
-
-        Id root_id = egraph.add_expression(target_expr);
-        root_expression = root_id;
-        all_expressions = {root_id};
-        preserved_exprs.clear();
-
-        for (const auto &bg_expr : background_exprs) {
-            Id bg_id = egraph.add_expression(bg_expr);
-            all_expressions.push_back(bg_id);
-            if (is_subexpression(target_expr, bg_expr)) {
-                preserved_exprs.emplace_back(bg_expr, bg_id);
-            }
-        }
-
-        rewrite_and_prune(all_expressions, rulesets, [&](int iteration) {
+    // Optimize all registered outputs; none is an implicit default target.
+    void optimize(const std::vector<std::string> &rulesets = {"everything_but_lowering"}) {
+        require_outputs();
+        const auto &largest = *std::ranges::max_element(outputs, [](const auto &a, const auto &b) {
+            return a.second.node_count() < b.second.node_count();
+        });
+        initialize_config_for_expression(config, largest.second);
+        restore_outputs();
+        rewrite_and_prune({}, rulesets, [&](int iteration) {
             if (iteration > 0) {
-                egraph.add_expression(target_expr);
-                for (const auto &bg_expr : background_exprs) {
-                    egraph.add_expression(bg_expr);
-                }
-            }
-        }, [&](int iteration, const PruneResult &result) {
-            if (config.enable_logging) {
-                std::cout << "[Pruner] Iteration " << iteration + 1 << " finished. Pruned " << result.nodes_pruned
-                          << " nodes.\n";
+                restore_outputs();
             }
         });
-        root_expression = egraph.find_class_id(root_id);
+    }
+
+    // Extend the first output's plan with any missing outputs, keeping existing
+    // choices for shared classes. This reuses computation without joint optimization.
+    EvaluationResults evaluate(const SizeBindings &size_bindings, const DataBindings &bindings = {}) {
+        require_outputs();
+        auto start_extraction = std::chrono::high_resolution_clock::now();
+        auto result = extract(outputs.front().first, size_bindings);
+
+        std::vector<Id> roots;
+        for (const auto &[id, expr] : outputs) {
+            Id root = egraph.find_class_id(id);
+            roots.push_back(root);
+            if (!result.choices.contains(root)) {
+                auto additional = extract(root, size_bindings);
+                result.choices.insert(additional.choices.begin(), additional.choices.end());
+            }
+        }
+        // As in the previous evaluator, visit additional roots before the first output.
+        std::ranges::rotate(roots, roots.begin() + 1);
+        Extractor extractor(egraph, config);
+        result.execution_order = extractor.build_execution_order(roots, result.choices);
+
+        Evaluator evaluator(egraph, result, size_bindings, bindings, roots);
+        if (config.enable_logging) {
+            print_execution_plan(result, &bindings);
+        }
+        auto start_evaluate = std::chrono::high_resolution_clock::now();
+        evaluator.evaluate();
+        auto end_evaluate = std::chrono::high_resolution_clock::now();
+        last_extraction_duration =
+            std::chrono::duration_cast<std::chrono::microseconds>(start_evaluate - start_extraction);
+        last_evaluation_duration =
+            std::chrono::duration_cast<std::chrono::microseconds>(end_evaluate - start_evaluate);
+
+        EvaluationResults results;
+        for (const auto &[id, expr] : outputs) {
+            results.values.emplace(id, evaluator.get_preserved(egraph.find_class_id(id)));
+        }
+        return results;
     }
 
     void print_properties() const { egraph.get_property_table().print_all_properties(); }
@@ -365,40 +287,14 @@ class Context {
 
     void clear() {
         egraph = EGraph();
-        root_expression = 0;
-        all_expressions.clear();
-        preserved_exprs.clear();
-        preserved_results.clear();
+        outputs.clear();
+        size_keys.clear();
+        last_extraction_duration = std::chrono::microseconds{0};
+        last_evaluation_duration = std::chrono::microseconds{0};
     }
-    Id get_target_id() const { return root_expression; }
     EGraph &get_egraph() { return egraph; }
-    MatrixProperty get_property() const {
-        return std::get<MatrixProperty>(egraph.get_class_analysis_data(root_expression).property);
-    }
     MatrixProperty get_property(Id id) const {
         return std::get<MatrixProperty>(egraph.get_class_analysis_data(egraph.find_class_id(id)).property);
-    }
-    MatrixProperty get_property(const Expression &expr) const {
-        for (const auto &[e, id] : preserved_exprs) {
-            if (e == expr)
-                return get_property(id);
-        }
-        if (auto id_opt = egraph.find_expression_id(expr))
-            return get_property(id_opt.value());
-        throw std::runtime_error("Expression not found in e-graph");
-    }
-    std::vector<double> get_preserved(const Expression &expr) const {
-        for (const auto &[e, id] : preserved_exprs) {
-            if (e == expr)
-                return get_preserved(id);
-        }
-        throw std::runtime_error("Preserved expression not found");
-    }
-    std::vector<double> get_preserved(Id id) const {
-        auto it = preserved_results.find(egraph.find_class_id(id));
-        if (it != preserved_results.end())
-            return it->second;
-        throw std::runtime_error("Preserved result not found for ID: " + std::to_string(id));
     }
     void initialize_config(const Expression &expr) { initialize_config_for_expression(config, expr); }
 
@@ -420,13 +316,39 @@ class Context {
   private:
     EGraphConfig config;
     EGraph egraph;
-    Id root_expression = 0;
-    std::vector<Id> all_expressions;
+    // Retain the original syntax for reinsertion between optimization iterations.
+    // IDs belong to this graph and must not be reused after clear().
+    std::vector<std::pair<Id, Expression>> outputs;
     std::vector<std::string> size_keys;
-    std::vector<std::pair<Expression, Id>> preserved_exprs;
-    std::unordered_map<Id, std::vector<double>> preserved_results;
     std::chrono::microseconds last_extraction_duration{0};
     std::chrono::microseconds last_evaluation_duration{0};
+
+    void require_outputs() const {
+        if (outputs.empty()) {
+            throw std::logic_error("No outputs registered; call add_output first");
+        }
+    }
+
+    std::vector<Id> with_output_roots(const std::vector<Id> &roots) const {
+        std::vector<Id> result = roots;
+        for (const auto &[id, expr] : outputs) {
+            result.push_back(id);
+        }
+        for (auto &root : result) {
+            root = egraph.find_class_id(root);
+        }
+        std::ranges::sort(result);
+        result.erase(std::ranges::unique(result).begin(), result.end());
+        return result;
+    }
+
+    void restore_outputs() {
+        for (const auto &[id, expr] : outputs) {
+            Id restored = egraph.add_expression(expr);
+            egraph.union_classes(id, restored);
+        }
+        egraph.rebuild();
+    }
 
     void apply_flags(MatrixProperty &prop, const std::vector<std::string> &flags) {
         for (const auto &f : flags) {
@@ -445,6 +367,4 @@ class Context {
     }
 };
 
-} // namespace EGraphRunner
-
-} // namespace egraph
+} // namespace egraph::EGraphRunner

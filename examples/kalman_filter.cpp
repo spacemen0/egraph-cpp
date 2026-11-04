@@ -60,7 +60,9 @@ int run_kalman_filter() {
     Expression K_n = P_n_n_1 * transpose(H) * inverse(H * P_n_n_1 * transpose(H) + R_n);
     Expression x_hat_n_n = x_hat_n_n_1 + K_n * (z_n - H * x_hat_n_n_1);
 
-    ctx1.optimize_symbolic(x_hat_n_n, {K_n});
+    auto ctx1_output = ctx1.add_output(x_hat_n_n);
+    auto ctx1_K_n_output = ctx1.add_output(K_n);
+    ctx1.optimize();
 
     DataBindings state_data = {
         {"P_n_n_1", P_n_n_1_data},
@@ -69,8 +71,10 @@ int run_kalman_filter() {
         {"x_hat_n_n_1", x_hat_n_n_1_data},
         {"z_n", z_n_data}};
 
-    auto out_x_hat_n_n = ctx1.evaluate_concrete(concrete_sizes, state_data);
-    auto out_K_n = ctx1.get_preserved(K_n);
+    auto ctx1_results = ctx1.evaluate(concrete_sizes, state_data);
+
+    const auto &out_x_hat_n_n = ctx1_results.get(ctx1_output);
+    const auto &out_K_n = ctx1_results.get(ctx1_K_n_output);
 
     write_matrix("data/kalman_result_K_n.csv", m_val, p_val, out_K_n);
     write_matrix("data/kalman_result_x_hat_n_n.csv", m_val, 1, out_x_hat_n_n);
@@ -88,12 +92,15 @@ int run_kalman_filter() {
     Expression I_K_n_H = I - K_n_v2 * H_v2;
     Expression P_n_n = I_K_n_H * P_n_n_1_v2 * transpose(I_K_n_H) + K_n_v2 * R_n_v2 * transpose(K_n_v2);
 
-    ctx2.optimize_symbolic(P_n_n, {K_n_v2});
+    auto ctx2_output = ctx2.add_output(P_n_n);
+    ctx2.optimize();
 
     DataBindings cov_data = {
         {"P_n_n_1", P_n_n_1_data}, {"H", H_data}, {"R_n", R_n_data}, {"I", generate_identity_matrix(m_val)}};
 
-    auto out_P_n_n = ctx2.evaluate_concrete(concrete_sizes, cov_data);
+    auto ctx2_results = ctx2.evaluate(concrete_sizes, cov_data);
+
+    const auto &out_P_n_n = ctx2_results.get(ctx2_output);
 
     write_matrix("data/kalman_result_P_n_n.csv", m_val, m_val, out_P_n_n);
 

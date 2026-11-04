@@ -52,11 +52,14 @@ int run_kalman_gain() {
     Expression S_n = H * P_n_n_1 * transpose(H) + R_n;
     Expression K_n = P_n_n_1 * transpose(H) * inverse(S_n);
 
-    ctx.optimize_symbolic(K_n);
+    auto ctx_output = ctx.add_output(K_n);
+    ctx.optimize();
 
     DataBindings concrete_data = {{"P_n_n_1", P_n_n_1_data}, {"H", H_data}, {"R_n", R_n_data}};
 
-    auto out_K_n = ctx.evaluate_concrete(concrete_sizes, concrete_data);
+    auto ctx_results = ctx.evaluate(concrete_sizes, concrete_data);
+
+    const auto &out_K_n = ctx_results.get(ctx_output);
 
     write_matrix("data/kalman_result_K_n.csv", m_val, p_val, out_K_n);
 

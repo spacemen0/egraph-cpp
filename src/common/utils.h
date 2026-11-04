@@ -8,6 +8,7 @@
 #include "types.h"
 #include <cstddef>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <optional>
 #include <random>
@@ -502,7 +503,7 @@ inline std::pair<std::pair<int, int>, std::vector<double>> read_matrix(const std
     }
 
     // Convert from row-major (file format) to column-major (engine format)
-    std::vector<double> col_major_data(static_cast<long>(rows) * cols);
+    std::vector<double> col_major_data(static_cast<long long>(static_cast<long>(rows)) * cols);
     for (int r = 0; r < rows; ++r) {
         for (int c = 0; c < cols; ++c) {
             col_major_data[r + c * rows] = row_major_data[r * cols + c];

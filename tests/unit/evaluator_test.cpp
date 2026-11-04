@@ -119,11 +119,14 @@ TEST(EvaluatorTest, EvaluateMatrixAddition) {
 
     Expression A("A");
     Expression B("B");
-    ctx.optimize_concrete(A + B);
+    auto output = ctx.add_output(A + B);
+    ctx.initialize_config(A + B);
+    ctx.rewrite();
+    ctx.lower_to_kernels();
 
     DataBindings data = {{"A", {1.0, 2.0, 3.0, 4.0}}, {"B", {10.0, 20.0, 30.0, 40.0}}};
 
-    auto result = ctx.evaluate_concrete({}, data);
+    auto result = ctx.evaluate({}, data).get(output);
     ASSERT_EQ(result.size(), 4);
     EXPECT_DOUBLE_EQ(result[0], 11.0);
     EXPECT_DOUBLE_EQ(result[1], 22.0);
@@ -138,11 +141,14 @@ TEST(EvaluatorTest, EvaluateMatrixMultiplication) {
 
     Expression A("A");
     Expression B("B");
-    ctx.optimize_concrete(A * B);
+    auto output = ctx.add_output(A * B);
+    ctx.initialize_config(A * B);
+    ctx.rewrite();
+    ctx.lower_to_kernels();
 
     DataBindings data = {{"A", {1.0, 2.0, 3.0, 4.0, 5.0, 6.0}}, {"B", {1.0, 2.0, 3.0, 4.0, 5.0, 6.0}}};
 
-    auto result = ctx.evaluate_concrete({}, data);
+    auto result = ctx.evaluate({}, data).get(output);
     ASSERT_EQ(result.size(), 4);
     EXPECT_NEAR(result[0], 22.0, 1e-9);
     EXPECT_NEAR(result[1], 28.0, 1e-9);
@@ -157,11 +163,14 @@ TEST(EvaluatorTest, EvaluateMatrixVectorMultiplication) {
 
     Expression A("A");
     Expression x("x");
-    ctx.optimize_concrete(A * x);
+    auto output = ctx.add_output(A * x);
+    ctx.initialize_config(A * x);
+    ctx.rewrite();
+    ctx.lower_to_kernels();
 
     DataBindings data = {{"A", {2.0, 1.0, 0.0, 3.0}}, {"x", {4.0, 5.0}}};
 
-    auto result = ctx.evaluate_concrete({}, data);
+    auto result = ctx.evaluate({}, data).get(output);
     ASSERT_EQ(result.size(), 2);
     EXPECT_NEAR(result[0], 8.0, 1e-9);
     EXPECT_NEAR(result[1], 19.0, 1e-9);
@@ -174,11 +183,14 @@ TEST(EvaluatorTest, MissingDataBindingThrowsRuntimeError) {
 
     Expression A("A");
     Expression B("B");
-    ctx.optimize_concrete(A + B);
+    auto output = ctx.add_output(A + B);
+    ctx.initialize_config(A + B);
+    ctx.rewrite();
+    ctx.lower_to_kernels();
 
     DataBindings incomplete_data = {{"A", {1.0, 2.0, 3.0, 4.0}}};
 
-    EXPECT_THROW(ctx.evaluate_concrete({}, incomplete_data), std::runtime_error);
+    EXPECT_THROW(ctx.evaluate({}, incomplete_data).get(output), std::runtime_error);
 }
 
 TEST(EvaluatorTest, PrintExecutionPlanOutputsDetails) {
@@ -189,13 +201,16 @@ TEST(EvaluatorTest, PrintExecutionPlanOutputsDetails) {
 
     Expression A("A");
     Expression B("B");
-    ctx.optimize_concrete(A + B);
+    auto output = ctx.add_output(A + B);
+    ctx.initialize_config(A + B);
+    ctx.rewrite();
+    ctx.lower_to_kernels();
 
     DataBindings data = {{"A", {1.0, 2.0, 3.0, 4.0}}, {"B", {5.0, 6.0, 7.0, 8.0}}};
 
     std::stringstream buffer;
     std::streambuf *old_cout = std::cout.rdbuf(buffer.rdbuf());
-    ctx.evaluate_concrete({}, data);
+    ctx.evaluate({}, data).get(output);
     std::cout.rdbuf(old_cout);
 
     std::string plan_output = buffer.str();
@@ -207,11 +222,14 @@ TEST(EvaluatorTest, MissingSizeBindingsThrowsRuntimeErrorInsteadOfCrashing) {
     EGraphRunner::Context ctx;
     ctx.define_matrix("M", "Matrix(m x n)");
     Expression M("M");
-    ctx.optimize_concrete(M);
+    auto output = ctx.add_output(M);
+    ctx.initialize_config(M);
+    ctx.rewrite();
+    ctx.lower_to_kernels();
 
     DataBindings data = {{"M", {1.0, 2.0, 3.0, 4.0}}};
     SizeBindings incomplete_sizes;
-    EXPECT_THROW(ctx.evaluate_concrete(incomplete_sizes, data), std::runtime_error);
+    EXPECT_THROW(ctx.evaluate(incomplete_sizes, data).get(output), std::runtime_error);
 }
 
 TEST(EvaluatorTest, EvaluateTrmm) {
@@ -221,7 +239,10 @@ TEST(EvaluatorTest, EvaluateTrmm) {
 
     Expression L("L");
     Expression B("B");
-    ctx.optimize_concrete(L * B);
+    auto output = ctx.add_output(L * B);
+    ctx.initialize_config(L * B);
+    ctx.rewrite();
+    ctx.lower_to_kernels();
 
     // L = [2 0; 1 3] -> col-major: [2, 1, 0, 3]
     // B = [1 4; 2 5] -> col-major: [1, 2, 4, 5]
@@ -231,7 +252,7 @@ TEST(EvaluatorTest, EvaluateTrmm) {
         {"B", {1.0, 2.0, 4.0, 5.0}}
     };
 
-    auto result = ctx.evaluate_concrete({}, data);
+    auto result = ctx.evaluate({}, data).get(output);
     ASSERT_EQ(result.size(), 4);
     EXPECT_DOUBLE_EQ(result[0], 2.0);
     EXPECT_DOUBLE_EQ(result[1], 7.0);
@@ -248,7 +269,10 @@ TEST(EvaluatorTest, EvaluateSymmLWithNonZeroC) {
     Expression A("A");
     Expression B("B");
     Expression C("C");
-    ctx.optimize_concrete(A * B + C);
+    auto output = ctx.add_output(A * B + C);
+    ctx.initialize_config(A * B + C);
+    ctx.rewrite();
+    ctx.lower_to_kernels();
 
     // A = [1 2; 2 3] -> col-major: [1, 2, 2, 3]
     // B = [4 5; 6 7] -> col-major: [4, 6, 5, 7]
@@ -261,7 +285,7 @@ TEST(EvaluatorTest, EvaluateSymmLWithNonZeroC) {
         {"C", {10.0, 30.0, 20.0, 40.0}}
     };
 
-    auto result = ctx.evaluate_concrete({}, data);
+    auto result = ctx.evaluate({}, data).get(output);
     ASSERT_EQ(result.size(), 4);
     EXPECT_DOUBLE_EQ(result[0], 26.0);
     EXPECT_DOUBLE_EQ(result[1], 56.0);
@@ -275,14 +299,17 @@ TEST(EvaluatorTest, EvaluateScaleWithSymbolicScalar) {
     Expression A("A");
     ScalarExpr k('k');
     ScalarExpr factor = k / (k - 1.0);
-    ctx.optimize_concrete(scale(A, factor));
+    auto output = ctx.add_output(scale(A, factor));
+    ctx.initialize_config(scale(A, factor));
+    ctx.rewrite();
+    ctx.lower_to_kernels();
 
     DataBindings data = {
         {"A", {2.0, 4.0, 6.0, 8.0}},
         {"k", {3.0}} // factor = 3 / (3 - 1) = 1.5
     };
 
-    auto result = ctx.evaluate_concrete({}, data);
+    auto result = ctx.evaluate({}, data).get(output);
     ASSERT_EQ(result.size(), 4);
     EXPECT_DOUBLE_EQ(result[0], 3.0);
     EXPECT_DOUBLE_EQ(result[1], 6.0);
@@ -296,14 +323,17 @@ TEST(EvaluatorTest, EvaluateAxpyMinus) {
     ctx.define_matrix("B", 2, 2);
     Expression A("A");
     Expression B("B");
-    ctx.optimize_concrete(A - B);
+    auto output = ctx.add_output(A - B);
+    ctx.initialize_config(A - B);
+    ctx.rewrite();
+    ctx.lower_to_kernels();
 
     DataBindings data = {
         {"A", {10.0, 20.0, 30.0, 40.0}},
         {"B", {1.0, 2.0, 3.0, 4.0}}
     };
 
-    auto result = ctx.evaluate_concrete({}, data);
+    auto result = ctx.evaluate({}, data).get(output);
     ASSERT_EQ(result.size(), 4);
     EXPECT_DOUBLE_EQ(result[0], 9.0);
     EXPECT_DOUBLE_EQ(result[1], 18.0);
@@ -319,19 +349,19 @@ TEST(EvaluatorTest, EvalGetOutOfBoundsThrows) {
     std::vector<const EvalValue *> inputs = {&input_val};
 
     // Valid index 0
-    std::vector<Operand> valid_operands = {TupleOperand{}, IndexOperand(0)};
+    std::vector<Operand> valid_operands = {TupleOperand{}, IndexOperand{0}};
     EXPECT_NO_THROW(eval_get("Get", valid_operands, inputs, output_val));
 
     // Out of bounds index 1 (tuple only has 1 matrix)
-    std::vector<Operand> oob_operands = {TupleOperand{}, IndexOperand(1)};
+    std::vector<Operand> oob_operands = {TupleOperand{}, IndexOperand{1}};
     EXPECT_THROW(eval_get("Get", oob_operands, inputs, output_val), std::runtime_error);
 
     // Negative index
-    std::vector<Operand> neg_operands = {TupleOperand{}, IndexOperand(-1)};
+    std::vector<Operand> neg_operands = {TupleOperand{}, IndexOperand{-1}};
     EXPECT_THROW(eval_get("Get", neg_operands, inputs, output_val), std::runtime_error);
 
     // Invalid operand type (e.g. scalar instead of index)
-    std::vector<Operand> invalid_operands = {TupleOperand{}, ScalarOperand(3.14)};
+    std::vector<Operand> invalid_operands = {TupleOperand{}, ScalarOperand{3.14}};
     EXPECT_THROW(eval_get("Get", invalid_operands, inputs, output_val), std::runtime_error);
 }
 

@@ -12,7 +12,8 @@ int run_ols() {
     Expression y = ctx.define_matrix("y", "a", 1);
     Expression target_math = (inverse(transpose(X) * X) * transpose(X)) * y;
 
-    ctx.optimize_symbolic(target_math);
+    auto ctx_output = ctx.add_output(target_math);
+    ctx.optimize();
     auto [x_sizes, x_data] = read_matrix("data/ols_x.csv");
     auto [y_sizes, y_data] = read_matrix("data/ols_y.csv");
 
@@ -36,8 +37,10 @@ int run_ols() {
     SizeBindings concrete_sizes = {{"a", x_sizes.first}, {"b", x_sizes.second}};
     DataBindings concrete_data = {{"X", x_data}, {"y", y_data}};
 
-    auto out = ctx.evaluate_concrete(concrete_sizes, concrete_data);
-    auto out_shape = bind_shape(ctx.get_property().shape, concrete_sizes);
+    auto ctx_results = ctx.evaluate(concrete_sizes, concrete_data);
+
+    const auto &out = ctx_results.get(ctx_output);
+    auto out_shape = bind_shape(ctx.get_property(ctx_output).shape, concrete_sizes);
     int row = std::get<int>(out_shape.first);
     int col = std::get<int>(out_shape.second);
 

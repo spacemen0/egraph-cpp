@@ -25,7 +25,8 @@ int run_stochastic_newton() {
     Expression inner_term = In - transpose(A) * W_k * inner_inv * transpose(W_k) * A * B;
     Expression target_math = scale(B * inner_term, scale_factor);
 
-    ctx.optimize_symbolic(target_math);
+    auto ctx_output = ctx.add_output(target_math);
+    ctx.optimize();
 
     // Read concrete matrix files
     auto [b_sizes, b_data] = read_matrix("data/stochastic_newton_b.csv");
@@ -60,8 +61,10 @@ int run_stochastic_newton() {
     DataBindings concrete_data = {{"B", b_data},   {"In", in_data}, {"A", a_data},
                                   {"W_k", w_data}, {"Il", il_data}, {"k", std::vector<double>{10.0}}};
 
-    auto out = ctx.evaluate_concrete(concrete_sizes, concrete_data);
-    auto out_shape = bind_shape(ctx.get_property().shape, concrete_sizes);
+    auto ctx_results = ctx.evaluate(concrete_sizes, concrete_data);
+
+    const auto &out = ctx_results.get(ctx_output);
+    auto out_shape = bind_shape(ctx.get_property(ctx_output).shape, concrete_sizes);
     int row = std::get<int>(out_shape.first);
     int col = std::get<int>(out_shape.second);
 

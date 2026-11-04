@@ -4,23 +4,24 @@
 #include <fstream>
 #include <iostream>
 
+// NOLINTNEXTLINE(bugprone-exception-escape): MSVC std::visit is reported despite the catch-all below.
 int main(int argc, char **argv) {
-    if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <script_file>\n";
-        return 1;
-    }
-    auto filename = std::string(argv[1]);
-    std::ifstream input(filename);
-    if (!input.is_open()) {
-        std::cerr << "Failed to open script file: " << filename << "\n";
-        return 1;
-    }
-
-    // convert input to string:
-    std::string content((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
-    std::unordered_map<std::string, egraph::Id> expr_to_id;
-    // Initialize the egraph context and parse the symbols
     try {
+        if (argc < 2) {
+            std::cerr << "Usage: " << argv[0] << " <script_file>\n";
+            return 1;
+        }
+        auto filename = std::string(argv[1]);
+        std::ifstream input(filename);
+        if (!input.is_open()) {
+            std::cerr << "Failed to open script file: " << filename << "\n";
+            return 1;
+        }
+
+        // convert input to string:
+        std::string content((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+        std::unordered_map<std::string, egraph::Id> outputs;
+        // Initialize the egraph context and parse the symbols
         auto program = egraph::frontend::parse_program(content);
         egraph::EGraphRunner::Context ctx;
         for (const auto &symbol : program.symbols) {
@@ -36,47 +37,37 @@ int main(int argc, char **argv) {
             }
         }
 
-        // Add Expressions (here we can remove the substituion pass and use a name to expression mapping instead)
+        // Definitions alone do not request outputs. Register all operation targets
+        // before optimizing so later operations' roots survive pruning as well.
+        std::unordered_map<std::string, egraph::Expression> expressions;
         for (const auto &named_expr : program.expressions) {
-            expr_to_id[named_expr.name] = ctx.add(named_expr.expr);
+            expressions.emplace(named_expr.name, named_expr.expr);
+        }
+        for (const auto &op : program.operations) {
+            if (!outputs.contains(op.target_variable)) {
+                auto it = expressions.find(op.target_variable);
+                auto expr = it != expressions.end() ? it->second : egraph::Expression(op.target_variable);
+                outputs.emplace(op.target_variable, ctx.add_output(expr));
+            }
         }
         ctx.get_egraph().to_img("./egraph", "svg");
         for (auto &op : program.operations) {
             std::cout << "[INFO] Operation: " << op.target_variable << " with kind: " << static_cast<int>(op.kind)
                       << "\n";
             switch (op.kind) {
-            case egraph::frontend::OperationKind::ExtractBest: {
-                // ctx.optimize_symbolic();
-                // auto result = ctx.extract(expr_to_id[op.target_variable], op.data_bindings);
-                // std::cout << "[RESULT] Extracted best expression for " << op.target_variable << ": "
-                //           << result.expr.to_string() << "\n";
-                // break;
+            case egraph::frontend::OperationKind::ExtractBest:
+            case egraph::frontend::OperationKind::ExtractAll:
+            case egraph::frontend::OperationKind::Evaluate:
+                // Operation execution is not implemented in this runner yet.
                 break;
-            }
-            case egraph::frontend::OperationKind::ExtractAll: {
-                // ctx.optimize_symbolic();
-                // auto results = ctx.extract(expr_to_id[op.target_variable], op.data_bindings);
-                // std::cout << "[RESULT] Extracted all expressions for " << op.target_variable << ":\n";
-                // for (const auto &res : results) {
-                //     std::cout << "  - " << res.expr.to_string() << "\n";
-                // }
-                break;
-            }
-            case egraph::frontend::OperationKind::Evaluate: {
-                // ctx.optimize_symbolic();
-                // auto result = ctx.extract(expr_to_id[op.target_variable], op.data_bindings);
-                // std::cout << "[RESULT] Evaluated expression for " << op.target_variable << ":\n";
-                // for (const auto &val : result.values) {
-                //     std::cout << "  - " << val << "\n";
-                // }
-                break;
-            }
             }
         }
+        return 0;
     } catch (const std::exception &e) {
         std::cerr << "Error: " << e.what() << "\n";
         return 1;
+    } catch (...) {
+        std::cerr << "Error: unknown exception\n";
+        return 1;
     }
-
-    return 0;
 }

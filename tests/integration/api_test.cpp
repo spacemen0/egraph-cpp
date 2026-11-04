@@ -7,6 +7,145 @@ using namespace egraph;
 
 using namespace EGraphRunner;
 
+TEST(ApiOutputsTest, IndependentOutputsSurviveLoweringForASubset) {
+    Context ctx;
+    auto a = ctx.define_matrix("A", 2, 2);
+    auto b = ctx.define_matrix("B", 2, 2);
+    Id first = ctx.add_output(a + b);
+    Id second = ctx.add_output(a * b);
+    auto unused = ctx.define_matrix("Unused", 2, 2);
+    ctx.add(unused * unused);
+    auto first_id = ctx.get_egraph().find_expression_id(a + b);
+    ASSERT_TRUE(first_id.has_value());
+    EXPECT_EQ(first, *first_id);
+    ctx.lower_to_kernels({*first_id});
+    EXPECT_FALSE(ctx.find_expr(unused).has_value());
+
+    auto results = ctx.evaluate({}, {{"A", {1, 0, 0, 1}}, {"B", {2, 0, 0, 3}}});
+    EXPECT_EQ(results.get(first), (std::vector<double>{3, 0, 0, 4}));
+    EXPECT_EQ(results.get(second), (std::vector<double>{2, 0, 0, 3}));
+}
+
+TEST(ApiOutputsTest, IdsWorkAfterOriginalSyntaxIsPruned) {
+    Context ctx;
+    auto a = ctx.define_matrix("A", 2, 2);
+    auto b = ctx.define_matrix("B", 2, 2);
+    Expression original = a + b;
+    auto output = ctx.add_output(original);
+    ctx.lower_to_kernels();
+
+    EXPECT_FALSE(ctx.find_expr(original).has_value());
+    EXPECT_EQ(ctx.get_property(output).shape, (Shape{2, 2}));
+    EXPECT_FALSE(ctx.extract(output, {}).expr.to_string().empty());
+    auto results = ctx.evaluate({}, {{"A", {1, 2, 3, 4}}, {"B", {10, 20, 30, 40}}});
+    EXPECT_EQ(results.get(output), (std::vector<double>{11, 22, 33, 44}));
+}
+
+TEST(ApiOutputsTest, EquivalentOutputsKeepTheirIdsAfterMerge) {
+    Context ctx;
+    auto a = ctx.define_matrix("A", 2, 2);
+    auto b = ctx.define_matrix("B", 2, 2);
+    auto first = ctx.add_output(a + b);
+    auto second = ctx.add_output(b + a);
+    auto duplicate = ctx.add_output(a + b);
+    ctx.apply_rewrites({make_rewrite("output_commute", "?a + ?b", "?b + ?a", false)}, 1);
+    ctx.lower_to_kernels();
+
+    auto results = ctx.evaluate({}, {{"A", {1, 2, 3, 4}}, {"B", {10, 20, 30, 40}}});
+    EXPECT_EQ(results.get(first), (std::vector<double>{11, 22, 33, 44}));
+    EXPECT_EQ(results.get(second), results.get(first));
+    EXPECT_EQ(results.get(duplicate), results.get(first));
+}
+
+TEST(ApiOutputsTest, IntermediateOutputIsProtectedFromInPlaceConsumers) {
+    Context ctx;
+    auto a = ctx.define_matrix("A", 2, 2);
+    auto b = ctx.define_matrix("B", 2, 2);
+    auto intermediate = ctx.add_output(a + b);
+    auto target = ctx.add_output((a + b) + b);
+    ctx.lower_to_kernels();
+
+    auto results = ctx.evaluate({}, {{"A", {1, 2, 3, 4}}, {"B", {10, 20, 30, 40}}});
+    EXPECT_EQ(results.get(intermediate), (std::vector<double>{11, 22, 33, 44}));
+    EXPECT_EQ(results.get(target), (std::vector<double>{21, 42, 63, 84}));
+}
+
+TEST(ApiOutputsTest, KeepsEarlierChoicesWhenAnotherOutputPrefersADifferentImplementation) {
+    Context ctx;
+    int direct_calls = 0;
+    int shared_calls = 0;
+    int alternative_calls = 0;
+    auto copy_kernel = [&](const std::string &name, double cost, int &calls) {
+        return ctx.register_kernel(
+            name,
+            [](const std::vector<Operand> &operands) -> AnalysisData {
+                return AnalysisData{as_matrix(operands[0])->property};
+            },
+            [cost](Op, const std::vector<Operand> &) -> Cost { return cost; },
+            [&calls](std::string_view, const std::vector<Operand> &,
+                     const std::vector<const MatrixNode *> &inputs, MatrixNode &output) {
+                ++calls;
+                output.data()[0] = inputs[0]->data()[0];
+            });
+    };
+    Op direct = copy_kernel("OutputDirectCopy", 2.0, direct_calls);
+    Op shared = copy_kernel("OutputSharedCopy", 10.0, shared_calls);
+    Op alternative = copy_kernel("OutputAlternativeCopy", 1.0, alternative_calls);
+    auto a = ctx.define_matrix("A", 1, 1);
+    Expression first_expr(direct, {a});
+    Expression shared_expr(shared, {a});
+    Id first = ctx.add_output(first_expr);
+    Id second = ctx.add_output(first_expr + shared_expr);
+    ctx.get_egraph().union_classes(first, ctx.add(Expression(alternative, {shared_expr})));
+    ctx.get_egraph().rebuild();
+    ctx.lower_to_kernels();
+
+    // Individually, the second output prefers the alternative because it already
+    // needs shared_expr. Combining outputs should reuse the first output's choice.
+    Id first_class = ctx.get_egraph().find_class_id(first);
+    ASSERT_EQ(std::get<Op>(ctx.extract(first, {}).choices.at(first_class)->get_atom()), direct);
+    ASSERT_EQ(std::get<Op>(ctx.extract(second, {}).choices.at(first_class)->get_atom()), alternative);
+    auto results = ctx.evaluate({}, {{"A", {3}}});
+    EXPECT_EQ(results.get(first), (std::vector<double>{3}));
+    EXPECT_EQ(results.get(second), (std::vector<double>{6}));
+    EXPECT_EQ(direct_calls, 1);
+    EXPECT_EQ(shared_calls, 1);
+    EXPECT_EQ(alternative_calls, 0);
+}
+
+TEST(ApiOutputsTest, ResultsOwnValuesAcrossEvaluationsAndClear) {
+    Context ctx;
+    auto a = ctx.define_matrix("A", 1, 1);
+    auto output = ctx.add_output(a);
+    auto first = ctx.evaluate({}, {{"A", {2}}});
+    auto second = ctx.evaluate({}, {{"A", {7}}});
+    auto uncomputed = ctx.add_output(ctx.define_matrix("B", 1, 1));
+    EXPECT_THROW(first.get(uncomputed), std::out_of_range);
+    ctx.clear();
+
+    EXPECT_EQ(first.get(output), (std::vector<double>{2}));
+    EXPECT_EQ(second.get(output), (std::vector<double>{7}));
+}
+
+TEST(ApiOutputsTest, RejectsEmptyOutputSets) {
+    Context ctx;
+    EXPECT_THROW(ctx.optimize(), std::logic_error);
+    EXPECT_THROW(ctx.evaluate({}, {}), std::logic_error);
+}
+
+TEST(ApiOutputsTest, OptimizationRetainsIndependentOutputsAcrossIterations) {
+    Context ctx;
+    auto a = ctx.define_matrix("A", 2, 2);
+    auto b = ctx.define_matrix("B", 2, 2);
+    auto sum = ctx.add_output(a + b);
+    auto product = ctx.add_output(a * b);
+    ctx.get_config().pruner.num_iterations = 2;
+    ctx.optimize();
+    auto results = ctx.evaluate({}, {{"A", {1, 0, 0, 1}}, {"B", {2, 0, 0, 3}}});
+    EXPECT_EQ(results.get(sum), (std::vector<double>{3, 0, 0, 4}));
+    EXPECT_EQ(results.get(product), (std::vector<double>{2, 0, 0, 3}));
+}
+
 TEST(ApiTest, VariableConstruction) {
     Expression A("A");
     EXPECT_EQ(A.to_string(), "A");
@@ -45,7 +184,11 @@ TEST(ApiTest, ContextOptimization) {
 
     Expression my_math = transpose(A * B);
 
-    Expression best_ast = ctx.optimize_concrete(my_math, {}, {"complete"});
+    auto output = ctx.add_output(my_math);
+    ctx.initialize_config(my_math);
+    ctx.rewrite({"complete"});
+    ctx.lower_to_kernels();
+    Expression best_ast = ctx.extract(output, {}).expr;
 
     EXPECT_EQ(best_ast.to_string(true), "Gemm_TT(B, A, Zero_300x100)");
 }
@@ -61,14 +204,17 @@ TEST(ApiTest, ConcreteMatrixChainEvaluation) {
     Expression C("C");
 
     Expression target = (A + B) * C;
-    ctx.optimize_concrete(target);
+    auto output = ctx.add_output(target);
+    ctx.initialize_config(target);
+    ctx.rewrite();
+    ctx.lower_to_kernels();
 
     // A = [1 0; 0 1], B = [2 0; 0 2], C = [4 1; 2 5]
     // (A + B) * C = 3 * C = [12 3; 6 15]
     // in col-major: col 0 = [12, 6], col 1 = [3, 15]
     DataBindings data = {{"A", {1.0, 0.0, 0.0, 1.0}}, {"B", {2.0, 0.0, 0.0, 2.0}}, {"C", {4.0, 2.0, 1.0, 5.0}}};
 
-    auto res = ctx.evaluate_concrete({}, data);
+    auto res = ctx.evaluate({}, data).get(output);
     ASSERT_EQ(res.size(), 4);
     EXPECT_NEAR(res[0], 12.0, 1e-6);
     EXPECT_NEAR(res[1], 6.0, 1e-6);
@@ -108,7 +254,7 @@ TEST(ApiTest, ContextCustomKernelEvaluation) {
            MatrixNode &output) {
         const double *in = inputs[0]->data();
         double *out = output.data();
-        size_t n = static_cast<long>(output.rows) * output.cols;
+        size_t n = static_cast<size_t>(output.rows) * output.cols;
         for (size_t i = 0; i < n; ++i) {
             out[i] = in[i] * 2.0;
         }
@@ -116,12 +262,15 @@ TEST(ApiTest, ContextCustomKernelEvaluation) {
 
     auto a = ctx.define_matrix("A", 2, 2);
     Expression custom_expr(double_kernel, {a});
-    ctx.optimize_concrete(custom_expr);
+    auto output = ctx.add_output(custom_expr);
+    ctx.initialize_config(custom_expr);
+    ctx.rewrite();
+    ctx.lower_to_kernels();
 
     DataBindings bindings;
     bindings["A"] = {1.0, 2.0, 3.0, 4.0};
 
-    auto res = ctx.evaluate_concrete({}, bindings);
+    auto res = ctx.evaluate({}, bindings).get(output);
     ASSERT_EQ(res.size(), 4);
     EXPECT_DOUBLE_EQ(res[0], 2.0);
     EXPECT_DOUBLE_EQ(res[1], 4.0);
@@ -146,7 +295,7 @@ TEST(ApiTest, ContextCustomInPlaceKernelEvaluation) {
            MatrixNode &output) {
         const double *a = inputs[0]->data();
         double *b = output.data();
-        size_t n = static_cast<long>(output.rows) * output.cols;
+        size_t n = static_cast<size_t>(output.rows) * output.cols;
         for (size_t i = 0; i < n; ++i) {
             b[i] += a[i];
         }
@@ -156,13 +305,16 @@ TEST(ApiTest, ContextCustomInPlaceKernelEvaluation) {
     auto a = ctx.define_matrix("A", 2, 2);
     auto b = ctx.define_matrix("B", 2, 2);
     Expression custom_expr(add_to_kernel, {a, b});
-    ctx.optimize_concrete(custom_expr);
+    auto output = ctx.add_output(custom_expr);
+    ctx.initialize_config(custom_expr);
+    ctx.rewrite();
+    ctx.lower_to_kernels();
 
     DataBindings bindings;
     bindings["A"] = {1.0, 2.0, 3.0, 4.0};
     bindings["B"] = {10.0, 20.0, 30.0, 40.0};
 
-    auto res = ctx.evaluate_concrete({}, bindings);
+    auto res = ctx.evaluate({}, bindings).get(output);
     ASSERT_EQ(res.size(), 4);
     EXPECT_DOUBLE_EQ(res[0], 11.0);
     EXPECT_DOUBLE_EQ(res[1], 22.0);
@@ -207,7 +359,10 @@ TEST(ApiTest, ContextCustomTupleProducingKernel) {
     Expression get_upper(OpRegistry::op("Get"), {split_expr, Expression(0)});
     Expression get_lower(OpRegistry::op("Get"), {split_expr, Expression(1)});
     Expression sum_expr = get_upper + get_lower;
-    ctx.optimize_concrete(sum_expr);
+    auto output = ctx.add_output(sum_expr);
+    ctx.initialize_config(sum_expr);
+    ctx.rewrite();
+    ctx.lower_to_kernels();
 
     DataBindings bindings;
     // A = [1 2; 3 4] in col-major: [1.0, 3.0, 2.0, 4.0]
@@ -216,7 +371,7 @@ TEST(ApiTest, ContextCustomTupleProducingKernel) {
     // sum: [2 2; 3 8] -> col-major: [2, 3, 2, 8]
     bindings["A"] = {1.0, 3.0, 2.0, 4.0};
 
-    auto res = ctx.evaluate_concrete({}, bindings);
+    auto res = ctx.evaluate({}, bindings).get(output);
     ASSERT_EQ(res.size(), 4);
     EXPECT_DOUBLE_EQ(res[0], 2.0);
     EXPECT_DOUBLE_EQ(res[1], 3.0);
@@ -276,14 +431,17 @@ TEST(ApiTest, ContextCustomTupleConsumingKernel) {
     auto a = ctx.define_matrix("A", 2, 2);
     Expression split_expr(split_kernel, {a});
     Expression combine_expr(combine_kernel, {split_expr});
-    ctx.optimize_concrete(combine_expr);
+    auto output = ctx.add_output(combine_expr);
+    ctx.initialize_config(combine_expr);
+    ctx.rewrite();
+    ctx.lower_to_kernels();
 
     DataBindings bindings;
     // A = [1 2; 3 4] -> diag = [1 0; 0 4], offdiag = [0 2; 3 0]
     // diag - offdiag = [1 -2; -3 4] -> col-major: [1.0, -3.0, -2.0, 4.0]
     bindings["A"] = {1.0, 3.0, 2.0, 4.0};
 
-    auto res = ctx.evaluate_concrete({}, bindings);
+    auto res = ctx.evaluate({}, bindings).get(output);
     ASSERT_EQ(res.size(), 4);
     EXPECT_DOUBLE_EQ(res[0], 1.0);
     EXPECT_DOUBLE_EQ(res[1], -3.0);
@@ -315,12 +473,15 @@ TEST(ApiTest, ContextCustomInPlaceTupleKernel) {
     auto a = ctx.define_matrix("A", 2, 2);
     Expression factor_expr(in_place_tuple_kernel, {a});
     Expression get_expr(OpRegistry::op("Get"), {factor_expr, Expression(0)});
-    ctx.optimize_concrete(get_expr);
+    auto output = ctx.add_output(get_expr);
+    ctx.initialize_config(get_expr);
+    ctx.rewrite();
+    ctx.lower_to_kernels();
 
     DataBindings bindings;
     bindings["A"] = {1.0, 2.0, 3.0, 4.0};
 
-    auto res = ctx.evaluate_concrete({}, bindings);
+    auto res = ctx.evaluate({}, bindings).get(output);
     ASSERT_EQ(res.size(), 4);
     EXPECT_DOUBLE_EQ(res[0], 10.0);
     EXPECT_DOUBLE_EQ(res[1], 20.0);
@@ -331,7 +492,7 @@ TEST(ApiTest, ContextCustomInPlaceTupleKernel) {
 TEST(ApiTest, SimpleAdd) {
     Context ctx;
 
-    Op simple_add = ctx.register_kernel(
+    ctx.register_kernel(
         "SimpleAdd",
         [](const std::vector<Operand> &operands) -> AnalysisData {
         return AnalysisData{as_matrix(operands[0])->property};
@@ -359,7 +520,7 @@ TEST(ApiTest, SimpleAdd) {
     auto A = ctx.define_matrix("A", 2, 2);
     auto B = ctx.define_matrix("B", 2, 2);
     Expression high_level_expr = A + B;
-    Id root_id = ctx.add(high_level_expr);
+    auto root_id = ctx.add_output(high_level_expr);
 
     // 4. Apply the rewrite rule to discover the kernel implementation in the egraph
     ctx.apply_rewrites({lower_add_rule});
@@ -373,7 +534,7 @@ TEST(ApiTest, SimpleAdd) {
     bindings["A"] = {1.0, 2.0, 3.0, 4.0};
     bindings["B"] = {10.0, 20.0, 30.0, 40.0};
 
-    auto res = ctx.evaluate_concrete(root_id, {}, bindings);
+    auto res = ctx.evaluate({}, bindings).get(root_id);
     ASSERT_EQ(res.size(), 4);
     EXPECT_DOUBLE_EQ(res[0], 11.0);
     EXPECT_DOUBLE_EQ(res[1], 22.0);

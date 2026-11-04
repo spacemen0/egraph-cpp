@@ -39,25 +39,27 @@ int run_image() {
     Expression math_1 = transpose(H) * inverse(H * transpose(H));
     Expression math_2 = math_1 * y + (I - math_1 * H) * x;
 
-    // math_1 passed as a background expression
-    ctx.optimize_symbolic(math_2, {math_1});
+    // Request both values, even if math_2's selected plan does not compute math_1.
+    auto ctx_output = ctx.add_output(math_2);
+    auto ctx_math_1_output = ctx.add_output(math_1);
+    ctx.optimize();
 
     DataBindings concrete_data = {
         {"y", y_data}, {"H", h_data}, {"I", generate_identity_matrix(h_sizes.second)}, {"x", x_data}};
 
-    // run extraction for both math_1 and math_2 if math_1 is not computed explicitly when computing math_2 (does not
-    // appear as a e-class in the extraction result of math_2)
-    auto out2 = ctx.evaluate_concrete(concrete_sizes, concrete_data);
+    // Evaluation makes every registered output available.
+    auto ctx_results = ctx.evaluate(concrete_sizes, concrete_data);
+    const auto &out2 = ctx_results.get(ctx_output);
 
-    auto out1 = ctx.get_preserved(math_1);
-    auto out1_shape = bind_shape(ctx.get_property(math_1).shape, concrete_sizes);
+    const auto &out1 = ctx_results.get(ctx_math_1_output);
+    auto out1_shape = bind_shape(ctx.get_property(ctx_math_1_output).shape, concrete_sizes);
     int row1 = std::get<int>(out1_shape.first);
     int col1 = std::get<int>(out1_shape.second);
     std::string out_path1 = "data/image_result_1.csv";
     write_matrix(out_path1, row1, col1, out1);
 
     // Retrieve target math_2
-    auto out2_shape = bind_shape(ctx.get_property().shape, concrete_sizes);
+    auto out2_shape = bind_shape(ctx.get_property(ctx_output).shape, concrete_sizes);
     int row2 = std::get<int>(out2_shape.first);
     int col2 = std::get<int>(out2_shape.second);
     std::string out_path2 = "data/image_result_2.csv";

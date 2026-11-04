@@ -11,7 +11,8 @@ int run_gls() {
     Expression M = ctx.define_matrix("M", "a", "a", {"symmetric", "positive_definite"});
     Expression target_math = inverse(transpose(X) * inverse(M) * X) * transpose(X) * inverse(M) * y;
 
-    ctx.optimize_symbolic(target_math);
+    auto ctx_output = ctx.add_output(target_math);
+    ctx.optimize();
     auto [m_sizes, m_data] = read_matrix("data/gls_m.csv");
     auto [x_sizes, x_data] = read_matrix("data/gls_x.csv");
     auto [y_sizes, y_data] = read_matrix("data/gls_y.csv");
@@ -36,8 +37,10 @@ int run_gls() {
     SizeBindings concrete_sizes = {{"a", x_sizes.first}, {"b", x_sizes.second}};
     DataBindings concrete_data = {{"X", x_data}, {"M", m_data}, {"y", y_data}};
 
-    auto out = ctx.evaluate_concrete(concrete_sizes, concrete_data);
-    auto out_shape = bind_shape(ctx.get_property().shape, concrete_sizes);
+    auto ctx_results = ctx.evaluate(concrete_sizes, concrete_data);
+
+    const auto &out = ctx_results.get(ctx_output);
+    auto out_shape = bind_shape(ctx.get_property(ctx_output).shape, concrete_sizes);
     int row = std::get<int>(out_shape.first);
     int col = std::get<int>(out_shape.second);
 
