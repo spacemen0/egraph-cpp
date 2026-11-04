@@ -1,6 +1,7 @@
 #include "egraph_parser.h"
 #include "expression.h"
 #include "utils.h"
+#include <any>
 #include <peglib.h>
 #include <string>
 #include <string_view>
@@ -21,7 +22,11 @@ const char *GRAMMAR = R"(
     # Block 1: Symbols
     SymbolsBlock     <- 'symbols' '{' SymbolDecl* '}' ';'?
     SymbolDecl       <- Identifier ':' TypeSpec PropertyFlags? ';'
-    TypeSpec         <- 'Matrix' / 'Scalar' / 'ColVector' / 'RowVector'
+    TypeSpec         <- 'Matrix' '(' Dimension ',' Dimension ')'
+                      / 'Scalar'
+                      / 'ColVector' '(' Dimension ')'
+                      / 'RowVector' '(' Dimension ')'
+    Dimension        <- < [0-9]+ > / Identifier
     PropertyFlags    <- '{' PropertyLiteral (',' PropertyLiteral)* '}'
     PropertyLiteral  <- < 'symmetric' / 'orthogonal' / 'orthonormal' / 'identity'
                         / 'zero' / 'upper_triangular' / 'lower_triangular'
@@ -105,10 +110,27 @@ peg::parser create_parser() {
         return std::string(tok.substr(1, tok.size() - 2));
     };
 
-    p["TypeSpec"] = [](const peg::SemanticValues &vs) -> SymbolKind {
-        return static_cast<SymbolKind>(vs.choice());
+    p["Dimension"] = [](const peg::SemanticValues &vs) -> Size {
+        if (vs.choice() == 0) {
+            return {std::stoi(vs.token_to_string())};
+        }
+        return {std::any_cast<std::string>(vs[0])};
     };
 
+    p["TypeSpec"] = [](const peg::SemanticValues &vs) -> std::pair<SymbolKind, Shape> {
+        switch (vs.choice()) {
+        case 0:
+            return {SymbolKind::Matrix, {std::any_cast<Size>(vs[0]), std::any_cast<Size>(vs[1])}};
+        case 1:
+            return {SymbolKind::Scalar, {Size(1), Size(1)}};
+        case 2:
+            return {SymbolKind::ColVector, {std::any_cast<Size>(vs[0]), Size(1)}};
+        case 3:
+            return {SymbolKind::RowVector, {Size(1), std::any_cast<Size>(vs[0])}};
+        default:
+            throw std::runtime_error("Unknown type");
+        }
+    };
     p["PropertyLiteral"] = [](const peg::SemanticValues &vs) -> std::string {
         return vs.token_to_string();
     };
@@ -277,7 +299,9 @@ peg::parser create_parser() {
         auto [line, col] = vs.line_info();
         SymbolDecl sym;
         sym.name = std::any_cast<std::string>(vs[0]);
-        sym.kind = std::any_cast<SymbolKind>(vs[1]);
+        auto [kind, shape] = std::any_cast<std::pair<SymbolKind, Shape>>(vs[1]);
+        sym.kind = kind;
+        sym.shape = shape;
         sym.loc = SourceLocation{static_cast<uint32_t>(line), static_cast<uint32_t>(col)};
         if (vs.size() > 2) {
             sym.property_flags = std::any_cast<std::vector<std::string>>(vs[2]);
@@ -451,7 +475,6 @@ void inline_intermediate_expressions(ProgramManifest &prog) {
         ed.expr = substitute_identifiers(ed.expr, raw_map, active_stack, loc_map, ed.loc);
     }
 }
-
 } // namespace
 
 ProgramManifest parse_program(std::string_view source) {

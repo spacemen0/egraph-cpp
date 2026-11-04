@@ -79,40 +79,40 @@ TEST_F(EGraphParserTest, RegressionTestsSyntaxValidity) {
     EXPECT_TRUE(parse_and_check_syntax("symbols { Matrix2 : Scalar; } expressions {} operations {}"));
 
     // 9. trans: Matrix; -> Invalid (trans is reserved keyword)
-    EXPECT_FALSE(parse_and_check_syntax("symbols { trans : Matrix; } expressions {} operations {}"));
+    EXPECT_FALSE(parse_and_check_syntax("symbols { trans : Matrix(n, m); } expressions {} operations {}"));
 
     // 10. transpose: Matrix; -> Valid
-    EXPECT_TRUE(parse_and_check_syntax("symbols { transpose : Matrix; } expressions {} operations {}"));
+    EXPECT_TRUE(parse_and_check_syntax("symbols { transpose : Matrix(n, m); } expressions {} operations {}"));
 
     // 11. x = 1.0e3; -> Invalid (scientific exponent notation not allowed)
     EXPECT_FALSE(parse_and_check_syntax("symbols {} expressions { x = 1.0e3; } operations {}"));
 
     // 12. evaluate(A,{file="a.csv"}); -> Valid
     EXPECT_TRUE(parse_and_check_syntax(
-        "symbols { A : Matrix; }\n"
+        "symbols { A : Matrix(10, 20); }\n"
         "expressions { e = A; }\n"
         "operations { evaluate(e, { A = \"a.csv\" }); }"));
 
     // 13. evaluate(A,{count=10}); -> Invalid (count=10 is not string literal)
     EXPECT_FALSE(parse_and_check_syntax(
-        "symbols { A : Matrix; }\n"
+        "symbols { A : Matrix(10, 20); }\n"
         "expressions { e = A; }\n"
         "operations { evaluate(e, { count = 10 }); }"));
 
     // 14. Valid property literals
     EXPECT_TRUE(parse_and_check_syntax(
-        "symbols { A : Matrix { symmetric, positive_definite }; } expressions {} operations {}"));
+        "symbols { A : Matrix(10, 20) { symmetric, positive_definite }; } expressions {} operations {}"));
 
     // 15. Invalid property literal
-    EXPECT_FALSE(parse_and_check_syntax("symbols { A : Matrix { unknown_prop }; } expressions {} operations {}"));
+    EXPECT_FALSE(parse_and_check_syntax("symbols { A : Matrix(10, 20) { unknown_prop }; } expressions {} operations {}"));
 }
 
 TEST_F(EGraphParserTest, LowersCompleteValidProgram) {
     std::string script = R"(
         symbols {
-            A : Matrix { symmetric };
-            B : Matrix;
-            v : ColVector;
+            A : Matrix(10, 20) { symmetric };
+            B : Matrix(20, 30);
+            v : ColVector(30);
         }
         expressions {
             e1 = A * B;
@@ -128,14 +128,17 @@ TEST_F(EGraphParserTest, LowersCompleteValidProgram) {
     EXPECT_EQ(manifest.symbols.size(), 3);
     EXPECT_EQ(manifest.symbols[0].name, "A");
     EXPECT_EQ(manifest.symbols[0].kind, SymbolKind::Matrix);
+    EXPECT_EQ(manifest.symbols[0].shape, (Shape{10, 20}));
     ASSERT_EQ(manifest.symbols[0].property_flags.size(), 1);
     EXPECT_EQ(manifest.symbols[0].property_flags[0], "symmetric");
 
     EXPECT_EQ(manifest.symbols[1].name, "B");
     EXPECT_EQ(manifest.symbols[1].kind, SymbolKind::Matrix);
+    EXPECT_EQ(manifest.symbols[1].shape, (Shape{20, 30}));
 
     EXPECT_EQ(manifest.symbols[2].name, "v");
     EXPECT_EQ(manifest.symbols[2].kind, SymbolKind::ColVector);
+    EXPECT_EQ(manifest.symbols[2].shape, (Shape{30, 1}));
 
     EXPECT_EQ(manifest.expressions.size(), 2);
     EXPECT_EQ(manifest.expressions[0].name, "e1");
@@ -157,7 +160,7 @@ TEST_F(EGraphParserTest, LowersCompleteValidProgram) {
 TEST_F(EGraphParserTest, LowersOperationsWithOptionalEffortAfterBindings) {
     std::string script = R"(
         symbols {
-            A : Matrix;
+            A : Matrix(10, 20);
         }
         expressions {
             e = A;
@@ -188,7 +191,7 @@ TEST_F(EGraphParserTest, LowersOperationsWithOptionalEffortAfterBindings) {
 TEST_F(EGraphParserTest, DesugarsScalarDivision) {
     std::string script = R"(
         symbols {
-            A : Matrix;
+            A : Matrix(10, 20);
         }
         expressions {
             e = A / 2.0;
@@ -218,7 +221,7 @@ TEST_F(EGraphParserTest, RejectsMalformedOrRepeatedOperationArguments) {
          }) {
         SCOPED_TRACE(call);
         const std::string script =
-            "symbols { A: Matrix; } expressions { e=A; } operations { " + std::string(call) + " }";
+            "symbols { A: Matrix(10, 20); } expressions { e=A; } operations { " + std::string(call) + " }";
         EXPECT_THROW(parse_program(script), SyntaxError);
     }
 }
@@ -229,14 +232,14 @@ TEST_F(EGraphParserTest, RejectsEffortBeforeBindings) {
           "extract_all(e, medium, { A=\"a.csv\" });"}) {
         SCOPED_TRACE(call);
         const std::string script =
-            "symbols { A: Matrix; } expressions { e=A; } operations { " + std::string(call) + " }";
+            "symbols { A: Matrix(10, 20); } expressions { e=A; } operations { " + std::string(call) + " }";
         EXPECT_THROW(parse_program(script), SyntaxError);
     }
 }
 
 TEST_F(EGraphParserTest, AcceptsBareEffortAfterBindings) {
     auto manifest = parse_program(R"(
-        symbols { A: Matrix; }
+        symbols { A: Matrix(10, 20); }
         expressions { e=A; }
         operations {
             evaluate(e, { A="a.csv" }, low);
@@ -253,7 +256,7 @@ TEST_F(EGraphParserTest, AcceptsBareEffortAfterBindings) {
 TEST_F(EGraphParserTest, RejectsDuplicateBindingKeys) {
     EXPECT_THROW(
         parse_program(R"(
-        symbols { A: Matrix; }
+        symbols { A: Matrix(10, 20); }
         expressions { e=A; }
         operations { evaluate(e, { A="a.csv", A="b.csv" }); }
     )"),
@@ -264,7 +267,7 @@ TEST_F(EGraphParserTest, RejectsUnknownExpressionReferences) {
     for (const auto *expression : {"typo", "A * typo", "typo + A", "e", "later"}) {
         SCOPED_TRACE(expression);
         const std::string script =
-            "symbols { A: Matrix; }\nexpressions {\n e=" + std::string(expression) + ";\n later=A;\n} operations {}";
+            "symbols { A: Matrix(10, 20); }\nexpressions {\n e=" + std::string(expression) + ";\n later=A;\n} operations {}";
         try {
             parse_program(script);
             FAIL() << "Expected unknown reference to be rejected";
@@ -277,7 +280,7 @@ TEST_F(EGraphParserTest, RejectsUnknownExpressionReferences) {
 
 TEST_F(EGraphParserTest, RejectsUnknownOperationTarget) {
     try {
-        parse_program(R"(symbols { A: Matrix; }
+        parse_program(R"(symbols { A: Matrix(10, 20); }
 expressions { e=A; }
 operations { evaluate(missing, { A="a.csv" }); })");
         FAIL() << "Expected unknown operation target to be rejected";
@@ -289,7 +292,7 @@ operations { evaluate(missing, { A="a.csv" }); })");
 
 TEST_F(EGraphParserTest, AcceptsDeclaredSymbolOperationTarget) {
     auto manifest = parse_program(R"(
-        symbols { A: Matrix; }
+        symbols { A: Matrix(10, 20); }
         expressions {}
         operations { evaluate(A, { A="a.csv" }); }
     )");
@@ -300,8 +303,8 @@ TEST_F(EGraphParserTest, AcceptsDeclaredSymbolOperationTarget) {
 TEST_F(EGraphParserTest, RejectsMatrixDivision) {
     std::string script = R"(
         symbols {
-            A : Matrix;
-            B : Matrix;
+            A : Matrix(10, 20);
+            B : Matrix(20, 30);
         }
         expressions {
             e = A / B;
@@ -326,7 +329,7 @@ TEST_F(EGraphParserTest, RejectsMatrixDivision) {
 TEST_F(EGraphParserTest, RejectsDivisionByZero) {
     std::string script = R"(
         symbols {
-            A : Matrix;
+            A : Matrix(10, 20);
         }
         expressions {
             e = A / 0.0;
@@ -351,7 +354,7 @@ TEST_F(EGraphParserTest, RejectsDivisionByZero) {
 TEST_F(EGraphParserTest, RejectsZeroDenominatorsAfterScalarSubstitution) {
     for (const auto *expression : {"A / z", "1.0 / z", "alpha / z", "A / (two - two)", "A / (alpha * (1.0 / z))"}) {
         SCOPED_TRACE(expression);
-        const std::string script = "symbols { A : Matrix; alpha : Scalar; }\n"
+        const std::string script = "symbols { A : Matrix(10, 20); alpha : Scalar; }\n"
                                    "expressions {\n"
                                    "  two = 2.0;\n"
                                    "  z = two - two;\n"
@@ -369,7 +372,7 @@ TEST_F(EGraphParserTest, RejectsZeroDenominatorsAfterScalarSubstitution) {
 
 TEST_F(EGraphParserTest, FoldsScalarAliasesInsideMatrixExpressions) {
     auto manifest = parse_program(R"(
-        symbols { A : Matrix; }
+        symbols { A : Matrix(10, 20); }
         expressions {
             s = 2.0;
             t = s + 2.0;
@@ -395,7 +398,7 @@ TEST_F(EGraphParserTest, FoldsScalarArithmeticAfterSubstitution) {
 
 TEST_F(EGraphParserTest, PreservesSymbolicScalarPayloadAfterFoldingConstants) {
     auto manifest = parse_program(R"(
-        symbols { A : Matrix; alpha : Scalar; }
+        symbols { A : Matrix(10, 20); alpha : Scalar; }
         expressions {
             s = 2.0;
             e = A / (alpha + s * s);
@@ -415,9 +418,9 @@ TEST_F(EGraphParserTest, PreservesSymbolicScalarPayloadAfterFoldingConstants) {
 TEST_F(EGraphParserTest, ArithmeticPrecedenceAndParentheses) {
     std::string script = R"(
         symbols {
-            A : Matrix;
-            B : Matrix;
-            C : Matrix;
+            A : Matrix(10, 20);
+            B : Matrix(20, 30);
+            C : Matrix(30, 40);
         }
         expressions {
             e1 = A + B * C;
@@ -442,7 +445,7 @@ TEST_F(EGraphParserTest, ArithmeticPrecedenceAndParentheses) {
 TEST_F(EGraphParserTest, RejectsForwardReferenceBeforeCycleCanBeFormed) {
     std::string script = R"(
         symbols {
-            A : Matrix;
+            A : Matrix(10, 20);
         }
         expressions {
             e1 = e2 + A;
@@ -468,7 +471,7 @@ TEST_F(EGraphParserTest, RejectsForwardReferenceBeforeCycleCanBeFormed) {
 TEST_F(EGraphParserTest, MissingDataBindingsThrowsCompileError) {
     std::string script = R"(
         symbols {
-            A : Matrix;
+            A : Matrix(10, 20);
         }
         expressions {
             e = A;
@@ -519,7 +522,7 @@ TEST_F(EGraphParserTest, SupportsComments) {
         // C++ style line comment
         symbols {
             # Shell style line comment
-            A : Matrix; // trailing comment
+            A : Matrix(10, 20); // trailing comment
         }
         expressions {
             e = A; # trailing shell comment
@@ -540,8 +543,8 @@ TEST_F(EGraphParserTest, SupportsComments) {
 TEST_F(EGraphParserTest, MixedScalarMatrixMultiplicationAndDivision) {
     std::string script = R"(
         symbols {
-            A : Matrix;
-            B : Matrix;
+            A : Matrix(10, 20);
+            B : Matrix(20, 30);
             alpha : Scalar;
         }
         expressions {
@@ -600,7 +603,7 @@ TEST_F(EGraphParserTest, RejectsInvalidMixedScalarMatrixOperations) {
     EXPECT_THROW(
         {
             parse_program(R"(
-                symbols { A : Matrix; }
+                symbols { A : Matrix(10, 20); }
                 expressions { e = A + 2.0; }
                 operations { extract_best(e, { A = "a.csv" }); }
             )");
@@ -611,7 +614,7 @@ TEST_F(EGraphParserTest, RejectsInvalidMixedScalarMatrixOperations) {
     EXPECT_THROW(
         {
             parse_program(R"(
-                symbols { A : Matrix; }
+                symbols { A : Matrix(10, 20); }
                 expressions { e = 2.0 / A; }
                 operations { extract_best(e, { A = "a.csv" }); }
             )");
@@ -644,7 +647,7 @@ TEST_F(EGraphParserTest, RejectsInvalidMixedScalarMatrixOperations) {
     EXPECT_THROW(
         {
             parse_program(R"(
-                symbols { A : Matrix; }
+                symbols { A : Matrix(10, 20); }
                 expressions { e = A / undeclared_sym; }
                 operations { extract_best(e, { A = "a.csv" }); }
             )");
@@ -655,7 +658,7 @@ TEST_F(EGraphParserTest, RejectsInvalidMixedScalarMatrixOperations) {
     EXPECT_THROW(
         {
             parse_program(R"(
-                symbols { A : Matrix; }
+                symbols { A : Matrix(10, 20); }
                 expressions {
                     e1 = A;
                     e2 = 1.0 + e1;
@@ -669,7 +672,7 @@ TEST_F(EGraphParserTest, RejectsInvalidMixedScalarMatrixOperations) {
     EXPECT_THROW(
         {
             parse_program(R"(
-                symbols { A : Matrix; A : Scalar; }
+                symbols { A : Matrix(10, 20); A : Scalar; }
                 expressions { e = 1.0; }
                 operations { extract_best(e, {}); }
             )");
@@ -679,7 +682,7 @@ TEST_F(EGraphParserTest, RejectsInvalidMixedScalarMatrixOperations) {
     EXPECT_THROW(
         {
             parse_program(R"(
-                symbols { A : Matrix; }
+                symbols { A : Matrix(10, 20); }
                 expressions {
                     A = 1.0;
                 }
@@ -687,4 +690,74 @@ TEST_F(EGraphParserTest, RejectsInvalidMixedScalarMatrixOperations) {
             )");
         },
         CompileError);
+}
+
+TEST_F(EGraphParserTest, ParsesMatrixAndVectorDimensions) {
+    std::string script = R"(
+        symbols {
+            A : Matrix(100, 20) { symmetric };
+            B : Matrix(n, m);
+            v : ColVector(100);
+            w : ColVector(k);
+            r : RowVector(200);
+            u : RowVector(p);
+            s : Scalar;
+        }
+        expressions {}
+        operations {}
+    )";
+
+    ProgramManifest manifest = parse_program(script);
+    ASSERT_EQ(manifest.symbols.size(), 7);
+
+    EXPECT_EQ(manifest.symbols[0].name, "A");
+    EXPECT_EQ(manifest.symbols[0].kind, SymbolKind::Matrix);
+    EXPECT_EQ(manifest.symbols[0].shape, (Shape{100, 20}));
+    ASSERT_EQ(manifest.symbols[0].property_flags.size(), 1);
+    EXPECT_EQ(manifest.symbols[0].property_flags[0], "symmetric");
+
+    EXPECT_EQ(manifest.symbols[1].name, "B");
+    EXPECT_EQ(manifest.symbols[1].kind, SymbolKind::Matrix);
+    EXPECT_EQ(manifest.symbols[1].shape, (Shape{"n", "m"}));
+
+    EXPECT_EQ(manifest.symbols[2].name, "v");
+    EXPECT_EQ(manifest.symbols[2].kind, SymbolKind::ColVector);
+    EXPECT_EQ(manifest.symbols[2].shape, (Shape{100, 1}));
+
+    EXPECT_EQ(manifest.symbols[3].name, "w");
+    EXPECT_EQ(manifest.symbols[3].kind, SymbolKind::ColVector);
+    EXPECT_EQ(manifest.symbols[3].shape, (Shape{"k", 1}));
+
+    EXPECT_EQ(manifest.symbols[4].name, "r");
+    EXPECT_EQ(manifest.symbols[4].kind, SymbolKind::RowVector);
+    EXPECT_EQ(manifest.symbols[4].shape, (Shape{1, 200}));
+
+    EXPECT_EQ(manifest.symbols[5].name, "u");
+    EXPECT_EQ(manifest.symbols[5].kind, SymbolKind::RowVector);
+    EXPECT_EQ(manifest.symbols[5].shape, (Shape{1, "p"}));
+
+    EXPECT_EQ(manifest.symbols[6].name, "s");
+    EXPECT_EQ(manifest.symbols[6].kind, SymbolKind::Scalar);
+    EXPECT_EQ(manifest.symbols[6].shape, (Shape{1, 1}));
+}
+
+TEST_F(EGraphParserTest, RejectsInvalidDimensionSyntax) {
+    // Missing dimensions
+    EXPECT_THROW(parse_program("symbols { A : Matrix; } expressions {} operations {}"), SyntaxError);
+    EXPECT_THROW(parse_program("symbols { v : ColVector; } expressions {} operations {}"), SyntaxError);
+    EXPECT_THROW(parse_program("symbols { r : RowVector; } expressions {} operations {}"), SyntaxError);
+
+    // Wrong number of dimensions
+    EXPECT_THROW(parse_program("symbols { A : Matrix(10); } expressions {} operations {}"), SyntaxError);
+    EXPECT_THROW(parse_program("symbols { A : Matrix(10, 20, 30); } expressions {} operations {}"), SyntaxError);
+    EXPECT_THROW(parse_program("symbols { v : ColVector(10, 20); } expressions {} operations {}"), SyntaxError);
+    EXPECT_THROW(parse_program("symbols { r : RowVector(10, 20); } expressions {} operations {}"), SyntaxError);
+
+    // Scalar must not have dimensions
+    EXPECT_THROW(parse_program("symbols { s : Scalar(); } expressions {} operations {}"), SyntaxError);
+    EXPECT_THROW(parse_program("symbols { s : Scalar(1); } expressions {} operations {}"), SyntaxError);
+    EXPECT_THROW(parse_program("symbols { s : Scalar(1, 1); } expressions {} operations {}"), SyntaxError);
+
+    // Dimensions after property flags
+    EXPECT_THROW(parse_program("symbols { A : Matrix { symmetric } (10, 20); } expressions {} operations {}"), SyntaxError);
 }

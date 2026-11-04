@@ -36,10 +36,9 @@ class ManifestWriterTest : public ::testing::Test {
 };
 
 TEST_F(ManifestWriterTest, WritesTypedJsonWithMetadata) {
-    auto manifest = parse_program(R"(symbols { A: Matrix { symmetric }; alpha: Scalar; }
+    auto manifest = parse_program(R"(symbols { A: Matrix(n, 4) { symmetric }; alpha: Scalar; }
 expressions { e=(alpha+2.0)*A; }
 operations { evaluate(e, { A="a.csv", alpha="alpha.csv" }, high); })");
-    manifest.symbols[0].shape = {"n", 4};
     write_manifest(manifest, directory / "manifest.json");
     const auto json = read("manifest.json");
     EXPECT_NE(json.find("\"version\": 1"), std::string::npos);
