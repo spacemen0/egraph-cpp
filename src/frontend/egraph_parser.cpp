@@ -78,7 +78,8 @@ const char *GRAMMAR = R"(
 
 struct ParseContext {
 
-    // the scope the identifiers are defined in, only scalar and matrix differ
+    // expression can either eventually represent a matrix or s scalar
+    // a symbol is either a matrix or a scalar
     std::unordered_map<std::string, SymbolKind> types;
 };
 

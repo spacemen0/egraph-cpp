@@ -165,7 +165,7 @@ void manifest_json(std::ostream &out, const ProgramManifest &manifest) {
         out << '}';
     });
     out << ",\n  \"operations\": ";
-    array(out, manifest.operations, [&](const OperationDirective &op) {
+    array(out, manifest.operations, [&](const OperationDesc &op) {
         out << "{\"kind\": ";
         quoted(out, name(op.kind));
         out << ", \"target_variable\": ";
@@ -221,56 +221,14 @@ void expression_text(std::ostream &out, const Expression &expr, size_t depth) {
         expression_text(out, child, depth + 1);
 }
 
-void manifest_text(std::ostream &out, const ProgramManifest &manifest) {
-    out << "Program manifest\nSymbols:\n";
-    for (const auto &symbol : manifest.symbols) {
-        out << "  " << symbol.name << ": " << name(symbol.kind) << " [rows=";
-        size_json(out, symbol.shape.first);
-        out << ", cols=";
-        size_json(out, symbol.shape.second);
-        out << "] ";
-        array(out, symbol.property_flags, [&](const auto &flag) {
-            quoted(out, flag);
-        });
-        out << " @" << symbol.loc.line << ':' << symbol.loc.column << '\n';
-    }
-    out << "Expressions:\n";
-    for (const auto &expr : manifest.expressions) {
-        out << "  " << expr.name << " @" << expr.loc.line << ':' << expr.loc.column << '\n';
-        expression_text(out, expr.expr, 2);
-    }
-    out << "Operations:\n";
-    for (const auto &op : manifest.operations) {
-        out << "  " << name(op.kind) << ' ' << op.target_variable << " [effort=" << name(op.effort) << "] @"
-            << op.loc.line << ':' << op.loc.column << '\n';
-        for (const auto &[key, path] :
-             std::map<std::string, std::string>(op.data_bindings.begin(), op.data_bindings.end())) {
-            out << "    ";
-            quoted(out, key);
-            out << " = ";
-            quoted(out, path);
-            out << '\n';
-        }
-    }
-}
-
 } // namespace
 
-void write_manifest(const ProgramManifest &manifest, const std::filesystem::path &path, ManifestFormat format) {
+void write_manifest(const ProgramManifest &manifest, const std::filesystem::path &path) {
     // Serialize first so invalid data does not truncate an existing file.
     std::ostringstream contents;
     contents.imbue(std::locale::classic());
     contents << std::setprecision(std::numeric_limits<double>::max_digits10);
-    switch (format) {
-    case ManifestFormat::Json:
-        manifest_json(contents, manifest);
-        break;
-    case ManifestFormat::Text:
-        manifest_text(contents, manifest);
-        break;
-    default:
-        throw std::invalid_argument("Unknown manifest format");
-    }
+    manifest_json(contents, manifest);
     std::ofstream output;
     output.exceptions(std::ios::failbit | std::ios::badbit);
     output.open(path, std::ios::binary | std::ios::trunc);

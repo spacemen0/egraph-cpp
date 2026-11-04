@@ -16,7 +16,7 @@ class ManifestWriterTest : public ::testing::Test {
     std::filesystem::path directory;
 
     void SetUp() override {
-        directory = std::filesystem::temp_directory_path() /
+        directory = std::filesystem::path() /
                     ("egraph_manifest_" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
         ASSERT_TRUE(std::filesystem::create_directory(directory));
     }
@@ -58,7 +58,7 @@ operations { evaluate(e, { A="a.csv", alpha="alpha.csv" }, high); })");
 TEST_F(ManifestWriterTest, EscapesStringsAndPreservesNumericPrecision) {
     ProgramManifest manifest;
     manifest.expressions.push_back({"e", Expression(0.12345678901234566), {1, 1}});
-    OperationDirective op;
+    OperationDesc op;
     op.target_variable = "e";
     op.data_bindings["A"] = "C:\\data\\\"a\"\n\t\r\b\f" + std::string(1, '\x01');
     manifest.operations.push_back(op);
@@ -92,25 +92,6 @@ TEST_F(ManifestWriterTest, PreservesNegativeZeroAndIndexAtoms) {
     const auto json = read("manifest.json");
     EXPECT_NE(json.find("\"value\": -0.0"), std::string::npos);
     EXPECT_NE(json.find("\"kind\": \"index\", \"value\": 7"), std::string::npos);
-}
-
-TEST_F(ManifestWriterTest, WritesReadableTextWithExpressionTree) {
-    auto manifest = parse_program(R"(
-        symbols { A: Matrix; alpha: Scalar; }
-        expressions { e=(alpha+2.0)*A; }
-        operations { evaluate(e, { A="a.csv", alpha="alpha.csv" }); }
-    )");
-    write_manifest(manifest, directory / "manifest.txt", ManifestFormat::Text);
-    const auto text = read("manifest.txt");
-    EXPECT_NE(text.find("Symbols:"), std::string::npos);
-    EXPECT_NE(text.find("A: Matrix"), std::string::npos);
-    EXPECT_NE(text.find("Expressions:"), std::string::npos);
-    EXPECT_NE(text.find("Op Scale"), std::string::npos);
-    EXPECT_NE(text.find("Scalar Add"), std::string::npos);
-    EXPECT_NE(text.find("Scalar Var \"alpha\""), std::string::npos);
-    EXPECT_NE(text.find("Operations:"), std::string::npos);
-    EXPECT_NE(text.find("evaluate e"), std::string::npos);
-    EXPECT_NE(text.find("\"A\" = \"a.csv\""), std::string::npos);
 }
 
 TEST_F(ManifestWriterTest, ReportsFileOpenFailure) {
