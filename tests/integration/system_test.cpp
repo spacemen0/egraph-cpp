@@ -1,5 +1,4 @@
 #include "api.h"
-#include "test_helpers.h"
 #include <gtest/gtest.h>
 using namespace egraph;
 
